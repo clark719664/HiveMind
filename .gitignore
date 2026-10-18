@@ -16,7 +16,7 @@ build/
 # Project HiveMind runtime artifacts & caches
 .cache/
 artifacts/*
-!artifacts/e2e_hivemind_report.json
+!artifacts/*.json
 checkpoints/
 shards/
 models_cache/

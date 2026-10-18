@@ -1,0 +1,156 @@
+{
+  "steam_app_id": 3133700,
+  "remote_storage_namespace": "ISteamRemoteStorage::HiveMind_Neural_Breach_v2",
+  "best_miner_champion": {
+    "gamer_tag": "CyberValkyrie_FR",
+    "steam_id64": "76561198000000001",
+    "rank_title": "Rank V: Singularity Core (Apex Miner)",
+    "total_points": 10659,
+    "hive_balance": 45.0,
+    "best_loss_reduction_pct": 79.16,
+    "achievements_unlocked": [
+      "FIRST_HF_SHARD_BREACH",
+      "LORA_LOSS_CRUSHER",
+      "HF_BOUNTY_SOLVER",
+      "BYZANTINE_HUNTER",
+      "SWARM_ARCHITECT_E3",
+      "MOE_BOSS_SLAYER",
+      "TOP_1_APEX_MINER"
+    ]
+  },
+  "synced_gamer_profiles": [
+    {
+      "gamer_tag": "CyberValkyrie_FR",
+      "steam_id64": "76561198000000001",
+      "node_id": "seti-node-paris-01",
+      "region": "EU-West-Paris",
+      "specialty_focus": "Code & Algorithmic Breaching",
+      "total_points": 10659,
+      "data_discovery_points": 1389,
+      "lora_training_points": 2043,
+      "solution_bounty_points": 4209,
+      "swarm_contribution_points": 3018,
+      "boss_raid_points": 786,
+      "hive_balance": 45.0,
+      "reputation_score": 130,
+      "shards_mined": 4,
+      "bounties_solved": 4,
+      "boss_raids_cleared": 1,
+      "swarm_tokens_served": 119,
+      "best_loss_reduction_pct": 79.16,
+      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "steam_sybil_verified": true,
+      "steam_leaderboard_receipt": "steam_lb_hmac_8056db2b5ebbd83550727a42b8f0",
+      "achievements_unlocked": [
+        "FIRST_HF_SHARD_BREACH",
+        "LORA_LOSS_CRUSHER",
+        "HF_BOUNTY_SOLVER",
+        "BYZANTINE_HUNTER",
+        "SWARM_ARCHITECT_E3",
+        "MOE_BOSS_SLAYER",
+        "TOP_1_APEX_MINER"
+      ]
+    },
+    {
+      "gamer_tag": "NeuralGhost_DE",
+      "steam_id64": "76561198000000002",
+      "node_id": "seti-node-lyon-02",
+      "region": "EU-Central-Frankfurt",
+      "specialty_focus": "Biomedical & Scientific Mining",
+      "total_points": 8924,
+      "data_discovery_points": 1059,
+      "lora_training_points": 1930,
+      "solution_bounty_points": 3382,
+      "swarm_contribution_points": 2553,
+      "boss_raid_points": 581,
+      "hive_balance": 45.0,
+      "reputation_score": 130,
+      "shards_mined": 3,
+      "bounties_solved": 3,
+      "boss_raids_cleared": 1,
+      "swarm_tokens_served": 87,
+      "best_loss_reduction_pct": 74.1,
+      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "steam_sybil_verified": true,
+      "steam_leaderboard_receipt": "steam_lb_hmac_670690e5cddfb6672388481f964e",
+      "achievements_unlocked": [
+        "FIRST_HF_SHARD_BREACH",
+        "LORA_LOSS_CRUSHER",
+        "HF_BOUNTY_SOLVER",
+        "BYZANTINE_HUNTER",
+        "SWARM_ARCHITECT_E3",
+        "MOE_BOSS_SLAYER"
+      ]
+    },
+    {
+      "gamer_tag": "ZeroCool_UK",
+      "steam_id64": "76561198000000003",
+      "node_id": "seti-node-nice-03",
+      "region": "EU-West-London",
+      "specialty_focus": "Quantitative & Crypto Proofs",
+      "total_points": 8387,
+      "data_discovery_points": 1069,
+      "lora_training_points": 1505,
+      "solution_bounty_points": 3258,
+      "swarm_contribution_points": 2555,
+      "boss_raid_points": 583,
+      "hive_balance": 45.0,
+      "reputation_score": 130,
+      "shards_mined": 3,
+      "bounties_solved": 3,
+      "boss_raids_cleared": 1,
+      "swarm_tokens_served": 87,
+      "best_loss_reduction_pct": 70.34,
+      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "steam_sybil_verified": true,
+      "steam_leaderboard_receipt": "steam_lb_hmac_c03ed7fe6ed401bbcfcce48aac82",
+      "achievements_unlocked": [
+        "FIRST_HF_SHARD_BREACH",
+        "LORA_LOSS_CRUSHER",
+        "HF_BOUNTY_SOLVER",
+        "BYZANTINE_HUNTER",
+        "SWARM_ARCHITECT_E3",
+        "MOE_BOSS_SLAYER"
+      ]
+    }
+  ],
+  "steamworks_security_audit": {
+    "verified_gamers": [
+      {
+        "gamer_tag": "CyberValkyrie_FR",
+        "steam_id64": "76561198000000001",
+        "ticket_prefix": "16183d964fbdd4571b67",
+        "verified": true,
+        "status": "Verified Non-Limited Steam Account."
+      },
+      {
+        "gamer_tag": "NeuralGhost_DE",
+        "steam_id64": "76561198000000002",
+        "ticket_prefix": "d4db1c1d5d231fb31c3c",
+        "verified": true,
+        "status": "Verified Non-Limited Steam Account."
+      },
+      {
+        "gamer_tag": "ZeroCool_UK",
+        "steam_id64": "76561198000000003",
+        "ticket_prefix": "76449316de87d1455e7a",
+        "verified": true,
+        "status": "Verified Non-Limited Steam Account."
+      }
+    ],
+    "blocked_sybil_bots": [
+      {
+        "bot_tag": "Sybil_Bot_Limited_00",
+        "steam_id64": "76561198888888888",
+        "verified": false,
+        "reason": "Steam account is Limited ($0.00 < $5.00 minimum)."
+      },
+      {
+        "bot_tag": "VAC_Banned_Spoofer_77",
+        "steam_id64": "76561198777777777",
+        "verified": false,
+        "reason": "Steam account has an active VAC/Game ban."
+      }
+    ]
+  }
+}

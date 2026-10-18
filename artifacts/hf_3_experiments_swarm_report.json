@@ -1,0 +1,430 @@
+{
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 4.88,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
+  },
+  "vram_telemetry": {
+    "after_base_load_mb": 946.98,
+    "after_nf4_qlora_mb": 963.76,
+    "peak_3expert_hotplug_moe_mb": 1326.69,
+    "free_vram_gb": 5.59
+  },
+  "experiments": [
+    {
+      "experiment_id": 1,
+      "dataset_id": "sahil2801/CodeAlpaca-20k",
+      "domain_expert": "Python_Systems_Code",
+      "expert_cid": "cid://sha256/expert-python_systems_code-3f4b6cbcf1e138238a91555f",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_python_systems_code_3f4b6cbcf1e1.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/742553ef240177838f79fcbfbabaa055",
+          "challenged_chunk_index": 62,
+          "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/0df9dd2014bd27399b32fbd33be72df7",
+          "challenged_chunk_index": 20,
+          "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/13240d9e958ebcbadda5fa79e41cb4eb",
+          "challenged_chunk_index": 59,
+          "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 2.187762,
+          "final_loss": 0.474961,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 8.846732,
+          "final_loss": 0.438308,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 3.985243,
+          "final_loss": 0.516224,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 3.073866,
+      "pouw_block": {
+        "height": 1,
+        "block_hash": "c6afb4c422986152396e1542dd7096f6ac39995776d6e27db957a74a305cc40f",
+        "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
+        "merkle_root": "05d5bbd9f9f5a6b6b59b8259795d54993e1d801f6ad5b688b33aa247f1c3dafa",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-paris-01",
+        "expert_provider_nodes": [
+          "seti-node-lyon-02",
+          "seti-node-nice-03"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {},
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 15.0,
+        "seti-node-lyon-02": 15.0,
+        "seti-node-nice-03": 15.0,
+        "validator-node-eu-01": 5.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 14.775,
+        "seti-node-lyon-02": 15.1125,
+        "seti-node-nice-03": 15.1125,
+        "validator-node-eu-01": 5.0
+      },
+      "shared_swarm_generation": "def binary_search(arr, target):\n    low = 0\n    high = len(arr) - 1\n    \n    while low <= high:\n        mid = (low + high) // 2\n        \n        if arr[mid"
+    },
+    {
+      "experiment_id": 2,
+      "dataset_id": "qiaojin/PubMedQA",
+      "domain_expert": "Biomedical_Clinical_QA",
+      "expert_cid": "cid://sha256/expert-biomedical_clinical_qa-e5a59346ed401a5952f5e29b",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_biomedical_clinical_qa_e5a59346ed40.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/d58a6d8bfeecaab40bdc5c96c4a35af0",
+          "challenged_chunk_index": 45,
+          "merkle_proof_hash": "8de81f9f03021fa2d90df3d3a334fe410cccf0cb85df89aca4c0eb9ad4d47062",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/403fb0409eb40c2d9a1a9f4a8f77f765",
+          "challenged_chunk_index": 32,
+          "merkle_proof_hash": "8de81f9f03021fa2d90df3d3a334fe410cccf0cb85df89aca4c0eb9ad4d47062",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/52c70184cecc3ee0005be19cc27cfbf0",
+          "challenged_chunk_index": 37,
+          "merkle_proof_hash": "8de81f9f03021fa2d90df3d3a334fe410cccf0cb85df89aca4c0eb9ad4d47062",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 4.083642,
+          "final_loss": 2.046622,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 3.985639,
+          "final_loss": 1.402521,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 4.521575,
+          "final_loss": 0.884228,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 3.209379,
+      "pouw_block": {
+        "height": 2,
+        "block_hash": "cb032619a14c10c382779ed14b981aa43fdb89dd2535db1b12a13e5168e60a04",
+        "prev_block_hash": "c6afb4c422986152396e1542dd7096f6ac39995776d6e27db957a74a305cc40f",
+        "merkle_root": "f079f0fdc8d56b8f5e13704fc7f9ba3e9b7f75f001a4833cdf66b6365ded64b9",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-lyon-02",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-nice-03"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 14.775,
+        "seti-node-lyon-02": 15.1125,
+        "seti-node-nice-03": 15.1125,
+        "validator-node-eu-01": 5.0
+      },
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 29.775,
+        "seti-node-lyon-02": 30.1125,
+        "seti-node-nice-03": 30.1125,
+        "validator-node-eu-01": 10.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 29.8875,
+        "seti-node-lyon-02": 29.8875,
+        "seti-node-nice-03": 30.225,
+        "validator-node-eu-01": 10.0
+      },
+      "shared_swarm_generation": "Mitochondrial dysfunction is a common feature of cancer and other diseases."
+    },
+    {
+      "experiment_id": 3,
+      "dataset_id": "openai/gsm8k",
+      "domain_expert": "Mathematical_Reasoning",
+      "expert_cid": "cid://sha256/expert-mathematical_reasoning-20925f08191a2b88c9dbb88d",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_mathematical_reasoning_20925f08191a.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/c3efab02a81e048f0daa35d79ada59d8",
+          "challenged_chunk_index": 46,
+          "merkle_proof_hash": "59c147f5683be961e9bcabbdfb714361f7af53c52064a259e4644077b4b726c2",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/4f83ec801ec6ab891f261ededf626d39",
+          "challenged_chunk_index": 26,
+          "merkle_proof_hash": "59c147f5683be961e9bcabbdfb714361f7af53c52064a259e4644077b4b726c2",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/5f5fa24029f23a71eb5b9df5f6aff5d7",
+          "challenged_chunk_index": 63,
+          "merkle_proof_hash": "59c147f5683be961e9bcabbdfb714361f7af53c52064a259e4644077b4b726c2",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 2.243607,
+          "final_loss": 0.233356,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 2.845704,
+          "final_loss": 1.038605,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 1.998689,
+          "final_loss": 0.23154,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 2.713772,
+      "pouw_block": {
+        "height": 3,
+        "block_hash": "9f2f66e9a08a713c6c47f4ff3a2c3e840527b78172bfe037df4f3de0f3e7d187",
+        "prev_block_hash": "cb032619a14c10c382779ed14b981aa43fdb89dd2535db1b12a13e5168e60a04",
+        "merkle_root": "6333425fe97b40aedea23a566c52a1ad14ac9b50be325a57ee2431039ce8318a",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-nice-03",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-lyon-02"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 29.8875,
+        "seti-node-lyon-02": 29.8875,
+        "seti-node-nice-03": 30.225,
+        "validator-node-eu-01": 10.0
+      },
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 44.8875,
+        "seti-node-lyon-02": 44.8875,
+        "seti-node-nice-03": 45.225,
+        "validator-node-eu-01": 15.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 45.0,
+        "seti-node-lyon-02": 45.0,
+        "seti-node-nice-03": 45.0,
+        "validator-node-eu-01": 15.0
+      },
+      "shared_swarm_generation": "Each step takes 50 HIVE per block, so 12 steps takes 12 * 50 = 600 HIVE. So 3 blocks will take 3 * 600"
+    }
+  ],
+  "dynamic_btm_moe_v2_hotplug": {
+    "initial_upcycled_experts": 2,
+    "hotplugged_domain": "Mathematical_Reasoning",
+    "hotplugged_expert_cid": "cid://sha256/expert-mathematical_reasoning-20925f08191a2b88c9dbb88d",
+    "final_num_experts": 3,
+    "expert_domains": [
+      "Python_Systems_Code",
+      "Biomedical_Clinical_QA",
+      "Mathematical_Reasoning"
+    ],
+    "router_initial_loss": 1.868044,
+    "router_final_loss": 1.360471,
+    "expert_utilization": {
+      "Python_Systems_Code": 0.268,
+      "Biomedical_Clinical_QA": 0.357,
+      "Mathematical_Reasoning": 0.375
+    }
+  },
+  "regional_swarm_speculative_generations": {
+    "Python_Systems_Code": {
+      "prompt": "def binary_search(arr: list[int], target: int) ->",
+      "generated_continuation": " int:\n    left = 0\n    right = len(arr) -",
+      "full_text": "def binary_search(arr: list[int], target: int) -> int:\n    left = 0\n    right = len(arr) -",
+      "effective_tokens_per_sec": 4.47,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Python_Systems_Code": 0.235,
+        "Biomedical_Clinical_QA": 0.2008,
+        "Mathematical_Reasoning": 0.5642
+      }
+    },
+    "Biomedical_Clinical_QA": {
+      "prompt": "Clinical Evidence: Mitochondrial oxidative phosphorylation synthesizes cellular ATP",
+      "generated_continuation": " in the mitochondria of the human body. Mitochondrial ATP is the",
+      "full_text": "Clinical Evidence: Mitochondrial oxidative phosphorylation synthesizes cellular ATP in the mitochondria of the human body. Mitochondrial ATP is the",
+      "effective_tokens_per_sec": 4.56,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Python_Systems_Code": 0.0609,
+        "Biomedical_Clinical_QA": 0.6319,
+        "Mathematical_Reasoning": 0.3072
+      }
+    },
+    "Mathematical_Reasoning": {
+      "prompt": "Quantitative Proof: Given 3 PoUW blocks at 50 HIVE per block, total minted supply is",
+      "generated_continuation": " 1500 HIVE.",
+      "full_text": "Quantitative Proof: Given 3 PoUW blocks at 50 HIVE per block, total minted supply is 1500 HIVE.",
+      "effective_tokens_per_sec": 4.1,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Python_Systems_Code": 0.1038,
+        "Biomedical_Clinical_QA": 0.2671,
+        "Mathematical_Reasoning": 0.6292
+      }
+    }
+  },
+  "final_ledger_state": {
+    "ledger_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\hive_pouw_ledger.json",
+    "chain_length": 4,
+    "total_hive_minted": 150.0,
+    "chain_integrity_verified": true,
+    "balances_hive": {
+      "byzantine-botnet-99": 0.0,
+      "seti-node-paris-01": 45.0,
+      "seti-node-lyon-02": 45.0,
+      "seti-node-nice-03": 45.0,
+      "validator-node-eu-01": 15.0
+    },
+    "reputation_scores": {
+      "byzantine-botnet-99": -50,
+      "seti-node-paris-01": 130,
+      "seti-node-lyon-02": 130,
+      "seti-node-nice-03": 130
+    },
+    "slashed_registry": [
+      "byzantine-botnet-99"
+    ]
+  },
+  "total_elapsed_seconds": 136.79
+}

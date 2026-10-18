@@ -120,6 +120,8 @@ class DeterministicSpotCheckValidator:
                 max_diff = delta_mismatch
 
         expected_sha = compute_state_dict_sha256(expected_State)
+        expected_State.clear()
+        del expected_State
         hash_matched = expected_sha == worker_record.lora_sha256
         passed = max_diff <= self.tolerance_eps
 

@@ -1,0 +1,49 @@
+{
+  "appid": 3133700,
+  "leaderboards": [
+    {
+      "name": "LEADERBOARD_HF_HACK_MINER_GLOBAL",
+      "display_name": "Global Hugging Face Hack-Miner Standings (Total PTS)",
+      "sort_method": "Descending",
+      "display_type": "Numeric",
+      "upload_score_method": "KeepBest"
+    },
+    {
+      "name": "LEADERBOARD_SWARM_CONTRIBUTION",
+      "display_name": "Global SETI-Swarm & MoE Boss Raid Contribution",
+      "sort_method": "Descending",
+      "display_type": "Numeric",
+      "upload_score_method": "KeepBest"
+    }
+  ],
+  "achievements": {
+    "FIRST_HF_SHARD_BREACH": {
+      "title": "Data Breacher",
+      "description": "Scan a Hugging Face dataset node and pin a verified 16 KB CAS training shard."
+    },
+    "LORA_LOSS_CRUSHER": {
+      "title": "Neural Overclock",
+      "description": "Achieve >50% Cross-Entropy Loss reduction during local QLoRA training."
+    },
+    "HF_BOUNTY_SOLVER": {
+      "title": "Zero-Day Solver",
+      "description": "Crack a live Hugging Face dataset bounty challenge with improved solution perplexity."
+    },
+    "BYZANTINE_HUNTER": {
+      "title": "Firewall Sentinel",
+      "description": "Survive a Byzantine gradient poisoning attack via Multi-Krum 2-sigma defense."
+    },
+    "SWARM_ARCHITECT_E3": {
+      "title": "Hive Mind Architect",
+      "description": "Contribute a domain LoRA expert to a 3-Expert Dynamic Hot-Plugged Sparse MoE."
+    },
+    "MOE_BOSS_SLAYER": {
+      "title": "Boss Raid Conqueror (gamma=5)",
+      "description": "Defeat the Final Boss Multi-Domain Challenge using 3-Expert Sparse MoE Speculative Swarm Decoding."
+    },
+    "TOP_1_APEX_MINER": {
+      "title": "Apex Swarm Miner (#1 Global)",
+      "description": "Claim #1 on the Global Steam Hack-Miner & Swarm Contribution Leaderboard."
+    }
+  }
+}

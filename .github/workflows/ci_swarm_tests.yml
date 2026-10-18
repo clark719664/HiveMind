@@ -1,0 +1,48 @@
+name: HiveMind Swarm CI & Verification Suite
+
+on:
+  push:
+    branches: [main, "feat/**", "expert/**", "game/**", "fix/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-swarm-suite:
+    name: "Verify 4 Core Pillars, Swarm Fabric (M1-M4) & Steam Hack-Miner (16/16 Tests)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Project HiveMind
+        uses: actions/checkout@v4
+
+      - name: Install uv (Fast Python Package Manager)
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT)
+        run: |
+          uv venv
+          uv pip install pytest httpx fastapi uvicorn pydantic pyyaml rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
+
+      - name: Run Full 16-Test Verification Suite
+        env:
+          CUBLAS_WORKSPACE_CONFIG: ":4096:8"
+          PYTHONHASHSEED: "42"
+          OPENBLAS_NUM_THREADS: "1"
+          OMP_NUM_THREADS: "1"
+        run: |
+          uv run --no-sync pytest tests/ -v --tb=short
+
+      - name: Verify CLI Entrypoints & Hardware Telemetry
+        run: |
+          uv run --no-sync python -m hivemind.cli.main --help
+          uv run --no-sync python -m hivemind.cli.main hardware-check

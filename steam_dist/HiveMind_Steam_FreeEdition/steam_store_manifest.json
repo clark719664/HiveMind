@@ -1,0 +1,28 @@
+{
+  "steam_app_id": 3133700,
+  "steam_depot_id": 3133701,
+  "name": "HiveMind: Neural Breach \u2014 Hugging Face Hack-Miner",
+  "release_state": "released",
+  "is_free_to_play": true,
+  "price_usd": 0.0,
+  "supported_platforms": [
+    "windows",
+    "linux"
+  ],
+  "steamworks_features": [
+    "Steam Achievements (7 Hack-Miner & Boss Slayer Badges)",
+    "Steamworks Global Leaderboards (Best Miner & Swarm Contribution with HMAC Receipts)",
+    "Steam Cloud Save (ISteamRemoteStorage Miner Profile & $HIVE Wallet Sync)",
+    "Zero-Intrusion Background SETI Mode (Auto-yields VRAM when launching AAA games)"
+  ],
+  "minimum_requirements": {
+    "os": "Windows 10/11 64-bit",
+    "gpu": "NVIDIA GeForce GTX 1660 / RTX 2060 / RTX 2070 (6GB-8GB VRAM)",
+    "ram": "8 GB System RAM",
+    "storage": "2 GB NVMe/SSD for Content-Addressed Hugging Face Shards"
+  },
+  "cli_entrypoints": {
+    "play_campaign": "python -m hivemind.cli.main play-hack-game",
+    "launch_hud": "python -m hivemind.cli.main serve-hack-hud --port 8090"
+  }
+}

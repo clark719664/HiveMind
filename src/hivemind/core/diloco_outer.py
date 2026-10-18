@@ -79,9 +79,23 @@ def filter_byzantine_deltas_multikrum(
     f = min(max_byzantine_f, max(0, K - 3))
     num_neighbors = max(1, K - f - 2)
 
-    vectors = torch.stack([flatten_delta_dict(worker_deltas[wid]) for wid in worker_ids], dim=0)
-    # Pairwise Euclidean distances: [K, K]
-    dist_matrix = torch.cdist(vectors, vectors, p=2.0) ** 2
+    # Accumulate exact [K, K] inner-product Gram matrix parameter-by-parameter (<1 MB peak RAM)
+    gram = torch.zeros((K, K), dtype=torch.float64)
+    param_keys = sorted(worker_deltas[worker_ids[0]].keys())
+    for k in param_keys:
+        p_mat = torch.stack(
+            [
+                worker_deltas[wid][k].detach().to(dtype=torch.float32, device="cpu").reshape(-1)
+                for wid in worker_ids
+            ],
+            dim=0,
+        )
+        gram += torch.mm(p_mat, p_mat.t()).to(torch.float64)
+        del p_mat
+
+    diag = torch.diag(gram).clamp_min(0.0)
+    # Pairwise squared Euclidean distances: ||u - v||^2 = ||u||^2 + ||v||^2 - 2 <u, v>
+    dist_matrix = (diag.unsqueeze(1) + diag.unsqueeze(0) - 2.0 * gram).clamp_min(0.0).to(torch.float32)
 
     krum_scores: dict[str, float] = {}
     for i, wid in enumerate(worker_ids):
@@ -91,8 +105,8 @@ def filter_byzantine_deltas_multikrum(
         krum_scores[wid] = round(float(nearest_vals.sum().item()), 6)
 
     # Pairwise Cosine Similarity: [K, K]
-    normed = F.normalize(vectors, p=2.0, dim=1, eps=1e-12)
-    cos_matrix = torch.mm(normed, normed.t())
+    norms = torch.sqrt(diag).clamp_min(1e-12)
+    cos_matrix = (gram / (norms.unsqueeze(1) * norms.unsqueeze(0))).clamp(-1.0, 1.0).to(torch.float32)
 
     mean_cos_per_worker: dict[str, float] = {}
     off_diag_cos_values: list[float] = []

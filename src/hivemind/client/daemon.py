@@ -34,15 +34,27 @@ KNOWN_GAME_EXECUTABLES = {
 }
 
 
+from enum import Enum
+
+
+class SETIAgentState(str, Enum):
+    """Autonomous 3-State SETI-Swarm Agent Lifecycle."""
+
+    STATE_1_GAMING_SEED_ONLY = "STATE_1_GAMING_SEED_ONLY"
+    STATE_2_IDLE_SETI_MINER = "STATE_2_IDLE_SETI_MINER"
+    STATE_3_SWARM_CONSUMER = "STATE_3_SWARM_CONSUMER"
+
+
 @dataclass
 class DaemonTelemetry:
-    """Live snapshot of system idle time and active game process detection."""
+    """Live snapshot of system idle time, active game process detection, and SETI-Swarm state."""
 
     os_idle_seconds: float
     idle_threshold_seconds: float
     active_game_detected: str | None
     should_yield_vram: bool
     reason: str
+    seti_agent_state: str = SETIAgentState.STATE_2_IDLE_SETI_MINER.value
 
 
 def get_windows_idle_seconds() -> float:
@@ -86,11 +98,13 @@ class ZeroIntrusionDaemon:
         enforce_os_idle_hook: bool = False,
         simulated_idle_seconds: float | None = None,
         simulated_active_game: str | None = None,
+        consumer_query_active: bool = False,
     ) -> None:
         self.idle_threshold_seconds = idle_threshold_seconds
         self.enforce_os_idle_hook = enforce_os_idle_hook
         self.simulated_idle_seconds = simulated_idle_seconds
         self.simulated_active_game = simulated_active_game
+        self.consumer_query_active = consumer_query_active
 
     def poll(self) -> DaemonTelemetry:
         idle_sec = (
@@ -110,7 +124,18 @@ class ZeroIntrusionDaemon:
                 idle_threshold_seconds=self.idle_threshold_seconds,
                 active_game_detected=active_game,
                 should_yield_vram=True,
-                reason=f"Steam game launched ({active_game}) — yielding 100% VRAM.",
+                reason=f"Steam game launched ({active_game}) — yielding 100% VRAM (background CAS seeding only).",
+                seti_agent_state=SETIAgentState.STATE_1_GAMING_SEED_ONLY.value,
+            )
+
+        if self.consumer_query_active:
+            return DaemonTelemetry(
+                os_idle_seconds=idle_sec,
+                idle_threshold_seconds=self.idle_threshold_seconds,
+                active_game_detected=None,
+                should_yield_vram=False,
+                reason="Swarm Consumer mode active — querying P2P Sparse MoE ring with $HIVE credits.",
+                seti_agent_state=SETIAgentState.STATE_3_SWARM_CONSUMER.value,
             )
 
         if self.enforce_os_idle_hook and idle_sec < self.idle_threshold_seconds:
@@ -122,6 +147,7 @@ class ZeroIntrusionDaemon:
                 reason=(
                     f"User input activity detected (idle {idle_sec:.1f}s < {self.idle_threshold_seconds:.1f}s)."
                 ),
+                seti_agent_state=SETIAgentState.STATE_1_GAMING_SEED_ONLY.value,
             )
 
         return DaemonTelemetry(
@@ -129,8 +155,17 @@ class ZeroIntrusionDaemon:
             idle_threshold_seconds=self.idle_threshold_seconds,
             active_game_detected=None,
             should_yield_vram=False,
-            reason="System idle / clear for background DiLoCo training.",
+            reason="System idle / clear for background DiLoCo training & MoE expert hosting.",
+            seti_agent_state=SETIAgentState.STATE_2_IDLE_SETI_MINER.value,
         )
+
+    def resolve_seti_agent_state(self, consumer_query_active: bool | None = None) -> SETIAgentState:
+        """Resolve the current 3-state SETI-Swarm lifecycle state."""
+        if consumer_query_active is not None:
+            self.consumer_query_active = consumer_query_active
+        telemetry = self.poll()
+        return SETIAgentState(telemetry.seti_agent_state)
 
     def should_preempt(self) -> bool:
         return self.poll().should_yield_vram
+

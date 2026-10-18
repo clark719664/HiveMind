@@ -1,0 +1,41 @@
+name: "🐛 Bug Report / 8 GB VRAM or Determinism Regression"
+description: "Report a bug, CUDA out-of-memory (OOM) on 8 GB GPUs, or deterministic spot-check drift"
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: "Affected Subsystem"
+      options:
+        - "Zero-Copy 4-Bit NF4 / QLoRA Stream Loader"
+        - "DiLoCo Inner Loop / Top-k + FP8 Delta Compression"
+        - "Deterministic Spot-Check Validator / Multi-Krum Outer Optimizer"
+        - "Branch-Train-Mix (BTM) Sparse MoE Upcycling & Top-2 Router"
+        - "Win32 Zero-Intrusion Daemon / VRAM Preemption (<1.5s yield)"
+        - "Swarm Fabric M1–M4 (Geo-Ring, DMA, Tree Speculation, OpenAI Proxy)"
+        - "Steam Game: HiveMind: Neural Breach (AppID 3133700) / Web HUD"
+    validations:
+      required: true
+
+  - type: textarea
+    id: hardware_env
+    attributes:
+      label: "GPU, OS & Environment Telemetry"
+      description: "Paste the output of `hivemind hardware-check` or describe your setup."
+      placeholder: |
+        GPU: NVIDIA GeForce RTX 2070 (8.0 GB VRAM, Compute Capability 7.5)
+        OS: Windows 11 (WDDM) / Linux
+        PyTorch + CUDA: 2.6.0+cu124
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Minimal Reproduction Steps & CLI Command"
+      placeholder: |
+        1. Run `hivemind run-poc --model-id Qwen/Qwen2.5-0.5B --lora-rank 16`
+        2. Observe traceback / VRAM spike...
+    validations:
+      required: true

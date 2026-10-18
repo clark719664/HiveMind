@@ -12,7 +12,7 @@ import hashlib
 import hmac
 from dataclasses import dataclass, field
 
-STEAMWORKS_APP_ID = 3141590  # Project HiveMind Free Steam Utility AppID
+STEAMWORKS_APP_ID = 3133700  # Project HiveMind: Neural Breach Free Steam Edition AppID
 MIN_STEAM_SPEND_USD = 5.0
 
 
@@ -40,6 +40,9 @@ class SteamUserTelemetry:
     verified_tflops: float = 0.0
     workunits_completed: int = 0
     api_credits_balance: float = 0.0
+    hack_miner_total_pts: int = 0
+    swarm_contribution_pts: int = 0
+    leaderboard_receipt_hmac: str = ""
     unlocked_achievements: list[str] = field(default_factory=list)
     credit_receipts: list[str] = field(default_factory=list)
 
@@ -50,6 +53,7 @@ class SteamworksSDKBridge:
     def __init__(self, signing_secret: bytes = b"HiveMind-Steamworks-Auth-Key") -> None:
         self.signing_secret = signing_secret
         self.leaderboard: dict[str, SteamUserTelemetry] = {}
+        self.sybil_rejection_log: list[dict[str, str]] = []
 
     def get_auth_session_ticket(
         self,
@@ -78,14 +82,19 @@ class SteamworksSDKBridge:
             self.signing_secret, payload.encode("utf-8"), hashlib.sha256
         ).hexdigest()
         if not hmac.compare_digest(ticket.ticket_hex, expected_sig):
-            return False, "Invalid ISteamUser::GetAuthSessionTicket signature."
+            reason = "Invalid ISteamUser::GetAuthSessionTicket signature."
+            self.sybil_rejection_log.append({"steam_id64": ticket.steam_id64, "reason": reason})
+            return False, reason
         if ticket.is_vac_banned:
-            return False, "Steam account has an active VAC/Game ban."
+            reason = "Steam account has an active VAC/Game ban."
+            self.sybil_rejection_log.append({"steam_id64": ticket.steam_id64, "reason": reason})
+            return False, reason
         if not ticket.is_non_limited:
-            return (
-                False,
-                f"Steam account is Limited (${ticket.account_spend_usd:.2f} < ${MIN_STEAM_SPEND_USD:.2f} minimum).",
+            reason = (
+                f"Steam account is Limited (${ticket.account_spend_usd:.2f} < ${MIN_STEAM_SPEND_USD:.2f} minimum)."
             )
+            self.sybil_rejection_log.append({"steam_id64": ticket.steam_id64, "reason": reason})
+            return False, reason
         return True, "Verified Non-Limited Steam Account."
 
     def record_validated_workunit(
@@ -117,3 +126,33 @@ class SteamworksSDKBridge:
         if entry.verified_tflops >= 10.0 and "ACH_10_TFLOPS_SWARM" not in entry.unlocked_achievements:
             entry.unlocked_achievements.append("ACH_10_TFLOPS_SWARM")
         return entry
+
+    def upload_hack_miner_score(
+        self,
+        steam_id64: str,
+        persona_name: str,
+        total_points: int,
+        swarm_contribution_points: int,
+        hive_balance: float,
+        achievements: list[str],
+    ) -> str:
+        """Sign and upload a gamer's Hack-Miner score to ISteamLeaderboards (KeepBest)."""
+        entry = self.leaderboard.setdefault(
+            steam_id64,
+            SteamUserTelemetry(steam_id64=steam_id64, persona_name=persona_name),
+        )
+        entry.hack_miner_total_pts = max(entry.hack_miner_total_pts, total_points)
+        entry.swarm_contribution_pts = max(entry.swarm_contribution_pts, swarm_contribution_points)
+        entry.api_credits_balance = round(hive_balance, 4)
+        for ach in achievements:
+            if ach not in entry.unlocked_achievements:
+                entry.unlocked_achievements.append(ach)
+
+        payload = (
+            f"LEADERBOARD:{STEAMWORKS_APP_ID}:{steam_id64}:{persona_name}:"
+            f"{entry.hack_miner_total_pts}:{entry.swarm_contribution_pts}:{hive_balance:.4f}"
+        )
+        sig = hmac.new(self.signing_secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()[:28]
+        entry.leaderboard_receipt_hmac = f"steam_lb_hmac_{sig}"
+        return entry.leaderboard_receipt_hmac
+

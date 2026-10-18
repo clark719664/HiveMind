@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "🎮 Play HiveMind: Neural Breach (Free Steam Edition — AppID 3133700)"
+    url: "https://github.com/xaviercallens/HiveMind/tree/main/steam_dist/HiveMind_Steam_FreeEdition"
+    about: "Download and launch the Free-to-Play Hugging Face Hack-Miner & Cyberpunk Web HUD locally."
+  - name: "🗺️ Phase 2 'Swarm Fabric' Roadmap & Contributor Bounties"
+    url: "https://github.com/xaviercallens/HiveMind/blob/main/docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md"
+    about: "Explore open M1–M5 engineering tasks and learn how to earn $HIVE contributor rewards."
