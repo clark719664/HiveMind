@@ -1,0 +1,224 @@
+{
+  "hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 6.34,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
+  },
+  "vram_after_model": {
+    "allocated_mb": 17.6,
+    "reserved_mb": 50.0,
+    "peak_allocated_mb": 35.95,
+    "free_vram_gb": 6.91,
+    "total_vram_gb": 8.0
+  },
+  "vram_peak": {
+    "allocated_mb": 120.94,
+    "reserved_mb": 146.0,
+    "peak_allocated_mb": 126.25,
+    "free_vram_gb": 6.8,
+    "total_vram_gb": 8.0
+  },
+  "daemon_telemetry": {
+    "os_idle_seconds": 0.0,
+    "should_yield_vram": false,
+    "reason": "System idle / clear for background DiLoCo training."
+  },
+  "phase_ab_branches": {
+    "Code": {
+      "wu_id": "wu-code-t1-5f590c",
+      "initial_loss": 7.819013,
+      "final_loss": 4.039856,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-code-01",
+        "worker-code-02",
+        "worker-code-03",
+        "worker-code-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-code"
+      ],
+      "outer_delta_norm": 5.400336
+    },
+    "Mathematics": {
+      "wu_id": "wu-mathematics-t1-d2a421",
+      "initial_loss": 7.729867,
+      "final_loss": 3.550092,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-mathematics-01",
+        "worker-mathematics-02",
+        "worker-mathematics-03",
+        "worker-mathematics-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-mathematics"
+      ],
+      "outer_delta_norm": 5.247183
+    },
+    "Creative_Writing": {
+      "wu_id": "wu-creative_writing-t1-189bc4",
+      "initial_loss": 7.779382,
+      "final_loss": 3.685916,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-creative_writing-01",
+        "worker-creative_writing-02",
+        "worker-creative_writing-03",
+        "worker-creative_writing-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-creative_writing"
+      ],
+      "outer_delta_norm": 5.357668
+    },
+    "STEM": {
+      "wu_id": "wu-stem-t1-bf197c",
+      "initial_loss": 7.639681,
+      "final_loss": 3.611359,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-stem-01",
+        "worker-stem-02",
+        "worker-stem-03",
+        "worker-stem-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-stem"
+      ],
+      "outer_delta_norm": 5.51372
+    },
+    "Legal_Medical": {
+      "wu_id": "wu-legal_medical-t1-08ad82",
+      "initial_loss": 7.712369,
+      "final_loss": 3.708684,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-legal_medical-01",
+        "worker-legal_medical-02",
+        "worker-legal_medical-03",
+        "worker-legal_medical-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-legal_medical"
+      ],
+      "outer_delta_norm": 5.370547
+    },
+    "Multilingual_FR": {
+      "wu_id": "wu-multilingual_fr-t1-76e79d",
+      "initial_loss": 7.661063,
+      "final_loss": 3.826004,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-multilingual_fr-01",
+        "worker-multilingual_fr-02",
+        "worker-multilingual_fr-03",
+        "worker-multilingual_fr-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-multilingual_fr"
+      ],
+      "outer_delta_norm": 5.398251
+    },
+    "Reasoning": {
+      "wu_id": "wu-reasoning-t1-226201",
+      "initial_loss": 7.533091,
+      "final_loss": 3.65749,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-reasoning-01",
+        "worker-reasoning-02",
+        "worker-reasoning-03",
+        "worker-reasoning-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-reasoning"
+      ],
+      "outer_delta_norm": 5.367262
+    },
+    "General": {
+      "wu_id": "wu-general-t1-1cb66f",
+      "initial_loss": 7.633245,
+      "final_loss": 3.428779,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "spot_check_overhead_pct": 50.0,
+      "multikrum_accepted": [
+        "worker-general-01",
+        "worker-general-02",
+        "worker-general-03",
+        "worker-general-04"
+      ],
+      "multikrum_rejected": [
+        "byzantine-attacker-general"
+      ],
+      "outer_delta_norm": 5.597978
+    }
+  },
+  "spot_check_tamper_test": {
+    "passed": false,
+    "flagged_steam_account": true,
+    "max_abs_divergence": 0.05,
+    "reason": "REJECTED segment [0, 10]: divergence 5.00e-02 exceeds tolerance eps=1.0e-04"
+  },
+  "phase_c_moe_upcycling": {
+    "num_experts": 8,
+    "top_k": 2,
+    "attention_layers_merged": 16,
+    "ffn_expert_modules_created": 32,
+    "total_moe_parameters": 18231552,
+    "active_parameters_per_token": 5550336,
+    "router_initial_loss": 7.603023,
+    "router_final_loss": 4.265863,
+    "expert_utilization": {
+      "Code": 0.0999,
+      "Mathematics": 0.139,
+      "Creative_Writing": 0.1451,
+      "STEM": 0.1193,
+      "Legal_Medical": 0.1259,
+      "Multilingual_FR": 0.1118,
+      "Reasoning": 0.1151,
+      "General": 0.144
+    }
+  },
+  "phase_2_swarm_inference": {
+    "region_ring": "EU-West-Paris",
+    "active_ring_peers": 8,
+    "mean_ring_ping_ms": 16.4,
+    "draft_gamma": 5,
+    "swarm_verification_passes": 4,
+    "latency_reduction_factor": 5.0,
+    "effective_tokens_per_sec": 25.52
+  },
+  "total_elapsed_seconds": 21.6
+}

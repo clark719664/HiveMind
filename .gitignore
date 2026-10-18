@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Project HiveMind runtime artifacts & caches
+.cache/
+artifacts/*
+!artifacts/e2e_hivemind_report.json
+checkpoints/
+shards/
+models_cache/
+*.safetensors
+*.parquet
+*.pt
+*.bin
+
+# Logs and local DB
+*.log
+*.sqlite3
+.pytest_cache/
+.ruff_cache/

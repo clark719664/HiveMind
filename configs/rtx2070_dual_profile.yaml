@@ -1,0 +1,124 @@
+# Project HiveMind — Hardware & Algorithmic Profiles
+# Configured for Local NVIDIA GeForce RTX 2070 (8 GB VRAM, Turing SM 7.5) & Reference 12 GB Nodes
+
+system:
+  codename: "Project HiveMind"
+  deterministic_cuda: true
+  cublas_workspace_config: ":4096:8"
+  spot_check_interval_steps: 50
+  spot_check_tolerance_eps: 1.0e-4
+  idle_threshold_seconds: 30.0
+  emergency_checkpoint_timeout_sec: 1.5
+  expert_domains:
+    - "Code"
+    - "Mathematics"
+    - "Creative_Writing"
+    - "STEM"
+    - "Legal_Medical"
+    - "Multilingual_FR"
+    - "Reasoning"
+    - "General"
+
+diloco:
+  inner_steps_H: 500
+  inner_lr: 2.0e-4
+  inner_weight_decay: 0.01
+  outer_lr_eta: 0.7
+  outer_momentum_mu: 0.9
+  compression_topk_ratio: 0.20
+  compression_dtype: "fp8_e4m3fn"
+  multikrum_max_byzantine_fraction: 0.25
+  cosine_outlier_sigma: 2.0
+
+btm_moe:
+  num_experts_E: 8
+  router_top_k: 2
+  router_aux_loss_coef: 0.01
+  merge_attention_strategy: "uniform_average"
+  upcycle_ffn_strategy: "lora_merge_per_expert"
+
+profiles:
+  rtx2070_moe_e2e:
+    description: "Local RTX 2070 (8GB VRAM) End-to-End 8-Branch BTM + DiLoCo-QLoRA + Sparse MoE Upcycling"
+    target_vram_gb: 8.0
+    available_vram_budget_gb: 6.4
+    hf_model_id: "Qwen/Qwen2.5-0.5B"
+    fallback_model_id: "Qwen/Qwen2.5-1.5B"
+    compute_dtype: "float16"   # Native Tensor Core dtype on RTX 2070 (Turing SM 7.5)
+    quantization_4bit: "nf4"
+    double_quantization: true
+    lora_rank_r: 64
+    lora_alpha: 128
+    lora_target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+    micro_batch_size: 1
+    seq_len: 512
+    gradient_checkpointing: true
+    sim_inner_steps_H: 100
+    sim_spot_check_interval_s: 25
+    sim_workers_per_branch: 5
+    sim_byzantine_workers: 1
+
+  rtx2070_7b_worker:
+    description: "Local RTX 2070 (8GB VRAM) Single-Branch 7B Worker Envelope Benchmark"
+    target_vram_gb: 8.0
+    available_vram_budget_gb: 6.7
+    hf_model_id: "Qwen/Qwen2.5-7B"
+    compute_dtype: "float16"
+    quantization_4bit: "nf4"
+    double_quantization: true
+    lora_rank_r: 64
+    lora_alpha: 128
+    lora_target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+    micro_batch_size: 1
+    seq_len: 1024
+    gradient_checkpointing: true
+    vram_breakdown_estimate_gb:
+      frozen_base_nf4_gb: 3.85
+      lora_trainable_r64_gb: 0.32
+      paged_adamw_8bit_gb: 0.32
+      activations_kv_cache_gb: 1.15
+      cuda_context_overhead_gb: 0.85
+      total_peak_vram_gb: 6.49
+
+  rtx4070_14b_spec:
+    description: "Specification Baseline: 12GB Target Node with 14B Backbone (Qwen-14B / Gemma-2)"
+    target_vram_gb: 12.0
+    available_vram_budget_gb: 11.6
+    hf_model_id: "Qwen/Qwen2.5-14B"
+    compute_dtype: "bfloat16"
+    quantization_4bit: "nf4"
+    double_quantization: true
+    lora_rank_r: 64
+    lora_alpha: 128
+    lora_target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+    micro_batch_size: 1
+    seq_len: 2048
+    gradient_checkpointing: true
+    vram_breakdown_estimate_gb:
+      frozen_base_nf4_gb: 7.50
+      lora_trainable_r64_gb: 0.45
+      paged_adamw_8bit_gb: 0.45
+      activations_kv_cache_gb: 2.20
+      cuda_context_overhead_gb: 1.00
+      total_peak_vram_gb: 11.60
