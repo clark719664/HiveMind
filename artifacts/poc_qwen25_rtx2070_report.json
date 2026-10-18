@@ -1,0 +1,216 @@
+{
+  "poc_model_id": "Qwen/Qwen2.5-0.5B",
+  "hf_dataset_id": "sahil2801/CodeAlpaca-20k",
+  "shared_expert_cid": "cid://sha256/expert-codealpaca_python-80d7b0d3e9dba4ac2a13",
+  "shared_expert_path": "D:\\xdev\\DecentralizedAI\\artifacts\\shared_experts\\hf_codealpaca_python_expert_lora.pt",
+  "hf_token_authenticated": false,
+  "hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 4.79,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
+  },
+  "vram_telemetry": {
+    "after_base_load_mb": 946.98,
+    "after_nf4_qlora_mb": 980.54,
+    "peak_moe_vram_mb": 1509.5,
+    "reserved_vram_mb": 1360.0,
+    "free_vram_gb": 5.61
+  },
+  "backbone_nf4_qlora": {
+    "model_id": "Qwen/Qwen2.5-0.5B",
+    "hf_dataset_id": "sahil2801/CodeAlpaca-20k",
+    "shared_expert_cid": "cid://sha256/expert-codealpaca_python-80d7b0d3e9dba4ac2a13",
+    "shared_expert_path": "D:\\xdev\\DecentralizedAI\\artifacts\\shared_experts\\hf_codealpaca_python_expert_lora.pt",
+    "is_4bit_nf4": true,
+    "nf4_compressed_base_mb": 175.958,
+    "trainable_lora_params": 8798208,
+    "total_params_with_lora": 502830976,
+    "lora_size_mb": 16.781
+  },
+  "phase_b_diloco_branches": {
+    "Code": {
+      "wu_id": "wu-hf-codealpaca-s1-t1",
+      "hf_dataset_id": "sahil2801/CodeAlpaca-20k",
+      "decentralized_workers": {
+        "rtx2070-code-paris-01": {
+          "shard_parquet": "poc_code_hf_shard1.parquet",
+          "hf_rows_assigned": 8,
+          "initial_loss": 2.649216,
+          "final_loss": 0.352899,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0
+        },
+        "rtx2070-code-lyon-02": {
+          "shard_parquet": "poc_code_hf_shard2.parquet",
+          "hf_rows_assigned": 8,
+          "initial_loss": 1.486107,
+          "final_loss": 0.133656,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0
+        },
+        "rtx2070-code-nice-03": {
+          "shard_parquet": "poc_code_hf_shard3.parquet",
+          "hf_rows_assigned": 8,
+          "initial_loss": 2.718857,
+          "final_loss": 0.311976,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "initial_loss": 2.649216,
+      "final_loss": 0.352899,
+      "uncompressed_mb": 16.78,
+      "compressed_mb": 5.04,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "multikrum_accepted": [
+        "rtx2070-code-paris-01",
+        "rtx2070-code-lyon-02",
+        "rtx2070-code-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-poisoner-code"
+      ],
+      "outer_delta_norm": 1.689261,
+      "shared_expert_cid": "cid://sha256/expert-codealpaca_python-80d7b0d3e9dba4ac2a13",
+      "shared_expert_path": "D:\\xdev\\DecentralizedAI\\artifacts\\shared_experts\\hf_codealpaca_python_expert_lora.pt"
+    },
+    "Mathematics": {
+      "wu_id": "wu-qwen25-mathematics-t1",
+      "initial_loss": 2.988842,
+      "final_loss": 0.996439,
+      "uncompressed_mb": 16.78,
+      "compressed_mb": 5.04,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "multikrum_accepted": [
+        "rtx2070-mathematics-01",
+        "rtx2070-mathematics-02",
+        "rtx2070-mathematics-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-poisoner-mathematics"
+      ],
+      "outer_delta_norm": 2.148244
+    },
+    "STEM": {
+      "wu_id": "wu-qwen25-stem-t1",
+      "initial_loss": 4.016869,
+      "final_loss": 0.158209,
+      "uncompressed_mb": 16.78,
+      "compressed_mb": 5.04,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "multikrum_accepted": [
+        "rtx2070-stem-01",
+        "rtx2070-stem-02",
+        "rtx2070-stem-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-poisoner-stem"
+      ],
+      "outer_delta_norm": 2.33838
+    },
+    "Multilingual_FR": {
+      "wu_id": "wu-qwen25-multilingual_fr-t1",
+      "initial_loss": 5.178649,
+      "final_loss": 0.681735,
+      "uncompressed_mb": 16.78,
+      "compressed_mb": 5.04,
+      "compression_ratio": 3.33,
+      "spot_check_passed": true,
+      "spot_check_max_diff": 0.0,
+      "multikrum_accepted": [
+        "rtx2070-multilingual_fr-01",
+        "rtx2070-multilingual_fr-02",
+        "rtx2070-multilingual_fr-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-poisoner-multilingual_fr"
+      ],
+      "outer_delta_norm": 2.427383
+    }
+  },
+  "phase_c_sparse_moe": {
+    "num_experts": 4,
+    "top_k": 2,
+    "attention_layers_merged": 96,
+    "ffn_expert_modules_created": 96,
+    "total_moe_parameters": 1435477888,
+    "active_parameters_per_token": 807905152,
+    "router_initial_loss": 2.139031,
+    "router_final_loss": 0.79451,
+    "expert_utilization": {
+      "Code": 0.1773,
+      "Mathematics": 0.2963,
+      "STEM": 0.292,
+      "Multilingual_FR": 0.2344
+    }
+  },
+  "phase_2_swarm_generations": {
+    "Code": {
+      "prompt": "def binary_search(arr: list[int], target: int) ->",
+      "generated_continuation": " int:\n    lo, hi = 0, len(arr) - ",
+      "full_text": "def binary_search(arr: list[int], target: int) -> int:\n    lo, hi = 0, len(arr) - ",
+      "effective_tokens_per_sec": 3.82,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Code": 0.5726,
+        "Mathematics": 0.1571,
+        "STEM": 0.1407,
+        "Multilingual_FR": 0.1295
+      }
+    },
+    "Mathematics": {
+      "prompt": "Theorem (Nesterov Momentum Update): Given outer momentum mu = 0.9",
+      "generated_continuation": " and learning rate eta = 0.7, the velocity updates as v",
+      "full_text": "Theorem (Nesterov Momentum Update): Given outer momentum mu = 0.9 and learning rate eta = 0.7, the velocity updates as v",
+      "effective_tokens_per_sec": 3.97,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Code": 0.03,
+        "Mathematics": 0.6987,
+        "STEM": 0.1169,
+        "Multilingual_FR": 0.1544
+      }
+    },
+    "STEM": {
+      "prompt": "Mixture-of-Experts (MoE) architectures route each token",
+      "generated_continuation": " through a sequence of experts, each with its own model architecture. The experts",
+      "full_text": "Mixture-of-Experts (MoE) architectures route each token through a sequence of experts, each with its own model architecture. The experts",
+      "effective_tokens_per_sec": 4.12,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Code": 0.0302,
+        "Mathematics": 0.211,
+        "STEM": 0.1934,
+        "Multilingual_FR": 0.5654
+      }
+    },
+    "Multilingual_FR": {
+      "prompt": "L'architecture distribuée Project HiveMind agrège les cartes",
+      "generated_continuation": " graphiques grand public via Steam et Steamworks, puis les distribue sur",
+      "full_text": "L'architecture distribuée Project HiveMind agrège les cartes graphiques grand public via Steam et Steamworks, puis les distribue sur",
+      "effective_tokens_per_sec": 4.45,
+      "latency_reduction_factor": 5.0,
+      "expert_routing_share": {
+        "Code": 0.042,
+        "Mathematics": 0.0857,
+        "STEM": 0.1207,
+        "Multilingual_FR": 0.7516
+      }
+    }
+  },
+  "total_elapsed_seconds": 112.76
+}

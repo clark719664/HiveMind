@@ -1,0 +1,28 @@
+{
+  "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
+  "version": "2.1.0",
+  "workspace_root": "D:\\xdev\\DecentralizedAI",
+  "autoevolve_env_path": "D:\\xdev\\AutoevolveAI_env",
+  "artifacts_and_entrypoints": {
+    "lean4_specification": "D:\\xdev\\DecentralizedAI\\lean4\\HiveMindSpec.lean",
+    "foundation_article_tex": "D:\\xdev\\DecentralizedAI\\paper\\hivemind_foundation_article.tex",
+    "foundation_article_pdf": "D:\\xdev\\DecentralizedAI\\paper\\hivemind_foundation_article.pdf",
+    "peer_review_report_json": "D:\\xdev\\DecentralizedAI\\paper\\PEER_REVIEW_REPORT.json",
+    "contributor_bounties_doc": "D:\\xdev\\DecentralizedAI\\docs\\CONTRIBUTOR_TASKS_AND_BOUNTIES.md",
+    "swarm_fabric_module": "D:\\xdev\\DecentralizedAI\\src\\hivemind\\swarm\\swarm_fabric.py",
+    "steam_hack_miner_module": "D:\\xdev\\DecentralizedAI\\src\\hivemind\\game\\hf_hack_miner.py"
+  },
+  "evolutionary_loop_protocol": {
+    "step_1_mutate": "Select an open task from `HM-M1-01` .. `HM-M5-02` in `docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`.",
+    "step_2_formal_gate": "Extend `lean4/HiveMindSpec.lean` with the new invariant and verify `lean.exe lean4/HiveMindSpec.lean` exits 0 with 0 `sorry` and 0 `axiom`.",
+    "step_3_empirical_gate": "Run `uv run --no-sync pytest tests/ -v` and verify 8 GB RTX 2070 VRAM ceiling (<= 6,500 MiB) and deterministic spot-check drift (<= 1e-4).",
+    "step_4_peer_review_and_pdf": "Run `python paper/autoevolve_peer_review_pipeline.py` and `pdflatex paper/hivemind_foundation_article.tex` to evolve the foundation manuscript."
+  },
+  "next_session_quickstart_commands": [
+    "cd D:\\xdev\\DecentralizedAI",
+    ".\\.venv\\Scripts\\python.exe paper/autoevolve_peer_review_pipeline.py",
+    "& \"D:\\.elan\\toolchains\\leanprover--lean4---v4.33.0-rc2\\bin\\lean.exe\" lean4/HiveMindSpec.lean",
+    "& \"D:\\App\\Tex\\texlive\\2026\\bin\\windows\\pdflatex.exe\" -interaction=nonstopmode -output-directory=paper paper/hivemind_foundation_article.tex",
+    "uv run --no-sync pytest tests/ -v"
+  ]
+}

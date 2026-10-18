@@ -1,0 +1,546 @@
+{
+  "game_title": "HiveMind: Neural Breach // Hugging Face Hack-Miner (Free Steam Edition)",
+  "steam_app_id": 3133700,
+  "pricing_model": "Free-to-Play (100% Free Download on Steam)",
+  "hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 5.5,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
+  },
+  "vram_telemetry": {
+    "allocated_mb": 1030.48,
+    "reserved_mb": 1350.0,
+    "peak_allocated_mb": 1192.66,
+    "free_vram_gb": 5.62,
+    "total_vram_gb": 8.0
+  },
+  "steamworks_security_audit": {
+    "verified_gamers": [
+      {
+        "gamer_tag": "CyberValkyrie_FR",
+        "steam_id64": "76561198000000001",
+        "ticket_prefix": "16183d964fbdd4571b67",
+        "verified": true,
+        "status": "Verified Non-Limited Steam Account."
+      },
+      {
+        "gamer_tag": "NeuralGhost_DE",
+        "steam_id64": "76561198000000002",
+        "ticket_prefix": "d4db1c1d5d231fb31c3c",
+        "verified": true,
+        "status": "Verified Non-Limited Steam Account."
+      },
+      {
+        "gamer_tag": "ZeroCool_UK",
+        "steam_id64": "76561198000000003",
+        "ticket_prefix": "76449316de87d1455e7a",
+        "verified": true,
+        "status": "Verified Non-Limited Steam Account."
+      }
+    ],
+    "blocked_sybil_bots": [
+      {
+        "bot_tag": "Sybil_Bot_Limited_00",
+        "steam_id64": "76561198888888888",
+        "verified": false,
+        "reason": "Steam account is Limited ($0.00 < $5.00 minimum)."
+      },
+      {
+        "bot_tag": "VAC_Banned_Spoofer_77",
+        "steam_id64": "76561198777777777",
+        "verified": false,
+        "reason": "Steam account has an active VAC/Game ban."
+      }
+    ]
+  },
+  "best_miner_champion": {
+    "gamer_tag": "CyberValkyrie_FR",
+    "steam_id64": "76561198000000001",
+    "rank_title": "Rank V: Singularity Core (Apex Miner)",
+    "total_points": 10659,
+    "hive_balance": 45.0,
+    "best_loss_reduction_pct": 79.16,
+    "achievements_unlocked": [
+      "FIRST_HF_SHARD_BREACH",
+      "LORA_LOSS_CRUSHER",
+      "HF_BOUNTY_SOLVER",
+      "BYZANTINE_HUNTER",
+      "SWARM_ARCHITECT_E3",
+      "MOE_BOSS_SLAYER",
+      "TOP_1_APEX_MINER"
+    ]
+  },
+  "leaderboard": [
+    {
+      "gamer_tag": "CyberValkyrie_FR",
+      "steam_id64": "76561198000000001",
+      "node_id": "seti-node-paris-01",
+      "region": "EU-West-Paris",
+      "specialty_focus": "Code & Algorithmic Breaching",
+      "total_points": 10659,
+      "data_discovery_points": 1389,
+      "lora_training_points": 2043,
+      "solution_bounty_points": 4209,
+      "swarm_contribution_points": 3018,
+      "boss_raid_points": 786,
+      "hive_balance": 45.0,
+      "reputation_score": 130,
+      "shards_mined": 4,
+      "bounties_solved": 4,
+      "boss_raids_cleared": 1,
+      "swarm_tokens_served": 119,
+      "best_loss_reduction_pct": 79.16,
+      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "steam_sybil_verified": true,
+      "steam_leaderboard_receipt": "steam_lb_hmac_8056db2b5ebbd83550727a42b8f0",
+      "achievements_unlocked": [
+        "FIRST_HF_SHARD_BREACH",
+        "LORA_LOSS_CRUSHER",
+        "HF_BOUNTY_SOLVER",
+        "BYZANTINE_HUNTER",
+        "SWARM_ARCHITECT_E3",
+        "MOE_BOSS_SLAYER",
+        "TOP_1_APEX_MINER"
+      ]
+    },
+    {
+      "gamer_tag": "NeuralGhost_DE",
+      "steam_id64": "76561198000000002",
+      "node_id": "seti-node-lyon-02",
+      "region": "EU-Central-Frankfurt",
+      "specialty_focus": "Biomedical & Scientific Mining",
+      "total_points": 8924,
+      "data_discovery_points": 1059,
+      "lora_training_points": 1930,
+      "solution_bounty_points": 3382,
+      "swarm_contribution_points": 2553,
+      "boss_raid_points": 581,
+      "hive_balance": 45.0,
+      "reputation_score": 130,
+      "shards_mined": 3,
+      "bounties_solved": 3,
+      "boss_raids_cleared": 1,
+      "swarm_tokens_served": 87,
+      "best_loss_reduction_pct": 74.1,
+      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "steam_sybil_verified": true,
+      "steam_leaderboard_receipt": "steam_lb_hmac_670690e5cddfb6672388481f964e",
+      "achievements_unlocked": [
+        "FIRST_HF_SHARD_BREACH",
+        "LORA_LOSS_CRUSHER",
+        "HF_BOUNTY_SOLVER",
+        "BYZANTINE_HUNTER",
+        "SWARM_ARCHITECT_E3",
+        "MOE_BOSS_SLAYER"
+      ]
+    },
+    {
+      "gamer_tag": "ZeroCool_UK",
+      "steam_id64": "76561198000000003",
+      "node_id": "seti-node-nice-03",
+      "region": "EU-West-London",
+      "specialty_focus": "Quantitative & Crypto Proofs",
+      "total_points": 8387,
+      "data_discovery_points": 1069,
+      "lora_training_points": 1505,
+      "solution_bounty_points": 3258,
+      "swarm_contribution_points": 2555,
+      "boss_raid_points": 583,
+      "hive_balance": 45.0,
+      "reputation_score": 130,
+      "shards_mined": 3,
+      "bounties_solved": 3,
+      "boss_raids_cleared": 1,
+      "swarm_tokens_served": 87,
+      "best_loss_reduction_pct": 70.34,
+      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "steam_sybil_verified": true,
+      "steam_leaderboard_receipt": "steam_lb_hmac_c03ed7fe6ed401bbcfcce48aac82",
+      "achievements_unlocked": [
+        "FIRST_HF_SHARD_BREACH",
+        "LORA_LOSS_CRUSHER",
+        "HF_BOUNTY_SOLVER",
+        "BYZANTINE_HUNTER",
+        "SWARM_ARCHITECT_E3",
+        "MOE_BOSS_SLAYER"
+      ]
+    }
+  ],
+  "missions": [
+    {
+      "mission_index": 1,
+      "contract_id": "CONTRACT-HF-01-CODEALPACA",
+      "mission_codename": "Operation: Cyber-Kernel Synthesis",
+      "dataset_id": "sahil2801/CodeAlpaca-20k",
+      "domain_expert": "Python_Systems_Code",
+      "difficulty_skulls": 3,
+      "expert_cid": "cid://sha256/expert-python_systems_code-3372d859aafba6bc95b21376",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_python_systems_code_3372d859aafb.pt",
+      "bounty_challenge": {
+        "prompt": "### Instruction:\nWrite a Python function `binary_search(arr, target)` that searches a sorted array in O(log n) time.\n### Response:\n",
+        "reference_solution": "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1",
+        "pre_lora_eval": {
+          "solution_ce_loss": 2.1444,
+          "solution_perplexity": 8.54
+        },
+        "post_lora_eval": {
+          "solution_ce_loss": 1.0649,
+          "solution_perplexity": 2.9,
+          "generated_answer": "def binary_search(arr, target):\n    left = 0\n    right = len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid",
+          "matched_keywords": [
+            "def",
+            "while",
+            "mid"
+          ],
+          "keyword_hit_count": 3
+        },
+        "perplexity_improvement_pct": 66.04
+      },
+      "pouw_block": {
+        "height": 1,
+        "block_hash": "29cd5388962dd962ee3adcf1ddc5fab558311d732b2f3db764ec18757dc58b93",
+        "total_reward_hive": 50.0,
+        "slashed_cheaters": [
+          "DarkNet_Spoofer_99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-paris-01",
+        "expert_provider_nodes": [
+          "seti-node-lyon-02",
+          "seti-node-nice-03"
+        ],
+        "domain_expert": "Python_Systems_Code",
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "gamer_mission_scores": [
+        {
+          "gamer_tag": "CyberValkyrie_FR",
+          "contract_id": "CONTRACT-HF-01-CODEALPACA",
+          "shard_cid": "cid://sha256/6bd5d3b3afba248ffd0d144cc4a6f106",
+          "shard_signal_score": 0.99,
+          "initial_loss": 1.856745,
+          "final_loss": 1.151043,
+          "loss_reduction_pct": 38.01,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 437,
+          "solution_bounty_pts": 992,
+          "swarm_contribution_pts": 620,
+          "total_mission_pts": 2416,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "NeuralGhost_DE",
+          "contract_id": "CONTRACT-HF-01-CODEALPACA",
+          "shard_cid": "cid://sha256/1d74040b3acb8c2a13163ee4be727886",
+          "shard_signal_score": 0.99,
+          "initial_loss": 2.376929,
+          "final_loss": 0.91822,
+          "loss_reduction_pct": 61.37,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 706,
+          "solution_bounty_pts": 924,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 2673,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "ZeroCool_UK",
+          "contract_id": "CONTRACT-HF-01-CODEALPACA",
+          "shard_cid": "cid://sha256/c7fc22ab2043b0bcc03dc5d3e9d0ff82",
+          "shard_signal_score": 0.99,
+          "initial_loss": 2.19964,
+          "final_loss": 1.12546,
+          "loss_reduction_pct": 48.83,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 562,
+          "solution_bounty_pts": 887,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 2492,
+          "hive_earned": 15.0
+        }
+      ]
+    },
+    {
+      "mission_index": 2,
+      "contract_id": "CONTRACT-HF-02-PUBMEDQA",
+      "mission_codename": "Operation: Bio-Helix Diagnostics",
+      "dataset_id": "qiaojin/PubMedQA",
+      "domain_expert": "Biomedical_Clinical_QA",
+      "difficulty_skulls": 4,
+      "expert_cid": "cid://sha256/expert-biomedical_clinical_qa-8c56579dfc99fe497e41b41b",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_biomedical_clinical_qa_8c56579dfc99.pt",
+      "bounty_challenge": {
+        "prompt": "### Clinical Question:\nDo mitochondria play a role in programmed cell death and cellular ATP synthesis?\n### Evidence Conclusion (yes):\n",
+        "reference_solution": "Mitochondrial dynamics and oxidative phosphorylation directly regulate cellular ATP synthesis and programmed cell death pathways in vivo.",
+        "pre_lora_eval": {
+          "solution_ce_loss": 5.3183,
+          "solution_perplexity": 204.05
+        },
+        "post_lora_eval": {
+          "solution_ce_loss": 1.7143,
+          "solution_perplexity": 5.55,
+          "generated_answer": "Mitochondrial dysfunction is associated with a reduced number of mitochondria and a reduced number of mitochondria per cell. Mitochondrial dysfunction is associated with a reduced number of mitochondria and a reduced number of mitochondria per cell",
+          "matched_keywords": [
+            "mitochondria",
+            "cell",
+            "function"
+          ],
+          "keyword_hit_count": 3
+        },
+        "perplexity_improvement_pct": 97.28
+      },
+      "pouw_block": {
+        "height": 2,
+        "block_hash": "4cc865d2f15cbb296484cdb49e00d9bbfeb2aba5cfa15f1d1dfda73e9424d4ed",
+        "total_reward_hive": 50.0,
+        "slashed_cheaters": [
+          "DarkNet_Spoofer_99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-lyon-02",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-nice-03"
+        ],
+        "domain_expert": "Biomedical_Clinical_QA",
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "gamer_mission_scores": [
+        {
+          "gamer_tag": "CyberValkyrie_FR",
+          "contract_id": "CONTRACT-HF-02-PUBMEDQA",
+          "shard_cid": "cid://sha256/080f0b618922949f0d66e5ae17248cfb",
+          "shard_signal_score": 0.89,
+          "initial_loss": 6.090389,
+          "final_loss": 2.404711,
+          "loss_reduction_pct": 60.52,
+          "data_discovery_pts": 335,
+          "lora_training_pts": 696,
+          "solution_bounty_pts": 1235,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 2942,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "NeuralGhost_DE",
+          "contract_id": "CONTRACT-HF-02-PUBMEDQA",
+          "shard_cid": "cid://sha256/f5715aafd48cf1a887bbc40d83fa5e4f",
+          "shard_signal_score": 0.86,
+          "initial_loss": 4.993565,
+          "final_loss": 1.29345,
+          "loss_reduction_pct": 74.1,
+          "data_discovery_pts": 325,
+          "lora_training_pts": 852,
+          "solution_bounty_pts": 1377,
+          "swarm_contribution_pts": 620,
+          "total_mission_pts": 3174,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "ZeroCool_UK",
+          "contract_id": "CONTRACT-HF-02-PUBMEDQA",
+          "shard_cid": "cid://sha256/6ce534c38e2255340f9d8bf967c2e25e",
+          "shard_signal_score": 0.89,
+          "initial_loss": 4.871096,
+          "final_loss": 1.444638,
+          "loss_reduction_pct": 70.34,
+          "data_discovery_pts": 335,
+          "lora_training_pts": 809,
+          "solution_bounty_pts": 1211,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3031,
+          "hive_earned": 15.0
+        }
+      ]
+    },
+    {
+      "mission_index": 3,
+      "contract_id": "CONTRACT-HF-03-GSM8K",
+      "mission_codename": "Operation: Quantum Crypto-Proof",
+      "dataset_id": "openai/gsm8k",
+      "domain_expert": "Mathematical_Reasoning",
+      "difficulty_skulls": 5,
+      "expert_cid": "cid://sha256/expert-mathematical_reasoning-c9b442920ae816f4fd7d93a3",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_mathematical_reasoning_c9b442920ae8.pt",
+      "bounty_challenge": {
+        "prompt": "### Quantitative Problem:\nA cluster of 3 GPU nodes trains 12 steps per epoch at 50 HIVE per block. How many HIVE are minted in 3 blocks?\n### Step-by-Step Proof:\n",
+        "reference_solution": "Each block mints 50 HIVE.\nIn 3 blocks, the cluster mints 3 * 50 = 150 HIVE.\n#### 150",
+        "pre_lora_eval": {
+          "solution_ce_loss": 3.2702,
+          "solution_perplexity": 26.32
+        },
+        "post_lora_eval": {
+          "solution_ce_loss": 1.8762,
+          "solution_perplexity": 6.53,
+          "generated_answer": "To solve this problem, we need to follow these steps:\n\n1. Calculate the number of HIVE minted per epoch.\n2. Calculate the number of HIVE minted per block.\n3. Calculate the number of H",
+          "matched_keywords": [
+            "3",
+            "hive",
+            "block"
+          ],
+          "keyword_hit_count": 3
+        },
+        "perplexity_improvement_pct": 75.19
+      },
+      "pouw_block": {
+        "height": 3,
+        "block_hash": "33ea4496a4aca440177ad5dc52b021e0130d70e1b2d0740ac353d36357eecb2b",
+        "total_reward_hive": 50.0,
+        "slashed_cheaters": [
+          "DarkNet_Spoofer_99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-nice-03",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-lyon-02"
+        ],
+        "domain_expert": "Mathematical_Reasoning",
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "gamer_mission_scores": [
+        {
+          "gamer_tag": "CyberValkyrie_FR",
+          "contract_id": "CONTRACT-HF-03-GSM8K",
+          "shard_cid": "cid://sha256/7643d31e08302a91184d05a9e7ac5e2a",
+          "shard_signal_score": 0.99,
+          "initial_loss": 3.546906,
+          "final_loss": 0.739272,
+          "loss_reduction_pct": 79.16,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 910,
+          "solution_bounty_pts": 1252,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3205,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "NeuralGhost_DE",
+          "contract_id": "CONTRACT-HF-03-GSM8K",
+          "shard_cid": "cid://sha256/3a40aecbad7df3dda57b18550b641bbc",
+          "shard_signal_score": 0.99,
+          "initial_loss": 3.125513,
+          "final_loss": 2.115714,
+          "loss_reduction_pct": 32.31,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 372,
+          "solution_bounty_pts": 1081,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 2496,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "ZeroCool_UK",
+          "contract_id": "CONTRACT-HF-03-GSM8K",
+          "shard_cid": "cid://sha256/19323924bad752d0604561e4fcf15a94",
+          "shard_signal_score": 0.99,
+          "initial_loss": 3.138157,
+          "final_loss": 2.773699,
+          "loss_reduction_pct": 11.61,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 134,
+          "solution_bounty_pts": 1160,
+          "swarm_contribution_pts": 620,
+          "total_mission_pts": 2281,
+          "hive_earned": 15.0
+        }
+      ]
+    }
+  ],
+  "moe_boss_fusion": {
+    "num_experts": 3,
+    "expert_domains": [
+      "Python_Systems_Code",
+      "Biomedical_Clinical_QA",
+      "Mathematical_Reasoning"
+    ],
+    "router_initial_loss": 2.450719,
+    "router_final_loss": 1.712609,
+    "expert_utilization": {
+      "Python_Systems_Code": 0.3945,
+      "Biomedical_Clinical_QA": 0.3122,
+      "Mathematical_Reasoning": 0.2934
+    },
+    "speculative_boss_raid": {
+      "prompt": "### Multi-Domain Boss Raid (Code + Bio + Math):\nWrite a Python function `atp_hive_yield(cells, blocks)` returning total ATP-HIVE energy for 3 blocks at 50 HIVE/block:\n### Solution:\n",
+      "generated_boss_solution": "def atp_hive_yield(cells, blocks):\n    # Calculate the total ATP-HIVE energy for 3 blocks\n    total_energy =",
+      "region_ring": "EU-West-Swarm-Ring",
+      "active_ring_peers": 3,
+      "mean_ring_ping_ms": 14.13,
+      "draft_gamma": 5,
+      "swarm_verification_passes": 5,
+      "mean_acceptance_rate": 1.0,
+      "effective_tokens_per_sec": 4.43,
+      "latency_reduction_factor": 5.6,
+      "expert_routing_share": {
+        "Python_Systems_Code": 0.5606,
+        "Biomedical_Clinical_QA": 0.2184,
+        "Mathematical_Reasoning": 0.2209
+      }
+    }
+  },
+  "steam_achievements_catalog": {
+    "FIRST_HF_SHARD_BREACH": {
+      "title": "Data Breacher",
+      "description": "Scan a Hugging Face dataset node and pin a verified 16 KB CAS training shard."
+    },
+    "LORA_LOSS_CRUSHER": {
+      "title": "Neural Overclock",
+      "description": "Achieve >50% Cross-Entropy Loss reduction during local QLoRA training."
+    },
+    "HF_BOUNTY_SOLVER": {
+      "title": "Zero-Day Solver",
+      "description": "Crack a live Hugging Face dataset bounty challenge with improved solution perplexity."
+    },
+    "BYZANTINE_HUNTER": {
+      "title": "Firewall Sentinel",
+      "description": "Survive a Byzantine gradient poisoning attack via Multi-Krum 2-sigma defense."
+    },
+    "SWARM_ARCHITECT_E3": {
+      "title": "Hive Mind Architect",
+      "description": "Contribute a domain LoRA expert to a 3-Expert Dynamic Hot-Plugged Sparse MoE."
+    },
+    "MOE_BOSS_SLAYER": {
+      "title": "Boss Raid Conqueror (gamma=5)",
+      "description": "Defeat the Final Boss Multi-Domain Challenge using 3-Expert Sparse MoE Speculative Swarm Decoding."
+    },
+    "TOP_1_APEX_MINER": {
+      "title": "Apex Swarm Miner (#1 Global)",
+      "description": "Claim #1 on the Global Steam Hack-Miner & Swarm Contribution Leaderboard."
+    }
+  },
+  "elapsed_seconds": 190.48,
+  "free_steam_package": {
+    "steam_app_id": 3133700,
+    "steam_depot_id": 3133701,
+    "is_free_to_play": true,
+    "package_root": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition",
+    "steam_appid_file": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steam_appid.txt",
+    "steam_store_manifest": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steam_store_manifest.json",
+    "steamworks_partner_schema": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steamworks_sdk\\steam_leaderboards_and_achievements.json",
+    "steam_cloud_save_file": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steam_cloud\\steam_remote_storage_profiles.json",
+    "app_build_vdf": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steamworks_sdk\\app_build_3133700.vdf",
+    "depot_build_vdf": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steamworks_sdk\\depot_build_3133701.vdf",
+    "windows_launcher_bat": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\Launch_HiveMind_HackMiner.bat",
+    "windows_hud_launcher_bat": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\Launch_HiveMind_WebHUD.bat",
+    "player_readme_md": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\README_FREE_STEAM_EDITION.md",
+    "interactive_hud_html": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\web_ui\\index.html"
+  }
+}

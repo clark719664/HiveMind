@@ -1,0 +1,106 @@
+{
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "dataset_id": "sahil2801/CodeAlpaca-20k",
+  "domain_expert": "Python_Systems_Code",
+  "expert_cid": "cid://sha256/expert-python_systems_code-bcecff22c2621b6dfe751c71",
+  "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_python_systems_code_bcecff22c262.pt",
+  "ledger_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\hive_pouw_ledger.json",
+  "chain_integrity_verified": true,
+  "seti_agent_lifecycle_states": {
+    "training_phase": "STATE_2_IDLE_SETI_MINER",
+    "inference_phase": "STATE_3_SWARM_CONSUMER"
+  },
+  "storage_proofs": [
+    {
+      "node_id": "seti-node-paris-01",
+      "shard_cid": "cid://sha256/b67dd21dda0c954b7e6efbef01cc5d79",
+      "challenged_chunk_index": 19,
+      "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+      "bytes_stored": 16384,
+      "verified": true
+    },
+    {
+      "node_id": "seti-node-lyon-02",
+      "shard_cid": "cid://sha256/604672457ed72f9fb2a0bab0bb263053",
+      "challenged_chunk_index": 33,
+      "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+      "bytes_stored": 16384,
+      "verified": true
+    },
+    {
+      "node_id": "seti-node-nice-03",
+      "shard_cid": "cid://sha256/d0d63f1b638a5589c39bf7d5403f98d7",
+      "challenged_chunk_index": 19,
+      "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+      "bytes_stored": 16384,
+      "verified": true
+    }
+  ],
+  "worker_loss_trajectories": {
+    "seti-node-paris-01": {
+      "initial_loss": 2.187762,
+      "final_loss": 0.412917,
+      "spot_check_max_diff": 0.0
+    },
+    "seti-node-lyon-02": {
+      "initial_loss": 8.846732,
+      "final_loss": 0.341039,
+      "spot_check_max_diff": 0.0
+    },
+    "seti-node-nice-03": {
+      "initial_loss": 3.985243,
+      "final_loss": 0.414837,
+      "spot_check_max_diff": 0.0
+    }
+  },
+  "multikrum_accepted": [
+    "seti-node-paris-01",
+    "seti-node-lyon-02",
+    "seti-node-nice-03"
+  ],
+  "multikrum_rejected": [
+    "byzantine-botnet-99"
+  ],
+  "pouw_block": {
+    "height": 1,
+    "block_hash": "8fa7c61c510caf313f868ff7f064e8e1d9ff4f5caee66a48729966a22cbbbc18",
+    "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
+    "merkle_root": "31959ec0a30b53bb399025494319f11f99aa5bdcb9b9384d1333b4196b1f49a0",
+    "total_block_reward_hive": 50.0,
+    "reward_allocations_hive": {
+      "seti-node-paris-01": 15.0,
+      "seti-node-lyon-02": 15.0,
+      "seti-node-nice-03": 15.0,
+      "validator-node-eu-01": 5.0
+    },
+    "slashed_nodes": [
+      "byzantine-botnet-99"
+    ]
+  },
+  "inference_settlement": {
+    "consumer_node_id": "seti-node-paris-01",
+    "expert_provider_nodes": [
+      "seti-node-lyon-02",
+      "seti-node-nice-03"
+    ],
+    "verified_tokens": 45,
+    "rtt_speedup": 5.0,
+    "fee_paid_hive": 0.225
+  },
+  "post_inference_balances_hive": {
+    "byzantine-botnet-99": 0.0,
+    "seti-node-paris-01": 14.775,
+    "seti-node-lyon-02": 15.1125,
+    "seti-node-nice-03": 15.1125,
+    "validator-node-eu-01": 5.0
+  },
+  "shared_swarm_generation": "def binary_search(arr, target):\n    low = 0\n    high = len(arr) - 1\n    \n    while low <= high:\n        mid = (low + high) // 2\n        \n        if arr[mid",
+  "rtx2070_vram_telemetry": {
+    "allocated_mb": 1078.11,
+    "reserved_mb": 1590.0,
+    "peak_allocated_mb": 1377.94,
+    "free_vram_gb": 5.39,
+    "total_vram_gb": 8.0
+  },
+  "elapsed_seconds": 44.5
+}

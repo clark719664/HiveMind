@@ -1,0 +1,52 @@
+name: "🌐 Swarm Fabric Milestone Task (M1–M4)"
+description: "Claim or propose an engineering task for Phase 2 'Swarm Fabric' (Geo-Ring Transport, 3-Tier DMA, Tree Speculation, OpenAI/OPoI Gateway)"
+title: "[Swarm Fabric] <M1|M2|M3|M4>: "
+labels: ["swarm-fabric", "enhancement", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🚀 Welcome to Project HiveMind Peer Development!
+        Use this template to propose or claim an engineering task on the **Phase 2 "Swarm Fabric" Roadmap (M1–M4)**. See [`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](../docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md) for open high-priority tasks.
+
+  - type: dropdown
+    id: milestone_track
+    attributes:
+      label: "Swarm Fabric Milestone Track"
+      description: "Which Phase 2 milestone does this task belong to?"
+      options:
+        - "M1 (Transport): Real aioquic / Libp2p WebSockets + Kademlia DHT for sub-20ms regional Geo-Rings"
+        - "M2 (3-Tier Memory): Async DMA streaming of 16 MB LoRA experts from Pinned Host RAM into CUDA VRAM + Macro/Micro Router"
+        - "M3 (Tree Speculation): Eagle/Medusa-style token tree verification (gamma=6) + FP8 hidden-state wire compression"
+        - "M4 (OpenAI Gateway & OPoI): Probabilistic 5% Optimistic Proof-of-Inference audits, Layer-2 $HIVE state channels & /v1/chat/completions"
+        - "M5 (Steam Hack-Miner): HiveMind: Neural Breach Free Steam Edition (AppID 3133700) & Web HUD"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: "Technical Objective & Architectural Scope"
+      description: "Describe the exact module(s), interfaces, and mathematical/systems guarantees to implement."
+      placeholder: "e.g., Implement double-buffered CUDA stream prefetching in `PinnedRAMExpertDMAStreamer` so layer L+1 expert weights overlap with layer L attention execution..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "Acceptance Criteria & 8 GB VRAM / Latency Benchmarks"
+      description: "How will we verify this in `pytest` and on an 8 GB–12 GB consumer GPU?"
+      value: |
+        - [ ] Unit & integration tests added to `tests/` and passing via `pytest -v`
+        - [ ] Peak VRAM stays within the 8 GB consumer GPU budget ($\le 6.5\text{ GB}$)
+        - [ ] Deterministic replay ($\epsilon \le 10^{-4}$) and Byzantine safety preserved
+        - [ ] Proposed branch name: `feat/mX-<short-slug>`
+    validations:
+      required: true
+
+  - type: input
+    id: contributor_handle
+    attributes:
+      label: "Claiming Contributor / Gamer Tag (Optional)"
+      placeholder: "@github-handle / CyberValkyrie_FR"

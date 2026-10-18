@@ -13,6 +13,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 import numpy as np
 import yaml
 
@@ -23,24 +28,82 @@ ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
 
 def ensure_local_drive_caches() -> dict[str, str]:
     """Redirect all heavy caches (HuggingFace, PyTorch, TMP, uv) to D:\\xdev\\DecentralizedAI\\.cache."""
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(PROJECT_ROOT / ".env", override=False)
+        load_dotenv(Path.home() / ".env", override=False)
+    except Exception:
+        pass
+
     cache_dirs = {
         "HF_HOME": str(CACHE_ROOT / "huggingface"),
+        "HF_HUB_CACHE": str(CACHE_ROOT / "huggingface" / "hub"),
+        "HUGGINGFACE_HUB_CACHE": str(CACHE_ROOT / "huggingface" / "hub"),
         "TORCH_HOME": str(CACHE_ROOT / "torch"),
         "UV_CACHE_DIR": str(CACHE_ROOT / "uv"),
         "TMP": str(CACHE_ROOT / "tmp"),
         "TEMP": str(CACHE_ROOT / "tmp"),
         "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+        "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
     }
     for env_key, dir_path in cache_dirs.items():
-        if env_key != "CUBLAS_WORKSPACE_CONFIG":
+        if env_key not in ("CUBLAS_WORKSPACE_CONFIG", "HF_HUB_DISABLE_SYMLINKS_WARNING"):
             Path(dir_path).mkdir(parents=True, exist_ok=True)
-        os.environ.setdefault(env_key, dir_path)
+            os.environ[env_key] = dir_path
+        else:
+            os.environ.setdefault(env_key, dir_path)
     ARTIFACTS_ROOT.mkdir(parents=True, exist_ok=True)
     return cache_dirs
 
 
-# Apply cache redirection immediately on import
+def get_hf_token() -> str | None:
+    """Resolve Hugging Face token from environment variables (.env, process env, or Windows HKCU)."""
+    env_keys = ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HUGGINGFACE_HUB_TOKEN", "HF_API_TOKEN")
+    for key in env_keys:
+        val = os.environ.get(key)
+        if val and val.strip():
+            token = val.strip()
+            os.environ["HF_TOKEN"] = token
+            return token
+
+    # Also check Windows User/Machine Registry in case `setx HF_TOKEN ...` was run in another shell
+    if os.name == "nt":
+        import winreg
+
+        for hive, subkey in (
+            (winreg.HKEY_CURRENT_USER, r"Environment"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"),
+        ):
+            try:
+                with winreg.OpenKey(hive, subkey) as reg_key:
+                    for k in env_keys:
+                        try:
+                            val, _ = winreg.QueryValueEx(reg_key, k)
+                            if isinstance(val, str) and val.strip():
+                                token = val.strip()
+                                os.environ["HF_TOKEN"] = token
+                                return token
+                        except FileNotFoundError:
+                            continue
+            except OSError:
+                continue
+
+    try:
+        from huggingface_hub import get_token
+
+        tok = get_token()
+        if tok:
+            os.environ["HF_TOKEN"] = tok
+            return tok
+    except Exception:
+        pass
+    return None
+
+
+# Apply cache redirection and token resolution immediately on import
 ensure_local_drive_caches()
+get_hf_token()
 
 
 @dataclass

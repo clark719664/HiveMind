@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 import torch
-import uvicorn
 from rich.console import Console
 from rich.table import Table
 
-from hivemind.boinc.coordinator_api import BOINCCoordinatorService, create_coordinator_fastapi_app
-from hivemind.cli.simulate_e2e import run_end_to_end_simulation
 from hivemind.client.daemon import ZeroIntrusionDaemon
 from hivemind.config import HiveMindConfig, detect_local_hardware
 from hivemind.core.quantization import (
@@ -140,6 +143,9 @@ def cmd_benchmark_vram(profile_name: str) -> int:
 
 def cmd_serve_coordinator(host: str, port: int) -> int:
     """Start the FastAPI Modified BOINC Coordinator server."""
+    import uvicorn
+    from hivemind.boinc.coordinator_api import BOINCCoordinatorService, create_coordinator_fastapi_app
+
     cfg = HiveMindConfig.from_yaml()
     base_model, base_sha, _ = build_local_qwen2_backbone(
         seed=42,
@@ -187,10 +193,68 @@ def main(argv: list[str] | None = None) -> int:
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8080)
 
+    p_poc = sub.add_parser("run-poc", help="Run real Hugging Face Qwen2.5-0.5B PoC on local RTX 2070")
+    p_poc.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
+    p_poc.add_argument(
+        "--dataset-id",
+        default="sahil2801/CodeAlpaca-20k",
+        help="Hugging Face dataset ID for decentralized subset training (e.g., sahil2801/CodeAlpaca-20k or qiaojin/PubMedQA)",
+    )
+    p_poc.add_argument("--subset-size", type=int, default=24, help="Number of HF rows partitioned across worker shards")
+    p_poc.add_argument("--lora-rank", type=int, default=16, help="LoRA rank r")
+    p_poc.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps per branch")
+
+    p_swarm = sub.add_parser(
+        "run-seti-swarm",
+        help="Run HiveMind v2 ('SETI-Swarm') Decentralized HF Domain Training + PoUW $HIVE Ledger + Shared Inference",
+    )
+    p_swarm.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
+    p_swarm.add_argument("--dataset-id", default="sahil2801/CodeAlpaca-20k", help="Hugging Face dataset ID")
+    p_swarm.add_argument("--domain-name", default="Python_Systems_Code", help="Domain expert name")
+    p_swarm.add_argument("--lora-rank", type=int, default=16, help="LoRA rank r")
+    p_swarm.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps per worker")
+
+    p_exp3 = sub.add_parser(
+        "run-3-experiments",
+        help="Execute 3 sequential SETI-Swarm experiments on real Hugging Face datasets (CodeAlpaca-20k, PubMedQA, GSM8K) + Dynamic MoE Hot-Plug",
+    )
+    p_exp3.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
+    p_exp3.add_argument("--lora-rank", type=int, default=8, help="LoRA rank r")
+    p_exp3.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps per worker")
+
+    p_game = sub.add_parser(
+        "play-hack-game",
+        help="Play HiveMind: Neural Breach (Free Steam Edition) Hugging Face Hack-Miner Game & build Steam package",
+    )
+    p_game.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
+    p_game.add_argument("--lora-rank", type=int, default=8, help="LoRA rank r")
+    p_game.add_argument("--inner-steps", type=int, default=8, help="DiLoCo inner steps per gamer")
+
+    p_hud = sub.add_parser(
+        "serve-hack-hud",
+        help="Launch the interactive Cyberpunk Free Steam Edition Web HUD & Leaderboard server",
+    )
+    p_hud.add_argument("--host", default="127.0.0.1")
+    p_hud.add_argument("--port", type=int, default=8090)
+
+    p_probe = sub.add_parser(
+        "hack-probe",
+        help="Run an interactive Hugging Face Shard Scan & 3-Expert Sparse MoE Bounty Probe for a gamer",
+    )
+    p_probe.add_argument("--gamer", default="CyberValkyrie_FR", help="Steam Gamer Tag")
+    p_probe.add_argument("--dataset-id", default="sahil2801/CodeAlpaca-20k", help="HF Dataset Node to scan")
+    p_probe.add_argument(
+        "--prompt",
+        default="Write a Python function to calculate cellular ATP and HIVE minted across 3 blocks.",
+        help="Custom Bounty Challenge prompt to route across the 3-Expert Sparse MoE",
+    )
+
     args = parser.parse_args(argv)
     if args.command == "hardware-check":
         return cmd_hardware_check()
     if args.command == "simulate-e2e":
+        from hivemind.cli.simulate_e2e import run_end_to_end_simulation
+
         run_end_to_end_simulation(
             profile_name=args.profile,
             use_hf_hub=args.use_hf_hub,
@@ -202,8 +266,76 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_benchmark_vram(profile_name=args.profile)
     if args.command == "serve-coordinator":
         return cmd_serve_coordinator(host=args.host, port=args.port)
+    if args.command == "run-poc":
+        from hivemind.cli.poc_rtx2070 import run_huggingface_rtx2070_poc
+
+        run_huggingface_rtx2070_poc(
+            model_id=args.model_id,
+            hf_dataset_id=args.dataset_id,
+            hf_subset_size=args.subset_size,
+            lora_rank_r=args.lora_rank,
+            lora_alpha=args.lora_rank * 2,
+            inner_steps_H=args.inner_steps,
+            spot_check_interval_s=max(1, args.inner_steps // 2),
+        )
+        return 0
+    if args.command == "run-seti-swarm":
+        from hivemind.cli.demo_hf_domain_swarm import run_decentralized_hf_domain_demo
+
+        run_decentralized_hf_domain_demo(
+            model_id=args.model_id,
+            dataset_id=args.dataset_id,
+            domain_name=args.domain_name,
+            lora_rank=args.lora_rank,
+            inner_steps=args.inner_steps,
+        )
+        return 0
+    if args.command == "run-3-experiments":
+        from hivemind.cli.demo_hf_domain_swarm import run_three_hf_swarm_experiments
+
+        run_three_hf_swarm_experiments(
+            model_id=args.model_id,
+            lora_rank=args.lora_rank,
+            inner_steps=args.inner_steps,
+        )
+        return 0
+    if args.command == "play-hack-game":
+        from hivemind.game.hf_hack_miner import run_hf_hack_mining_game
+
+        run_hf_hack_mining_game(
+            model_id=args.model_id,
+            lora_rank=args.lora_rank,
+            inner_steps=args.inner_steps,
+            build_steam_package=True,
+        )
+        return 0
+    if args.command == "serve-hack-hud":
+        import uvicorn
+        from hivemind.game.steam_edition import create_hack_miner_fastapi_app
+
+        app = create_hack_miner_fastapi_app()
+        uvicorn.run(app, host=args.host, port=args.port)
+        return 0
+    if args.command == "hack-probe":
+        from hivemind.game.hf_hack_miner import (
+            execute_interactive_bounty_probe,
+            execute_interactive_hf_shard_scan,
+        )
+
+        scan_res = execute_interactive_hf_shard_scan(
+            gamer_tag=args.gamer,
+            dataset_id=args.dataset_id,
+        )
+        bounty_res = execute_interactive_bounty_probe(
+            gamer_tag=args.gamer,
+            prompt=args.prompt,
+        )
+        console.print(json.dumps({"shard_scan": scan_res, "bounty_probe": bounty_res}, indent=2))
+        return 0
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
+
+

@@ -121,16 +121,58 @@ class UpcycledSwiGLUExpert(nn.Module):
         dtype: torch.dtype = torch.float32,
     ) -> None:
         super().__init__()
-        self.gate_proj = nn.Linear(hidden_size, intermediate_size, bias=False, dtype=dtype)
-        self.up_proj = nn.Linear(hidden_size, intermediate_size, bias=False, dtype=dtype)
-        self.down_proj = nn.Linear(intermediate_size, hidden_size, bias=False, dtype=dtype)
+        dev = gate_weight.device
+        self.gate_proj = nn.Linear(hidden_size, intermediate_size, bias=False, dtype=dtype, device=dev)
+        self.up_proj = nn.Linear(hidden_size, intermediate_size, bias=False, dtype=dtype, device=dev)
+        self.down_proj = nn.Linear(intermediate_size, hidden_size, bias=False, dtype=dtype, device=dev)
         with torch.no_grad():
-            self.gate_proj.weight.copy_(gate_weight.to(dtype))
-            self.up_proj.weight.copy_(up_weight.to(dtype))
-            self.down_proj.weight.copy_(down_weight.to(dtype))
+            self.gate_proj.weight.copy_(gate_weight.to(device=dev, dtype=dtype))
+            self.up_proj.weight.copy_(up_weight.to(device=dev, dtype=dtype))
+            self.down_proj.weight.copy_(down_weight.to(device=dev, dtype=dtype))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.down_proj(F.silu(self.gate_proj(x)) * self.up_proj(x))
+
+
+class UpcycledFactoredSwiGLUExpert(nn.Module):
+    """VRAM-efficient SwiGLU FFN expert evaluating (W_0 + (alpha/r) B_e A_e) x on shared NF4/FP16 W_0."""
+
+    def __init__(
+        self,
+        shared_base_ffn: tuple[nn.Linear, nn.Linear, nn.Linear],
+        ab_gate: tuple[torch.Tensor, torch.Tensor] | None,
+        ab_up: tuple[torch.Tensor, torch.Tensor] | None,
+        ab_down: tuple[torch.Tensor, torch.Tensor] | None,
+        scaling: float,
+        dtype: torch.dtype,
+        device: torch.device,
+    ) -> None:
+        super().__init__()
+        # Keep reference in a plain Python tuple so PyTorch does not duplicate shared base parameters
+        self._shared_base_ffn = shared_base_ffn
+        for prefix, ab in (("gate", ab_gate), ("up", ab_up), ("down", ab_down)):
+            if ab is not None:
+                a_buf = ab[0].to(device=device, dtype=dtype).contiguous()
+                b_buf = (ab[1].to(device=device, dtype=torch.float32) * scaling).to(dtype=dtype).contiguous()
+                self.register_buffer(f"{prefix}_A", a_buf)
+                self.register_buffer(f"{prefix}_B", b_buf)
+            else:
+                self.register_buffer(f"{prefix}_A", None)
+                self.register_buffer(f"{prefix}_B", None)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        base_gate, base_up, base_down = self._shared_base_ffn
+        g = base_gate(x)
+        if self.gate_A is not None and self.gate_B is not None:
+            g = g + (x @ self.gate_A.t()) @ self.gate_B.t()
+        u = base_up(x)
+        if self.up_A is not None and self.up_B is not None:
+            u = u + (x @ self.up_A.t()) @ self.up_B.t()
+        h = F.silu(g) * u
+        d = base_down(h)
+        if self.down_A is not None and self.down_B is not None:
+            d = d + (h @ self.down_A.t()) @ self.down_B.t()
+        return d
 
 
 class TopKMoERouter(nn.Module):
@@ -170,6 +212,23 @@ class TopKMoERouter(nn.Module):
 
         return routing_weights, selected_experts, aux_loss
 
+    def expand_for_new_expert(self) -> None:
+        """Incrementally expand the Top-k gating matrix W_g from R^{d x E} to R^{d x (E+1)}."""
+        old_wg = self.wg
+        device = old_wg.weight.device
+        hidden_size = old_wg.in_features
+        new_num_experts = self.num_experts + 1
+
+        new_wg = nn.Linear(hidden_size, new_num_experts, bias=False, dtype=torch.float32, device=device)
+        with torch.no_grad():
+            new_wg.weight[: self.num_experts].copy_(old_wg.weight)
+            # Initialize the new expert's gating column near the mean of existing columns
+            mean_col = old_wg.weight.mean(dim=0, keepdim=True)
+            new_wg.weight[self.num_experts :].copy_(mean_col + torch.randn_like(mean_col) * 0.01)
+
+        self.wg = new_wg
+        self.num_experts = new_num_experts
+
 
 class SparseMoEMLPBlock(nn.Module):
     """Phase C Upcycled Sparse MoE Layer replacing a dense Qwen/Gemma MLP block.
@@ -181,16 +240,21 @@ class SparseMoEMLPBlock(nn.Module):
     def __init__(
         self,
         hidden_size: int,
-        experts: list[UpcycledSwiGLUExpert],
+        experts: list[nn.Module],
         expert_domains: list[str],
         top_k: int = 2,
         dtype: torch.dtype = torch.float32,
+        shared_base_ffn: tuple[nn.Linear, nn.Linear, nn.Linear] | None = None,
     ) -> None:
         super().__init__()
         self.hidden_size = hidden_size
         self.num_experts = len(experts)
         self.top_k = min(top_k, self.num_experts)
-        self.expert_domains = expert_domains
+        self.expert_domains = list(expert_domains)
+        if shared_base_ffn is not None:
+            self.shared_gate_proj = shared_base_ffn[0]
+            self.shared_up_proj = shared_base_ffn[1]
+            self.shared_down_proj = shared_base_ffn[2]
         self.router = TopKMoERouter(
             hidden_size=hidden_size,
             num_experts=self.num_experts,
@@ -200,6 +264,17 @@ class SparseMoEMLPBlock(nn.Module):
         self.experts = nn.ModuleList(experts)
         self.last_aux_loss: torch.Tensor = torch.tensor(0.0)
         self.register_buffer("expert_token_counts", torch.zeros(self.num_experts, dtype=torch.long))
+
+    def hotplug_expert(self, domain_name: str, expert_module: nn.Module) -> None:
+        """Hot-plug a newly converged domain expert E_{N+1} into this MoE layer."""
+        self.experts.append(expert_module)
+        self.expert_domains.append(domain_name)
+        self.num_experts = len(self.experts)
+        self.router.expand_for_new_expert()
+        old_counts = self.expert_token_counts
+        new_counts = torch.zeros(self.num_experts, dtype=torch.long, device=old_counts.device)
+        new_counts[: old_counts.numel()] = old_counts
+        self.expert_token_counts = new_counts
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         orig_shape = x.shape
@@ -239,7 +314,7 @@ class UpcycledSparseMoEModel(nn.Module):
     ) -> None:
         super().__init__()
         self.backbone = upcycled_backbone
-        self.expert_domains = expert_domains
+        self.expert_domains = list(expert_domains)
         self.num_experts = len(expert_domains)
         self.top_k = top_k
         self.router_aux_loss_coef = router_aux_loss_coef
@@ -267,6 +342,65 @@ class UpcycledSparseMoEModel(nn.Module):
             for i, dom in enumerate(self.expert_domains)
         }
 
+    def hotplug_domain_expert(
+        self,
+        domain_name: str,
+        lora_state_dict: dict[str, torch.Tensor],
+        lora_rank_r: int = 16,
+        lora_alpha: int = 32,
+    ) -> int:
+        """Phase 3.5 (BTM MoE v2): Hot-plug a new domain LoRA expert (E -> E+1) without retraining existing experts."""
+        scaling = float(lora_alpha) / float(lora_rank_r)
+        device = next(self.backbone.parameters()).device
+        dtype = next(self.backbone.parameters()).dtype
+        cfg = self.backbone.config
+        blocks = self.get_moe_blocks()
+
+        for layer_idx, blk in enumerate(blocks):
+            ab_gate = _extract_ab_pair(lora_state_dict, layer_idx, "mlp.gate_proj")
+            ab_up = _extract_ab_pair(lora_state_dict, layer_idx, "mlp.up_proj")
+            ab_down = _extract_ab_pair(lora_state_dict, layer_idx, "mlp.down_proj")
+
+            if hasattr(blk, "shared_gate_proj"):
+                shared_ffn = (blk.shared_gate_proj, blk.shared_up_proj, blk.shared_down_proj)
+                expert_mod: nn.Module = UpcycledFactoredSwiGLUExpert(
+                    shared_base_ffn=shared_ffn,
+                    ab_gate=ab_gate,
+                    ab_up=ab_up,
+                    ab_down=ab_down,
+                    scaling=scaling,
+                    dtype=dtype,
+                    device=device,
+                )
+            else:
+                ref_exp: UpcycledSwiGLUExpert = blk.experts[0]  # type: ignore[assignment]
+                w0_gate = ref_exp.gate_proj.weight.detach().to(torch.float32)
+                w0_up = ref_exp.up_proj.weight.detach().to(torch.float32)
+                w0_down = ref_exp.down_proj.weight.detach().to(torch.float32)
+                w_gate = w0_gate + (
+                    scaling * (ab_gate[1].to(device) @ ab_gate[0].to(device)) if ab_gate else 0.0
+                )
+                w_up = w0_up + (
+                    scaling * (ab_up[1].to(device) @ ab_up[0].to(device)) if ab_up else 0.0
+                )
+                w_down = w0_down + (
+                    scaling * (ab_down[1].to(device) @ ab_down[0].to(device)) if ab_down else 0.0
+                )
+                expert_mod = UpcycledSwiGLUExpert(
+                    hidden_size=cfg.hidden_size,
+                    intermediate_size=cfg.intermediate_size,
+                    gate_weight=w_gate,
+                    up_weight=w_up,
+                    down_weight=w_down,
+                    dtype=dtype,
+                ).to(device)
+
+            blk.hotplug_expert(domain_name=domain_name, expert_module=expert_mod)
+
+        self.expert_domains.append(domain_name)
+        self.num_experts = len(self.expert_domains)
+        return self.num_experts
+
     def forward(self, input_ids: torch.Tensor, labels: torch.Tensor | None = None, **kwargs: Any) -> Any:
         out = self.backbone(input_ids=input_ids, labels=labels, **kwargs)
         if labels is not None and hasattr(out, "loss") and out.loss is not None:
@@ -275,6 +409,7 @@ class UpcycledSparseMoEModel(nn.Module):
                 total_aux = torch.stack(aux_losses).mean()
                 out.loss = out.loss + self.router_aux_loss_coef * total_aux
         return out
+
 
 
 def upcycle_branches_to_sparse_moe(
@@ -286,6 +421,7 @@ def upcycle_branches_to_sparse_moe(
     router_aux_loss_coef: float = 0.01,
     target_device: torch.device | None = None,
     target_dtype: torch.dtype = torch.float32,
+    in_place: bool = False,
 ) -> tuple[UpcycledSparseMoEModel, MoEUpcycleReport]:
     """Phase C: Convert E converged QLoRA domain branches into a unified Sparse MoE model."""
     expert_domains = list(branch_lora_states.keys())
@@ -303,94 +439,155 @@ def upcycle_branches_to_sparse_moe(
     if target_device is None:
         target_device = next(raw_causal_lm.parameters()).device
 
-    # Build a clean dense copy of the CausalLM config on CPU first
     cfg = copy.deepcopy(raw_causal_lm.config)
-    from transformers import Qwen2ForCausalLM
 
-    merged_causal_lm = Qwen2ForCausalLM(cfg).to(dtype=target_dtype)
-    with torch.no_grad():
-        merged_causal_lm.model.embed_tokens.weight.copy_(
-            raw_causal_lm.model.embed_tokens.weight.detach().to(dtype=target_dtype, device="cpu")
-        )
-        merged_causal_lm.model.norm.weight.copy_(
-            raw_causal_lm.model.norm.weight.detach().to(dtype=target_dtype, device="cpu")
-        )
-        if not cfg.tie_word_embeddings:
-            merged_causal_lm.lm_head.weight.copy_(
-                raw_causal_lm.lm_head.weight.detach().to(dtype=target_dtype, device="cpu")
+    if in_place:
+        merged_causal_lm = raw_causal_lm
+    else:
+        from transformers import Qwen2ForCausalLM
+
+        merged_causal_lm = Qwen2ForCausalLM(cfg).to(dtype=target_dtype)
+        with torch.no_grad():
+            merged_causal_lm.model.embed_tokens.weight.copy_(
+                raw_causal_lm.model.embed_tokens.weight.detach().to(dtype=target_dtype, device="cpu")
             )
+            merged_causal_lm.model.norm.weight.copy_(
+                raw_causal_lm.model.norm.weight.detach().to(dtype=target_dtype, device="cpu")
+            )
+            if not cfg.tie_word_embeddings:
+                merged_causal_lm.lm_head.weight.copy_(
+                    raw_causal_lm.lm_head.weight.detach().to(dtype=target_dtype, device="cpu")
+                )
 
     attn_merged_count = 0
     ffn_experts_created = 0
+    work_dev = target_device if in_place else torch.device("cpu")
 
-    for layer_idx, src_layer in enumerate(raw_causal_lm.model.layers):
-        dst_layer = merged_causal_lm.model.layers[layer_idx]
-        with torch.no_grad():
-            dst_layer.input_layernorm.weight.copy_(
-                src_layer.input_layernorm.weight.detach().to(dtype=target_dtype, device="cpu")
-            )
-            dst_layer.post_attention_layernorm.weight.copy_(
-                src_layer.post_attention_layernorm.weight.detach().to(dtype=target_dtype, device="cpu")
-            )
-
-        # 1. Average self-attention LoRA adapters across all E branches and merge into W_0
-        for proj_name in ("q_proj", "k_proj", "v_proj", "o_proj"):
-            src_proj = getattr(src_layer.self_attn, proj_name)
-            w0 = _dequantize_linear_weight(src_proj)
-            avg_delta = torch.zeros_like(w0, dtype=torch.float32)
-            for domain in expert_domains:
-                ab = _extract_ab_pair(
-                    branch_lora_states[domain],
-                    layer_idx=layer_idx,
-                    subpath=f"self_attn.{proj_name}",
+    with torch.no_grad():
+        for layer_idx, src_layer in enumerate(raw_causal_lm.model.layers):
+            dst_layer = merged_causal_lm.model.layers[layer_idx]
+            if not in_place:
+                dst_layer.input_layernorm.weight.copy_(
+                    src_layer.input_layernorm.weight.detach().to(dtype=target_dtype, device="cpu")
                 )
-                if ab is not None:
-                    a_mat, b_mat = ab
-                    avg_delta.add_(scaling * (b_mat @ a_mat))
-            avg_delta.div_(float(E))
-            dst_proj: nn.Linear = getattr(dst_layer.self_attn, proj_name)
-            with torch.no_grad():
-                dst_proj.weight.copy_((w0 + avg_delta).to(target_dtype))
-                if dst_proj.bias is not None:
-                    base_lin = getattr(src_proj, "base_layer", src_proj)
-                    if getattr(base_lin, "bias", None) is not None:
-                        dst_proj.bias.copy_(base_lin.bias.detach().to(dtype=target_dtype, device="cpu"))
-            attn_merged_count += 1
+                dst_layer.post_attention_layernorm.weight.copy_(
+                    src_layer.post_attention_layernorm.weight.detach().to(dtype=target_dtype, device="cpu")
+                )
 
-        # 2. Construct E distinct FFN experts: W_{ffn, e} = W_0_ffn + (alpha/r) * B_e @ A_e
-        w0_gate = _dequantize_linear_weight(src_layer.mlp.gate_proj)
-        w0_up = _dequantize_linear_weight(src_layer.mlp.up_proj)
-        w0_down = _dequantize_linear_weight(src_layer.mlp.down_proj)
+            # 1. Average self-attention LoRA adapters across all E branches and merge into W_0
+            for proj_name in ("q_proj", "k_proj", "v_proj", "o_proj"):
+                src_proj = getattr(src_layer.self_attn, proj_name)
+                base_lin = getattr(src_proj, "base_layer", src_proj)
+                avg_delta = torch.zeros_like(base_lin.weight.data, dtype=torch.float32, device=work_dev)
+                for domain in expert_domains:
+                    ab = _extract_ab_pair(
+                        branch_lora_states[domain],
+                        layer_idx=layer_idx,
+                        subpath=f"self_attn.{proj_name}",
+                    )
+                    if ab is not None:
+                        a_mat = ab[0].to(device=work_dev, dtype=torch.float32)
+                        b_mat = ab[1].to(device=work_dev, dtype=torch.float32)
+                        avg_delta.add_(scaling * (b_mat @ a_mat))
+                        del a_mat, b_mat
+                avg_delta.div_(float(E))
 
-        layer_experts: list[UpcycledSwiGLUExpert] = []
-        for domain in expert_domains:
-            b_state = branch_lora_states[domain]
-            ab_gate = _extract_ab_pair(b_state, layer_idx, "mlp.gate_proj")
-            ab_up = _extract_ab_pair(b_state, layer_idx, "mlp.up_proj")
-            ab_down = _extract_ab_pair(b_state, layer_idx, "mlp.down_proj")
+                if in_place:
+                    base_lin.weight.data.copy_(
+                        (base_lin.weight.data.to(torch.float32) + avg_delta).to(target_dtype)
+                    )
+                    setattr(dst_layer.self_attn, proj_name, base_lin)
+                else:
+                    w0 = base_lin.weight.detach().to(device=work_dev, dtype=torch.float32)
+                    new_attn_lin = nn.Linear(
+                        base_lin.in_features,
+                        base_lin.out_features,
+                        bias=base_lin.bias is not None,
+                        device=work_dev,
+                        dtype=target_dtype,
+                    )
+                    new_attn_lin.weight.copy_((w0 + avg_delta).to(target_dtype))
+                    if base_lin.bias is not None and new_attn_lin.bias is not None:
+                        new_attn_lin.bias.copy_(base_lin.bias.detach().to(device=work_dev, dtype=target_dtype))
+                    setattr(dst_layer.self_attn, proj_name, new_attn_lin)
+                    del w0
+                del avg_delta
+                attn_merged_count += 1
 
-            w_gate = w0_gate + (scaling * (ab_gate[1] @ ab_gate[0]) if ab_gate else 0.0)
-            w_up = w0_up + (scaling * (ab_up[1] @ ab_up[0]) if ab_up else 0.0)
-            w_down = w0_down + (scaling * (ab_down[1] @ ab_down[0]) if ab_down else 0.0)
+            # 2. Construct E distinct FFN experts: W_{ffn, e} = W_0_ffn + (alpha/r) * B_e @ A_e
+            base_gate = getattr(src_layer.mlp.gate_proj, "base_layer", src_layer.mlp.gate_proj)
+            base_up = getattr(src_layer.mlp.up_proj, "base_layer", src_layer.mlp.up_proj)
+            base_down = getattr(src_layer.mlp.down_proj, "base_layer", src_layer.mlp.down_proj)
 
-            expert_mod = UpcycledSwiGLUExpert(
-                hidden_size=cfg.hidden_size,
-                intermediate_size=cfg.intermediate_size,
-                gate_weight=w_gate,
-                up_weight=w_up,
-                down_weight=w_down,
-                dtype=target_dtype,
-            )
-            layer_experts.append(expert_mod)
-            ffn_experts_created += 1
+            layer_experts: list[nn.Module] = []
+            if in_place:
+                shared_ffn = (base_gate, base_up, base_down)
+                for domain in expert_domains:
+                    b_state = branch_lora_states[domain]
+                    ab_gate = _extract_ab_pair(b_state, layer_idx, "mlp.gate_proj")
+                    ab_up = _extract_ab_pair(b_state, layer_idx, "mlp.up_proj")
+                    ab_down = _extract_ab_pair(b_state, layer_idx, "mlp.down_proj")
+                    expert_mod = UpcycledFactoredSwiGLUExpert(
+                        shared_base_ffn=shared_ffn,
+                        ab_gate=ab_gate,
+                        ab_up=ab_up,
+                        ab_down=ab_down,
+                        scaling=scaling,
+                        dtype=target_dtype,
+                        device=work_dev,
+                    )
+                    layer_experts.append(expert_mod)
+                    ffn_experts_created += 1
 
-        dst_layer.mlp = SparseMoEMLPBlock(
-            hidden_size=cfg.hidden_size,
-            experts=layer_experts,
-            expert_domains=expert_domains,
-            top_k=top_k,
-            dtype=target_dtype,
-        )
+                dst_layer.mlp = SparseMoEMLPBlock(
+                    hidden_size=cfg.hidden_size,
+                    experts=layer_experts,
+                    expert_domains=expert_domains,
+                    top_k=top_k,
+                    dtype=target_dtype,
+                    shared_base_ffn=shared_ffn,
+                ).to(work_dev)
+            else:
+                w0_gate = _dequantize_linear_weight(src_layer.mlp.gate_proj).to(work_dev)
+                w0_up = _dequantize_linear_weight(src_layer.mlp.up_proj).to(work_dev)
+                w0_down = _dequantize_linear_weight(src_layer.mlp.down_proj).to(work_dev)
+
+                for domain in expert_domains:
+                    b_state = branch_lora_states[domain]
+                    ab_gate = _extract_ab_pair(b_state, layer_idx, "mlp.gate_proj")
+                    ab_up = _extract_ab_pair(b_state, layer_idx, "mlp.up_proj")
+                    ab_down = _extract_ab_pair(b_state, layer_idx, "mlp.down_proj")
+
+                    w_gate = w0_gate + (
+                        scaling * (ab_gate[1].to(work_dev) @ ab_gate[0].to(work_dev)) if ab_gate else 0.0
+                    )
+                    w_up = w0_up + (
+                        scaling * (ab_up[1].to(work_dev) @ ab_up[0].to(work_dev)) if ab_up else 0.0
+                    )
+                    w_down = w0_down + (
+                        scaling * (ab_down[1].to(work_dev) @ ab_down[0].to(work_dev)) if ab_down else 0.0
+                    )
+
+                    expert_mod = UpcycledSwiGLUExpert(
+                        hidden_size=cfg.hidden_size,
+                        intermediate_size=cfg.intermediate_size,
+                        gate_weight=w_gate,
+                        up_weight=w_up,
+                        down_weight=w_down,
+                        dtype=target_dtype,
+                    ).to(work_dev)
+                    layer_experts.append(expert_mod)
+                    del w_gate, w_up, w_down
+                    ffn_experts_created += 1
+
+                del w0_gate, w0_up, w0_down
+                dst_layer.mlp = SparseMoEMLPBlock(
+                    hidden_size=cfg.hidden_size,
+                    experts=layer_experts,
+                    expert_domains=expert_domains,
+                    top_k=top_k,
+                    dtype=target_dtype,
+                ).to(work_dev)
 
     moe_model = UpcycledSparseMoEModel(
         upcycled_backbone=merged_causal_lm.to(target_device),
@@ -399,12 +596,15 @@ def upcycle_branches_to_sparse_moe(
         router_aux_loss_coef=router_aux_loss_coef,
     )
 
-    total_moe_params = sum(p.numel() for p in moe_model.parameters())
-    single_ffn_params = sum(
-        p.numel() for blk in moe_model.get_moe_blocks() for p in blk.experts[0].parameters()
-    )
-    all_ffn_params = single_ffn_params * E
-    non_ffn_params = total_moe_params - all_ffn_params
+    num_moe_layers = len(moe_model.get_moe_blocks())
+    single_ffn_params = num_moe_layers * 3 * int(cfg.hidden_size) * int(cfg.intermediate_size)
+    raw_param_sum = sum(p.numel() for p in moe_model.parameters())
+    if in_place:
+        non_ffn_params = raw_param_sum - single_ffn_params
+        total_moe_params = non_ffn_params + single_ffn_params * E
+    else:
+        total_moe_params = raw_param_sum
+        non_ffn_params = total_moe_params - single_ffn_params * E
     active_params = non_ffn_params + single_ffn_params * min(top_k, E)
 
     report = MoEUpcycleReport(
@@ -440,27 +640,31 @@ def train_moe_router_gating(
 
     optimizer = torch.optim.AdamW(router_params, lr=lr, weight_decay=0.0)
     domains = list(domain_token_batches.keys())
-    initial_loss = 0.0
-    final_loss = 0.0
+    num_doms = max(1, len(domains))
+    first_epoch_losses: list[float] = []
+    last_epoch_losses: list[float] = []
 
     for step in range(1, steps + 1):
         optimizer.zero_grad(set_to_none=True)
-        domain = domains[(step - 1) % len(domains)]
+        dom_idx = (step - 1) % num_doms
+        domain = domains[dom_idx]
         tokens = domain_token_batches[domain]
-        batch = tokens[(step - 1) % tokens.size(0) : ((step - 1) % tokens.size(0)) + 1].to(
-            device, dtype=torch.long
-        )
+        batch = tokens[0:1].to(device, dtype=torch.long)
         out = moe_model(input_ids=batch, labels=batch)
         loss: torch.Tensor = out.loss
         loss.backward()
         optimizer.step()
 
         lval = float(loss.detach().cpu().item())
-        if step == 1:
-            initial_loss = lval
-        final_loss = lval
+        if step <= num_doms:
+            first_epoch_losses.append(lval)
+        if step > max(0, steps - num_doms):
+            last_epoch_losses.append(lval)
 
     for blk in moe_model.get_moe_blocks():
         blk.last_aux_loss = blk.last_aux_loss.detach()
 
+    initial_loss = sum(first_epoch_losses) / max(1, len(first_epoch_losses))
+    final_loss = sum(last_epoch_losses) / max(1, len(last_epoch_losses))
     return round(initial_loss, 6), round(final_loss, 6), moe_model.get_expert_utilization()
+

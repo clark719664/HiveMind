@@ -181,9 +181,11 @@ def run_diloco_inner_loop(
         outputs = model(input_ids=input_ids, labels=labels)
         loss: torch.Tensor = outputs.loss
         loss.backward()
-        optimizer.step()
-
         loss_val = float(loss.detach().cpu().item())
+        del outputs, loss, input_ids, labels
+        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
+
         if step == 1:
             initial_loss = loss_val
         final_loss = loss_val
@@ -199,8 +201,16 @@ def run_diloco_inner_loop(
                 state_snapshot=snap,
             )
 
+    optimizer.zero_grad(set_to_none=True)
+    del optimizer
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     elapsed = round(time.perf_counter() - start_time, 4)
-    theta_final = extract_lora_state_dict(model)
+    if steps_completed in micro_checkpoints:
+        theta_final = micro_checkpoints[steps_completed].state_snapshot
+    else:
+        theta_final = extract_lora_state_dict(model)
     raw_delta = compute_pseudo_gradient_delta(theta_init, theta_final)
     compressed_delta = compress_lora_delta(
         delta_dict=raw_delta,
@@ -272,6 +282,11 @@ def replay_inner_segment(
         outputs = model(input_ids=input_ids, labels=labels)
         loss: torch.Tensor = outputs.loss
         loss.backward()
+        del outputs, loss, input_ids, labels
         optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
 
+    del optimizer
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     return extract_lora_state_dict(model)

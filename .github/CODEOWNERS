@@ -1,0 +1,11 @@
+# Project HiveMind — Architecture & Subsystem Code Owners
+# Every Pull Request touching core cryptographic, VRAM, or consensus layers triggers review.
+
+*                                       @xaviercallens
+/src/hivemind/core/                     @xaviercallens
+/src/hivemind/boinc/                    @xaviercallens
+/src/hivemind/swarm/                    @xaviercallens
+/src/hivemind/client/                   @xaviercallens
+/src/hivemind/game/                     @xaviercallens
+/steam_dist/                            @xaviercallens
+/.github/                               @xaviercallens

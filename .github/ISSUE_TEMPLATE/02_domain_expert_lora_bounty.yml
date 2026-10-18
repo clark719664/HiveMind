@@ -1,0 +1,49 @@
+name: "🧬 New Hugging Face Domain Expert & Hack-Miner Bounty"
+description: "Propose a new specialized 4-bit NF4 QLoRA domain expert branch or Hugging Face Hack-Miner mission"
+title: "[Domain Expert] Add <Domain Name> QLoRA Branch (<HuggingFace Dataset ID>)"
+labels: ["domain-expert", "huggingface", "hack-miner-bounty"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### 🎮 Expand the Community Sparse MoE & `HiveMind: Neural Breach` Missions
+        Propose a new specialized domain expert to be trained via **DiLoCo-QLoRA** on consumer GPUs and hot-plugged (`E -> E+1`) into the unified **Branch-Train-Mix (BTM) Sparse MoE**!
+
+  - type: input
+    id: domain_name
+    attributes:
+      label: "Domain Expert Name"
+      description: "Identifier for the new domain expert branch"
+      placeholder: "e.g., Rust_Systems_Security, Legal_Contract_Analysis, Multilingual_ES"
+    validations:
+      required: true
+
+  - type: input
+    id: hf_dataset_id
+    attributes:
+      label: "Hugging Face Dataset ID"
+      description: "Public Hugging Face dataset repository used for 16 KB Content-Addressed Swarm Shards (`cid://sha256/...`)"
+      placeholder: "e.g., sahil2801/CodeAlpaca-20k, qiaojin/PubMedQA, openai/gsm8k"
+    validations:
+      required: true
+
+  - type: textarea
+    id: bounty_challenge
+    attributes:
+      label: "Held-Out Bounty Challenge Prompt & Evaluation Metric"
+      description: "Provide a sample evaluation prompt, target keywords for `HFDataReconScanner`, and expected perplexity/loss improvement."
+      placeholder: "Challenge Prompt: ...\nTarget Signal Keywords: ['fn', 'unsafe', 'impl', 'Result']\nTarget Loss Reduction: >= 20% over 8 DiLoCo inner steps"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: backbone_profile
+    attributes:
+      label: "Target Base Model Backbone"
+      options:
+        - "Qwen/Qwen2.5-0.5B (Fast PoC & CI Verification)"
+        - "Qwen/Qwen2.5-1.5B (8 GB Multi-Expert Sweet Spot)"
+        - "Qwen/Qwen2.5-7B (8 GB Single-Worker DiLoCo Envelope)"
+        - "google/gemma-2-9b (8 GB–12 GB Consumer Node)"
+    validations:
+      required: true
