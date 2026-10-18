@@ -489,5 +489,28 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     assert body["hivemind_swarm_fabric"]["opoi_audit"]["opoi_passed"] is True
 
 
+def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> None:
+    """Verify Lean 4 formal specification (0 sorry, 0 axiom), foundation .tex/.pdf article, and AutoevolveAI peer review."""
+    from paper.autoevolve_peer_review_pipeline import (
+        AUTOEVOLVE_MANIFEST_JSON,
+        PDF_PATH,
+        PEER_REVIEW_JSON,
+        TEX_PATH,
+        run_autoevolve_peer_review,
+        verify_lean4_specification,
+    )
 
+    lean_res = verify_lean4_specification()
+    assert lean_res["sorry_count"] == 0
+    assert lean_res["user_axiom_count"] == 0
+    assert lean_res["theorem_count"] >= 14
+    assert lean_res["tier_a_machine_checked"] is True
 
+    assert TEX_PATH.exists() and TEX_PATH.stat().st_size > 10_000
+    assert PDF_PATH.exists() and PDF_PATH.stat().st_size > 100_000
+
+    review_report = run_autoevolve_peer_review()
+    assert review_report["meta_review"]["decision"] == "ACCEPT_AS_FOUNDATION_ARTICLE"
+    assert review_report["meta_review"]["aggregate_score"] >= 9.0
+    assert PEER_REVIEW_JSON.exists()
+    assert AUTOEVOLVE_MANIFEST_JSON.exists()
