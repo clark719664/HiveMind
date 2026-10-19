@@ -1,0 +1,36 @@
+name: "🐝 Parallel Contributor Task / $HIVE Bounty"
+description: "Propose or claim an isolated parallel engineering task across Swarm Fabric, MoE Experts, Steam Hack-Miner, or Lean 4 Formal Proofs"
+title: "[HM-S3-XX] "
+labels: ["enhancement", "help wanted"]
+body:
+  - type: dropdown
+    id: track
+    attributes:
+      label: "Parallel Subsystem Track"
+      description: "Select the isolated module track so multiple PRs can merge concurrently without conflicts."
+      options:
+        - "Swarm Networking & QUIC 0-RTT (src/hivemind/swarm/quic_transport.py)"
+        - "Async DMA & Triton FP8 Tree Speculative Decoding (src/hivemind/swarm/swarm_fabric.py)"
+        - "OpenAI SSE Gateway & L2 State Channels (src/hivemind/boinc/coordinator_api.py)"
+        - "Sparse MoE Upcycling & 514x LoRA Compression (src/hivemind/core/ & src/hivemind/compression/)"
+        - "Steam Hack-Miner Campaign & Steamworks SDK (src/hivemind/game/ & src/hivemind/client/)"
+        - "Lean 4 Formal Verification (lean4/HiveMindSpec.lean)"
+    validations:
+      required: true
+
+  - type: input
+    id: target_files
+    attributes:
+      label: "Target Files (Strict Subsystem Isolation)"
+      description: "List the specific files this task touches."
+      placeholder: "src/hivemind/swarm/quic_transport.py, tests/test_seti_swarm_v2.py"
+    validations:
+      required: true
+
+  - type: textarea
+    id: specification
+    attributes:
+      label: "Technical Specification & Acceptance Criteria"
+      description: "Describe the mathematical, systems, or gameplay requirements and deterministic verification criteria."
+    validations:
+      required: true

@@ -20,6 +20,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
+    env:
+      PYTHONPATH: "src:."
+      CUBLAS_WORKSPACE_CONFIG: ":4096:8"
+      PYTHONHASHSEED: "42"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+
     steps:
       - name: Checkout Project HiveMind
         uses: actions/checkout@v4
@@ -35,7 +42,8 @@ jobs:
       - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT)
         run: |
           uv venv
-          uv pip install pytest httpx fastapi uvicorn pydantic pyyaml rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
+          uv pip install pytest pytest-asyncio httpx fastapi uvicorn pydantic pyyaml psutil pyarrow rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
+          uv pip install --no-deps -e .
 
       - name: Audit Lean 4 Formal Specification Invariants (0 sorry, 0 axiom, >=17 Theorems)
         run: |
@@ -49,13 +57,8 @@ jobs:
           "
 
       - name: Run Full 20-Test Verification Suite
-        env:
-          CUBLAS_WORKSPACE_CONFIG: ":4096:8"
-          PYTHONHASHSEED: "42"
-          OPENBLAS_NUM_THREADS: "1"
-          OMP_NUM_THREADS: "1"
         run: |
-          uv run --no-sync pytest tests/ -v --tb=short
+          uv run --no-sync python -m pytest tests/ -v --tb=short
 
       - name: Verify CLI Entrypoints & Hardware Telemetry
         run: |

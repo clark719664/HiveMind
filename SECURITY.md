@@ -1,29 +1,26 @@
-# 🔐 Security & Byzantine Vulnerability Policy
+# Security Policy & Cryptographic Vulnerability Disclosure
 
-Project HiveMind operates across untrusted consumer gaming GPUs (**8 GB–12 GB VRAM**) and residential P2P networks. Cryptographic verification, VRAM sandboxing, and Byzantine resistance are core security boundaries.
+## Supported Versions
 
----
+Only immutable tagged releases (`v1.0.0` and subsequent `v*.*.*` tags protected by the GitHub Immutable Tag Ruleset) are supported for production swarm deployment.
 
-## 🛡️ Security Architecture & Trust Boundaries
-
-1. **Zero Arbitrary Code Execution (`safetensors` Only):**
-   - Worker nodes and the Content-Addressed Swarm Store (`cid://sha256/...`) **never** load Python `pickle` (`.bin` / `.pt`) weights from untrusted peers. All base models and LoRA expert adapters are verified via SHA-256 content addressing and `safetensors` header validation.
-2. **Deterministic Micro-Checkpoint Spot-Check ($\epsilon \le 10^{-4}$):**
-   - Any worker submitting a DiLoCo pseudo-gradient delta ($\Delta_k^{(t)}$) must include SHA-256 micro-checkpoint commitments every $s$ steps under `CUBLAS_WORKSPACE_CONFIG=:4096:8`.
-   - `DeterministicSpotCheckValidator` replays a random segment and slashes any node whose L-infinity tensor drift exceeds $10^{-4}$.
-3. **Multi-Krum $2\sigma$ Gradient Poisoner Defense:**
-   - `DiLoCoOuterOptimizer` computes pairwise cosine similarities across all worker deltas and rejects outliers falling outside $2\sigma$ of the median before applying the Nesterov outer step.
-4. **Optimistic Proof-of-Inference (OPoI) 5% Audits:**
-   - P2P Sparse MoE inference providers sign HMAC commitments over hidden-state activations and are probabilistically audited (5% rate) via cosine similarity ($\ge 0.99$).
-5. **Steamworks Anti-Sybil Gate (`AppID: 3133700`):**
-   - Nodes must present a valid non-limited Steam session ticket ($\ge \$5.00$ spend, `0` VAC/Game bans) via `SteamworksSDKBridge` before joining the `$HIVE` PoUW reward pool.
+| Version | Supported | Lean 4 Formal Spec | Cryptographic SHA-256 Attestation |
+| :--- | :---: | :---: | :---: |
+| **`v1.0.0+`** | ✅ | `17/17` Theorems (`0 sorry`) | [`artifacts/SHA256SUMS.txt`](artifacts/SHA256SUMS.txt) |
+| `< v1.0.0` | ❌ | Partial | Unattested |
 
 ---
 
-## 🚨 Reporting a Vulnerability
+## Scope of Security-Critical Components
 
-If you discover a security vulnerability, a bypass in `DeterministicSpotCheckValidator` or `MultiKrum`, a Merkle Proof-of-Storage forgery vector, or a remote code execution bug in the P2P transport layer:
+1. **Deterministic Seeded Spot-Check Validator** ([`src/hivemind/verification/spot_check.py`](src/hivemind/verification/spot_check.py)) — Gumbel-Max seeded token reproduction (`< 1e-5` tolerance) and SHA-256 + Ed25519 Parquet shard signatures.
+2. **Byzantine-Resilient Multi-Krum Outer Aggregator** ([`src/hivemind/compression/multikrum.py`](src/hivemind/compression/multikrum.py)) — Rejects gradient poisoners under $(n=6, f=1)$ and $(n=10, f=2)$ adversarial assumptions.
+3. **QUIC 0-RTT Session Resumption & Replay Defense** ([`src/hivemind/swarm/quic_transport.py`](src/hivemind/swarm/quic_transport.py)) — RFC 9001 `ZeroRTTSessionTicket` expiry and anti-replay bounds.
+4. **L2 Micro-Fee State-Channel Vouchers** ([`src/hivemind/boinc/coordinator_api.py`](src/hivemind/boinc/coordinator_api.py)) — Strictly monotonic nonce enforcement and HMAC-SHA256 voucher signatures.
+5. **Lean 4 Formal Specification** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean)) — Any soundness bug, unintended axiom introduction, or theorem bypass.
 
-- **Do NOT open a public GitHub Issue** with exploit details.
-- Report privately via **[GitHub Private Vulnerability Reporting](https://github.com/xaviercallens/HiveMind/security/advisories/new)** or email the maintainer (`callensxavier@gmail.com`).
-- Validated cryptographic or Byzantine defense vulnerabilities are eligible for our highest-tier **Bug Bounty (`5,000 $HIVE`)** and Hall-of-Fame credit.
+---
+
+## Reporting a Vulnerability
+
+Please report suspected vulnerabilities via **GitHub Private Vulnerability Reporting** on [`https://github.com/xaviercallens/HiveMind/security/advisories/new`](https://github.com/xaviercallens/HiveMind/security/advisories/new) rather than public issues.

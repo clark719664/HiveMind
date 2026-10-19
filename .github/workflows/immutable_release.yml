@@ -15,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
+    env:
+      PYTHONPATH: "src:."
+      CUBLAS_WORKSPACE_CONFIG: ":4096:8"
+      PYTHONHASHSEED: "42"
+
     steps:
       - name: Checkout Project HiveMind Tag
         uses: actions/checkout@v4
@@ -30,14 +35,12 @@ jobs:
         run: |
           uv python install 3.11
           uv venv
-          uv pip install pytest httpx fastapi uvicorn pydantic pyyaml rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
+          uv pip install pytest pytest-asyncio httpx fastapi uvicorn pydantic pyyaml psutil pyarrow rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
+          uv pip install --no-deps -e .
 
       - name: Pre-Release Gate — Full 20/20 Test Suite & Lean 4 Audit
-        env:
-          CUBLAS_WORKSPACE_CONFIG: ":4096:8"
-          PYTHONHASHSEED: "42"
         run: |
-          uv run --no-sync pytest tests/ -v --tb=short
+          uv run --no-sync python -m pytest tests/ -v --tb=short
 
       - name: Package Steam Edition & Generate Cryptographic SHA-256 Checksums
         run: |

@@ -1,0 +1,20 @@
+name: "🐛 Bug Report / Hardware Telemetry Issue"
+description: "Report a bug, GPU VRAM overflow, P2P QUIC timeout, or deterministic verification mismatch"
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: input
+    id: gpu_env
+    attributes:
+      label: "GPU / OS / Python Environment"
+      placeholder: "NVIDIA GeForce RTX 2070 (8 GB) / Windows 11 / Python 3.11.9 / PyTorch 2.6.0+cu124"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: "Reproduction Command & Stack Trace"
+      description: "Provide the exact CLI or pytest command to reproduce the issue."
+    validations:
+      required: true
