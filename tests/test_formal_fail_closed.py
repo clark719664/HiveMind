@@ -35,6 +35,7 @@ def mock_compiler(monkeypatch: pytest.MonkeyPatch, output: str, returncode: int 
         assert command == ["/test/bin/lean", "--stdin"]
         assert kwargs["cwd"] == proof.LEAN4_SPEC_PATH.parent
         assert kwargs["timeout"] == 120
+        assert kwargs.get("encoding") == "utf-8"
         assert "#print axioms Example.checked_13" in kwargs["input"]
         return subprocess.CompletedProcess(command, returncode, stdout=output, stderr="")
 
@@ -176,3 +177,15 @@ def test_real_repository_proofs_compile_when_lean_is_available() -> None:
     proof.require_machine_checked(result)
     assert result["theorem_count"] >= 32
     assert len(result["axioms_by_theorem"]) == result["theorem_count"]
+
+
+def test_verify_lean4_specification_uses_utf8_encoding_for_unicode_symbols(lean_spec, monkeypatch: pytest.MonkeyPatch) -> None:
+    code = proof.LEAN4_SPEC_PATH.read_text(encoding="utf-8")
+    unicode_source = code + "\n-- Mathematical Unicode symbols must not trigger cp1252 charmap encoding errors: ∀ x ≥ 0\n"
+    proof.LEAN4_SPEC_PATH.write_text(unicode_source, encoding="utf-8")
+    mock_compiler(monkeypatch, compiler_output(lean_spec))
+
+    result = proof.verify_lean4_specification()
+    assert result["tier_a_machine_checked"] is True
+
+
