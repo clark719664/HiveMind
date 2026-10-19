@@ -70,7 +70,14 @@ Executed across the entire test suite:
 - **Warnings (4 expected)**:
   - 4x PEFT `Conv1D` `fan_in_fan_out` warnings in `test_actual_text_training.py` (matching baseline).
 
+### 4.1 CI Environment (`uv venv --seed`) & Remote Verification
+- **Issue**: In GitHub Actions (`.github/workflows/ci_swarm_tests.yml`), `uv venv` created an unseeded virtual environment lacking the `pip` module. When `tests/test_installed_package.py` executed `[sys.executable, "-m", "pip", "install", ...]`, the 5 wheel-installation tests failed with `No module named pip`.
+- **Fix**: Updated `.github/workflows/ci_swarm_tests.yml` to create the environment with `uv venv --seed` and explicitly install `pip` in the environment. All five installed-package tests remained untouched and enabled.
+- **Commit SHA**: `197b9befa55b0b57bc22221336e56a1374623589`.
+- **Remote CI Run**: [Workflow Run 39343664152](https://github.com/clark719664/HiveMind/actions/runs/39343664152) completed with status `completed` and conclusion `success` across all jobs and verification steps.
+
 ---
+
 
 ## 5. WebGL HUD & Real Browser Validation
 
