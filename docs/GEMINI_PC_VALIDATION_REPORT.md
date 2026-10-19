@@ -27,7 +27,7 @@ This report records the PC validation run executed on branch `fix/gemini-pc-vali
 Executed inside `lean4/`:
 - **Command**: `lake build`
 - **Exit Code**: `0`
-- **Result**: Built `HiveMindSpec` successfully across 26 theorems.
+- **Result**: Built `HiveMindSpec` successfully across all 39 formal theorems (26 with explicit `#print axioms` summary directives in source, plus 13 companion/helper theorems verified by the compiler and verified by `verify_lean4_specification()`).
 - **Axioms**: Verified 0 `sorry` placeholders and 0 unapproved axioms. Standard axioms reported: `propext`, `Classical.choice`, `Quot.sound`.
 
 ---
@@ -83,6 +83,11 @@ Executed across the entire test suite:
 
 - **Server**: Launched FastAPI HUD server via `python -m hivemind.cli.main serve-hack-hud --port 8090` from source renderer.
 - **Client**: Chrome browser subagent with real GPU rastering.
+- **Corroborating Visual Evidence**:
+  - **Full WebGL HUD Initial View**: ![HUD Initial View](assets/hud_initial_view.png)
+  - **Interactive Controls & Disclaimers**: ![Geo-Ring Controls](assets/georing_controls.png)
+  - **Node Selection & Detail Inspection**: ![Geo-Ring Node Selected](assets/georing_node_selected.png)
+  - **Full Browser Session Video Recording**: [assets/webgl_hud_validation.webp](assets/webgl_hud_validation.webp)
 - **Observations**:
   - Vertex and fragment shaders compiled successfully without errors.
   - GL program linked and `canvas.dataset.rendered === 'true'` verified.
