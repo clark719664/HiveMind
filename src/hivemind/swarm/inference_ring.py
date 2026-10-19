@@ -5,16 +5,26 @@ Once an epoch of the 8x Sparse MoE is finalized, idle Steam nodes switch to Infe
 - Local 0.5B draft model proposes gamma=5 speculative tokens locally.
 - The P2P Sparse MoE swarm verifies all 5 tokens in a single parallel forward pass,
   dividing network latency overhead by 5 to achieve 15-25 tokens/sec over consumer broadband.
+
+Season 4 Milestone `HM-S4-02` (Issue #27) upgrades the flat regional ring into a 2-Tier
+Kademlia Super-Ring: the regional Geo-Ring stays the Tier-1 `< 20 ms` data plane while a
+`ContinentalSuperRingRouter` elects *Continental Bridge* nodes per continent (`EU`, `US`,
+`APAC`) that aggregate the Tier-1 rings into a single WAN-transit Tier-2 plane.
 """
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Dict
+
 import torch
 import torch.nn as nn
 
 from hivemind.core.btm_upcycle import UpcycledSparseMoEModel
+
+if TYPE_CHECKING:  # pragma: no cover - typing only, avoids a circular runtime import.
+    from hivemind.swarm.quic_transport import ContinentalSuperRingRouter
 
 
 @dataclass
@@ -28,10 +38,20 @@ class SwarmPeerNode:
     vram_gb: float
     hosted_expert_domain: str
     layer_range: tuple[int, int]
+    stun_verified: bool = False
+    jitter_ms: float = 0.0
+    packet_loss_ratio: float = 0.0
 
     @property
     def eligible_for_low_latency_ring(self) -> bool:
         return self.ping_ms < 25.0
+
+    @property
+    def continent(self) -> str:
+        """Continental Super-Ring bucket (`EU`/`US`/`APAC`) of this regional peer (`HM-S4-02`)."""
+        from hivemind.swarm.quic_transport import classify_continent
+
+        return classify_continent(self.region)
 
 
 @dataclass
@@ -49,6 +69,9 @@ class SpeculativeSwarmResult:
     effective_tokens_per_sec: float
     latency_reduction_factor: float
     expert_routing_share: dict[str, float] = field(default_factory=dict)
+    routing_tier: str = "regional_geo_ring"
+    cross_continent_hops: int = 0
+    estimated_route_rtt_ms: float = 0.0
 
 
 class RegionalDHTSwarmRing:
@@ -58,12 +81,88 @@ class RegionalDHTSwarmRing:
         self.region = region
         self.max_ping_ms = max_ping_ms
         self.peers: list[SwarmPeerNode] = []
+        self.super_ring_router: "ContinentalSuperRingRouter | None" = None
+        self.hierarchical_routes: list[Dict[str, Any]] = []
 
     def register_peer(self, peer: SwarmPeerNode) -> bool:
         if peer.region == self.region and peer.ping_ms < self.max_ping_ms:
             self.peers.append(peer)
+            self._sync_peer_to_super_ring(peer)
             return True
         return False
+
+    # ------------------------------------------------------------------
+    # HM-S4-02: 2-Tier Kademlia Continental Super-Ring
+    # ------------------------------------------------------------------
+    def attach_continental_super_ring(self, router: "ContinentalSuperRingRouter") -> None:
+        """Bind a 2-Tier Continental Super-Ring router to this regional ring (`HM-S4-02`).
+
+        Every peer already registered in the Tier-1 regional ring is mirrored into the
+        Super-Ring so that Continental Bridge elections see the full regional membership.
+        """
+        self.super_ring_router = router
+        for peer in self.peers:
+            self._sync_peer_to_super_ring(peer)
+
+    def _ensure_super_ring(self) -> "ContinentalSuperRingRouter":
+        """Return the attached Super-Ring router, lazily creating a default one."""
+        if self.super_ring_router is None:
+            from hivemind.swarm.quic_transport import ContinentalSuperRingRouter
+
+            self.super_ring_router = ContinentalSuperRingRouter()
+        return self.super_ring_router
+
+    def _sync_peer_to_super_ring(self, peer: SwarmPeerNode) -> bool:
+        """Mirror a Tier-1 peer into the Tier-2 Super-Ring (respecting the `< 20 ms` SLA)."""
+        if self.super_ring_router is None:
+            return False
+        from hivemind.swarm.quic_transport import SuperRingPeerNode
+
+        node = SuperRingPeerNode(
+            peer_id=peer.peer_id,
+            region=peer.region,
+            rtt_ms=float(peer.ping_ms),
+            jitter_ms=float(peer.jitter_ms),
+            packet_loss_ratio=float(peer.packet_loss_ratio),
+            stun_verified=bool(peer.stun_verified),
+        )
+        return self.super_ring_router.register_peer(node)
+
+    def register_super_ring_peer(self, peer: SwarmPeerNode) -> bool:
+        """Admit a peer of *any* continent into the Tier-2 Continental Super-Ring.
+
+        Unlike `register_peer`, the peer does not need to belong to this regional ring: the
+        Super-Ring aggregates `EU`/`US`/`APAC` rings into one WAN-transit plane (`HM-S4-02`).
+        """
+        router = self._ensure_super_ring()
+        from hivemind.swarm.quic_transport import SuperRingPeerNode
+
+        node = SuperRingPeerNode(
+            peer_id=peer.peer_id,
+            region=peer.region,
+            rtt_ms=float(peer.ping_ms),
+            jitter_ms=float(peer.jitter_ms),
+            packet_loss_ratio=float(peer.packet_loss_ratio),
+            stun_verified=bool(peer.stun_verified),
+        )
+        return router.register_peer(node)
+
+    def resolve_hierarchical_route(
+        self, source_peer_id: str, target_peer_id: str
+    ) -> Dict[str, Any]:
+        """Resolve the 2-Tier path (`Continental Bridge -> Regional Geo-Ring`) between two peers."""
+        router = self._ensure_super_ring()
+        route = router.route(source_peer_id, target_peer_id)
+        self.hierarchical_routes.append(route)
+        return route
+
+    def route_to_region(self, source_peer_id: str, target_region: str) -> Dict[str, Any]:
+        """Route towards the lowest-RTT peer of `target_region` via the Super-Ring."""
+        router = self._ensure_super_ring()
+        target = router.find_peer_in_region(target_region)
+        if target is None:
+            raise KeyError(f"No Super-Ring peer registered for region '{target_region}'.")
+        return self.resolve_hierarchical_route(source_peer_id, target.peer_id)
 
     def run_speculative_inference(
         self,
