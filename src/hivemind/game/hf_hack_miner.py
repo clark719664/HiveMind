@@ -408,6 +408,151 @@ ALL_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
     SEASON_1_HF_BOUNTY_CONTRACTS + SEASON_2_HF_BOUNTY_CONTRACTS
 )
 
+SEASON_3_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-09-CROSS-CONTINENT-RELAY",
+        mission_codename="Mission 9: Cross-Continent Ring Relay",
+        dataset_id="hivemind/georing-stun-quic-0rtt-telemetry",
+        domain_expert="Cross_Continent_QUIC_Relay",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 3 Swarm Protocol Specification:\nExecute 0-RTT QUIC STUN/TURN UDP hole-punching "
+            "across EU-West-Paris, US-East-Virginia, and APAC-East-Tokyo with < 5 ms local ring relay.\n"
+            "### Verified Swarm Implementation:\n"
+        ),
+        reference_solution=(
+            "def relay_0rtt_ring_hop(frame: bytes, nonce: int) -> dict:\n"
+            "    return {'transport': 'direct_udp_hole_punch_0rtt', 'rtt_ms': 1.42, 'nonce_valid': nonce > 0, 'hive_reward': 50.0}"
+        ),
+        target_keywords=["0rtt", "quic", "stun", "udp", "nonce", "hive", "def", "return"],
+        base_bounty_pts=1200,
+        season=3,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-10-ZK-SPOTCHECK-AUDIT",
+        mission_codename="Mission 10: Zero-Knowledge Spot-Check Audit",
+        dataset_id="hivemind/zk-spotcheck-merkle-audits",
+        domain_expert="ZK_SpotCheck_Byzantine_Auditor",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 3 Swarm Protocol Specification:\nVerify a 10% deterministic spot-check Merkle "
+            "layer commitment and slash Byzantine gradient poisoners in the L2 state channel.\n"
+            "### Verified Swarm Implementation:\n"
+        ),
+        reference_solution=(
+            "def verify_zk_spotcheck_commitment(merkle_root: str, honest_root: str, stake_hive: float) -> dict:\n"
+            "    slashed = merkle_root != honest_root\n"
+            "    return {'fraud_proven': slashed, 'slashed_hive': stake_hive if slashed else 0.0}"
+        ),
+        target_keywords=["merkle", "spotcheck", "fraud", "slash", "hive", "def", "return"],
+        base_bounty_pts=1300,
+        season=3,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-11-DYNAMIC-16EXPERT-FUSION",
+        mission_codename="Mission 11: Dynamic 16-Expert Fusion",
+        dataset_id="hivemind/moe-16expert-int4-fp8-routing",
+        domain_expert="Dynamic_16Expert_MoE_Router",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 3 Swarm Protocol Specification:\nFuse 16 domain QLoRA experts with Top-2 "
+            "INT4 + FP8 router gating and verify cosine similarity >= 0.99.\n"
+            "### Verified Swarm Implementation:\n"
+        ),
+        reference_solution=(
+            "def route_top2_int4_fp8_experts(logits: list) -> dict:\n"
+            "    top2 = sorted(range(len(logits)), key=lambda i: logits[i], reverse=True)[:2]\n"
+            "    return {'active_experts': top2, 'num_experts': 16, 'cosine_similarity': 0.996}"
+        ),
+        target_keywords=["moe", "int4", "fp8", "top2", "cosine", "def", "return"],
+        base_bounty_pts=1400,
+        season=3,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-12-SWARM-DAO-GOVERNANCE",
+        mission_codename="Mission 12: Sovereign Swarm DAO Governance",
+        dataset_id="hivemind/swarm-dao-pouw-governance",
+        domain_expert="Sovereign_Swarm_DAO_Governor",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 3 Swarm Protocol Specification:\nSettle quadratic PoUW DAO treasury proposals "
+            "and verify L1/L2 token conservation across 21M max supply.\n"
+            "### Verified Swarm Implementation:\n"
+        ),
+        reference_solution=(
+            "def settle_dao_governance_epoch(votes_hive: list, quorum: float = 100.0) -> dict:\n"
+            "    quad_weight = round(sum(v ** 0.5 for v in votes_hive), 4)\n"
+            "    return {'quorum_reached': sum(votes_hive) >= quorum, 'quadratic_vote_power': quad_weight}"
+        ),
+        target_keywords=["dao", "quorum", "quadratic", "hive", "def", "return"],
+        base_bounty_pts=1500,
+        season=3,
+    ),
+]
+
+FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_1_HF_BOUNTY_CONTRACTS + SEASON_2_HF_BOUNTY_CONTRACTS + SEASON_3_HF_BOUNTY_CONTRACTS
+)
+
+
+def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
+    """Builds the 3D WebGL Geo-Ring Topology Map node, link, and Season 3 mission state (`HM-S3-03`)."""
+    nodes = [
+        {
+            "node_id": "seti-node-paris-01",
+            "region": "EU-West-Paris",
+            "lat": 48.8566,
+            "lon": 2.3522,
+            "xyz": [0.656, 0.754, 0.027],
+            "hosted_experts": ["Python_Systems_Code", "Rust_Systems_Security", "Cross_Continent_QUIC_Relay"],
+            "nat_mode": "direct_udp_hole_punch_0rtt",
+            "rtt_ms": 1.42,
+        },
+        {
+            "node_id": "seti-node-berlin-02",
+            "region": "EU-Central-Berlin",
+            "lat": 52.5200,
+            "lon": 13.4050,
+            "xyz": [0.592, 0.793, 0.141],
+            "hosted_experts": ["Biomedical_Clinical_QA", "CyberSecurity_Vulnerability_Recon", "ZK_SpotCheck_Byzantine_Auditor"],
+            "nat_mode": "direct_udp_hole_punch_0rtt",
+            "rtt_ms": 1.68,
+        },
+        {
+            "node_id": "seti-node-virginia-03",
+            "region": "US-East-Virginia",
+            "lat": 38.9072,
+            "lon": -77.0369,
+            "xyz": [0.175, 0.628, -0.758],
+            "hosted_experts": ["Mathematical_Reasoning", "Multilingual_FR_Synthesis", "Dynamic_16Expert_MoE_Router"],
+            "nat_mode": "direct_udp_hole_punch_0rtt",
+            "rtt_ms": 2.15,
+        },
+        {
+            "node_id": "seti-node-tokyo-04",
+            "region": "APAC-East-Tokyo",
+            "lat": 35.6762,
+            "lon": 139.6503,
+            "xyz": [-0.619, 0.583, 0.526],
+            "hosted_experts": ["Sovereign_Swarm_DAO_Governor", "Lean4_Theorem_Prover", "Solidity_Smart_Contracts"],
+            "nat_mode": "turn_allocation_relay_0rtt",
+            "rtt_ms": 3.12,
+        },
+    ]
+    links = [
+        {"source": "seti-node-paris-01", "target": "seti-node-berlin-02", "protocol": "QUIC-0RTT", "hop_rtt_ms": 1.42},
+        {"source": "seti-node-berlin-02", "target": "seti-node-virginia-03", "protocol": "QUIC-0RTT", "hop_rtt_ms": 1.89},
+        {"source": "seti-node-virginia-03", "target": "seti-node-tokyo-04", "protocol": "QUIC-0RTT", "hop_rtt_ms": 2.44},
+        {"source": "seti-node-tokyo-04", "target": "seti-node-paris-01", "protocol": "TURN-0RTT", "hop_rtt_ms": 3.12},
+    ]
+    return {
+        "renderer": "webgl_3d_georing_globe_v3",
+        "num_nodes": len(nodes),
+        "nodes": nodes,
+        "ring_links": links,
+        "season3_missions": [asdict(c) for c in SEASON_3_HF_BOUNTY_CONTRACTS],
+    }
+
 
 class HackMiningGameEngine:
     """Core Gamification Engine for Hugging Face Data Discovery, LoRA Training & Swarm Ranking."""
@@ -539,6 +684,10 @@ def run_hf_hack_mining_game(
         contracts = SEASON_1_HF_BOUNTY_CONTRACTS
     elif s_norm in ("2", "s2", "season2"):
         contracts = SEASON_2_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("3", "s3", "season3"):
+        contracts = SEASON_3_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("s1-s3", "full", "all_seasons"):
+        contracts = FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     else:
         contracts = ALL_HF_BOUNTY_CONTRACTS
     num_missions = len(contracts)
@@ -1508,7 +1657,7 @@ def execute_interactive_lora_micro_forge(
 ) -> Dict[str, Any]:
     """Execute a fast interactive QLoRA Micro-Forge burst & Steam Rich Presence broadcast from the Web HUD."""
     ensure_local_drive_caches()
-    contract_map = {c.contract_id: c for c in ALL_HF_BOUNTY_CONTRACTS}
+    contract_map = {c.contract_id: c for c in FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS}
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
 
     rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=12)

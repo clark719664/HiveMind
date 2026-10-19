@@ -841,3 +841,59 @@ def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
         assert "data: [DONE]" in raw_sse
 
 
+def test_s3_03_season3_missions_9_12_and_webgl_georing_hud() -> None:
+    """
+    Validates Season 3 Milestone HM-S3-03:
+    - Season 3 Hack-Miner Campaign Missions 9-12 (`SEASON_3_HF_BOUNTY_CONTRACTS`)
+    - Interactive QLoRA Micro-Forge on Season 3 Mission 9-12 contracts
+    - WebGL 3D Geo-Ring Topology Map in Cyberpunk HUD (`#webgl-georing-map`) and `/api/georing-topology`
+    """
+    from fastapi.testclient import TestClient
+    from hivemind.game.hf_hack_miner import (
+        ALL_HF_BOUNTY_CONTRACTS,
+        FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS,
+        SEASON_3_HF_BOUNTY_CONTRACTS,
+        build_georing_3d_topology_snapshot,
+        execute_interactive_lora_micro_forge,
+    )
+    from hivemind.game.steam_edition import create_hack_miner_fastapi_app
+
+    assert len(ALL_HF_BOUNTY_CONTRACTS) == 6
+    assert len(SEASON_3_HF_BOUNTY_CONTRACTS) == 4
+    assert len(FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS) == 10
+    s3_ids = [c.contract_id for c in SEASON_3_HF_BOUNTY_CONTRACTS]
+    assert s3_ids == [
+        "CONTRACT-HF-09-CROSS-CONTINENT-RELAY",
+        "CONTRACT-HF-10-ZK-SPOTCHECK-AUDIT",
+        "CONTRACT-HF-11-DYNAMIC-16EXPERT-FUSION",
+        "CONTRACT-HF-12-SWARM-DAO-GOVERNANCE",
+    ]
+
+    forge_res = execute_interactive_lora_micro_forge(
+        gamer_tag="CyberValkyrie_FR",
+        contract_id="CONTRACT-HF-09-CROSS-CONTINENT-RELAY",
+    )
+    assert forge_res["contract_id"] == "CONTRACT-HF-09-CROSS-CONTINENT-RELAY"
+    assert forge_res["season"] == 3
+    assert forge_res["total_pts_awarded"] > 1200
+
+    topo = build_georing_3d_topology_snapshot()
+    assert topo["renderer"] == "webgl_3d_georing_globe_v3"
+    assert topo["num_nodes"] == 4
+    assert len(topo["season3_missions"]) == 4
+
+    app = create_hack_miner_fastapi_app()
+    client = TestClient(app)
+    html_resp = client.get("/")
+    assert html_resp.status_code == 200
+    assert "webgl-georing-map" in html_resp.text
+    assert "webgl-georing-canvas" in html_resp.text
+
+    topo_resp = client.get("/api/georing-topology")
+    assert topo_resp.status_code == 200
+    topo_json = topo_resp.json()
+    assert topo_json["num_nodes"] == 4
+    assert len(topo_json["season3_missions"]) == 4
+
+
+
