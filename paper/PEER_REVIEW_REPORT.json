@@ -1,7 +1,7 @@
 {
   "manuscript_title": "Project HiveMind: Byzantine-Resilient Decentralized Sparse Mixture-of-Experts Training and Speculative Swarm Inference on 8 GB Consumer Gaming GPUs",
   "version": "2.1.0",
-  "timestamp_utc": "2026-10-18T17:18:40Z",
+  "timestamp_utc": "2026-10-19T10:27:04Z",
   "tex_path": "D:\\xdev\\DecentralizedAI\\paper\\hivemind_foundation_article.tex",
   "pdf_path": "D:\\xdev\\DecentralizedAI\\paper\\hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -38,7 +38,7 @@
     "rtx2070_poc_report_present": true,
     "hf_hack_miner_report_present": true,
     "champion_miner": "CyberValkyrie_FR",
-    "champion_points": 10659
+    "champion_points": 22032
   },
   "referee_reviews": [
     {

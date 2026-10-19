@@ -229,6 +229,12 @@ def main(argv: list[str] | None = None) -> int:
     p_game.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
     p_game.add_argument("--lora-rank", type=int, default=8, help="LoRA rank r")
     p_game.add_argument("--inner-steps", type=int, default=8, help="DiLoCo inner steps per gamer")
+    p_game.add_argument(
+        "--season",
+        default="all",
+        choices=["1", "2", "all"],
+        help="Campaign season to run: '1' (3 missions), '2' (3 new missions), or 'all' (6 missions + 6-Expert MoE)",
+    )
 
     p_hud = sub.add_parser(
         "serve-hack-hud",
@@ -239,15 +245,23 @@ def main(argv: list[str] | None = None) -> int:
 
     p_probe = sub.add_parser(
         "hack-probe",
-        help="Run an interactive Hugging Face Shard Scan & 3-Expert Sparse MoE Bounty Probe for a gamer",
+        help="Run an interactive Hugging Face Shard Scan & 6-Expert Sparse MoE Bounty Probe for a gamer",
     )
     p_probe.add_argument("--gamer", default="CyberValkyrie_FR", help="Steam Gamer Tag")
     p_probe.add_argument("--dataset-id", default="sahil2801/CodeAlpaca-20k", help="HF Dataset Node to scan")
     p_probe.add_argument(
         "--prompt",
         default="Write a Python function to calculate cellular ATP and HIVE minted across 3 blocks.",
-        help="Custom Bounty Challenge prompt to route across the 3-Expert Sparse MoE",
+        help="Custom Bounty Challenge prompt to route across the 6-Expert Sparse MoE",
     )
+
+    p_deploy = sub.add_parser(
+        "deploy-steam-tool",
+        help="Run the 6-Stage Intense RTX GPU Stress Suite and deploy v1.0.0 Free Steam Tool (AppID: 3133700)",
+    )
+    p_deploy.add_argument("--vram-cycles", type=int, default=3, help="Number of NF4+QLoRA+Preemption torture cycles")
+    p_deploy.add_argument("--udp-packets", type=int, default=100, help="Number of UDP 0-RTT hidden-state packets")
+    p_deploy.add_argument("--hotplug-experts", type=int, default=12, help="Number of Sparse MoE experts to hot-plug")
 
     args = parser.parse_args(argv)
     if args.command == "hardware-check":
@@ -307,6 +321,7 @@ def main(argv: list[str] | None = None) -> int:
             lora_rank=args.lora_rank,
             inner_steps=args.inner_steps,
             build_steam_package=True,
+            season=args.season,
         )
         return 0
     if args.command == "serve-hack-hud":
@@ -331,6 +346,20 @@ def main(argv: list[str] | None = None) -> int:
             prompt=args.prompt,
         )
         console.print(json.dumps({"shard_scan": scan_res, "bounty_probe": bounty_res}, indent=2))
+        return 0
+    if args.command == "deploy-steam-tool":
+        from hivemind.game.rtx_steam_tool_deployer import (
+            deploy_free_steam_rtx_tool_v1,
+            run_intense_rtx_stress_suite,
+        )
+
+        stress_rep = run_intense_rtx_stress_suite(
+            vram_cycles=args.vram_cycles,
+            udp_burst_packets=args.udp_packets,
+            num_hotplug_experts=args.hotplug_experts,
+        )
+        deploy_info = deploy_free_steam_rtx_tool_v1(stress_report=stress_rep)
+        console.print(json.dumps(deploy_info, indent=2))
         return 0
     return 0
 

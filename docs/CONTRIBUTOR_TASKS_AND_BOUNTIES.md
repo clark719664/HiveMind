@@ -1,25 +1,29 @@
 # 🛠️ Project HiveMind — Large Contributor Tasks, Architecture Roadmap & `$HIVE` Bounties
 
-> **Status:** Phase 1 & Local RTX 2070 PoC (`16/16` Passing Tests) + Gamified Steam Edition (`AppID: 3133700`) + Phase 2 Swarm Fabric Core (M1–M4) are **LIVE**.
-> We are now recruiting systems engineers, CUDA kernel developers, P2P networking hackers, ML researchers, and game developers to scale **Project HiveMind** from regional clusters to a global 10,000-node consumer GPU swarm!
+> **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
+>
+> **Status:** Phase 1 & Local RTX 2070 PoC (`20/20` Passing Tests) + Free Steam RTX Tool & Hack-Miner Prototype v1.0.0 (Season 1 & Season 2 6-Mission Campaign + 12-Expert Sparse MoE) + Phase 2 Swarm Fabric (M1–M5: `HM-M1-01` through `HM-M5-02`) are **LIVE & VERIFIED**.
+> All 6 community Pull Requests (`#6`–`#10` by `@clark719664` closing Issues `#1`–`#5`, and `#11` by `@radialmonster` adding `docs/STEAM_STATUS.md`) have been reviewed and integrated!
 
 ---
 
-## 📊 Contributor Task Matrix (Quick Index)
+## 📊 Contributor Task Matrix & Merged PR Registry
 
-| Issue ID | Milestone Track | Task Title | Difficulty | Target Branch Prefix | Bounty Pool |
+| Issue ID | Milestone Track | Task Title | Status & Merged PR | Target Branch Prefix | Bounty Pool |
 | :--- | :--- | :--- | :---: | :--- | :---: |
-| **HM-M1-01** | **M1 (Transport)** | Native `aioquic` HTTP/3 0-RTT & Libp2p WebSocket NAT Hole-Punching (`STUN/TURN/ICE`) | 🔴 Hard | `feat/m1-quic-nat-traversal` | `2,500 $HIVE` |
-| **HM-M1-02** | **M1 (Transport)** | Kademlia DHT GossipSub Live Expert Table & Automatic Regional Geo-Ring Failover (`<20ms`) | 🟡 Medium | `feat/m1-kademlia-gossipsub` | `1,500 $HIVE` |
-| **HM-M2-01** | **M2 (3-Tier Memory)** | Double-Buffered CUDA Stream Lookahead Prefetcher (`L+1` Expert Overlap with `L` Attention) | 🔴 Hard | `feat/m2-double-buffer-dma` | `3,000 $HIVE` |
-| **HM-M2-02** | **M2 (3-Tier Memory)** | Zero-Copy `mmap` NVMe-to-Pinned-RAM Ring Buffer for 64+ Domain Experts on 8 GB GPUs | 🟡 Medium | `feat/m2-nvme-mmap-cache` | `2,000 $HIVE` |
-| **HM-M3-01** | **M3 (Tree Speculation)** | Custom Triton `float8_e4m3fn` Group-Quantization Kernel & Dynamic Medusa/Eagle Tree Mask ($\gamma=6..8$) | 🔴 Hard | `feat/m3-triton-fp8-tree` | `3,000 $HIVE` |
-| **HM-M4-01** | **M4 (OpenAI & OPoI)** | Streaming SSE (`stream=True`) `/v1/chat/completions` Proxy for Cursor, Continue.dev & Cline | 🟢 Starter | `feat/m4-openai-sse-stream` | `1,200 $HIVE` |
-| **HM-M4-02** | **M4 (OpenAI & OPoI)** | Merkle-Proof Fraud Dispute Game for Optimistic Proof-of-Inference (OPoI) & Layer-2 `$HIVE` Channels | 🔴 Hard | `feat/m4-opoi-dispute-game` | `2,500 $HIVE` |
-| **HM-M5-01** | **M5 (Steam Game)** | Native `steam_api64.dll` Ctypes/Pybind11 Binding for Live Steam Overlay & Rich Presence (`AppID: 3133700`) | 🟡 Medium | `game/steamworks-native-dll` | `1,800 $HIVE` |
-| **HM-M5-02** | **M5 (HF Domains)** | Season 2 Hugging Face Hack-Miner Missions: `Rust_Systems`, `CyberSec_Audit`, `Legal_Med`, `Multilingual_FR` | 🟢 Starter | `expert/<domain-name>` | `1,000 $HIVE` / expert |
+| **HM-M1-01** (`#1`) | **M1 (Transport)** | Native `AsyncQUICGeoRingTransport` HTTP/3 0-RTT & Libp2p WebSocket NAT Hole-Punching (`STUN/TURN/ICE`) | ✅ **MERGED (`PR #9` by `@clark719664`)** | `feat/m1-quic-nat-traversal` | `2,500 $HIVE` |
+| **HM-M1-02** | **M1 (Transport)** | Kademlia DHT GossipSub Live Expert Table & Automatic Regional Geo-Ring Failover (`<25ms`) | ✅ **COMPLETED** | `feat/m1-kademlia-gossipsub` | `1,500 $HIVE` |
+| **HM-M2-01** (`#2`) | **M2 (3-Tier Memory)** | Double-Buffered CUDA Stream Lookahead Prefetcher (`slot_A` / `slot_B` Overlap with Attention) | ✅ **MERGED (`PR #7` by `@clark719664`)** | `feat/m2-double-buffer-dma` | `3,000 $HIVE` |
+| **HM-M2-02** | **M2 (3-Tier Memory)** | Bounded LRU NVMe-to-Pinned-RAM Cache (`max_pinned_ram_bytes`) for 8 GB GPUs | ✅ **COMPLETED** | `feat/m2-nvme-mmap-cache` | `2,000 $HIVE` |
+| **HM-M3-01** (`#3`) | **M3 (Tree Speculation)** | Triton `float8_e4m3fn` Group-Quantization Kernel & Prefix-Trie 2D Causal Tree-Attention Mask ($\gamma=6..8$) | ✅ **MERGED (`PR #8` by `@clark719664`)** | `feat/m3-triton-fp8-tree` | `3,000 $HIVE` |
+| **HM-M4-01** (`#4`) | **M4 (OpenAI & OPoI)** | Streaming SSE (`stream=True`) `/v1/chat/completions` Proxy for Cursor, Continue.dev & Cline | ✅ **MERGED (`PR #6` by `@clark719664`)** | `feat/m4-openai-sse-stream` | `1,200 $HIVE` |
+| **HM-M4-02** | **M4 (OpenAI & OPoI)** | Merkle-Proof Fraud Dispute Game for Optimistic Proof-of-Inference (OPoI) & Layer-2 `$HIVE` Refund | ✅ **COMPLETED** | `feat/m4-opoi-dispute-game` | `2,500 $HIVE` |
+| **HM-M5-01** (`#5`) | **M5 (Steam Game)** | Native `steam_api64.dll` Ctypes Bridge, Live Steam Overlay & Rich Presence | ✅ **MERGED (`PR #10` by `@clark719664`)** | `game/steamworks-native-dll` | `1,800 $HIVE` |
+| **HM-M5-02** (`#5`) | **M5 (HF Domains)** | Season 2 Hugging Face Hack-Miner Missions: `Rust_Systems_Security`, `CyberSecurity_Vulnerability_Recon`, `Multilingual_FR_Synthesis` (`E=2 -> E=6` MoE) | ✅ **MERGED (`PR #10` by `@clark719664`)** | `expert/<domain-name>` | `1,000 $HIVE` / expert |
+| **HM-DOC-01** | **M5 (Steam Docs)** | Steam AppID `3133700` Public Store Audit & Local Hack-Miner Prototype Status (`docs/STEAM_STATUS.md`) | ✅ **MERGED (`PR #11` by `@radialmonster`)** | `fix/steam-release-documentation` | `1,000 $HIVE` |
 
 ---
+
 
 ## 🌐 Track M1: P2P Transport & Kademlia Geo-Rings (`src/hivemind/swarm/swarm_fabric.py`)
 

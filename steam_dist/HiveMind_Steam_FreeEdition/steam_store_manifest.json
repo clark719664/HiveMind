@@ -1,7 +1,9 @@
 {
   "steam_app_id": 3133700,
   "steam_depot_id": 3133701,
-  "name": "HiveMind: Neural Breach \u2014 Hugging Face Hack-Miner",
+  "release_version": "1.0.0",
+  "app_type": "Free Steam Tool & Game",
+  "name": "HiveMind: Neural Breach \u2014 Free RTX AI Swarm Tool & Hack-Miner (v1.0.0, Season 1 & 2)",
   "release_state": "released",
   "is_free_to_play": true,
   "price_usd": 0.0,
@@ -10,10 +12,11 @@
     "linux"
   ],
   "steamworks_features": [
-    "Steam Achievements (7 Hack-Miner & Boss Slayer Badges)",
+    "Free Steam RTX GPU Tool & Zero-Intrusion Background SETI Daemon (<1.5s VRAM Yield)",
+    "Steam Achievements (11 Season 1 & Season 2 Hack-Miner & Omega Boss Slayer Badges)",
     "Steamworks Global Leaderboards (Best Miner & Swarm Contribution with HMAC Receipts)",
-    "Steam Cloud Save (ISteamRemoteStorage Miner Profile & $HIVE Wallet Sync)",
-    "Zero-Intrusion Background SETI Mode (Auto-yields VRAM when launching AAA games)"
+    "Native steam_api64.dll Bridge & Live Steam Friends Rich Presence (ISteamFriends::SetRichPresence)",
+    "Steam Cloud Save (ISteamRemoteStorage Miner Profile & $HIVE Wallet Sync)"
   ],
   "minimum_requirements": {
     "os": "Windows 10/11 64-bit",
@@ -22,7 +25,8 @@
     "storage": "2 GB NVMe/SSD for Content-Addressed Hugging Face Shards"
   },
   "cli_entrypoints": {
-    "play_campaign": "python -m hivemind.cli.main play-hack-game",
+    "launch_rtx_tool": "python -m hivemind.cli.main deploy-steam-tool",
+    "play_campaign": "python -m hivemind.cli.main play-hack-game --season all",
     "launch_hud": "python -m hivemind.cli.main serve-hack-hud --port 8090"
   }
 }

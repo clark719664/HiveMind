@@ -1,8 +1,10 @@
 # Contributing to Project HiveMind 🧠⚡
 
+> **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](docs/STEAM_STATUS.md).
+
 Welcome to **Project HiveMind** — the open-source decentralized training and inference framework (think **SETI@home / Folding@home** meets **Petals** and **DiLoCo**) that aggregates idle consumer gaming GPUs (**8 GB–12 GB VRAM**) and local NVMe storage into a community-owned **Sparse Mixture-of-Experts (MoE)** cluster.
 
-Whether you are a systems engineer optimizing **QUIC/Libp2p P2P rings**, a CUDA kernel hacker building **FP8 / asynchronous DMA pipelines**, an ML researcher training new **Hugging Face QLoRA domain experts**, or a game developer expanding **`HiveMind: Neural Breach` (Free Steam Edition — AppID `3133700`)**, this guide explains how our peer development workflow operates.
+Whether you are a systems engineer optimizing **QUIC/Libp2p P2P rings**, a CUDA kernel hacker building **FP8 / asynchronous DMA pipelines**, an ML researcher training new **Hugging Face QLoRA domain experts**, or a game developer expanding **`HiveMind: Neural Breach`**, this guide explains how our peer development workflow operates.
 
 ---
 

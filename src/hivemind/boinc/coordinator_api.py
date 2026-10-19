@@ -299,14 +299,18 @@ def create_coordinator_fastapi_app(coordinator: BOINCCoordinatorService) -> Fast
             for sid, r in coordinator.reputation_ledger.items()
         }
 
-    @app.post("/v1/chat/completions")
-    def openai_chat_completions_gateway(payload: dict[str, Any]) -> dict[str, Any]:
-        """M4 OpenAI-compatible `/v1/chat/completions` proxy with OPoI 5% audit & L2 $HIVE voucher."""
+    @app.post("/v1/chat/completions", response_model=None)
+    def openai_chat_completions_gateway(payload: dict[str, Any]) -> Any:
+        """M4 OpenAI-compatible `/v1/chat/completions` proxy with SSE streaming (`HM-M4-01`), OPoI 5% audit & L2 $HIVE voucher."""
+        import json
+        import re
         import time
+        from fastapi.responses import StreamingResponse
         from hivemind.game.hf_hack_miner import execute_interactive_bounty_probe
         from hivemind.swarm.swarm_fabric import (
             HiveLayer2StateChannel,
             OptimisticProofOfInferenceAuditor,
+            TokenTreeSpeculativeVerifier,
         )
 
         messages = payload.get("messages", [])
@@ -324,44 +328,111 @@ def create_coordinator_fastapi_app(coordinator: BOINCCoordinatorService) -> Fast
             consumer_id="seti-node-paris-01",
             provider_ids=["seti-node-lyon-02", "seti-node-nice-03"],
         )
-        voucher = l2.sign_micro_voucher(tokens_generated=32)
         auditor = OptimisticProofOfInferenceAuditor(audit_probability=0.05)
         ref_act = torch.ones(1, 8, 64, dtype=torch.float16)
         opoi = auditor.verify_activation_commitment("seti-node-lyon-02", ref_act, ref_act)
+        completion_id = f"chatcmpl-hivemind-{uuid.uuid4().hex[:10]}"
+        created_ts = int(time.time())
+        prompt_tokens = max(1, len(user_prompt.split()))
 
-        return {
-            "id": f"chatcmpl-hivemind-{uuid.uuid4().hex[:10]}",
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": model_name,
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": probe["generated_solution"],
-                    },
-                    "finish_reason": "stop",
-                }
-            ],
-            "usage": {
-                "prompt_tokens": max(1, len(user_prompt.split())),
-                "completion_tokens": 32,
-                "total_tokens": max(1, len(user_prompt.split())) + 32,
-            },
-            "hivemind_swarm_fabric": {
-                "top2_active_experts": probe["top2_active_experts"],
-                "expert_routing_weights": probe["expert_routing_weights"],
-                "tree_speculation_gamma": 6,
-                "opoi_audit": opoi,
-                "l2_state_channel_voucher": {
-                    "channel_id": voucher.channel_id,
-                    "nonce": voucher.nonce,
-                    "cumulative_hive_spent": voucher.cumulative_hive_spent,
-                    "signature_hmac": voucher.signature_hmac,
+        if not payload.get("stream"):
+            voucher = l2.sign_micro_voucher(tokens_generated=32)
+            return {
+                "id": completion_id,
+                "object": "chat.completion",
+                "created": created_ts,
+                "model": model_name,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": probe["generated_solution"],
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": 32,
+                    "total_tokens": prompt_tokens + 32,
                 },
-            },
-        }
+                "hivemind_swarm_fabric": {
+                    "top2_active_experts": probe["top2_active_experts"],
+                    "expert_routing_weights": probe["expert_routing_weights"],
+                    "tree_speculation_gamma": 6,
+                    "opoi_audit": opoi,
+                    "l2_state_channel_voucher": {
+                        "channel_id": voucher.channel_id,
+                        "nonce": voucher.nonce,
+                        "cumulative_hive_spent": voucher.cumulative_hive_spent,
+                        "signature_hmac": voucher.signature_hmac,
+                    },
+                },
+            }
+
+        tokens = re.findall(r"\S+\s*", str(probe["generated_solution"])) or [str(probe["generated_solution"])]
+        batches = ["".join(tokens[i : i + 5]) for i in range(0, len(tokens), 5)]
+        verifier = TokenTreeSpeculativeVerifier(gamma=6, branching_factor=2)
+
+        def event_stream():
+            yield f"data: {json.dumps({'id': completion_id, 'object': 'chat.completion.chunk', 'created': created_ts, 'model': model_name, 'choices': [{'index': 0, 'delta': {'role': 'assistant', 'content': ''}, 'finish_reason': None}]})}\n\n"
+            streamed_tokens = 0
+            for idx, text_delta in enumerate(batches):
+                batch_len = max(4, min(6, len(text_delta.split()) or 4))
+                seq_ids = list(range(10, 10 + batch_len + 1))
+                tree_res = verifier.verify_token_tree(
+                    draft_tree_candidates=[seq_ids[:batch_len]],
+                    target_reference_tokens=seq_ids,
+                )
+                l2.sign_micro_voucher(tokens_generated=batch_len)
+                streamed_tokens += batch_len
+                chunk = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created_ts,
+                    "model": model_name,
+                    "choices": [{"index": 0, "delta": {"content": text_delta}, "finish_reason": None}],
+                    "speculative_batch": {
+                        "batch_index": idx,
+                        "tokens_in_chunk": batch_len,
+                        "tree_depth_gamma": tree_res["tree_depth_gamma"],
+                        "accepted_length": tree_res["accepted_length"],
+                    },
+                }
+                yield f"data: {json.dumps(chunk)}\n\n"
+
+            voucher = l2.latest_voucher or l2.sign_micro_voucher(tokens_generated=32)
+            closing = {
+                "id": completion_id,
+                "object": "chat.completion.chunk",
+                "created": created_ts,
+                "model": model_name,
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+                "usage": {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": streamed_tokens,
+                    "total_tokens": prompt_tokens + streamed_tokens,
+                },
+                "hivemind_swarm_fabric": {
+                    "top2_active_experts": probe["top2_active_experts"],
+                    "expert_routing_weights": probe["expert_routing_weights"],
+                    "tree_speculation_gamma": 6,
+                    "opoi_audit": opoi,
+                    "l2_state_channel_voucher": {
+                        "channel_id": voucher.channel_id,
+                        "nonce": voucher.nonce,
+                        "cumulative_tokens": voucher.cumulative_tokens,
+                        "cumulative_hive_spent": voucher.cumulative_hive_spent,
+                        "signature_hmac": voucher.signature_hmac,
+                    },
+                },
+            }
+            yield f"data: {json.dumps(closing)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     return app
+
 

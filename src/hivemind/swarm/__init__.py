@@ -10,6 +10,7 @@ from hivemind.swarm.ledger import (
     WorkReceipt,
 )
 from hivemind.swarm.swarm_fabric import (
+    AsyncQUICGeoRingTransport,
     CompressedHiddenStatePacket,
     GeoRingPeer,
     HiveLayer2StateChannel,
@@ -24,6 +25,7 @@ from hivemind.swarm.swarm_fabric import (
 )
 
 __all__ = [
+    "AsyncQUICGeoRingTransport",
     "CompressedHiddenStatePacket",
     "ContentAddressedSwarmStore",
     "GeoRingPeer",
@@ -45,4 +47,5 @@ __all__ = [
     "compress_hidden_states_fp8",
     "decompress_hidden_states_fp8",
 ]
+
 

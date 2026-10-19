@@ -1,0 +1,160 @@
+{
+  "certification_title": "HiveMind Free Steam RTX Tool & Game v1.0.0 \u2014 Intense GPU Stress Certification",
+  "steam_app_id": 3133700,
+  "steam_depot_id": 3133701,
+  "release_version": "1.0.0",
+  "all_stages_passed": true,
+  "certification_hmac": "rtx_steam_cert_5a56da8bb80d7bb39ae2296fdc3fb3e8",
+  "hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 6.22,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
+  },
+  "vram_telemetry": {
+    "allocated_mb": 64.02,
+    "reserved_mb": 66.0,
+    "peak_allocated_mb": 103.02,
+    "free_vram_gb": 6.87,
+    "total_vram_gb": 8.0
+  },
+  "elapsed_seconds": 4.85,
+  "stage1_vram_and_preemption_torture": {
+    "cycles_executed": 3,
+    "all_preemptions_under_1500ms": true,
+    "max_preempt_eviction_ms": 150.6,
+    "vram_drift_across_cycles_mb": 0.0,
+    "zero_vram_leak_verified": true,
+    "cycles": [
+      {
+        "cycle": 1,
+        "simulated_game_launch": "cyberpunk2077.exe",
+        "is_4bit_nf4": true,
+        "initial_loss": 7.6582,
+        "final_loss": 7.6644,
+        "peak_allocated_mb": 103.02,
+        "allocated_after_preempt_mb": 64.0,
+        "preempt_eviction_ms": 150.6,
+        "preempt_within_1500ms_sla": true,
+        "cycle_elapsed_s": 1.191
+      },
+      {
+        "cycle": 2,
+        "simulated_game_launch": "cs2.exe",
+        "is_4bit_nf4": true,
+        "initial_loss": 7.6372,
+        "final_loss": 7.63,
+        "peak_allocated_mb": 103.02,
+        "allocated_after_preempt_mb": 64.0,
+        "preempt_eviction_ms": 134.4,
+        "preempt_within_1500ms_sla": true,
+        "cycle_elapsed_s": 0.787
+      },
+      {
+        "cycle": 3,
+        "simulated_game_launch": "eldenring.exe",
+        "is_4bit_nf4": true,
+        "initial_loss": 7.6639,
+        "final_loss": 7.6985,
+        "peak_allocated_mb": 103.02,
+        "allocated_after_preempt_mb": 64.0,
+        "preempt_eviction_ms": 132.3,
+        "preempt_within_1500ms_sla": true,
+        "cycle_elapsed_s": 0.739
+      }
+    ]
+  },
+  "stage2_moe12_hotplug_and_dma": {
+    "initial_experts": 2,
+    "final_hotplugged_experts": 12,
+    "top_k_active": 2,
+    "lru_pinned_ram_cap_experts": 8,
+    "lru_pinned_ram_residents_after_12_staged": 8,
+    "lru_eviction_verified": true,
+    "double_buffer_slots_used": [
+      "slot_A",
+      "slot_B"
+    ],
+    "mean_exposed_swap_latency_ms": 0.0,
+    "router_loss_initial": 6.9246,
+    "router_loss_final": 6.9423,
+    "moe12_peak_vram_mb": 103.02
+  },
+  "stage3_byzantine_and_spotcheck": {
+    "honest_spotcheck_passed": true,
+    "honest_spotcheck_max_abs_diff": 0.0,
+    "tampered_cheater_caught": true,
+    "wire_compression_ratio": 3.27,
+    "total_workers_submitted": 10,
+    "honest_workers_count": 7,
+    "byzantine_attackers_count": 3,
+    "accepted_workers": [
+      "honest-node-01",
+      "honest-node-02",
+      "honest-node-03",
+      "honest-node-04",
+      "honest-node-05",
+      "honest-node-06",
+      "honest-node-07"
+    ],
+    "rejected_workers": [
+      "byzantine-signflip-01",
+      "byzantine-gaussian-02",
+      "byzantine-sybil-03"
+    ],
+    "all_byzantine_poisoners_rejected": true
+  },
+  "stage4_p2p_swarm_fabric_burst": {
+    "udp_0rtt_packets_sent": 100,
+    "udp_0rtt_packets_verified": 100,
+    "udp_0rtt_throughput_fps": 2767.8,
+    "fp8_wire_compression_ratio": 1.98,
+    "stun_ice_candidate": "candidate:1 1 UDP 2130706431 127.0.0.1 4433 typ srflx",
+    "gossipsub_failover_latency_ms": 2.695,
+    "gossipsub_within_25ms_sla": true,
+    "token_tree_gamma": 6,
+    "token_tree_mask_shape": [
+      1,
+      1,
+      25,
+      25
+    ],
+    "token_tree_accepted_length": 7,
+    "l2_vouchers_signed": 50,
+    "l2_tokens_settled": 500,
+    "l2_hive_settled": 2.5,
+    "merkle_dispute_fraud_layer_detected": 7,
+    "merkle_dispute_slashed_and_refunded": true
+  },
+  "stage5_steamworks_50_accounts": {
+    "accounts_tested": 50,
+    "non_limited_verified": 35,
+    "limited_sybil_bots_blocked": 10,
+    "vac_banned_blocked": 5,
+    "rich_presence_active_players": 35,
+    "sybil_gate_100pct_accurate": true
+  },
+  "stage6_gateway_and_hud_load": {
+    "openai_sync_status": 200,
+    "openai_sse_status": 200,
+    "openai_sse_done_verified": true,
+    "hud_endpoint_statuses": {
+      "/": 200,
+      "/api/leaderboard": 200,
+      "/api/missions": 200,
+      "/api/rich-presence": 200,
+      "/api/steam-manifest": 200,
+      "/api/steam-cloud": 200,
+      "/api/rtx-tool-status": 200,
+      "POST /api/run-rtx-diagnostic": 200
+    },
+    "all_endpoints_200_ok": true
+  }
+}

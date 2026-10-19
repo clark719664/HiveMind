@@ -1,10 +1,11 @@
 {
-  "game_title": "HiveMind: Neural Breach // Hugging Face Hack-Miner (Free Steam Edition)",
+  "game_title": "HiveMind: Neural Breach // Hugging Face Hack-Miner (Free Steam Edition v2.2)",
   "steam_app_id": 3133700,
+  "season": "all",
   "pricing_model": "Free-to-Play (100% Free Download on Steam)",
   "hardware": {
     "system_ram_total_gb": 15.89,
-    "system_ram_available_gb": 5.5,
+    "system_ram_available_gb": 6.23,
     "torch_version": "2.6.0+cu124",
     "cuda_available": true,
     "gpu_name": "NVIDIA GeForce RTX 2070",
@@ -16,13 +17,21 @@
     "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
   },
   "vram_telemetry": {
-    "allocated_mb": 1030.48,
-    "reserved_mb": 1350.0,
+    "allocated_mb": 1049.96,
+    "reserved_mb": 1260.0,
     "peak_allocated_mb": 1192.66,
-    "free_vram_gb": 5.62,
+    "free_vram_gb": 5.7,
     "total_vram_gb": 8.0
   },
   "steamworks_security_audit": {
+    "native_dll_bridge": {
+      "app_id": 3133700,
+      "native_dll_loaded": false,
+      "native_dll_path": "HMAC_Cryptographic_Fallback (Headless/CI Safe)",
+      "steam_api_initialized": false,
+      "rich_presence_active_players": 0,
+      "overlay_notifications_queued": 0
+    },
     "verified_gamers": [
       {
         "gamer_tag": "CyberValkyrie_FR",
@@ -61,20 +70,205 @@
       }
     ]
   },
+  "steam_rich_presence": {
+    "76561198000000001": {
+      "steam_id64": "76561198000000001",
+      "persona_name": "CyberValkyrie_FR",
+      "status_string": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (20,322 PTS)",
+      "steam_display": "#Status_HackMiningSwarm",
+      "active_mission": "6-Expert Sparse MoE Omega Raid",
+      "gpu_name": "NVIDIA GeForce RTX 2070",
+      "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
+      "hive_balance": 90.0,
+      "total_points": 20322,
+      "native_dll_broadcast": false,
+      "rich_presence_hmac": "steam_rp_hmac_10702a789c30827784528bb4",
+      "updated_at_unix": 1792398881.087438
+    },
+    "76561198000000002": {
+      "steam_id64": "76561198000000002",
+      "persona_name": "NeuralGhost_DE",
+      "status_string": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (18,992 PTS)",
+      "steam_display": "#Status_HackMiningSwarm",
+      "active_mission": "6-Expert Sparse MoE Omega Raid",
+      "gpu_name": "NVIDIA GeForce RTX 2070",
+      "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
+      "hive_balance": 90.0,
+      "total_points": 18992,
+      "native_dll_broadcast": false,
+      "rich_presence_hmac": "steam_rp_hmac_308b003d846087c03d6dc4b2",
+      "updated_at_unix": 1792398881.087438
+    },
+    "76561198000000003": {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "status_string": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (18,855 PTS)",
+      "steam_display": "#Status_HackMiningSwarm",
+      "active_mission": "6-Expert Sparse MoE Omega Raid",
+      "gpu_name": "NVIDIA GeForce RTX 2070",
+      "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
+      "hive_balance": 90.0,
+      "total_points": 18855,
+      "native_dll_broadcast": false,
+      "rich_presence_hmac": "steam_rp_hmac_0a83000db8bc2472b68cbab4",
+      "updated_at_unix": 1792398881.087438
+    }
+  },
+  "steam_overlay_notifications": [
+    {
+      "steam_id64": "76561198000000002",
+      "persona_name": "NeuralGhost_DE",
+      "achievement_id": "RUST_BORROW_CHECKER",
+      "title": "RUST_BORROW_CHECKER",
+      "description": "Unlocked Steamworks Achievement RUST_BORROW_CHECKER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000002",
+      "persona_name": "NeuralGhost_DE",
+      "achievement_id": "ZERO_DAY_SENTINEL",
+      "title": "ZERO_DAY_SENTINEL",
+      "description": "Unlocked Steamworks Achievement ZERO_DAY_SENTINEL",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000002",
+      "persona_name": "NeuralGhost_DE",
+      "achievement_id": "POLYGLOT_ARCHITECT_FR",
+      "title": "POLYGLOT_ARCHITECT_FR",
+      "description": "Unlocked Steamworks Achievement POLYGLOT_ARCHITECT_FR",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000002",
+      "persona_name": "NeuralGhost_DE",
+      "achievement_id": "MOE_BOSS_SLAYER",
+      "title": "MOE_BOSS_SLAYER",
+      "description": "Unlocked Steamworks Achievement MOE_BOSS_SLAYER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000002",
+      "persona_name": "NeuralGhost_DE",
+      "achievement_id": "OMEGA_6_EXPERT_SLAYER",
+      "title": "OMEGA_6_EXPERT_SLAYER",
+      "description": "Unlocked Steamworks Achievement OMEGA_6_EXPERT_SLAYER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "FIRST_HF_SHARD_BREACH",
+      "title": "FIRST_HF_SHARD_BREACH",
+      "description": "Unlocked Steamworks Achievement FIRST_HF_SHARD_BREACH",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "HF_BOUNTY_SOLVER",
+      "title": "HF_BOUNTY_SOLVER",
+      "description": "Unlocked Steamworks Achievement HF_BOUNTY_SOLVER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "LORA_LOSS_CRUSHER",
+      "title": "LORA_LOSS_CRUSHER",
+      "description": "Unlocked Steamworks Achievement LORA_LOSS_CRUSHER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "SWARM_ARCHITECT_E3",
+      "title": "SWARM_ARCHITECT_E3",
+      "description": "Unlocked Steamworks Achievement SWARM_ARCHITECT_E3",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "BYZANTINE_HUNTER",
+      "title": "BYZANTINE_HUNTER",
+      "description": "Unlocked Steamworks Achievement BYZANTINE_HUNTER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "RUST_BORROW_CHECKER",
+      "title": "RUST_BORROW_CHECKER",
+      "description": "Unlocked Steamworks Achievement RUST_BORROW_CHECKER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "ZERO_DAY_SENTINEL",
+      "title": "ZERO_DAY_SENTINEL",
+      "description": "Unlocked Steamworks Achievement ZERO_DAY_SENTINEL",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "POLYGLOT_ARCHITECT_FR",
+      "title": "POLYGLOT_ARCHITECT_FR",
+      "description": "Unlocked Steamworks Achievement POLYGLOT_ARCHITECT_FR",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "MOE_BOSS_SLAYER",
+      "title": "MOE_BOSS_SLAYER",
+      "description": "Unlocked Steamworks Achievement MOE_BOSS_SLAYER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    },
+    {
+      "steam_id64": "76561198000000003",
+      "persona_name": "ZeroCool_UK",
+      "achievement_id": "OMEGA_6_EXPERT_SLAYER",
+      "title": "OMEGA_6_EXPERT_SLAYER",
+      "description": "Unlocked Steamworks Achievement OMEGA_6_EXPERT_SLAYER",
+      "overlay_corner": "k_EPositionBottomRight",
+      "timestamp": 1792398881.087
+    }
+  ],
   "best_miner_champion": {
     "gamer_tag": "CyberValkyrie_FR",
     "steam_id64": "76561198000000001",
-    "rank_title": "Rank V: Singularity Core (Apex Miner)",
-    "total_points": 10659,
-    "hive_balance": 45.0,
-    "best_loss_reduction_pct": 79.16,
+    "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
+    "total_points": 22032,
+    "hive_balance": 90.0,
+    "best_loss_reduction_pct": 96.39,
     "achievements_unlocked": [
       "FIRST_HF_SHARD_BREACH",
-      "LORA_LOSS_CRUSHER",
       "HF_BOUNTY_SOLVER",
-      "BYZANTINE_HUNTER",
+      "LORA_LOSS_CRUSHER",
       "SWARM_ARCHITECT_E3",
+      "BYZANTINE_HUNTER",
+      "RUST_BORROW_CHECKER",
+      "ZERO_DAY_SENTINEL",
+      "POLYGLOT_ARCHITECT_FR",
       "MOE_BOSS_SLAYER",
+      "OMEGA_6_EXPERT_SLAYER",
       "TOP_1_APEX_MINER"
     ]
   },
@@ -84,30 +278,44 @@
       "steam_id64": "76561198000000001",
       "node_id": "seti-node-paris-01",
       "region": "EU-West-Paris",
-      "specialty_focus": "Code & Algorithmic Breaching",
-      "total_points": 10659,
-      "data_discovery_points": 1389,
-      "lora_training_points": 2043,
-      "solution_bounty_points": 4209,
-      "swarm_contribution_points": 3018,
-      "boss_raid_points": 786,
-      "hive_balance": 45.0,
-      "reputation_score": 130,
-      "shards_mined": 4,
-      "bounties_solved": 4,
+      "specialty_focus": "Code, Rust & Francophone Synthesis",
+      "total_points": 22032,
+      "data_discovery_points": 2170,
+      "lora_training_points": 5227,
+      "solution_bounty_points": 9255,
+      "swarm_contribution_points": 5380,
+      "boss_raid_points": 886,
+      "hive_balance": 90.0,
+      "reputation_score": 160,
+      "shards_mined": 6,
+      "bounties_solved": 8,
       "boss_raids_cleared": 1,
-      "swarm_tokens_served": 119,
-      "best_loss_reduction_pct": 79.16,
-      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "swarm_tokens_served": 210,
+      "best_loss_reduction_pct": 96.39,
+      "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
-      "steam_leaderboard_receipt": "steam_lb_hmac_8056db2b5ebbd83550727a42b8f0",
+      "steam_leaderboard_receipt": "steam_lb_hmac_f3903ed052cbea8ac5dba7cbe33b",
+      "rich_presence_status": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (20,322 PTS)",
+      "rich_presence_hmac": "steam_rp_hmac_10702a789c30827784528bb4",
+      "domains_forged": [
+        "Python_Systems_Code",
+        "Biomedical_Clinical_QA",
+        "Mathematical_Reasoning",
+        "Rust_Systems_Security",
+        "CyberSecurity_Vulnerability_Recon",
+        "Multilingual_FR_Synthesis"
+      ],
       "achievements_unlocked": [
         "FIRST_HF_SHARD_BREACH",
-        "LORA_LOSS_CRUSHER",
         "HF_BOUNTY_SOLVER",
-        "BYZANTINE_HUNTER",
+        "LORA_LOSS_CRUSHER",
         "SWARM_ARCHITECT_E3",
+        "BYZANTINE_HUNTER",
+        "RUST_BORROW_CHECKER",
+        "ZERO_DAY_SENTINEL",
+        "POLYGLOT_ARCHITECT_FR",
         "MOE_BOSS_SLAYER",
+        "OMEGA_6_EXPERT_SLAYER",
         "TOP_1_APEX_MINER"
       ]
     },
@@ -116,30 +324,44 @@
       "steam_id64": "76561198000000002",
       "node_id": "seti-node-lyon-02",
       "region": "EU-Central-Frankfurt",
-      "specialty_focus": "Biomedical & Scientific Mining",
-      "total_points": 8924,
-      "data_discovery_points": 1059,
-      "lora_training_points": 1930,
-      "solution_bounty_points": 3382,
-      "swarm_contribution_points": 2553,
-      "boss_raid_points": 581,
-      "hive_balance": 45.0,
-      "reputation_score": 130,
-      "shards_mined": 3,
-      "bounties_solved": 3,
+      "specialty_focus": "Biomedical & Zero-Day Cyber Audit",
+      "total_points": 18992,
+      "data_discovery_points": 2160,
+      "lora_training_points": 4474,
+      "solution_bounty_points": 7645,
+      "swarm_contribution_points": 4713,
+      "boss_raid_points": 769,
+      "hive_balance": 90.0,
+      "reputation_score": 160,
+      "shards_mined": 6,
+      "bounties_solved": 6,
       "boss_raids_cleared": 1,
-      "swarm_tokens_served": 87,
-      "best_loss_reduction_pct": 74.1,
-      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "swarm_tokens_served": 146,
+      "best_loss_reduction_pct": 95.86,
+      "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
-      "steam_leaderboard_receipt": "steam_lb_hmac_670690e5cddfb6672388481f964e",
+      "steam_leaderboard_receipt": "steam_lb_hmac_9510c7bb1c8176c8161aa3d8f571",
+      "rich_presence_status": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (18,992 PTS)",
+      "rich_presence_hmac": "steam_rp_hmac_308b003d846087c03d6dc4b2",
+      "domains_forged": [
+        "Python_Systems_Code",
+        "Biomedical_Clinical_QA",
+        "Mathematical_Reasoning",
+        "Rust_Systems_Security",
+        "CyberSecurity_Vulnerability_Recon",
+        "Multilingual_FR_Synthesis"
+      ],
       "achievements_unlocked": [
         "FIRST_HF_SHARD_BREACH",
         "LORA_LOSS_CRUSHER",
         "HF_BOUNTY_SOLVER",
-        "BYZANTINE_HUNTER",
         "SWARM_ARCHITECT_E3",
-        "MOE_BOSS_SLAYER"
+        "BYZANTINE_HUNTER",
+        "RUST_BORROW_CHECKER",
+        "ZERO_DAY_SENTINEL",
+        "POLYGLOT_ARCHITECT_FR",
+        "MOE_BOSS_SLAYER",
+        "OMEGA_6_EXPERT_SLAYER"
       ]
     },
     {
@@ -147,43 +369,58 @@
       "steam_id64": "76561198000000003",
       "node_id": "seti-node-nice-03",
       "region": "EU-West-London",
-      "specialty_focus": "Quantitative & Crypto Proofs",
-      "total_points": 8387,
-      "data_discovery_points": 1069,
-      "lora_training_points": 1505,
-      "solution_bounty_points": 3258,
-      "swarm_contribution_points": 2555,
-      "boss_raid_points": 583,
-      "hive_balance": 45.0,
-      "reputation_score": 130,
-      "shards_mined": 3,
-      "bounties_solved": 3,
+      "specialty_focus": "Quantitative Math & Crypto Proofs",
+      "total_points": 18855,
+      "data_discovery_points": 2170,
+      "lora_training_points": 4213,
+      "solution_bounty_points": 7783,
+      "swarm_contribution_points": 4689,
+      "boss_raid_points": 745,
+      "hive_balance": 90.0,
+      "reputation_score": 160,
+      "shards_mined": 6,
+      "bounties_solved": 6,
       "boss_raids_cleared": 1,
-      "swarm_tokens_served": 87,
-      "best_loss_reduction_pct": 70.34,
-      "rank_title": "Rank V: Singularity Core (Apex Miner)",
+      "swarm_tokens_served": 146,
+      "best_loss_reduction_pct": 97.36,
+      "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
-      "steam_leaderboard_receipt": "steam_lb_hmac_c03ed7fe6ed401bbcfcce48aac82",
+      "steam_leaderboard_receipt": "steam_lb_hmac_4e919d3e447c735df82322d53ea9",
+      "rich_presence_status": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (18,855 PTS)",
+      "rich_presence_hmac": "steam_rp_hmac_0a83000db8bc2472b68cbab4",
+      "domains_forged": [
+        "Python_Systems_Code",
+        "Biomedical_Clinical_QA",
+        "Mathematical_Reasoning",
+        "Rust_Systems_Security",
+        "CyberSecurity_Vulnerability_Recon",
+        "Multilingual_FR_Synthesis"
+      ],
       "achievements_unlocked": [
         "FIRST_HF_SHARD_BREACH",
-        "LORA_LOSS_CRUSHER",
         "HF_BOUNTY_SOLVER",
-        "BYZANTINE_HUNTER",
+        "LORA_LOSS_CRUSHER",
         "SWARM_ARCHITECT_E3",
-        "MOE_BOSS_SLAYER"
+        "BYZANTINE_HUNTER",
+        "RUST_BORROW_CHECKER",
+        "ZERO_DAY_SENTINEL",
+        "POLYGLOT_ARCHITECT_FR",
+        "MOE_BOSS_SLAYER",
+        "OMEGA_6_EXPERT_SLAYER"
       ]
     }
   ],
   "missions": [
     {
       "mission_index": 1,
+      "season": 1,
       "contract_id": "CONTRACT-HF-01-CODEALPACA",
       "mission_codename": "Operation: Cyber-Kernel Synthesis",
       "dataset_id": "sahil2801/CodeAlpaca-20k",
       "domain_expert": "Python_Systems_Code",
       "difficulty_skulls": 3,
-      "expert_cid": "cid://sha256/expert-python_systems_code-3372d859aafba6bc95b21376",
-      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_python_systems_code_3372d859aafb.pt",
+      "expert_cid": "cid://sha256/expert-python_systems_code-0a2aa738186927aa5aa152d2",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_python_systems_code_0a2aa7381869.pt",
       "bounty_challenge": {
         "prompt": "### Instruction:\nWrite a Python function `binary_search(arr, target)` that searches a sorted array in O(log n) time.\n### Response:\n",
         "reference_solution": "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return -1",
@@ -206,7 +443,7 @@
       },
       "pouw_block": {
         "height": 1,
-        "block_hash": "29cd5388962dd962ee3adcf1ddc5fab558311d732b2f3db764ec18757dc58b93",
+        "block_hash": "869c24a9681c3b9b01d720d1df52db363d5d2d244587239b549f3cfed5c27742",
         "total_reward_hive": 50.0,
         "slashed_cheaters": [
           "DarkNet_Spoofer_99"
@@ -273,13 +510,14 @@
     },
     {
       "mission_index": 2,
+      "season": 1,
       "contract_id": "CONTRACT-HF-02-PUBMEDQA",
       "mission_codename": "Operation: Bio-Helix Diagnostics",
       "dataset_id": "qiaojin/PubMedQA",
       "domain_expert": "Biomedical_Clinical_QA",
       "difficulty_skulls": 4,
-      "expert_cid": "cid://sha256/expert-biomedical_clinical_qa-8c56579dfc99fe497e41b41b",
-      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_biomedical_clinical_qa_8c56579dfc99.pt",
+      "expert_cid": "cid://sha256/expert-biomedical_clinical_qa-2b4d1b76c6e58fe5c5e847b6",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_biomedical_clinical_qa_2b4d1b76c6e5.pt",
       "bounty_challenge": {
         "prompt": "### Clinical Question:\nDo mitochondria play a role in programmed cell death and cellular ATP synthesis?\n### Evidence Conclusion (yes):\n",
         "reference_solution": "Mitochondrial dynamics and oxidative phosphorylation directly regulate cellular ATP synthesis and programmed cell death pathways in vivo.",
@@ -302,7 +540,7 @@
       },
       "pouw_block": {
         "height": 2,
-        "block_hash": "4cc865d2f15cbb296484cdb49e00d9bbfeb2aba5cfa15f1d1dfda73e9424d4ed",
+        "block_hash": "6fc13e688da0cad3463c0aa9fda8f332067345cd7d2152b16ba2506233af0714",
         "total_reward_hive": 50.0,
         "slashed_cheaters": [
           "DarkNet_Spoofer_99"
@@ -369,13 +607,14 @@
     },
     {
       "mission_index": 3,
+      "season": 1,
       "contract_id": "CONTRACT-HF-03-GSM8K",
       "mission_codename": "Operation: Quantum Crypto-Proof",
       "dataset_id": "openai/gsm8k",
       "domain_expert": "Mathematical_Reasoning",
       "difficulty_skulls": 5,
-      "expert_cid": "cid://sha256/expert-mathematical_reasoning-c9b442920ae816f4fd7d93a3",
-      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_mathematical_reasoning_c9b442920ae8.pt",
+      "expert_cid": "cid://sha256/expert-mathematical_reasoning-45843a986e6a53a2b6c7325e",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_mathematical_reasoning_45843a986e6a.pt",
       "bounty_challenge": {
         "prompt": "### Quantitative Problem:\nA cluster of 3 GPU nodes trains 12 steps per epoch at 50 HIVE per block. How many HIVE are minted in 3 blocks?\n### Step-by-Step Proof:\n",
         "reference_solution": "Each block mints 50 HIVE.\nIn 3 blocks, the cluster mints 3 * 50 = 150 HIVE.\n#### 150",
@@ -398,7 +637,7 @@
       },
       "pouw_block": {
         "height": 3,
-        "block_hash": "33ea4496a4aca440177ad5dc52b021e0130d70e1b2d0740ac353d36357eecb2b",
+        "block_hash": "78242277f8f5af72cc02e24a4e96648bf8e1dc02d65a84866af235bc0f937a9d",
         "total_reward_hive": 50.0,
         "slashed_cheaters": [
           "DarkNet_Spoofer_99"
@@ -462,37 +701,412 @@
           "hive_earned": 15.0
         }
       ]
+    },
+    {
+      "mission_index": 4,
+      "season": 2,
+      "contract_id": "CONTRACT-HF-04-RUST-SYSTEMS",
+      "mission_codename": "Operation: Zero-Copy Borrow-Checker",
+      "dataset_id": "anon/rust-code-instructions",
+      "domain_expert": "Rust_Systems_Security",
+      "difficulty_skulls": 4,
+      "expert_cid": "cid://sha256/expert-rust_systems_security-bc4d7af8ab292cb7d0ca8e45",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_rust_systems_security_bc4d7af8ab29.pt",
+      "bounty_challenge": {
+        "prompt": "### Rust Systems Task:\nImplement a thread-safe zero-copy ring buffer counter using `Arc<Mutex<u64>>` in Rust.\n### Memory-Safe Rust Implementation:\n",
+        "reference_solution": "pub fn increment_counter(shared: &std::sync::Arc<std::sync::Mutex<u64>>, delta: u64) -> Result<u64, String> {\n    let mut guard = shared.lock().map_err(|_| \"Mutex poisoned\".to_string())?;\n    *guard += delta;\n    Ok(*guard)\n}",
+        "pre_lora_eval": {
+          "solution_ce_loss": 4.4729,
+          "solution_perplexity": 87.61
+        },
+        "post_lora_eval": {
+          "solution_ce_loss": 0.3145,
+          "solution_perplexity": 1.37,
+          "generated_answer": "pub struct Counter<u64> {\n    buf: &'static [u8],\n    buf_size: usize,\n    buf_offset: usize,\n    buf_size_offset: usize,\n    buf_size_offset_guard: &'static [",
+          "matched_keywords": [
+            "pub"
+          ],
+          "keyword_hit_count": 1
+        },
+        "perplexity_improvement_pct": 98.44
+      },
+      "pouw_block": {
+        "height": 4,
+        "block_hash": "a6172d57e0a2412b9978a703801bba50195b73ad185b981aa797e9cd9b5111cd",
+        "total_reward_hive": 50.0,
+        "slashed_cheaters": [
+          "DarkNet_Spoofer_99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-paris-01",
+        "expert_provider_nodes": [
+          "seti-node-lyon-02",
+          "seti-node-nice-03"
+        ],
+        "domain_expert": "Rust_Systems_Security",
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "gamer_mission_scores": [
+        {
+          "gamer_tag": "CyberValkyrie_FR",
+          "contract_id": "CONTRACT-HF-04-RUST-SYSTEMS",
+          "shard_cid": "cid://sha256/b540b687e75a7af19ca8a8057cb9d23f",
+          "shard_signal_score": 0.99,
+          "initial_loss": 4.229406,
+          "final_loss": 0.644385,
+          "loss_reduction_pct": 84.76,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 975,
+          "solution_bounty_pts": 1426,
+          "swarm_contribution_pts": 620,
+          "total_mission_pts": 3388,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "NeuralGhost_DE",
+          "contract_id": "CONTRACT-HF-04-RUST-SYSTEMS",
+          "shard_cid": "cid://sha256/119eefb4a0eb96f307503bab48d64c13",
+          "shard_signal_score": 0.99,
+          "initial_loss": 3.748924,
+          "final_loss": 0.155175,
+          "loss_reduction_pct": 95.86,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 1102,
+          "solution_bounty_pts": 1286,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3431,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "ZeroCool_UK",
+          "contract_id": "CONTRACT-HF-04-RUST-SYSTEMS",
+          "shard_cid": "cid://sha256/4ce6a4287549856ef48d5f52d3c7da29",
+          "shard_signal_score": 0.99,
+          "initial_loss": 5.440382,
+          "final_loss": 0.143895,
+          "loss_reduction_pct": 97.36,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 1120,
+          "solution_bounty_pts": 1448,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3611,
+          "hive_earned": 15.0
+        }
+      ]
+    },
+    {
+      "mission_index": 5,
+      "season": 2,
+      "contract_id": "CONTRACT-HF-05-CYBERSEC-AUDIT",
+      "mission_codename": "Operation: Zero-Day Firewall Patch",
+      "dataset_id": "CyberNative/Code_Vulnerability_Security_DPO",
+      "domain_expert": "CyberSecurity_Vulnerability_Recon",
+      "difficulty_skulls": 5,
+      "expert_cid": "cid://sha256/expert-cybersecurity_vulnerability_recon-8045305c5de042a9ef60535d",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_cybersecurity_vulnerability_recon_8045305c5de0.pt",
+      "bounty_challenge": {
+        "prompt": "### CyberSecurity Audit (CVE-2026-HIVE):\nPatch the SQL injection and timing side-channel vulnerability in token verification.\n### Hardened Security Patch:\n",
+        "reference_solution": "import hmac, hashlib\ndef verify_token_constant_time(token: str, expected_sig: str, secret: bytes) -> bool:\n    mac = hmac.new(secret, token.encode('utf-8'), hashlib.sha256).hexdigest()\n    return hmac.compare_digest(mac, expected_sig)",
+        "pre_lora_eval": {
+          "solution_ce_loss": 5.171,
+          "solution_perplexity": 176.08
+        },
+        "post_lora_eval": {
+          "solution_ce_loss": 1.0016,
+          "solution_perplexity": 2.72,
+          "generated_answer": "- Hash the timestamp and verify the signature of the verification signature.\n- Use SHA-256-HIVE-SHA-256-HIVE-SHA-256-HIVE-SHA-256-H",
+          "matched_keywords": [
+            "verify"
+          ],
+          "keyword_hit_count": 1
+        },
+        "perplexity_improvement_pct": 98.46
+      },
+      "pouw_block": {
+        "height": 5,
+        "block_hash": "9eeb6e8a11e2608ff6c0c825ec491bdfed9c7e8619d041e7d451e644cbb84edf",
+        "total_reward_hive": 50.0,
+        "slashed_cheaters": [
+          "DarkNet_Spoofer_99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-lyon-02",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-nice-03"
+        ],
+        "domain_expert": "CyberSecurity_Vulnerability_Recon",
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "gamer_mission_scores": [
+        {
+          "gamer_tag": "CyberValkyrie_FR",
+          "contract_id": "CONTRACT-HF-05-CYBERSEC-AUDIT",
+          "shard_cid": "cid://sha256/2811482a67f0812984e98c505c5a8629",
+          "shard_signal_score": 0.99,
+          "initial_loss": 5.300993,
+          "final_loss": 0.191295,
+          "loss_reduction_pct": 96.39,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 1108,
+          "solution_bounty_pts": 1480,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3631,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "NeuralGhost_DE",
+          "contract_id": "CONTRACT-HF-05-CYBERSEC-AUDIT",
+          "shard_cid": "cid://sha256/31302ce2c65bb740190ec6cd0e09774e",
+          "shard_signal_score": 0.99,
+          "initial_loss": 5.300993,
+          "final_loss": 1.013075,
+          "loss_reduction_pct": 80.89,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 930,
+          "solution_bounty_pts": 1542,
+          "swarm_contribution_pts": 620,
+          "total_mission_pts": 3459,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "ZeroCool_UK",
+          "contract_id": "CONTRACT-HF-05-CYBERSEC-AUDIT",
+          "shard_cid": "cid://sha256/83379b2bb0e38a2e0710ca8025d3ca6b",
+          "shard_signal_score": 0.99,
+          "initial_loss": 4.910898,
+          "final_loss": 1.800285,
+          "loss_reduction_pct": 63.34,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 728,
+          "solution_bounty_pts": 1291,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3062,
+          "hive_earned": 15.0
+        }
+      ]
+    },
+    {
+      "mission_index": 6,
+      "season": 2,
+      "contract_id": "CONTRACT-HF-06-MULTILINGUAL-FR",
+      "mission_codename": "Operation: Francophone Singularity Synthesis",
+      "dataset_id": "CohereForAI/aya_collection",
+      "domain_expert": "Multilingual_FR_Synthesis",
+      "difficulty_skulls": 5,
+      "expert_cid": "cid://sha256/expert-multilingual_fr_synthesis-a940b0a798d26d4ad39ac38d",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store\\lora_experts\\expert_multilingual_fr_synthesis_a940b0a798d2.pt",
+      "bounty_challenge": {
+        "prompt": "### Question Scientifique (FR):\nCalculez la r\u00e9compense totale en jetons HIVE pour 4 blocs valid\u00e9s \u00e0 50 HIVE par bloc avec d\u00e9fense Multi-Krum.\n### Synth\u00e8se Technique (FR):\n",
+        "reference_solution": "Chaque bloc valid\u00e9 par preuve de travail utile (PoUW) g\u00e9n\u00e8re 50 HIVE. Sur 4 blocs, l'essaim distribue 4 * 50 = 200 HIVE aux mineurs honn\u00eates.",
+        "pre_lora_eval": {
+          "solution_ce_loss": 5.4051,
+          "solution_perplexity": 222.54
+        },
+        "post_lora_eval": {
+          "solution_ce_loss": 1.4899,
+          "solution_perplexity": 4.44,
+          "generated_answer": "Calculez la r\u00e9compense totale en jetons HIVE pour 4 blocs valid\u00e9s \u00e0 50 HIVE par bloc avec d\u00e9fense Multi-Krum en 10 blocs valid\u00e9s \u00e0",
+          "matched_keywords": [
+            "bloc",
+            "hive",
+            "50",
+            "4",
+            "multi-krum"
+          ],
+          "keyword_hit_count": 5
+        },
+        "perplexity_improvement_pct": 98.0
+      },
+      "pouw_block": {
+        "height": 6,
+        "block_hash": "306daed44055bfe6f5bc3a5dc779d3cb225388a8861cad25808c99f1eb6202ae",
+        "total_reward_hive": 50.0,
+        "slashed_cheaters": [
+          "DarkNet_Spoofer_99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-nice-03",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-lyon-02"
+        ],
+        "domain_expert": "Multilingual_FR_Synthesis",
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "gamer_mission_scores": [
+        {
+          "gamer_tag": "CyberValkyrie_FR",
+          "contract_id": "CONTRACT-HF-06-MULTILINGUAL-FR",
+          "shard_cid": "cid://sha256/4fddd53c90cb3608cfc1197cdd351bbc",
+          "shard_signal_score": 0.99,
+          "initial_loss": 5.334424,
+          "final_loss": 0.228152,
+          "loss_reduction_pct": 95.72,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 1101,
+          "solution_bounty_pts": 1710,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 3854,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "NeuralGhost_DE",
+          "contract_id": "CONTRACT-HF-06-MULTILINGUAL-FR",
+          "shard_cid": "cid://sha256/eee2a6b8cf432dfc34f26350e2ec2f79",
+          "shard_signal_score": 0.99,
+          "initial_loss": 4.952376,
+          "final_loss": 2.74597,
+          "loss_reduction_pct": 44.55,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 512,
+          "solution_bounty_pts": 1435,
+          "swarm_contribution_pts": 676,
+          "total_mission_pts": 2990,
+          "hive_earned": 15.0
+        },
+        {
+          "gamer_tag": "ZeroCool_UK",
+          "contract_id": "CONTRACT-HF-06-MULTILINGUAL-FR",
+          "shard_cid": "cid://sha256/f9986e1cb2d30fed0cc065b2d17ff9b7",
+          "shard_signal_score": 0.99,
+          "initial_loss": 5.928532,
+          "final_loss": 1.495546,
+          "loss_reduction_pct": 74.77,
+          "data_discovery_pts": 367,
+          "lora_training_pts": 860,
+          "solution_bounty_pts": 1786,
+          "swarm_contribution_pts": 620,
+          "total_mission_pts": 3633,
+          "hive_earned": 15.0
+        }
+      ]
     }
   ],
   "moe_boss_fusion": {
-    "num_experts": 3,
+    "num_experts": 6,
     "expert_domains": [
       "Python_Systems_Code",
       "Biomedical_Clinical_QA",
-      "Mathematical_Reasoning"
+      "Mathematical_Reasoning",
+      "Rust_Systems_Security",
+      "CyberSecurity_Vulnerability_Recon",
+      "Multilingual_FR_Synthesis"
     ],
-    "router_initial_loss": 2.450719,
-    "router_final_loss": 1.712609,
+    "router_initial_loss": 3.033693,
+    "router_final_loss": 1.962856,
     "expert_utilization": {
-      "Python_Systems_Code": 0.3945,
-      "Biomedical_Clinical_QA": 0.3122,
-      "Mathematical_Reasoning": 0.2934
+      "Python_Systems_Code": 0.2431,
+      "Biomedical_Clinical_QA": 0.1906,
+      "Mathematical_Reasoning": 0.1347,
+      "Rust_Systems_Security": 0.1738,
+      "CyberSecurity_Vulnerability_Recon": 0.1296,
+      "Multilingual_FR_Synthesis": 0.1282
+    },
+    "double_buffered_dma_lookahead": [
+      {
+        "expert_name": "Python_Systems_Code",
+        "double_buffer_slot": "slot_A",
+        "layer_idx": 0,
+        "tensors_streamed": 336,
+        "raw_dma_transfer_ms": 20.679,
+        "overlapped_attention_ms": 2.5,
+        "exposed_swap_latency_ms": 18.179
+      },
+      {
+        "expert_name": "Biomedical_Clinical_QA",
+        "double_buffer_slot": "slot_B",
+        "layer_idx": 1,
+        "tensors_streamed": 336,
+        "raw_dma_transfer_ms": 22.062,
+        "overlapped_attention_ms": 2.5,
+        "exposed_swap_latency_ms": 19.562
+      },
+      {
+        "expert_name": "Mathematical_Reasoning",
+        "double_buffer_slot": "slot_A",
+        "layer_idx": 2,
+        "tensors_streamed": 336,
+        "raw_dma_transfer_ms": 15.179,
+        "overlapped_attention_ms": 2.5,
+        "exposed_swap_latency_ms": 12.679
+      },
+      {
+        "expert_name": "Rust_Systems_Security",
+        "double_buffer_slot": "slot_B",
+        "layer_idx": 3,
+        "tensors_streamed": 336,
+        "raw_dma_transfer_ms": 15.364,
+        "overlapped_attention_ms": 2.5,
+        "exposed_swap_latency_ms": 12.864
+      },
+      {
+        "expert_name": "CyberSecurity_Vulnerability_Recon",
+        "double_buffer_slot": "slot_A",
+        "layer_idx": 4,
+        "tensors_streamed": 336,
+        "raw_dma_transfer_ms": 15.383,
+        "overlapped_attention_ms": 2.5,
+        "exposed_swap_latency_ms": 12.883
+      },
+      {
+        "expert_name": "Multilingual_FR_Synthesis",
+        "double_buffer_slot": "slot_B",
+        "layer_idx": 5,
+        "tensors_streamed": 336,
+        "raw_dma_transfer_ms": 15.21,
+        "overlapped_attention_ms": 2.5,
+        "exposed_swap_latency_ms": 12.71
+      }
+    ],
+    "token_tree_speculation_gamma6": {
+      "tree_depth_gamma": 6,
+      "branches_evaluated_in_single_pass": 2,
+      "tree_attention_mask_shape": [
+        1,
+        1,
+        13,
+        13
+      ],
+      "accepted_tokens": [
+        73594,
+        35788,
+        198,
+        9585,
+        2036,
+        2411,
+        79
+      ],
+      "accepted_length": 7,
+      "effective_rtt_speedup": 7.0
     },
     "speculative_boss_raid": {
-      "prompt": "### Multi-Domain Boss Raid (Code + Bio + Math):\nWrite a Python function `atp_hive_yield(cells, blocks)` returning total ATP-HIVE energy for 3 blocks at 50 HIVE/block:\n### Solution:\n",
-      "generated_boss_solution": "def atp_hive_yield(cells, blocks):\n    # Calculate the total ATP-HIVE energy for 3 blocks\n    total_energy =",
+      "prompt": "### Omega 6-Expert Boss Raid (Code + Bio + Math + Rust + CyberSec + FR):\nWrite a memory-safe function `atp_hive_yield(cells, blocks)` returning verified ATP-HIVE energy for 4 blocks at 50 HIVE/block:\n### Solution:\n",
+      "generated_boss_solution": "```rust\npub struct AtpHive {\n    pub cells: usize,\n    pub blocks: usize,\n}\nimpl AtpHive",
       "region_ring": "EU-West-Swarm-Ring",
       "active_ring_peers": 3,
       "mean_ring_ping_ms": 14.13,
       "draft_gamma": 5,
       "swarm_verification_passes": 5,
       "mean_acceptance_rate": 1.0,
-      "effective_tokens_per_sec": 4.43,
+      "effective_tokens_per_sec": 3.62,
       "latency_reduction_factor": 5.6,
       "expert_routing_share": {
-        "Python_Systems_Code": 0.5606,
-        "Biomedical_Clinical_QA": 0.2184,
-        "Mathematical_Reasoning": 0.2209
+        "Python_Systems_Code": 0.1601,
+        "Biomedical_Clinical_QA": 0.0693,
+        "Mathematical_Reasoning": 0.0661,
+        "Rust_Systems_Security": 0.2877,
+        "CyberSecurity_Vulnerability_Recon": 0.2225,
+        "Multilingual_FR_Synthesis": 0.1944
       }
     }
   },
@@ -515,21 +1129,38 @@
     },
     "SWARM_ARCHITECT_E3": {
       "title": "Hive Mind Architect",
-      "description": "Contribute a domain LoRA expert to a 3-Expert Dynamic Hot-Plugged Sparse MoE."
+      "description": "Contribute a domain LoRA expert to a Dynamic Hot-Plugged Sparse MoE."
     },
     "MOE_BOSS_SLAYER": {
       "title": "Boss Raid Conqueror (gamma=5)",
-      "description": "Defeat the Final Boss Multi-Domain Challenge using 3-Expert Sparse MoE Speculative Swarm Decoding."
+      "description": "Defeat the Final Boss Multi-Domain Challenge using Sparse MoE Speculative Swarm Decoding."
     },
     "TOP_1_APEX_MINER": {
       "title": "Apex Swarm Miner (#1 Global)",
       "description": "Claim #1 on the Global Steam Hack-Miner & Swarm Contribution Leaderboard."
+    },
+    "RUST_BORROW_CHECKER": {
+      "title": "Zero-Copy Rustacean (Season 2)",
+      "description": "Forge the Rust_Systems_Security QLoRA expert on anon/rust-code-instructions and crack the memory-safe systems bounty."
+    },
+    "ZERO_DAY_SENTINEL": {
+      "title": "CVE Firewall Patcher (Season 2)",
+      "description": "Forge the CyberSecurity_Vulnerability_Recon QLoRA expert and patch the CVE-2026-HIVE timing side-channel bounty."
+    },
+    "POLYGLOT_ARCHITECT_FR": {
+      "title": "Francophone Singularity (Season 2)",
+      "description": "Forge the Multilingual_FR_Synthesis QLoRA expert on CohereForAI/aya_collection and solve the French PoUW proof."
+    },
+    "OMEGA_6_EXPERT_SLAYER": {
+      "title": "Omega 6-Expert MoE Conqueror (gamma=6)",
+      "description": "Hot-plug all 6 Season 1 + Season 2 Hugging Face LoRA Experts (E=2 -> E=6) with 2-Slot Pinned RAM DMA and clear the Omega Boss Raid."
     }
   },
-  "elapsed_seconds": 190.48,
+  "elapsed_seconds": 150.96,
   "free_steam_package": {
     "steam_app_id": 3133700,
     "steam_depot_id": 3133701,
+    "release_version": "1.0.0",
     "is_free_to_play": true,
     "package_root": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition",
     "steam_appid_file": "D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition\\steam_appid.txt",

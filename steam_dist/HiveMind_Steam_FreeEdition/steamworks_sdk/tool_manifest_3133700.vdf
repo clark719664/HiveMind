@@ -1,0 +1,34 @@
+"AppConfig"
+{
+	"appid"	"3133700"
+	"name"	"HiveMind: Neural Breach — Free RTX AI Swarm Tool & Hack-Miner (v1.0.0)"
+	"type"	"Tool"
+	"isfreeapp"	"1"
+	"installdir"	"HiveMind_Steam_FreeEdition"
+	"launch"
+	{
+		"0"
+		{
+			"executable"	"Launch_HiveMind_SteamTool_RTX.bat"
+			"description"	"Launch HiveMind Free RTX Steam Tool Control Center (v1.0.0)"
+			"type"	"default"
+			"config"
+			{
+				"oslist"	"windows"
+				"osarch"	"64"
+			}
+		}
+		"1"
+		{
+			"executable"	"Launch_HiveMind_WebHUD.bat"
+			"description"	"Launch Cyberpunk Web HUD & Live Leaderboard (http://127.0.0.1:8090)"
+			"type"	"option1"
+		}
+		"2"
+		{
+			"executable"	"Launch_HiveMind_HackMiner.bat"
+			"description"	"Play 6-Mission Hugging Face Hack-Miner Campaign on RTX GPU"
+			"type"	"option2"
+		}
+	}
+}

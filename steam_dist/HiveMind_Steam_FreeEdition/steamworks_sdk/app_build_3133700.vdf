@@ -1,7 +1,7 @@
 "appbuild"
 {
 	"appid"	"3133700"
-	"desc"	"HiveMind: Neural Breach // Hugging Face Hack-Miner (Free-to-Play Steam Edition)"
+	"desc"	"HiveMind: Neural Breach // Hugging Face Hack-Miner (Free-to-Play Steam Edition v2.2)"
 	"buildoutput"	"..\\output"
 	"contentroot"	"..\\"
 	"setlive"	"public"

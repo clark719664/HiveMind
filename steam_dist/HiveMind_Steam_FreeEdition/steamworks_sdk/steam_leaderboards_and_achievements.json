@@ -35,15 +35,31 @@
     },
     "SWARM_ARCHITECT_E3": {
       "title": "Hive Mind Architect",
-      "description": "Contribute a domain LoRA expert to a 3-Expert Dynamic Hot-Plugged Sparse MoE."
+      "description": "Contribute a domain LoRA expert to a Dynamic Hot-Plugged Sparse MoE."
     },
     "MOE_BOSS_SLAYER": {
       "title": "Boss Raid Conqueror (gamma=5)",
-      "description": "Defeat the Final Boss Multi-Domain Challenge using 3-Expert Sparse MoE Speculative Swarm Decoding."
+      "description": "Defeat the Final Boss Multi-Domain Challenge using Sparse MoE Speculative Swarm Decoding."
     },
     "TOP_1_APEX_MINER": {
       "title": "Apex Swarm Miner (#1 Global)",
       "description": "Claim #1 on the Global Steam Hack-Miner & Swarm Contribution Leaderboard."
+    },
+    "RUST_BORROW_CHECKER": {
+      "title": "Zero-Copy Rustacean (Season 2)",
+      "description": "Forge the Rust_Systems_Security QLoRA expert on anon/rust-code-instructions and crack the memory-safe systems bounty."
+    },
+    "ZERO_DAY_SENTINEL": {
+      "title": "CVE Firewall Patcher (Season 2)",
+      "description": "Forge the CyberSecurity_Vulnerability_Recon QLoRA expert and patch the CVE-2026-HIVE timing side-channel bounty."
+    },
+    "POLYGLOT_ARCHITECT_FR": {
+      "title": "Francophone Singularity (Season 2)",
+      "description": "Forge the Multilingual_FR_Synthesis QLoRA expert on CohereForAI/aya_collection and solve the French PoUW proof."
+    },
+    "OMEGA_6_EXPERT_SLAYER": {
+      "title": "Omega 6-Expert MoE Conqueror (gamma=6)",
+      "description": "Hot-plug all 6 Season 1 + Season 2 Hugging Face LoRA Experts (E=2 -> E=6) with 2-Slot Pinned RAM DMA and clear the Omega Boss Raid."
     }
   }
 }

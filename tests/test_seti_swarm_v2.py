@@ -399,14 +399,27 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
         decompress_hidden_states_fp8,
     )
 
-    # M1: Sub-20ms Kademlia Geo-Ring
+    # M1: Sub-20ms Kademlia Geo-Ring & PR #9 AsyncQUICGeoRingTransport 0-RTT Loopback
+    from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport
+
     ring = RegionalGeoRingTransport(region="EU-West-Paris", max_rtt_ms=20.0)
     assert ring.register_peer(GeoRingPeer("peer-paris-01", "EU-West-Paris", 11.2)) is True
     assert ring.register_peer(GeoRingPeer("peer-slow-99", "EU-West-Paris", 42.0)) is False
     closest = ring.find_closest_peers("Python_Systems_Code", k=1)
     assert len(closest) == 1 and closest[0].peer_id == "peer-paris-01"
 
-    # M2: 2-Level Macro/Micro Router & Pinned Host RAM Async DMA Streamer
+    quic_ring = AsyncQUICGeoRingTransport(region="EU-West-Paris", max_rtt_ms=20.0)
+    udp_bench = quic_ring.benchmark_loopback_0rtt(
+        torch.randn(1, 8, 32, dtype=torch.float16), num_frames=120
+    )
+    assert udp_bench["frames_per_sec"] >= 100.0
+    assert udp_bench["serialization_overhead_ms"] < 1.5
+    ws_bench = quic_ring.benchmark_loopback_0rtt(
+        torch.randn(1, 8, 32, dtype=torch.float16), num_frames=20, simulate_udp_blocked=True
+    )
+    assert ws_bench["protocol"] == "libp2p_websocket_tls"
+
+    # M2: 2-Level Macro/Micro Router & Pinned Host RAM Async DMA Streamer (PR #7 Lookahead Prefetch)
     router = TwoLevelMacroMicroRouter(
         hidden_size=32,
         macro_clusters={
@@ -421,17 +434,33 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     assert len(route_out["selected_micro_experts"]) == 2
 
     streamer = PinnedRAMExpertDMAStreamer(device=torch.device("cpu"))
-    nbytes = streamer.stage_expert_in_pinned_ram(
+    for exp_name in [
         "Python_Systems_Code",
-        {"lora_A": torch.randn(8, 32), "lora_B": torch.randn(32, 8)},
-    )
-    assert nbytes > 0
+        "Mathematical_Reasoning",
+        "Biomedical_Clinical_QA",
+        "Legal_Medical",
+    ]:
+        nbytes = streamer.stage_expert_in_pinned_ram(
+            exp_name,
+            {"lora_A": torch.randn(8, 32), "lora_B": torch.randn(32, 8)},
+        )
+        assert nbytes > 0
     dma_info = streamer.async_dma_prefetch_to_vram(
         "Python_Systems_Code", simulated_attention_compute_ms=5.0
     )
     assert dma_info["exposed_swap_latency_ms"] == 0.0
+    lookahead_l0 = streamer.prefetch_lookahead_layer(
+        router, hidden, layer_idx=0, simulated_attention_compute_ms=5.0
+    )
+    lookahead_l1 = streamer.prefetch_lookahead_layer(
+        router, hidden, layer_idx=1, simulated_attention_compute_ms=5.0
+    )
+    assert lookahead_l0["lookahead_dma_slot"] == "slot_B"
+    assert lookahead_l1["lookahead_dma_slot"] == "slot_A"
+    assert lookahead_l0["exposed_swap_latency_ms"] == 0.0
+    assert len(lookahead_l0["prefetched_experts"]) == 2
 
-    # M3: FP8 Hidden-State Wire Compression & Token Tree Speculation (gamma = 6)
+    # M3: FP8 Hidden-State Wire Compression & Token Tree Speculation (PR #8 Prefix-Trie gamma = 6..8)
     pkt = compress_hidden_states_fp8(hidden.to(torch.float16))
     assert pkt.compression_ratio >= 1.8
     restored = decompress_hidden_states_fp8(pkt)
@@ -444,8 +473,15 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     )
     assert tree_res["tree_depth_gamma"] == 6
     assert tree_res["accepted_length"] == 7  # 6 draft tokens + 1 bonus token
+    assert tree_res["num_tree_nodes"] == 10
+    mask_info = TokenTreeSpeculativeVerifier(gamma=8).build_causal_tree_attention_mask(
+        [[1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3, 4, 9, 10, 11, 12]]
+    )
+    assert mask_info["tree_depth_gamma"] == 8
+    assert mask_info["causal_tree_mask"].shape == (13, 13)
+    assert bool(mask_info["causal_tree_mask"][-1, 0]) is True
 
-    # M4: OPoI 5% Activation Auditor, Layer-2 $HIVE State Channel & OpenAI /v1/chat/completions
+    # M4: OPoI 5% Activation Auditor, Layer-2 $HIVE State Channel & OpenAI /v1/chat/completions (PR #6 SSE)
     auditor = OptimisticProofOfInferenceAuditor(audit_probability=0.05)
     audit_pass = auditor.verify_activation_commitment("peer-paris-01", hidden, hidden)
     assert audit_pass["opoi_passed"] is True
@@ -488,6 +524,30 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     assert body["hivemind_swarm_fabric"]["tree_speculation_gamma"] == 6
     assert body["hivemind_swarm_fabric"]["opoi_audit"]["opoi_passed"] is True
 
+    import json
+
+    stream_resp = client.post(
+        "/v1/chat/completions",
+        json={
+            "model": "hivemind-qwen2.5-sparse-moe-top2",
+            "stream": True,
+            "messages": [{"role": "user", "content": "Write a Python function to compute 3 blocks * 50 HIVE."}],
+        },
+    )
+    assert stream_resp.status_code == 200
+    assert "text/event-stream" in stream_resp.headers["content-type"]
+    sse_lines = [line for line in stream_resp.text.splitlines() if line.startswith("data: ")]
+    assert sse_lines[-1] == "data: [DONE]"
+    chunks = [json.loads(line[6:]) for line in sse_lines[:-1]]
+    assert all(c["object"] == "chat.completion.chunk" for c in chunks)
+    assembled = "".join(c["choices"][0]["delta"].get("content", "") for c in chunks)
+    assert assembled == body["choices"][0]["message"]["content"]
+    closing_chunk = chunks[-1]
+    assert closing_chunk["choices"][0]["finish_reason"] == "stop"
+    assert closing_chunk["hivemind_swarm_fabric"]["opoi_audit"]["opoi_passed"] is True
+    assert closing_chunk["hivemind_swarm_fabric"]["l2_state_channel_voucher"]["nonce"] >= 1
+    assert closing_chunk["usage"]["completion_tokens"] > 0
+
 
 def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> None:
     """Verify Lean 4 formal specification (0 sorry, 0 axiom), foundation .tex/.pdf article, and AutoevolveAI peer review."""
@@ -514,3 +574,270 @@ def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> Non
     assert review_report["meta_review"]["aggregate_score"] >= 9.0
     assert PEER_REVIEW_JSON.exists()
     assert AUTOEVOLVE_MANIFEST_JSON.exists()
+
+
+def test_season2_hf_hack_miner_missions_and_steamworks_rich_presence(tmp_path: Path) -> None:
+    """Verify HM-M5-01 (Steam Rich Presence, Overlay, UserStats, native DLL bridge) and HM-M5-02 (Season 2 HF Missions & Live QLoRA Micro-Forge)."""
+    from fastapi.testclient import TestClient
+    from hivemind.cli.demo_hf_domain_swarm import fetch_hf_domain_subset
+    from hivemind.client.steamworks import SteamworksSDKBridge
+    from hivemind.game.hf_hack_miner import (
+        ALL_HF_BOUNTY_CONTRACTS,
+        SEASON_1_HF_BOUNTY_CONTRACTS,
+        SEASON_2_HF_BOUNTY_CONTRACTS,
+        GamerMinerProfile,
+        execute_interactive_bounty_probe,
+        execute_interactive_lora_micro_forge,
+    )
+    from hivemind.game.steam_edition import create_hack_miner_fastapi_app
+
+    # 1. Verify HM-M5-01 Steamworks Native Bridge, Rich Presence, Overlay & UserStats
+    sw = SteamworksSDKBridge()
+    bridge_status = sw.get_native_bridge_status()
+    assert bridge_status["app_id"] == 3133700
+    assert "native_dll_loaded" in bridge_status
+    assert "native_dll_path" in bridge_status
+
+    rp = sw.set_rich_presence(
+        steam_id64="76561198000000001",
+        persona_name="CyberValkyrie_FR",
+        mission_name="Operation: Borrow-Checker Bastion (Rust_Systems_Security)",
+        rank_title="Rank VI: Singularity Core // Omega Hive Sovereign",
+        hive_balance=90.0,
+        total_points=21800,
+    )
+    assert rp.rich_presence_hmac.startswith("steam_rp_hmac_")
+    assert "Rust_Systems_Security" in rp.active_mission
+
+    # Verify PR #10 (@clark719664) positional 5-arg set_rich_presence and rich_presence_log
+    rp_pr10 = sw.set_rich_presence(
+        "76561198000000002",
+        "PubMedQA",
+        "RTX 2070",
+        "Rank V: Singularity Core",
+        45.0,
+    )
+    assert isinstance(rp_pr10, str)
+    assert "Hack-Mining PubMedQA on RTX 2070" in rp_pr10
+    assert sw.rich_presence_log["76561198000000002"] == str(rp_pr10)
+
+    # Verify PR #11 (@radialmonster) docs/STEAM_STATUS.md
+    steam_status_doc = Path(__file__).resolve().parents[1] / "docs" / "STEAM_STATUS.md"
+    assert steam_status_doc.exists()
+    assert "3133700" in steam_status_doc.read_text(encoding="utf-8")
+
+    overlay_ev = sw.trigger_steam_overlay_notification(
+        steam_id64="76561198000000001",
+        persona_name="CyberValkyrie_FR",
+        achievement_id="OMEGA_6_EXPERT_SLAYER",
+        title="Omega 6-Expert Boss Slayer",
+        description="Fuse all 6 Season 1 & Season 2 QLoRA experts.",
+    )
+    assert overlay_ev["achievement_id"] == "OMEGA_6_EXPERT_SLAYER"
+    assert overlay_ev["overlay_corner"] == "k_EPositionBottomRight"
+
+    stats_ev = sw.update_user_stats(
+        steam_id64="76561198000000001",
+        persona_name="CyberValkyrie_FR",
+        shards_mined=6,
+        bounties_cracked=6,
+        best_loss_drop_pct=92.4,
+        boss_raids_cleared=1,
+        hive_mined=90.0,
+    )
+    assert stats_ev["stat_bounties_cracked"] == 6
+    assert stats_ev["stat_hive_mined"] == 90.0
+
+    # 2. Verify HM-M5-02 Season 2 HF Datasets & 6-Mission Contracts
+    assert len(SEASON_1_HF_BOUNTY_CONTRACTS) == 3
+    assert len(SEASON_2_HF_BOUNTY_CONTRACTS) == 3
+    assert len(ALL_HF_BOUNTY_CONTRACTS) == 6
+
+    rust_samples = fetch_hf_domain_subset("anon/rust-code-instructions", num_samples=6)
+    sec_samples = fetch_hf_domain_subset("CyberNative/Code_Vulnerability_Security_DPO", num_samples=6)
+    fr_samples = fetch_hf_domain_subset("CohereForAI/aya_collection", num_samples=6)
+    assert len(rust_samples) == 6
+    assert len(sec_samples) == 6
+    assert len(fr_samples) == 6
+
+    gamer_s2 = GamerMinerProfile(
+        gamer_tag="CyberValkyrie_FR",
+        steam_id64="76561198000000001",
+        node_id="seti-node-paris-01",
+        region="EU-West-Paris",
+        specialty_focus="Code & Algorithmic Breaching",
+        total_points=21800,
+        shards_mined=6,
+        bounties_solved=6,
+        boss_raids_cleared=1,
+        swarm_tokens_served=45,
+        best_loss_reduction_pct=92.4,
+        domains_forged=[
+            "Python_Systems_Code",
+            "Biomedical_Clinical_QA",
+            "Mathematical_Reasoning",
+            "Rust_Systems_Security",
+            "CyberSecurity_Vulnerability_Recon",
+            "Multilingual_FR_Synthesis",
+        ],
+    )
+    gamer_s2.update_rank_and_achievements(is_top_miner=True, num_moe_experts=6)
+    assert gamer_s2.rank_title == "Rank VI: Singularity Core // Omega Hive Sovereign"
+    assert "RUST_BORROW_CHECKER" in gamer_s2.achievements_unlocked
+    assert "ZERO_DAY_SENTINEL" in gamer_s2.achievements_unlocked
+    assert "POLYGLOT_ARCHITECT_FR" in gamer_s2.achievements_unlocked
+    assert "OMEGA_6_EXPERT_SLAYER" in gamer_s2.achievements_unlocked
+
+    # 3. Verify 6-Expert routing probe & interactive QLoRA micro-forge + FastAPI routes
+    probe_rust = execute_interactive_bounty_probe(
+        gamer_tag="CyberValkyrie_FR",
+        prompt="Write a zero-copy Rust RingBuffer with Arc<Mutex> and audit SQL injection CVE.",
+    )
+    assert (
+        "Rust_Systems_Security" in probe_rust["top2_active_experts"]
+        or "CyberSecurity_Vulnerability_Recon" in probe_rust["top2_active_experts"]
+    )
+
+    forge_res = execute_interactive_lora_micro_forge(
+        gamer_tag="CyberValkyrie_FR",
+        contract_id="CONTRACT-HF-04-RUST-SYSTEMS",
+    )
+    assert forge_res["domain_expert"] == "Rust_Systems_Security"
+    assert forge_res["loss_reduction_pct"] > 0.0
+    assert forge_res["rich_presence_hmac"].startswith("steam_rp_hmac_")
+
+    app = create_hack_miner_fastapi_app()
+    client = TestClient(app)
+    r_rp = client.get("/api/rich-presence")
+    assert r_rp.status_code == 200
+    assert "native_dll_bridge" in r_rp.json()
+
+    r_forge = client.post(
+        "/api/forge-lora-mission",
+        json={"gamer_tag": "CyberValkyrie_FR", "contract_id": "CONTRACT-HF-05-CYBERSEC-AUDIT"},
+    )
+    assert r_forge.status_code == 200
+    assert r_forge.json()["domain_expert"] == "CyberSecurity_Vulnerability_Recon"
+
+
+def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
+    """Verify HM-M1-01 (UDP 0-RTT QUIC transport), HM-M1-02 (<25ms GossipSub failover), HM-M2-01/02 (2-slot double-buffered DMA & LRU), HM-M3-01 (2D tree mask), HM-M4-01 (SSE stream), and HM-M4-02 (Merkle fraud dispute game)."""
+    from fastapi.testclient import TestClient
+    from hivemind.boinc.coordinator_api import BOINCCoordinatorService, create_coordinator_fastapi_app
+    from hivemind.config import HiveMindConfig
+    from hivemind.swarm.swarm_fabric import (
+        AsyncQUICGeoRingTransport,
+        GeoRingPeer,
+        HiveLayer2StateChannel,
+        OptimisticProofOfInferenceAuditor,
+        PinnedRAMExpertDMAStreamer,
+        RegionalGeoRingTransport,
+        TokenTreeSpeculativeVerifier,
+        compress_hidden_states_fp8,
+    )
+
+    # HM-M1-01: AsyncQUICGeoRingTransport (STUN/ICE + UDP 0-RTT datagram loopback)
+    quic_tx = AsyncQUICGeoRingTransport(bind_host="127.0.0.1")
+    ice_info = quic_tx.negotiate_stun_ice_candidate("peer-paris-01", local_port=4433)
+    assert ice_info["protocol"] == "quic_h3_0rtt"
+    assert len(ice_info["session_ticket_0rtt"]) == 24
+
+    pkt = compress_hidden_states_fp8(torch.randn(1, 4, 16, dtype=torch.float16))
+    udp_res = quic_tx.transmit_compressed_hidden_state_loopback(pkt, simulate_udp_blocked=False)
+    assert udp_res["frame_verified"] is True
+    assert udp_res["transport_used"] == "udp_quic_0rtt_datagram"
+
+    ws_res = quic_tx.transmit_compressed_hidden_state_loopback(pkt, simulate_udp_blocked=True)
+    assert ws_res["frame_verified"] is True
+    assert ws_res["transport_used"] == "libp2p_websocket_fallback"
+
+    # HM-M1-02: <25ms GossipSub Ring Re-Slotting on Game Launch
+    ring = RegionalGeoRingTransport(region="EU-West-Paris", max_rtt_ms=20.0)
+    ring.register_peer(GeoRingPeer("peer-paris-01", "EU-West-Paris", 11.2, hosted_experts=["Rust_Systems_Security"]))
+    ring.register_peer(GeoRingPeer("peer-lyon-02", "EU-West-Paris", 14.5, hosted_experts=["Rust_Systems_Security"]))
+    failover = ring.broadcast_game_preemption_failover(
+        preempting_peer_id="peer-paris-01",
+        expert_domain="Rust_Systems_Security",
+        active_game_exe="cyberpunk2077.exe",
+    )
+    assert failover["within_25ms_sla"] is True
+    assert failover["promoted_standby_peer_id"] == "peer-lyon-02"
+
+    # HM-M2-01 & HM-M2-02: 2-Slot Double-Buffered CUDA Stream Lookahead & Bounded LRU Eviction
+    streamer = PinnedRAMExpertDMAStreamer(device=torch.device("cpu"), max_pinned_ram_bytes=256)
+    streamer.stage_expert_in_pinned_ram("Exp1", {"w": torch.zeros(32, dtype=torch.float16)})  # 64 B
+    streamer.stage_expert_in_pinned_ram("Exp2", {"w": torch.zeros(32, dtype=torch.float16)})  # 64 B
+    streamer.stage_expert_in_pinned_ram("Exp3", {"w": torch.zeros(32, dtype=torch.float16)})  # 64 B
+    streamer.stage_expert_in_pinned_ram("Exp4", {"w": torch.zeros(32, dtype=torch.float16)})  # 64 B (256 B full)
+    streamer.stage_expert_in_pinned_ram("Exp5", {"w": torch.zeros(32, dtype=torch.float16)})  # triggers LRU eviction of Exp1
+    assert "Exp1" not in streamer.pinned_host_cache
+    assert "Exp5" in streamer.pinned_host_cache
+
+    dma_l0 = streamer.async_dma_prefetch_to_vram("Exp2", simulated_attention_compute_ms=5.0, layer_idx=0)
+    dma_l1 = streamer.async_dma_prefetch_to_vram("Exp3", simulated_attention_compute_ms=5.0, layer_idx=1)
+    assert dma_l0["double_buffer_slot"] == "slot_A"
+    assert dma_l1["double_buffer_slot"] == "slot_B"
+
+    # HM-M3-01: 2D Causal Tree-Attention Mask (with PR #8 prefix-trie deduplication)
+    verifier = TokenTreeSpeculativeVerifier(gamma=6, branching_factor=2)
+    mask = verifier.build_causal_tree_attention_mask(
+        draft_tree_candidates=[[10, 20, 30, 40, 50, 60], [10, 20, 30, 91, 92, 93]]
+    )
+    assert mask.ndim == 4
+    assert mask.shape == (1, 1, 10, 10)
+
+    # HM-M4-02: Merkle Fraud Dispute Game & L2 Escrow Refund
+    auditor = OptimisticProofOfInferenceAuditor(audit_probability=0.05)
+    honest_layers = [torch.ones(1, 4, 8) * (i + 1) for i in range(6)]
+    byzantine_layers = [t.clone() for t in honest_layers]
+    byzantine_layers[3] = -byzantine_layers[3]  # Corrupt layer 3
+
+    ledger = HiveSwarmLedger(ledger_path=tmp_path / "l2_fraud_ledger.json")
+    ledger.balances["peer-byzantine-99"] = 25.0
+    l2 = HiveLayer2StateChannel(
+        consumer_id="consumer-01",
+        provider_ids=["peer-byzantine-99"],
+        escrow_hive=5.0,
+    )
+    l2.sign_micro_voucher(30)
+
+    dispute = auditor.run_merkle_fraud_dispute_game(
+        peer_id="peer-byzantine-99",
+        claimed_layer_activations=byzantine_layers,
+        validator_layer_activations=honest_layers,
+        ledger=ledger,
+        l2_channel=l2,
+    )
+    assert dispute["fraud_proven"] is True
+    assert dispute["diverging_layer_index"] == 3
+    assert dispute["slashed_in_l1_ledger"] is True
+    assert dispute["l2_escrow_refunded_hive"] == 0.15
+    assert ledger.balances["peer-byzantine-99"] == 0.0
+    assert "peer-byzantine-99" in ledger.slashed_registry
+
+    # HM-M4-01: OpenAI /v1/chat/completions SSE Streaming (stream=True)
+    cfg = HiveMindConfig.from_yaml()
+    coord = BOINCCoordinatorService(
+        config=cfg,
+        initial_lora_state={"lora_A": torch.zeros(4, 8)},
+        base_model_sha256="sha256_test",
+        shards_dir=tmp_path / "shards_sse",
+    )
+    app = create_coordinator_fastapi_app(coord)
+    client = TestClient(app)
+    with client.stream(
+        "POST",
+        "/v1/chat/completions",
+        json={
+            "model": "hivemind-qwen2.5-sparse-moe-top2",
+            "stream": True,
+            "messages": [{"role": "user", "content": "Stream token tree verification"}],
+        },
+    ) as sse_resp:
+        assert sse_resp.status_code == 200
+        assert "text/event-stream" in sse_resp.headers.get("content-type", "")
+        raw_sse = "".join(sse_resp.iter_text())
+        assert "chat.completion.chunk" in raw_sse
+        assert "data: [DONE]" in raw_sse
+
+

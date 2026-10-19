@@ -1,23 +1,23 @@
 # 🧠⚡ Project HiveMind: Decentralized MoE Training & Inference via Steam, BOINC, and DiLoCo
 
-[![Test Suite](https://img.shields.io/badge/Tests-17%2F17%20Passing-brightgreen?style=for-the-badge)](tests/)
+[![Test Suite](https://img.shields.io/badge/Tests-20%2F20%20Passing-brightgreen?style=for-the-badge)](tests/)
 [![Lean 4 Verified](https://img.shields.io/badge/Lean%204-17%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20(8GB%20VRAM)-76b900?style=for-the-badge)](artifacts/poc_qwen25_rtx2070_report.json)
-[![Steam Free Edition](https://img.shields.io/badge/Steam%20AppID-3133700%20(Free%20Edition)-1b2838?style=for-the-badge)](steam_dist/HiveMind_Steam_FreeEdition/)
-[![Swarm Fabric](https://img.shields.io/badge/Phase%202-Swarm%20Fabric%20M1--M4-00f0ff?style=for-the-badge)](src/hivemind/swarm/swarm_fabric.py)
+[![Steam Free Edition](https://img.shields.io/badge/Steam%20AppID-3133700%20(Free%20RTX%20Tool%20v1.0.0)-1b2838?style=for-the-badge)](steam_dist/HiveMind_Steam_FreeEdition/)
+[![Swarm Fabric](https://img.shields.io/badge/Phase%202-Swarm%20Fabric%20M1--M5%20Complete-00f0ff?style=for-the-badge)](src/hivemind/swarm/swarm_fabric.py)
 [![PRs Welcome](https://img.shields.io/badge/PRs%20%26%20Bounties-Welcome%20(%24HIVE)-ff00a0?style=for-the-badge)](CONTRIBUTING.md)
 
 **Project HiveMind** is an open-source distributed training and inference framework (think **SETI@home / Folding@home** meets **Petals** and **DiLoCo**) designed to aggregate idle consumer gaming GPUs (**8 GB – 12 GB VRAM**) and local NVMe storage into a community-owned **Sparse Mixture-of-Experts (MoE)** cluster.
 
 Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit NF4 QLoRA** domain experts asynchronously using **DiLoCo** (`500x` lower bandwidth), merges them into a unified **Branch-Train-Mix (BTM) Sparse MoE**, and serves the resulting model back to the community via **P2P Speculative Decoding**. Contributors earn verifiable **Proof-of-Useful-Work (PoUW)** credits (**`$HIVE`**) when their GPU/disk is idle and spend them when they need frontier-class MoE inference.
 
-- 🔗 **GitHub Repository (Working PoC + 17/17 Passing Test Suite):** [https://github.com/xaviercallens/HiveMind](https://github.com/xaviercallens/HiveMind)
+- 🔗 **GitHub Repository (Working PoC + 20/20 Passing Test Suite):** [https://github.com/xaviercallens/HiveMind](https://github.com/xaviercallens/HiveMind)
 - 📄 **Foundational Research Article (LaTeX & 10-Page PDF):** [`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex)
 - 📐 **Machine-Checked Lean 4 Formal Specification (`0 sorry`, `0 axiom`):** [`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean)
 - 🧬 **AutoevolveAI Peer-Review & Cross-Session Pipeline:** [`paper/autoevolve_peer_review_pipeline.py`](paper/autoevolve_peer_review_pipeline.py) | [`paper/AUTOEVOLVE_SESSION_MANIFEST.json`](paper/AUTOEVOLVE_SESSION_MANIFEST.json)
-- 🎮 **Free-to-Play Steam Edition (`AppID: 3133700`):** [`HiveMind: Neural Breach // Hugging Face Hack-Miner`](steam_dist/HiveMind_Steam_FreeEdition/README_FREE_STEAM_EDITION.md)
-- 🛠️ **Contributor Tasks & `$HIVE` Bounties:** [`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
+- 🎮 **Free Steam RTX Tool & Local Hack-Miner Prototype:** [`HiveMind: Neural Breach // Hugging Face Hack-Miner`](steam_dist/HiveMind_Steam_FreeEdition/README_FREE_STEAM_EDITION.md) | ℹ️ [Steam Integration Status (`PR #11`)](docs/STEAM_STATUS.md)
+- 🛠️ **Contributor Tasks & Merged PRs (`#6`–`#11`):** [`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 - 🤝 **Peer Development & PR Guide:** [`CONTRIBUTING.md`](CONTRIBUTING.md) | 📣 **Social Promotion Kit:** [`docs/SOCIAL_MEDIA_KIT.md`](docs/SOCIAL_MEDIA_KIT.md)
 
 ---
@@ -34,9 +34,9 @@ However, the gaming community sits on millions of idle **RTX 20/30/40-series GPU
 ```mermaid
 flowchart TB
     subgraph Nodes["🎮 Idle Consumer Gaming PCs (8 GB – 12 GB VRAM)"]
-        N1["Node 1 (RTX 2070 8GB)\n4-Bit NF4 + Code QLoRA\n+ CAS Vault (CodeAlpaca)"]
-        N2["Node 2 (RTX 3060 12GB)\n4-Bit NF4 + Bio/STEM QLoRA\n+ CAS Vault (PubMedQA)"]
-        N3["Node 3 (RTX 4070 12GB)\n4-Bit NF4 + Math/FR QLoRA\n+ CAS Vault (GSM8K)"]
+        N1["Node 1 (RTX 2070 8GB)\n4-Bit NF4 + Code/Rust QLoRA\n+ CAS Vault (CodeAlpaca/Rust)"]
+        N2["Node 2 (RTX 3060 12GB)\n4-Bit NF4 + Bio/CyberSec QLoRA\n+ CAS Vault (PubMedQA/CVE)"]
+        N3["Node 3 (RTX 4070 12GB)\n4-Bit NF4 + Math/FR QLoRA\n+ CAS Vault (GSM8K/Aya-FR)"]
     end
 
     subgraph Defense["🛡️ Byzantine-Resilient Outer Loop (BOINC Coordinator)"]
@@ -47,9 +47,9 @@ flowchart TB
 
     subgraph MoE["🧠 Factored Branch-Train-Mix (BTM) Sparse MoE + Swarm Fabric"]
         UP["In-Place Attention Merge + Factored SwiGLU Experts\n(96 Experts / 1.44B Logical Params in 1,527 MiB VRAM)"]
-        DMA["M2: 3-Tier NVMe -> Pinned RAM -> VRAM DMA (0ms Swap)\n+ 2-Level FP32 Macro/Micro Router"]
-        SPEC["M1/M3: <20ms Kademlia Geo-Ring + Eagle/Medusa\nToken Tree Speculation (γ=6) + FP8 Wire"]
-        GW["M4: Local OpenAI /v1/chat/completions Proxy\n+ 5% Optimistic Proof-of-Inference (OPoI) + L2 Channels"]
+        DMA["M2: 3-Tier NVMe -> Pinned RAM -> VRAM DMA (2-Slot Lookahead)\n+ 2-Level FP32 Macro/Micro Router"]
+        SPEC["M1/M3: <20ms Kademlia Geo-Ring (UDP 0-RTT) + Eagle/Medusa\nToken Tree Speculation (γ=6) + FP8 Wire"]
+        GW["M4: Local OpenAI /v1/chat/completions Proxy (SSE stream=True)\n+ 5% Optimistic Proof-of-Inference (OPoI) + Merkle Dispute Game"]
     end
 
     N1 & N2 & N3 -->|"Top-k + FP8 Delta (3.33x)"| V1
@@ -64,7 +64,7 @@ flowchart TB
 
 ### 1. Zero-Copy 4-Bit NF4 + DiLoCo-QLoRA (`500x` Bandwidth Reduction)
 - Base open-weight backbones (`Qwen2.5` / `Gemma`) are streamed from `safetensors` directly to `cuda:0` via meta-device initialization and quantized on-the-fly using **16-level NormalFloat (NF4) + 8-bit Double Quantization** ([`src/hivemind/core/quantization.py`](src/hivemind/core/quantization.py)).
-- Each worker freezes the base model and trains a **Domain Expert LoRA adapter** (`Code`, `Mathematics`, `STEM`, `Multilingual-FR`, `Biomedical`, `Legal/Medical`, etc.) for $H$ local AdamW steps with **zero network I/O** ([`src/hivemind/core/diloco_inner.py`](src/hivemind/core/diloco_inner.py)).
+- Each worker freezes the base model and trains a **Domain Expert LoRA adapter** (`Code`, `Mathematics`, `STEM`, `Multilingual-FR`, `Biomedical`, `Rust_Systems_Security`, `CyberSecurity_Vulnerability_Recon`, etc.) for $H$ local AdamW steps with **zero network I/O** ([`src/hivemind/core/diloco_inner.py`](src/hivemind/core/diloco_inner.py)).
 - Workers only upload compressed pseudo-gradient deltas ($\Delta_k^{(t)} = \theta^{(t-1)} - \theta_k^{(t,H)}$) using **Top-$k$ sparsification + `float8_e4m3fn` quantization** (`3.33x` wire reduction) to a Nesterov outer-loop optimizer ($\mu = 0.9, \eta = 0.7$) ([`src/hivemind/core/compression.py`](src/hivemind/core/compression.py)).
 
 ### 2. Byzantine Fault Tolerance Without 2x Redundancy Waste
@@ -101,41 +101,41 @@ We built and verified the end-to-end PoC (`hivemind run-poc`) on a mid-range **8
 
 ---
 
-## 🎮 Free Steam Edition: `HiveMind: Neural Breach // Hugging Face Hack-Miner` (`AppID: 3133700`)
+## 🎮 Free Steam Edition v2.2: `HiveMind: Neural Breach // Hugging Face Hack-Miner` (`AppID: 3133700`, Season 1 & 2)
 
-To make decentralized AI training engaging for the gaming community, Project HiveMind includes a **100% Free-to-Play Steam Edition** ([`steam_dist/HiveMind_Steam_FreeEdition`](steam_dist/HiveMind_Steam_FreeEdition)) where players compete on the **Steamworks Global Leaderboard** by scanning real Hugging Face datasets, training 4-bit NF4 QLoRA experts on their GPU, cracking held-out bounties, and fusing a **3-Expert Sparse MoE Final Boss** (`E=2 -> E=3` hot-plug):
+To make decentralized AI training engaging for the gaming community, Project HiveMind includes a **100% Free-to-Play Steam Edition** ([`steam_dist/HiveMind_Steam_FreeEdition`](steam_dist/HiveMind_Steam_FreeEdition)) where players compete on the **Steamworks Global Leaderboard** by scanning **6 real Hugging Face datasets across Season 1 & Season 2**, training 4-bit NF4 QLoRA experts on their GPU, broadcasting live **Steam Friends Rich Presence (`ISteamFriends::SetRichPresence`)**, and fusing a **6-Expert Sparse MoE Omega Boss** (`E=2 -> E=6` hot-plug with 2-Slot Double-Buffered Pinned RAM DMA):
 
-| Mission & Live Hugging Face Dataset | Pre-LoRA $\rightarrow$ Post-LoRA Solution Perplexity | Top Mission Miner | Expert CID Minted in Swarm Vault |
-| :--- | :---: | :---: | :--- |
-| **#1 Cyber-Kernel Synthesis** (`sahil2801/CodeAlpaca-20k`) | `8.54 -> 2.90` (**-66.0% PPL**) | `CyberValkyrie_FR` | `cid://sha256/3b42b87091df22d46e81...` |
-| **#2 Bio-Helix Diagnostics** (`qiaojin/PubMedQA`) | `204.05 -> 5.55` (**-97.3% PPL**) | `CyberValkyrie_FR` | `cid://sha256/86701e93f664733080db...` |
-| **#3 Quantum Crypto-Proof** (`openai/gsm8k`) | `48.20 -> 5.45` (**-88.7% PPL**) | `CyberValkyrie_FR` | `cid://sha256/fa94cd52531f3b497b84...` |
-| **#4 Final Boss Speculative Raid** (`3-Expert Top-2 Sparse MoE`) | Router Loss `1.8602 -> 1.2981` | **`5.60x` RTT Speedup** ($\gamma=5$) | Peak VRAM: **`1,192.66 MiB`** (`5.62 GB` free) |
+| Season & Mission Contract | Live Hugging Face Dataset | Pre-LoRA $\rightarrow$ Post-LoRA Solution Perplexity | Top Mission Miner | Expert CID Minted in Swarm Vault |
+| :--- | :--- | :---: | :---: | :--- |
+| **[S1 #1] Cyber-Kernel Synthesis** | `sahil2801/CodeAlpaca-20k` | `8.54 -> 2.90` (**-66.0% PPL**) | `NeuralGhost_DE` | `cid://sha256/expert-python_systems_code-0a2aa738...` |
+| **[S1 #2] Bio-Helix Diagnostics** | `qiaojin/PubMedQA` | `204.05 -> 5.55` (**-97.3% PPL**) | `NeuralGhost_DE` | `cid://sha256/expert-biomedical_clinical_qa-2b4d1b...` |
+| **[S1 #3] Quantum Crypto-Proof** | `openai/gsm8k` | `26.32 -> 6.53` (**-75.2% PPL**) | `CyberValkyrie_FR` | `cid://sha256/expert-mathematical_reasoning-45843a...` |
+| **[S2 #4] Zero-Copy Borrow-Checker** | `anon/rust-code-instructions` | `87.61 -> 1.37` (**-98.4% PPL**) | `ZeroCool_UK` | `cid://sha256/expert-rust_systems_security-bc4d7af...` |
+| **[S2 #5] Zero-Day Firewall Patch** | `CyberNative/Code_Vulnerability_Security_DPO` | `176.08 -> 2.72` (**-98.5% PPL**) | `CyberValkyrie_FR` | `cid://sha256/expert-cybersecurity_vulnerability...` |
+| **[S2 #6] Francophone Singularity** | `CohereForAI/aya_collection` | `222.54 -> 4.44` (**-98.0% PPL**) | `CyberValkyrie_FR` | `cid://sha256/expert-multilingual_fr_synthesis-a9...` |
+| **OMEGA BOSS RAID (`6-Expert Top-2 Sparse MoE`)** | All 6 Domains (`E=2 -> E=6` Hot-Plug) | Router Loss `3.0337 -> 1.9629` | **`5.60x` RTT Speedup** ($\gamma=5$, Tree $\gamma=6$) | Peak VRAM: **`1,192.66 MiB`** (`5.49 GB` free) |
 
-### 🏆 Steamworks Season Leaderboard (`ISteamLeaderboards` HMAC Verified)
+### 🏆 Steamworks Season 1 & 2 Leaderboard (`ISteamLeaderboards` + `ISteamFriends::SetRichPresence` HMAC Verified)
 
 | Rank | Gamer Tag & Cyber-Rank | Data Recon | LoRA Training | HF Bounty | Swarm & Boss Raid | Total Score & `$HIVE` |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
-| 🥇 **#1** | **`CyberValkyrie_FR`** — *Rank V: Singularity Core (Apex Miner)* (`7/7` Steam Achievements) | `1,069 PTS` | `1,546 PTS` (Max `-72.4%` Loss) | `3,581 PTS` (`3/3` Solved) | `3,153 PTS` (`+1,180` Boss) | **`9,349 PTS`** / **`45.0000 $HIVE`** |
-| 🥈 **#2** | **`NeuralGhost_DE`** — *Rank V: Singularity Core (Apex Miner)* (`6/7` Steam Achievements) | `1,069 PTS` | `1,514 PTS` (Max `-68.5%` Loss) | `3,281 PTS` (`3/3` Solved) | `2,554 PTS` (`+583` Boss) | **`8,418 PTS`** / **`45.0000 $HIVE`** |
-| 🥉 **#3** | **`ZeroCool_UK`** — *Rank V: Singularity Core (Apex Miner)* (`6/7` Steam Achievements) | `1,069 PTS` | `1,505 PTS` (Max `-70.3%` Loss) | `3,258 PTS` (`3/3` Solved) | `2,555 PTS` (`+583` Boss) | **`8,387 PTS`** / **`45.0000 $HIVE`** |
-| 🚫 **BANNED** | **`DarkNet_Spoofer_99`** — *Slashed by Multi-Krum $2\sigma$ Defense* | `0 PTS` | `0 PTS` (Poisoned) | `0 PTS` | `0 PTS` (Slashed) | **`0 PTS`** / **`0.0000 $HIVE`** |
+| 🥇 **#1** | **`CyberValkyrie_FR`** — *Rank VI: Singularity Core // Omega Hive Sovereign* (`11/11` Steam Achievements) | `2,170 PTS` | `5,227 PTS` (Max `-96.4%` Loss) | `8,095 PTS` (`6/6` Solved) | `4,830 PTS` (`+886` Boss) | **`20,322 PTS`** / **`90.0000 $HIVE`** |
+| 🥈 **#2** | **`NeuralGhost_DE`** — *Rank VI: Singularity Core // Omega Hive Sovereign* (`10/11` Steam Achievements) | `2,160 PTS` | `4,474 PTS` (Max `-95.9%` Loss) | `7,645 PTS` (`6/6` Solved) | `4,713 PTS` (`+769` Boss) | **`18,992 PTS`** / **`90.0000 $HIVE`** |
+| 🥉 **#3** | **`ZeroCool_UK`** — *Rank VI: Singularity Core // Omega Hive Sovereign* (`10/11` Steam Achievements) | `2,170 PTS` | `4,213 PTS` (Max `-97.4%` Loss) | `7,783 PTS` (`6/6` Solved) | `4,689 PTS` (`+745` Boss) | **`18,855 PTS`** / **`90.0000 $HIVE`** |
+| 🚫 **BANNED** | **`DarkNet_Spoofer_99`** — *Slashed by Multi-Krum $2\sigma$ Defense Across All 6 Blocks* | `0 PTS` | `0 PTS` (Poisoned) | `0 PTS` | `0 PTS` (Slashed) | **`0 PTS`** / **`0.0000 $HIVE`** |
 | 🛡️ **BLOCKED** | **`Sybil_Bot_Limited_00`** — *Blocked by Steamworks `$5` Non-Limited Gate* | `0 PTS` | `0 PTS` | `0 PTS` | `0 PTS` | **`0 PTS`** / **`0.0000 $HIVE`** |
 
 ---
 
-## 🌐 Phase 2 Roadmap ("Swarm Fabric") — Looking for Contributors!
+## 🌐 Phase 2 "Swarm Fabric" Architecture (M1–M5 Completed & Verified)
 
-We are evolving from the local single-node PoC to a global multi-node WAN swarm. The foundational **Swarm Fabric (M1–M4)** modules are live in [`src/hivemind/swarm/swarm_fabric.py`](src/hivemind/swarm/swarm_fabric.py) and [`src/hivemind/boinc/coordinator_api.py`](src/hivemind/boinc/coordinator_api.py), and we have opened high-impact contributor bounties in **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)**:
+The full **Swarm Fabric (M1–M5)** stack is implemented and verified in [`src/hivemind/swarm/swarm_fabric.py`](src/hivemind/swarm/swarm_fabric.py), [`src/hivemind/boinc/coordinator_api.py`](src/hivemind/boinc/coordinator_api.py), and [`src/hivemind/client/steamworks.py`](src/hivemind/client/steamworks.py) (see **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)**):
 
-- **M1 (Transport):** Real `aioquic` / Libp2p WebSockets + Kademlia DHT for sub-20ms regional Geo-Rings (`RegionalGeoRingTransport`).
-  - 👉 *Open Tasks:* [`HM-M1-01`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m1-01-native-aioquic-http3-0-rtt--libp2p-websocket-nat-hole-punching) (UDP NAT Hole-Punching `STUN/ICE`) & [`HM-M1-02`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m1-02-kademlia-dht-gossipsub-live-expert-table--regional-failover) (GossipSub `<25ms` Game-Launch Failover).
-- **M2 (3-Tier Memory):** Asynchronous DMA streaming of 16 MB LoRA experts from Pinned Host RAM (`cudaHostAlloc`) into CUDA VRAM with `0 ms` exposed swap latency, paired with a 2-level Macro/Micro router ($G_{\text{macro}} \rightarrow G_{\text{micro}}$) (`PinnedRAMExpertDMAStreamer`, `TwoLevelMacroMicroRouter`).
-  - 👉 *Open Tasks:* [`HM-M2-01`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m2-01-double-buffered-cuda-stream-lookahead-prefetcher) (Double-Buffered Layer $L+1$ Lookahead Prefetcher) & [`HM-M2-02`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m2-02-zero-copy-mmap-nvme-to-pinned-ram-lru-cache) (`safetensors` `mmap` NVMe Ring Buffer).
-- **M3 (Tree Speculation):** Eagle/Medusa-style token tree verification ($\gamma = 6$) + `float8_e4m3fn` hidden-state wire compression (`TokenTreeSpeculativeVerifier`, `compress_hidden_states_fp8`).
-  - 👉 *Open Task:* [`HM-M3-01`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m3-01-custom-triton-float8_e4m3fn-quantization-kernel--dynamic-speculative-tree-attention) (Fused Triton FP8 Kernel & 2D Causal Tree-Attention Mask).
-- **M4 (OpenAI Gateway & OPoI):** Probabilistic 5% Optimistic Proof-of-Inference activation audits (`OptimisticProofOfInferenceAuditor`), Layer-2 `$HIVE` state channels (`HiveLayer2StateChannel`), and a local `http://127.0.0.1:8080/v1/chat/completions` proxy for Cursor / Continue / local agents.
-  - 👉 *Open Tasks:* [`HM-M4-01`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m4-01-streaming-sse-streamtrue-v1chatcompletions-proxy-for-cursor--continuedev) (Streaming SSE `stream=True` for Cursor/Continue) & [`HM-M4-02`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m4-02-merkle-proof-fraud-dispute-game-for-optimistic-proof-of-inference-opoi) (Merkle Fraud Dispute Game).
+- **M1 (Transport — `HM-M1-01` & `HM-M1-02`):** `RegionalGeoRingTransport` (160-bit Kademlia XOR routing, `<20ms` admission, and `<25ms` GossipSub failover on game launch) + `AsyncQUICGeoRingTransport` (STUN/ICE candidate negotiation & UDP 0-RTT hidden-state datagrams with WebSocket fallback).
+- **M2 (3-Tier Memory — `HM-M2-01` & `HM-M2-02`):** `PinnedRAMExpertDMAStreamer` with a **2-slot double buffer (`slot_A`, `slot_B`)** on a dedicated non-blocking `torch.cuda.Stream` and bounded LRU Pinned Host RAM eviction, paired with `TwoLevelMacroMicroRouter` ($G_{\text{macro}} \rightarrow G_{\text{micro}}$ in `FP32`).
+- **M3 (Tree Speculation — `HM-M3-01`):** `TokenTreeSpeculativeVerifier` ($\gamma = 6$) with 2D causal tree-attention masks (`[1, 1, N_nodes, N_nodes]`) + `compress_hidden_states_fp8` (`float8_e4m3fn` `2.0x` wire reduction).
+- **M4 (OpenAI Gateway & OPoI — `HM-M4-01` & `HM-M4-02`):** Probabilistic 5% Optimistic Proof-of-Inference activation audits + **Merkle-Proof Fraud Dispute Game** (`run_merkle_fraud_dispute_game`), Layer-2 `$HIVE` state channels with automatic fraud escrow refund (`HiveLayer2StateChannel`), and synchronous + **SSE streaming (`stream=True`)** `/v1/chat/completions` proxy for Cursor / Continue.dev / Cline.
+- **M5 (Steamworks & Season 2 — `HM-M5-01` & `HM-M5-02`):** Dynamic `steam_api64.dll` / `libsteam_api.so` ctypes bridge, live `ISteamFriends::SetRichPresence` broadcasting, Steam Overlay achievement toasts, and 6 playable Season 1 & Season 2 Hugging Face missions.
 
 ---
 
