@@ -3,6 +3,10 @@
 Automatically configures local disk caches on D:\\xdev\\DecentralizedAI\\.cache to protect C: drive,
 enforces deterministic CUDA execution (CUBLAS_WORKSPACE_CONFIG=:4096:8), and manages dual hardware
 profiles for the local NVIDIA GeForce RTX 2070 (8 GB VRAM, Turing SM 7.5) and 12 GB reference nodes.
+
+Season 4 (`HM-S4-01`) extends the runtime to **multi-vendor accelerators**: NVIDIA CUDA, AMD ROCm/HIP
+(`gfx1100`/`gfx1030` Radeon RX 7000/6000) and Apple Silicon Metal Performance Shaders (`MPS`) with
+unified memory, exposing a single `detect_gpu_backend()` contract for the rest of the code base.
 """
 
 from __future__ import annotations
@@ -310,6 +314,143 @@ class HiveMindConfig:
         )
 
 
+# ============================================================================
+# HM-S4-01: Multi-Vendor GPU Backend Detection (CUDA / ROCm / MPS / CPU)
+# ============================================================================
+
+GPU_BACKEND_CUDA = "cuda"    # NVIDIA CUDA (SM 7.5 / 8.6 / 12.0)
+GPU_BACKEND_ROCM = "rocm"    # AMD ROCm / HIP (gfx1100 RDNA3, gfx1030 RDNA2)
+GPU_BACKEND_MPS = "mps"      # Apple Silicon Metal Performance Shaders (unified memory)
+GPU_BACKEND_CPU = "cpu"      # CPU-only fallback
+
+GPU_VENDOR_NVIDIA = "nvidia"
+GPU_VENDOR_AMD = "amd"
+GPU_VENDOR_APPLE = "apple"
+GPU_VENDOR_CPU = "cpu"
+GPU_VENDOR_UNKNOWN = "unknown"
+
+VALID_GPU_BACKENDS = (GPU_BACKEND_CUDA, GPU_BACKEND_ROCM, GPU_BACKEND_MPS, GPU_BACKEND_CPU)
+
+
+def is_rocm_available() -> bool:
+    """True when the active PyTorch build is an AMD ROCm/HIP build (`torch.version.hip` set)."""
+    import torch
+
+    return bool(getattr(torch.version, "hip", None))
+
+
+def is_mps_available() -> bool:
+    """True when the active PyTorch build exposes the Apple Metal (`MPS`) backend."""
+    import torch
+
+    mps_backend = getattr(torch.backends, "mps", None)
+    if mps_backend is None:
+        return False
+    try:
+        return bool(mps_backend.is_available())
+    except Exception:
+        return False
+
+
+def is_mps_built() -> bool:
+    """True when the PyTorch wheel was compiled with Metal (`MPS`) support."""
+    import torch
+
+    mps_backend = getattr(torch.backends, "mps", None)
+    if mps_backend is None:
+        return False
+    try:
+        return bool(mps_backend.is_built())
+    except Exception:
+        return False
+
+
+def resolve_default_device():
+    """Resolve the best available accelerator: NVIDIA/AMD CUDA, then Apple MPS, then CPU."""
+    import torch
+
+    if torch.cuda.is_available():
+        return torch.device("cuda:0")
+    if is_mps_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def detect_gpu_backend(device: Any | None = None) -> str:
+    """Resolve the effective GPU backend for `device`.
+
+    Returns one of `cuda` (NVIDIA), `rocm` (AMD HIP), `mps` (Apple Metal) or `cpu`.
+    ROCm builds expose the `torch.cuda` namespace, so they are discriminated through
+    `torch.version.hip` rather than through the device type.
+    """
+    import torch
+
+    if device is None:
+        device = resolve_default_device()
+    dev_type = torch.device(device).type
+    if dev_type == "cuda":
+        return GPU_BACKEND_ROCM if is_rocm_available() else GPU_BACKEND_CUDA
+    if dev_type == "mps":
+        return GPU_BACKEND_MPS
+    return GPU_BACKEND_CPU
+
+
+def detect_gpu_vendor(backend: str) -> str:
+    """Map a resolved GPU backend onto its silicon vendor."""
+    if backend == GPU_BACKEND_CUDA:
+        return GPU_VENDOR_NVIDIA
+    if backend == GPU_BACKEND_ROCM:
+        return GPU_VENDOR_AMD
+    if backend == GPU_BACKEND_MPS:
+        return GPU_VENDOR_APPLE
+    if backend == GPU_BACKEND_CPU:
+        return GPU_VENDOR_CPU
+    return GPU_VENDOR_UNKNOWN
+
+
+def detect_rocm_gcn_arch(device: Any | None = None) -> str | None:
+    """Return the AMD GCN/RDNA architecture identifier (e.g. `gfx1100`, `gfx1030`)."""
+    import torch
+
+    if not is_rocm_available() or not torch.cuda.is_available():
+        return None
+    try:
+        props = torch.cuda.get_device_properties(0 if device is None else device)
+    except Exception:
+        return None
+    arch = getattr(props, "gcnArchName", None)
+    if arch:
+        return str(arch)
+    # Fall back to the `major`/`minor` pair exposed by ROCm device properties.
+    major = getattr(props, "major", None)
+    if major is None:
+        return None
+    return f"gfx{int(major):02x}{int(getattr(props, 'minor', 0)):02x}"
+
+
+def rocm_supports_native_bf16(gcn_arch: str | None) -> bool:
+    """Whether an AMD GCN/RDNA target exposes native BF16 matrix operations.
+
+    RDNA3 (`gfx11xx`, Radeon RX 7000) and CDNA2+ (`gfx9xx`) do; RDNA2 (`gfx10xx`, Radeon RX 6000)
+    only exposes FP16 matrix paths and therefore falls back to `float16` compute.
+    """
+    if not gcn_arch:
+        return False  # Unknown target: stay on the universally supported FP16 path.
+    arch = str(gcn_arch).lower()
+    if not arch.startswith("gfx"):
+        return False
+    family = arch[3:5]
+    if family == "9":  # CDNA / CDNA2 / CDNA3 (MI100 / MI200 / MI300)
+        return True
+    if family == "11":  # RDNA3 (gfx1100 = Radeon RX 7000 series)
+        return True
+    if family == "12":  # RDNA4 (gfx1200 = Radeon RX 9000 series)
+        return True
+    if family == "10":  # RDNA2 (gfx1030 = Radeon RX 6000 series) - FP16 only
+        return False
+    return False
+
+
 def configure_deterministic_runtime(seed: int = 42, warn_only: bool = True) -> None:
     """Enforce deterministic CUDA/CPU kernels for BOINC Spot-Check Verification."""
     import torch
@@ -327,24 +468,44 @@ def configure_deterministic_runtime(seed: int = 42, warn_only: bool = True) -> N
 
 
 def detect_local_hardware() -> dict[str, Any]:
-    """Inspect local GPU (CUDA / NVIDIA-SMI) and system RAM for node assignment."""
+    """Inspect local GPU (CUDA / ROCm / MPS) and system RAM for node assignment.
+
+    HM-S4-01: the probe now discriminates the **four** accelerator classes used by the swarm:
+    NVIDIA CUDA, AMD ROCm/HIP (`gfx1100`/`gfx1030`), Apple Silicon MPS (unified memory) and CPU.
+    """
     import subprocess
     import psutil
     import torch
 
     vm = psutil.virtual_memory()
+    mps_available = is_mps_available()
+    rocm_available = is_rocm_available()
+    backend = detect_gpu_backend()
     info: dict[str, Any] = {
         "system_ram_total_gb": round(vm.total / (1024**3), 2),
         "system_ram_available_gb": round(vm.available / (1024**3), 2),
         "torch_version": torch.__version__,
         "cuda_available": torch.cuda.is_available(),
-        "gpu_name": "CPU (CUDA not linked in active Python)" if not torch.cuda.is_available() else "",
+        "gpu_name": "CPU (CUDA not linked in active Python)"
+        if not torch.cuda.is_available() and not mps_available
+        else "",
         "vram_total_gb": 0.0,
         "vram_free_gb": 0.0,
         "compute_capability": None,
         "supports_native_bf16": False,
         "recommended_dtype": "float16",
         "assigned_backbone_tier": "7B/9B (8GB Consumer Node)",
+        # --- HM-S4-01: multi-vendor accelerator telemetry ---
+        "gpu_backend": backend,
+        "gpu_vendor": detect_gpu_vendor(backend),
+        "gpu_arch": None,
+        "mps_available": mps_available,
+        "mps_built": is_mps_built(),
+        "rocm_available": rocm_available,
+        "hip_version": getattr(torch.version, "hip", None),
+        "cuda_version": getattr(torch.version, "cuda", None),
+        "unified_memory": False,
+        "zero_copy_staging_supported": False,
     }
 
     if torch.cuda.is_available():
@@ -364,6 +525,52 @@ def detect_local_hardware() -> dict[str, Any]:
                     "14B (12GB+ Target Node)"
                     if (total_b / (1024**3)) >= 11.5
                     else "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
+                ),
+            }
+        )
+        if rocm_available:
+            # --- AMD ROCm / HIP (Radeon RX 7000 `gfx1100` & RX 6000 `gfx1030`) ---
+            gcn_arch = detect_rocm_gcn_arch(0)
+            rocm_bf16 = rocm_supports_native_bf16(gcn_arch)
+            info.update(
+                {
+                    "gpu_backend": GPU_BACKEND_ROCM,
+                    "gpu_vendor": GPU_VENDOR_AMD,
+                    "gpu_arch": gcn_arch,
+                    "compute_capability": gcn_arch or cc,
+                    "supports_native_bf16": rocm_bf16,
+                    "recommended_dtype": "bfloat16" if rocm_bf16 else "float16",
+                    "unified_memory": bool(getattr(props, "unified_memory", False)),
+                    "zero_copy_staging_supported": bool(
+                        getattr(props, "unified_memory", False)
+                    ),
+                }
+            )
+    elif mps_available:
+        # --- Apple Silicon Metal Performance Shaders (unified memory) ---
+        import platform
+
+        chip = platform.processor() or platform.machine() or "Apple Silicon"
+        ram_gb = vm.total / (1024**3)
+        info.update(
+            {
+                "gpu_name": f"Apple {chip} (Metal Performance Shaders)",
+                "gpu_backend": GPU_BACKEND_MPS,
+                "gpu_vendor": GPU_VENDOR_APPLE,
+                "gpu_arch": chip,
+                "vram_total_gb": round(ram_gb, 2),
+                "vram_free_gb": round(vm.available / (1024**3), 2),
+                "compute_capability": "mps",
+                "supports_native_bf16": is_mps_built(),
+                "recommended_dtype": "float16",
+                "unified_memory": True,
+                "zero_copy_staging_supported": True,
+                "assigned_backbone_tier": (
+                    "32B/70B (64GB+ Apple Silicon Unified Memory Node)"
+                    if ram_gb >= 64
+                    else "14B (32GB Apple Silicon Unified Memory Node)"
+                    if ram_gb >= 32
+                    else "7B/9B (16GB Apple Silicon Unified Memory Node)"
                 ),
             }
         )
@@ -391,6 +598,7 @@ def detect_local_hardware() -> dict[str, Any]:
                     info.update(
                         {
                             "gpu_name": f"{parts[0]} (Detected via NVML/nvidia-smi)",
+                            "gpu_vendor": GPU_VENDOR_NVIDIA,
                             "vram_total_gb": total_gb,
                             "vram_free_gb": free_gb,
                             "compute_capability": cc,

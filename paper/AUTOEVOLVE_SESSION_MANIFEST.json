@@ -1,16 +1,16 @@
 {
   "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
   "version": "2.1.0",
-  "workspace_root": "D:\\xdev\\DecentralizedAI",
+  "workspace_root": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26",
   "autoevolve_env_path": "D:\\xdev\\AutoevolveAI_env",
   "artifacts_and_entrypoints": {
-    "lean4_specification": "D:\\xdev\\DecentralizedAI\\lean4\\HiveMindSpec.lean",
-    "foundation_article_tex": "D:\\xdev\\DecentralizedAI\\paper\\hivemind_foundation_article.tex",
-    "foundation_article_pdf": "D:\\xdev\\DecentralizedAI\\paper\\hivemind_foundation_article.pdf",
-    "peer_review_report_json": "D:\\xdev\\DecentralizedAI\\paper\\PEER_REVIEW_REPORT.json",
-    "contributor_bounties_doc": "D:\\xdev\\DecentralizedAI\\docs\\CONTRIBUTOR_TASKS_AND_BOUNTIES.md",
-    "swarm_fabric_module": "D:\\xdev\\DecentralizedAI\\src\\hivemind\\swarm\\swarm_fabric.py",
-    "steam_hack_miner_module": "D:\\xdev\\DecentralizedAI\\src\\hivemind\\game\\hf_hack_miner.py"
+    "lean4_specification": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/lean4/HiveMindSpec.lean",
+    "foundation_article_tex": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/paper/hivemind_foundation_article.tex",
+    "foundation_article_pdf": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/paper/hivemind_foundation_article.pdf",
+    "peer_review_report_json": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/paper/PEER_REVIEW_REPORT.json",
+    "contributor_bounties_doc": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md",
+    "swarm_fabric_module": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/src/hivemind/swarm/swarm_fabric.py",
+    "steam_hack_miner_module": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/src/hivemind/game/hf_hack_miner.py"
   },
   "evolutionary_loop_protocol": {
     "step_1_mutate": "Select an open task from `HM-M1-01` .. `HM-M5-02` in `docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`.",
