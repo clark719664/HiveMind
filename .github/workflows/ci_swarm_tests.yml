@@ -42,7 +42,7 @@ jobs:
       - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT)
         run: |
           uv venv
-          uv pip install pytest pytest-asyncio httpx fastapi uvicorn pydantic pyyaml psutil pyarrow rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
+          uv pip install pytest pytest-asyncio httpx fastapi uvicorn pydantic pyyaml psutil pyarrow rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub aioquic websockets cryptography
           uv pip install --no-deps -e .
 
       - name: Audit Lean 4 Formal Specification Invariants (0 sorry, 0 axiom, >=17 Theorems)

@@ -21,13 +21,16 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import math
 import secrets
 import socket
 import struct
 import threading
 import time
+from contextlib import ExitStack
 from dataclasses import dataclass, field
-from typing import Any, Coroutine, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from numbers import Integral
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import torch
 
@@ -46,6 +49,9 @@ from hivemind.swarm.nat_traversal import (
     udp_socket,
 )
 from hivemind.swarm.quic_link import LinkRun, run_local_link
+
+if TYPE_CHECKING:
+    from hivemind.swarm.quic_link import LinkEndpoint, RemoteHiddenStateLink
 
 from hivemind.swarm.swarm_fabric import (
     CompressedHiddenStatePacket,
@@ -761,6 +767,10 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
     fall back to a libp2p-negotiated WebSocket when UDP is unusable. Peers learn reflexive
     addresses with RFC 5389 STUN, punch UDP holes directly when their NATs allow it, and relay
     through an RFC 5766 TURN allocation when they do not (`hivemind.swarm.nat_traversal`).
+
+    Remote hidden-state sends require an explicit trusted `LinkEndpoint`; the NAT
+    probe/relay APIs do not automatically configure that link. Methods ending in
+    `_loopback` and `benchmark_loopback_0rtt` remain explicit local demonstrations.
     """
 
     def __init__(
@@ -769,13 +779,19 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         max_rtt_ms: float = 20.0,
         bind_host: str = "127.0.0.1",
         signing_secret: bytes = b"HiveMind-QUIC-0RTT-Secret",
+        *,
+        remote_endpoint: "LinkEndpoint | None" = None,
     ) -> None:
         super().__init__(region=region, max_rtt_ms=max_rtt_ms)
         self.bind_host = bind_host
         self.signing_secret = signing_secret
+        self.remote_endpoint = remote_endpoint
+        self._remote_links: Dict["LinkEndpoint", "RemoteHiddenStateLink"] = {}
+        self._remote_links_lock = threading.Lock()
         self.zero_rtt_tickets: Dict[str, ZeroRTTSessionTicket] = {}
         self.session_tickets_0rtt: Dict[str, str] = {}
         self.anti_replay_max_nonce: Dict[str, int] = {}
+        self._nonce_lock = threading.Lock()
         self.nat_endpoints: Dict[str, Dict[str, Any]] = {}
         self.turn_clients: Dict[str, TurnClient] = {}
         self.total_udp_hole_punches: int = 0
@@ -788,16 +804,24 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         The TLS 1.3 session ticket that actually enables 0-RTT is issued by the QUIC server in
         `quic_link`; this record carries the swarm-side nonce window and NAT metadata.
         """
-        token = hashlib.sha256(f"{peer_id}:{self.region}".encode("utf-8")).digest()[:12]
-        ticket = ZeroRTTSessionTicket(
-            peer_id=peer_id,
-            session_token=token,
-            issued_at=time.time(),
-        )
-        self.zero_rtt_tickets[peer_id] = ticket
-        self.session_tickets_0rtt[peer_id] = token.hex()
-        self.anti_replay_max_nonce.setdefault(peer_id, 0)
-        return ticket
+        with self._nonce_lock:
+            previous = self.zero_rtt_tickets.get(peer_id)
+            # A new ticket refreshes its lifetime, never the peer's strike register.
+            max_seen = max(
+                self.anti_replay_max_nonce.get(peer_id, 0),
+                previous.last_accepted_nonce if previous is not None else 0,
+            )
+            token = secrets.token_bytes(12)
+            ticket = ZeroRTTSessionTicket(
+                peer_id=peer_id,
+                session_token=token,
+                issued_at=time.time(),
+                last_accepted_nonce=max_seen,
+            )
+            self.zero_rtt_tickets[peer_id] = ticket
+            self.session_tickets_0rtt[peer_id] = token.hex()
+            self.anti_replay_max_nonce[peer_id] = max_seen
+            return ticket
 
     def verify_0rtt_ticket_anti_replay(
         self,
@@ -806,19 +830,43 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         timestamp: float | None = None,
         max_age_sec: float = 600.0,
     ) -> Tuple[bool, str]:
-        """RFC 9001 0-RTT anti-replay check enforcing ticket freshness and strictly monotonic nonces (`HM-S3-01`)."""
-        ticket = self.zero_rtt_tickets.get(peer_id)
-        if ticket is None:
-            return False, "missing_0rtt_session_ticket"
-        now = timestamp if timestamp is not None else time.time()
-        if abs(now - ticket.issued_at) > max_age_sec:
-            return False, "expired_0rtt_session_ticket"
-        max_seen = self.anti_replay_max_nonce.get(peer_id, 0)
-        if nonce <= max_seen:
-            return False, f"replay_nonce_detected(nonce={nonce}<=max_seen={max_seen})"
-        self.anti_replay_max_nonce[peer_id] = nonce
-        ticket.resumed_count += 1
-        return True, "0rtt_nonce_accepted"
+        """Check and atomically advance the application-level monotonic strike register.
+
+        ``timestamp`` is the verifier's trusted current time, not a sender-supplied
+        packet timestamp. Tickets are valid on the inclusive interval
+        ``[issued_at, issued_at + max_age_sec]``; future-issued tickets fail closed.
+        This in-process register is not a substitute for QUIC/TLS authentication or
+        a shared, durable replay store across servers and process restarts.
+        """
+        with self._nonce_lock:
+            ticket = self.zero_rtt_tickets.get(peer_id)
+            if ticket is None:
+                return False, "missing_0rtt_session_ticket"
+            if isinstance(nonce, bool) or not isinstance(nonce, Integral) or nonce <= 0:
+                return False, "invalid_0rtt_nonce"
+            now = timestamp if timestamp is not None else time.time()
+            if (
+                not math.isfinite(now)
+                or not math.isfinite(ticket.issued_at)
+                or not math.isfinite(max_age_sec)
+                or max_age_sec < 0
+            ):
+                return False, "invalid_0rtt_ticket_time"
+            if now < ticket.issued_at:
+                return False, "future_0rtt_session_ticket"
+            if now - ticket.issued_at > max_age_sec:
+                return False, "expired_0rtt_session_ticket"
+            # Keep the public ticket field and legacy dictionary synchronized, also
+            # when restoring an older record that persisted only one of them.
+            max_seen = max(self.anti_replay_max_nonce.get(peer_id, 0), ticket.last_accepted_nonce)
+            self.anti_replay_max_nonce[peer_id] = max_seen
+            ticket.last_accepted_nonce = max_seen
+            if nonce <= max_seen:
+                return False, f"replay_nonce_detected(nonce={nonce}<=max_seen={max_seen})"
+            self.anti_replay_max_nonce[peer_id] = int(nonce)
+            ticket.last_accepted_nonce = int(nonce)
+            ticket.resumed_count += 1
+            return True, "0rtt_nonce_accepted"
 
     @staticmethod
     def _punch_pair(
@@ -848,7 +896,11 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             candidate: Address = sock.getsockname()
             return sock, candidate, {"peer_id": peer_id, "candidate": candidate, "nat_type": "unknown"}
         sock = udp_socket(("0.0.0.0", 0))
-        mapping = classify_nat_mapping(sock, [stun_server])
+        try:
+            mapping = classify_nat_mapping(sock, [stun_server])
+        except BaseException:
+            sock.close()
+            raise
         endpoint = {
             "peer_id": peer_id,
             "candidate": mapping.mapped[0],
@@ -871,13 +923,12 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         """
         self.issue_0rtt_ticket(local_peer_id)
         self.issue_0rtt_ticket(remote_peer_id)
-        sock_a, cand_a, _ = self._open_peer_socket(local_peer_id, stun_server)
-        sock_b, cand_b, _ = self._open_peer_socket(remote_peer_id, stun_server)
-        try:
+        with ExitStack() as sockets:
+            sock_a, cand_a, _ = self._open_peer_socket(local_peer_id, stun_server)
+            sockets.callback(sock_a.close)
+            sock_b, cand_b, _ = self._open_peer_socket(remote_peer_id, stun_server)
+            sockets.callback(sock_b.close)
             res_a, res_b = self._punch_pair(sock_a, sock_b, [cand_a], [cand_b], timeout)
-        finally:
-            sock_a.close()
-            sock_b.close()
         verified = res_a.succeeded and res_b.succeeded
         rtts = [r.rtt_ms for r in (res_a, res_b) if r.rtt_ms is not None]
         return {
@@ -961,7 +1012,6 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
     ) -> bytes:
         """Pack an FP8 `CompressedHiddenStatePacket` into the binary frame carried by QUIC or WebSocket."""
         ticket = self.zero_rtt_tickets.get(peer_id) or self.issue_0rtt_ticket(peer_id)
-        ticket.resumed_count += 1
         magic = MAGIC_WS_FALLBACK if use_websocket_fallback else MAGIC_QUIC_0RTT
         shape = packet.original_shape
         ndim = len(shape)
@@ -981,14 +1031,28 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
     def deserialize_packet_0rtt(
         self, frame: bytes
     ) -> Tuple[CompressedHiddenStatePacket, str]:
-        """Unpack a binary hidden-state frame back into a `CompressedHiddenStatePacket`."""
+        """Validate and unpack a hidden-state frame; this parser does not authenticate its token."""
+        if len(frame) < 17:
+            raise ValueError("truncated hidden-state frame header")
         magic, _token, ndim = struct.unpack("!4s12sB", frame[:17])
+        if magic not in (MAGIC_QUIC_0RTT, MAGIC_WS_FALLBACK):
+            raise ValueError("unknown hidden-state frame magic")
+        if not 1 <= ndim <= 64:
+            raise ValueError("hidden-state frame must have 1 to 64 dimensions")
         protocol = "libp2p_websocket" if magic == MAGIC_WS_FALLBACK else "quic"
         fmt = f"!{ndim}III"
         header_len = 17 + struct.calcsize(fmt)
+        if len(frame) < header_len:
+            raise ValueError("truncated hidden-state shape header")
         unpacked = struct.unpack(fmt, frame[17:header_len])
         shape = tuple(unpacked[:ndim])
         fp8_len, scale_len = unpacked[ndim], unpacked[ndim + 1]
+        if any(dimension == 0 for dimension in shape):
+            raise ValueError("hidden-state frame dimensions must be positive")
+        if fp8_len != math.prod(shape) or scale_len != math.prod(shape[:-1]) * 2:
+            raise ValueError("hidden-state payload lengths do not match the declared shape")
+        if len(frame) != header_len + fp8_len + scale_len:
+            raise ValueError("hidden-state frame is truncated or contains trailing data")
         fp8_raw = frame[header_len : header_len + fp8_len]
         scale_raw = frame[header_len + fp8_len : header_len + fp8_len + scale_len]
 
@@ -998,7 +1062,7 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         scale_tensor = torch.frombuffer(bytearray(scale_raw), dtype=torch.float16).reshape(
             scale_shape
         )
-        orig_bytes = int(torch.prod(torch.tensor(shape)).item()) * 2
+        orig_bytes = math.prod(shape) * 2
         pkt = CompressedHiddenStatePacket(
             fp8_data=fp8_tensor,
             absmax_scale=scale_tensor,
@@ -1007,6 +1071,89 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             compressed_bytes=fp8_len + scale_len,
         )
         return pkt, protocol
+
+    async def _send_remote_frames(
+        self,
+        peer_id: str,
+        frames: Sequence[bytes],
+        endpoint: "LinkEndpoint | None",
+    ) -> LinkRun:
+        from hivemind.swarm.quic_link import LinkEndpoint, RemoteHiddenStateLink
+
+        selected = endpoint if endpoint is not None else self.remote_endpoint
+        if selected is None:
+            raise ValueError("configure remote_endpoint or supply an explicit trusted LinkEndpoint")
+        if not isinstance(selected, LinkEndpoint):
+            raise TypeError("remote endpoint must be a LinkEndpoint")
+        if not frames:
+            raise ValueError("at least one hidden-state packet is required")
+        with self._remote_links_lock:
+            link = self._remote_links.get(selected)
+            if link is None:
+                link = RemoteHiddenStateLink(selected)
+                self._remote_links[selected] = link
+        run = await link.send_frames(frames)
+        if run.session_resumed:
+            with self._nonce_lock:
+                ticket = self.zero_rtt_tickets.get(peer_id)
+                if ticket is not None:
+                    ticket.resumed_count += 1
+        return run
+
+    async def send_compressed_hidden_states(
+        self,
+        peer_id: str,
+        packets: Sequence[CompressedHiddenStatePacket],
+        *,
+        endpoint: "LinkEndpoint | None" = None,
+    ) -> LinkRun:
+        """Send packets to an explicitly configured, independently running receiver.
+
+        The endpoint supplies the trusted CA and server name. Its client caches
+        single-use TLS session tickets between calls on this transport instance;
+        no local receiver or warmup frame is created. A receiver acknowledgment
+        confirms its delivered-frame count, not model execution or tensor quality.
+        STUN discovery and TURN allocation are separate APIs and do not wire a NAT
+        path into this link. Application nonce checks also remain separate.
+        """
+        frames = [self.serialize_packet_0rtt(peer_id, packet) for packet in packets]
+        return await self._send_remote_frames(peer_id, frames, endpoint)
+
+    def transmit_compressed_hidden_state(
+        self,
+        peer_id: str,
+        packet: CompressedHiddenStatePacket,
+        *,
+        endpoint: "LinkEndpoint | None" = None,
+    ) -> Dict[str, Any]:
+        """Synchronous remote send; use send_compressed_hidden_states in async code.
+
+        Unlike the explicitly named loopback demonstration, this requires a
+        configured receiver. Certificate and uncertain-delivery failures propagate.
+        """
+        selected = endpoint if endpoint is not None else self.remote_endpoint
+        if selected is None:
+            raise ValueError("configure remote_endpoint or supply an explicit trusted LinkEndpoint")
+        frame = self.serialize_packet_0rtt(peer_id, packet)
+        run = _run_coroutine(self._send_remote_frames(peer_id, [frame], selected))
+        return {
+            "transport_used": {
+                "quic_0rtt": "quic_0rtt_stream",
+                "quic": "quic_stream",
+                "libp2p_websocket": "libp2p_websocket_fallback",
+            }[run.protocol],
+            "endpoint_host": selected.host,
+            "endpoint_port": selected.port,
+            "tls_server_name": selected.server_name,
+            "frame_bytes": len(frame),
+            "frames_sent": run.frames_sent,
+            "frames_delivered": run.frames_delivered,
+            "frame_acknowledged": run.frames_delivered == 1,
+            "transport_latency_ms": round(run.elapsed_s * 1000.0, 3),
+            "session_resumed": run.session_resumed,
+            "early_data_accepted": run.early_data_accepted,
+            "fallback_reason": run.fallback_reason,
+        }
 
     def _send_over_link(
         self, frames: List[bytes], expected_shape: Tuple[int, ...], udp_blocked: bool
@@ -1076,6 +1223,8 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             "peer-paris-01", packet, use_websocket_fallback=simulate_udp_blocked
         )
         run, intact = self._send_over_link([wire_frame], packet.original_shape, simulate_udp_blocked)
+        if run.session_resumed:
+            self.zero_rtt_tickets["peer-paris-01"].resumed_count += 1
         transport_used = {
             "quic_0rtt": "quic_0rtt_stream",
             "quic": "quic_stream",
@@ -1105,7 +1254,18 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         from symmetric ones. When `turn_server` and credentials are given, a relay is allocated
         and kept alive in `turn_clients[peer_id]` until `release_turn_allocations()`.
         """
-        servers = [stun_servers] if isinstance(stun_servers, (str, tuple)) else list(stun_servers)
+        # A tuple can be one (host, port) address or a sequence of server specs.
+        # In particular DEFAULT_STUN_SERVERS is a tuple of two URL strings.
+        is_address = (
+            isinstance(stun_servers, tuple)
+            and len(stun_servers) == 2
+            and isinstance(stun_servers[0], str)
+            and isinstance(stun_servers[1], Integral)
+            and not isinstance(stun_servers[1], bool)
+        )
+        servers = [stun_servers] if isinstance(stun_servers, str) or is_address else list(stun_servers)
+        if not servers:
+            raise ValueError("at least one STUN server is required")
         sock = udp_socket(("0.0.0.0", local_port))
         try:
             mapping = classify_nat_mapping(sock, servers, timeout)
@@ -1117,7 +1277,11 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             if previous is not None:
                 previous.close()
             client = TurnClient(turn_server, turn_username, turn_password or "", timeout=timeout)
-            relay = client.allocate()
+            try:
+                relay = client.allocate()
+            except BaseException:
+                client.close()
+                raise
             self.turn_clients[peer_id] = client
 
         reflexive = mapping.mapped[0]
@@ -1152,22 +1316,24 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         self.turn_clients.clear()
 
     def verify_and_advance_0rtt_nonce(self, peer_id: str, incoming_nonce: int) -> bool:
-        """Enforces RFC 9001 Section 8 monotonic anti-replay strike-register validation (`HM-S3-01`, PR #22)."""
-        ticket = self.zero_rtt_tickets.get(peer_id) or self.issue_0rtt_ticket(peer_id)
-        if incoming_nonce <= ticket.last_accepted_nonce:
-            return False
-        ticket.last_accepted_nonce = int(incoming_nonce)
-        self.anti_replay_max_nonce[peer_id] = int(incoming_nonce)
-        return True
+        """Boolean wrapper using the same ticket lifetime and strike register as verification.
+
+        A ticket must already have been issued; verification never creates or
+        refreshes one on behalf of an unrecognized incoming peer.
+        """
+        accepted, _ = self.verify_0rtt_ticket_anti_replay(peer_id, incoming_nonce)
+        return accepted
 
     @staticmethod
     def _relay_pair(
         turn_server: ServerSpec, username: str, password: str, timeout: float = 2.0
     ) -> Tuple[bool, float, str]:
         """Allocate a TURN relay for each peer and exchange a probe both ways through them."""
-        client_a = TurnClient(turn_server, username, password, timeout=timeout)
-        client_b = TurnClient(turn_server, username, password, timeout=timeout)
-        try:
+        with ExitStack() as clients:
+            client_a = TurnClient(turn_server, username, password, timeout=timeout)
+            clients.callback(client_a.close)
+            client_b = TurnClient(turn_server, username, password, timeout=timeout)
+            clients.callback(client_b.close)
             relay_a, relay_b = client_a.allocate(), client_b.allocate()
             client_a.create_permission(relay_b[0])
             client_b.create_permission(relay_a[0])
@@ -1182,9 +1348,6 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
                 data_at_b == probe and data_at_a == probe[::-1] and from_a == relay_a and from_b == relay_b
             )
             return verified, elapsed_ms, f"{relay_b[0]}:{relay_b[1]}"
-        finally:
-            client_a.close()
-            client_b.close()
 
     def execute_udp_hole_punch(
         self,
@@ -1202,13 +1365,15 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         `transport_policy="relay"` skips the direct attempt and always uses TURN, mirroring
         WebRTC's `iceTransportPolicy: "relay"` for peers that must not expose their address.
         """
-        sock_a, cand_a, ep_a = self._open_peer_socket(peer_a_id, stun_server)
-        sock_b, cand_b, ep_b = self._open_peer_socket(peer_b_id, stun_server)
         direct_ok = False
         relay_verified = False
         latency_ms: Optional[float] = None
         active_endpoint: Optional[str] = None
-        try:
+        with ExitStack() as sockets:
+            sock_a, cand_a, ep_a = self._open_peer_socket(peer_a_id, stun_server)
+            sockets.callback(sock_a.close)
+            sock_b, cand_b, ep_b = self._open_peer_socket(peer_b_id, stun_server)
+            sockets.callback(sock_b.close)
             if transport_policy != "relay":
                 res_a, res_b = self._punch_pair(sock_a, sock_b, [cand_a], [cand_b], direct_timeout)
                 direct_ok = res_a.succeeded and res_b.succeeded
@@ -1216,9 +1381,6 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
                     latency_ms = max(r.rtt_ms or 0.0 for r in (res_a, res_b))
                     active_endpoint = f"{res_a.peer[0]}:{res_a.peer[1]}"
                     self.total_udp_hole_punches += 1
-        finally:
-            sock_a.close()
-            sock_b.close()
         if not direct_ok and turn_server is not None and turn_username is not None:
             relay_verified, latency_ms, active_endpoint = self._relay_pair(
                 turn_server, turn_username, turn_password or ""

@@ -1,0 +1,431 @@
+"""CPU-only regressions for runtime sampling, STUN inputs and replay state.
+
+The statistical tests exercise the public decoder with causal categorical models.
+They do not claim WAN, GPU performance, or a floating-point implementation proof.
+"""
+
+
+from concurrent.futures import ThreadPoolExecutor
+
+
+from types import SimpleNamespace
+
+
+import pytest
+
+
+import torch
+
+
+from torch import nn
+
+
+from hivemind.swarm import inference_ring as inference
+
+
+from hivemind.swarm import quic_transport as quic
+
+
+from hivemind.swarm.nat_traversal import DEFAULT_STUN_SERVERS, NatMapping
+
+
+@pytest.fixture(scope="module", autouse=True)
+def small_tensor_threads():
+    previous = torch.get_num_threads()
+    torch.set_num_threads(1)
+    yield
+    torch.set_num_threads(previous)
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected",
+    [
+        ({}, list(DEFAULT_STUN_SERVERS)),
+        ({"stun_servers": DEFAULT_STUN_SERVERS}, list(DEFAULT_STUN_SERVERS)),
+        ({"stun_servers": list(DEFAULT_STUN_SERVERS)}, list(DEFAULT_STUN_SERVERS)),
+        ({"stun_servers": "stun.example.test:3478"}, ["stun.example.test:3478"]),
+        ({"stun_servers": ("127.0.0.1", 3478)}, [("127.0.0.1", 3478)]),
+        ({"stun_servers": (("127.0.0.1", 3478), ("127.0.0.2", 3478))},
+         [("127.0.0.1", 3478), ("127.0.0.2", 3478)]),
+        ({"stun_servers": [("127.0.0.1", 3478), "stun.example.test:3478"]},
+         [("127.0.0.1", 3478), "stun.example.test:3478"]),
+    ],
+)
+def test_stun_single_address_and_server_sequences(monkeypatch, kwargs, expected):
+    class Socket:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    sock = Socket()
+    monkeypatch.setattr(quic, "udp_socket", lambda address: sock)
+    calls = []
+
+    def classify(socket, servers, timeout):
+        assert socket is sock
+        calls.append(servers)
+        return NatMapping("no_nat", ("127.0.0.1", 4000), [("127.0.0.1", 4000)],
+                          [("127.0.0.1", 3478)], [0.1])
+
+    monkeypatch.setattr(quic, "classify_nat_mapping", classify)
+    endpoint = quic.AsyncQUICGeoRingTransport().discover_stun_turn_endpoint("peer", **kwargs)
+    assert calls == [expected]
+    assert endpoint["reflexive_port"] == 4000
+    assert sock.closed
+
+
+@pytest.mark.parametrize("servers", [[], ()])
+def test_empty_stun_sequence_fails_before_opening_socket(monkeypatch, servers):
+    monkeypatch.setattr(quic, "udp_socket", lambda _: pytest.fail("socket should not be opened"))
+    with pytest.raises(ValueError, match="at least one STUN"):
+        quic.AsyncQUICGeoRingTransport().discover_stun_turn_endpoint("peer", stun_servers=servers)
+
+
+@pytest.mark.parametrize("first_wrapper", [False, True])
+def test_nonce_apis_share_one_monotonic_strike_register(first_wrapper):
+    transport = quic.AsyncQUICGeoRingTransport()
+    ticket = transport.issue_0rtt_ticket("peer")
+    detailed = lambda nonce: transport.verify_0rtt_ticket_anti_replay("peer", nonce)[0]
+    simple = lambda nonce: transport.verify_and_advance_0rtt_nonce("peer", nonce)
+    first, second = (simple, detailed) if first_wrapper else (detailed, simple)
+    # The old split state accepted [100, 1, 100] when alternating APIs.
+    assert [first(100), second(1), first(100)] == [True, False, False]
+    assert second(101)
+    assert ticket.last_accepted_nonce == transport.anti_replay_max_nonce["peer"] == 101
+    assert ticket.resumed_count == 2
+
+
+def test_ticket_rotation_does_not_rewind_nonce(monkeypatch):
+    monkeypatch.setattr(quic.time, "time", lambda: 1000.0)
+    transport = quic.AsyncQUICGeoRingTransport()
+    old = transport.issue_0rtt_ticket("peer")
+    assert transport.verify_and_advance_0rtt_nonce("peer", 100)
+    monkeypatch.setattr(quic.time, "time", lambda: 2000.0)
+    fresh = transport.issue_0rtt_ticket("peer")
+    assert fresh is not old
+    assert fresh.issued_at == 2000.0
+    assert fresh.last_accepted_nonce == 100
+    assert not transport.verify_and_advance_0rtt_nonce("peer", 1)
+    assert not transport.verify_0rtt_ticket_anti_replay("peer", 100)[0]
+    assert transport.verify_0rtt_ticket_anti_replay("peer", 101)[0]
+
+
+@pytest.mark.parametrize("now, accepted, reason", [
+    (999.999, False, "future_0rtt_session_ticket"),
+    (1000.0, True, "0rtt_nonce_accepted"),
+    (1600.0, True, "0rtt_nonce_accepted"),
+    (1600.001, False, "expired_0rtt_session_ticket"),
+    (float("nan"), False, "invalid_0rtt_ticket_time"),
+    (float("inf"), False, "invalid_0rtt_ticket_time"),
+])
+def test_nonce_helpers_enforce_same_ticket_time_interval(monkeypatch, now, accepted, reason):
+    transport = quic.AsyncQUICGeoRingTransport()
+    ticket = transport.issue_0rtt_ticket("peer")
+    ticket.issued_at = 1000.0
+    monkeypatch.setattr(quic.time, "time", lambda: now)
+    assert transport.verify_0rtt_ticket_anti_replay("peer", 100) == (accepted, reason)
+    # A distinct nonce avoids changing this from a time check into a replay check.
+    assert transport.verify_and_advance_0rtt_nonce("peer", 101) is accepted
+    assert ticket.last_accepted_nonce == (101 if accepted else 0)
+
+
+@pytest.mark.parametrize("nonce", [-1, 0, 1.5, float("nan"), float("inf"), True, "1", None])
+def test_invalid_nonce_cannot_poison_or_rewind_register(nonce):
+    transport = quic.AsyncQUICGeoRingTransport()
+    ticket = transport.issue_0rtt_ticket("peer")
+    assert not transport.verify_and_advance_0rtt_nonce("peer", nonce)
+    assert ticket.last_accepted_nonce == transport.anti_replay_max_nonce["peer"] == 0
+    assert transport.verify_and_advance_0rtt_nonce("peer", 1)
+
+
+@pytest.mark.parametrize("age", [-1.0, float("nan"), float("inf")])
+def test_invalid_ticket_lifetime_fails_closed(age):
+    transport = quic.AsyncQUICGeoRingTransport()
+    transport.issue_0rtt_ticket("peer")
+    assert transport.verify_0rtt_ticket_anti_replay("peer", 1, max_age_sec=age) == (
+        False, "invalid_0rtt_ticket_time"
+    )
+
+
+def test_missing_ticket_is_not_implicitly_minted():
+    transport = quic.AsyncQUICGeoRingTransport()
+    assert not transport.verify_and_advance_0rtt_nonce("unknown", 1)
+    assert transport.verify_0rtt_ticket_anti_replay("unknown", 1) == (
+        False, "missing_0rtt_session_ticket"
+    )
+    assert transport.zero_rtt_tickets == {}
+
+
+def test_nonce_update_is_atomic_across_helpers():
+    transport = quic.AsyncQUICGeoRingTransport()
+    ticket = transport.issue_0rtt_ticket("peer")
+
+    def check(i):
+        if i % 2:
+            return transport.verify_and_advance_0rtt_nonce("peer", 100)
+        return transport.verify_0rtt_ticket_anti_replay("peer", 100)[0]
+
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        accepted = list(pool.map(check, range(128)))
+    assert sum(accepted) == 1
+    assert ticket.last_accepted_nonce == transport.anti_replay_max_nonce["peer"] == 100
+    assert ticket.resumed_count == 1
+
+
+class CategoricalModel(nn.Module):
+    """Causal first-order model, with one next-token distribution per input ID."""
+
+    def __init__(self, probabilities, record=False):
+        super().__init__()
+        table = torch.tensor(probabilities, dtype=torch.float64)
+        if table.ndim == 1:
+            table = table.repeat(table.numel(), 1)
+        self.register_buffer("logits_table", table.log())
+        self.inputs = []
+        self.record = record
+
+    def forward(self, input_ids):
+        if self.record:
+            self.inputs.append(input_ids.detach().clone())
+        return SimpleNamespace(logits=self.logits_table[input_ids])
+
+    def reset_routing_telemetry(self):
+        pass
+
+    def get_expert_utilization(self):
+        return {}
+
+
+def decode(target, draft, count=1, gamma=1, seed=42, generator=None, prompt=None):
+    return inference.RegionalDHTSwarmRing().run_speculative_inference(
+        target, draft, torch.tensor([0]) if prompt is None else prompt,
+        max_new_tokens=count, draft_gamma=gamma, simulated_network_rtt_ms=0,
+        generator=generator if generator is not None else torch.Generator().manual_seed(seed),
+    )
+
+
+@pytest.mark.parametrize("websocket", [False, True])
+def test_hidden_state_frame_roundtrip_and_strict_lengths(websocket):
+    from hivemind.swarm.swarm_fabric import compress_hidden_states_fp8
+
+    transport = quic.AsyncQUICGeoRingTransport()
+    packet = compress_hidden_states_fp8(torch.randn(2, 3, 8, dtype=torch.float16))
+    frame = transport.serialize_packet_0rtt("peer", packet, use_websocket_fallback=websocket)
+    restored, protocol = transport.deserialize_packet_0rtt(frame)
+    assert restored.original_shape == packet.original_shape
+    assert torch.equal(restored.fp8_data.view(torch.uint8), packet.fp8_data.view(torch.uint8))
+    assert torch.equal(restored.absmax_scale, packet.absmax_scale)
+    assert protocol == ("libp2p_websocket" if websocket else "quic")
+    for malformed in [frame[:10], b"BAD!" + frame[4:], frame[:20], frame[:-1], frame + b"tail"]:
+        with pytest.raises(ValueError):
+            transport.deserialize_packet_0rtt(malformed)
+
+
+@pytest.mark.parametrize("shape, fp8_size, scale_size", [
+    ((), 1, 2), ((0, 8), 0, 0), ((4, 8), 31, 8), ((4, 8), 32, 7),
+    ((2 ** 32 - 1, 2 ** 32 - 1), 1, 2),
+])
+def test_hidden_state_frame_rejects_inconsistent_shape_before_allocation(shape, fp8_size, scale_size):
+    import struct
+
+    header = struct.pack(f"!4s12sB{len(shape)}III", quic.MAGIC_QUIC_0RTT, b"x" * 12,
+                         len(shape), *shape, fp8_size, scale_size)
+    with pytest.raises(ValueError):
+        quic.AsyncQUICGeoRingTransport().deserialize_packet_0rtt(header + b"\0" * 128)
+
+
+class FakeSocket:
+    closed = False
+
+    def close(self):
+        self.closed = True
+
+
+def test_open_peer_socket_closes_socket_when_stun_fails(monkeypatch):
+    sock = FakeSocket()
+    monkeypatch.setattr(quic, "udp_socket", lambda _: sock)
+
+    def fail(*args, **kwargs):
+        raise quic.StunError("test STUN failure")
+
+    monkeypatch.setattr(quic, "classify_nat_mapping", fail)
+    with pytest.raises(quic.StunError, match="test STUN failure"):
+        quic.AsyncQUICGeoRingTransport()._open_peer_socket("peer", "example.test:3478")
+    assert sock.closed
+
+
+@pytest.mark.parametrize("method", ["perform_udp_hole_punch", "execute_udp_hole_punch"])
+def test_peer_pair_initialization_failure_closes_first_socket(monkeypatch, method):
+    sock = FakeSocket()
+    transport = quic.AsyncQUICGeoRingTransport()
+
+    def open_peer(peer_id, stun_server):
+        if peer_id == "second":
+            raise quic.StunError("second peer failure")
+        return sock, ("127.0.0.1", 4000), {"nat_type": "unknown"}
+
+    monkeypatch.setattr(transport, "_open_peer_socket", open_peer)
+    with pytest.raises(quic.StunError, match="second peer failure"):
+        getattr(transport, method)("first", "second")
+    assert sock.closed
+
+
+def test_relay_pair_initialization_failure_closes_first_client(monkeypatch):
+    first = FakeSocket()
+    count = 0
+
+    def client(*args, **kwargs):
+        nonlocal count
+        count += 1
+        if count == 2:
+            raise OSError("second relay failure")
+        return first
+
+    monkeypatch.setattr(quic, "TurnClient", client)
+    with pytest.raises(OSError, match="second relay failure"):
+        quic.AsyncQUICGeoRingTransport._relay_pair("example.test", "user", "test-only")
+    assert first.closed
+
+
+def test_failed_turn_allocation_closes_unregistered_client(monkeypatch):
+    class FailedClient(FakeSocket):
+        def allocate(self):
+            raise quic.StunError("allocation failure")
+
+    client, sock = FailedClient(), FakeSocket()
+    monkeypatch.setattr(quic, "TurnClient", lambda *args, **kwargs: client)
+    monkeypatch.setattr(quic, "udp_socket", lambda _: sock)
+    monkeypatch.setattr(quic, "classify_nat_mapping", lambda *args: NatMapping(
+        "no_nat", ("127.0.0.1", 4000), [("127.0.0.1", 4000)], [("127.0.0.1", 3478)], [0.1]
+    ))
+    transport = quic.AsyncQUICGeoRingTransport()
+    with pytest.raises(quic.StunError, match="allocation failure"):
+        transport.discover_stun_turn_endpoint("peer", stun_servers="stun.example.test",
+                                             turn_server="turn.example.test", turn_username="user")
+    assert client.closed and sock.closed
+    assert transport.turn_clients == {}
+
+
+def streamer(budget=64):
+    from hivemind.swarm.swarm_fabric import PinnedRAMExpertDMAStreamer
+
+    return PinnedRAMExpertDMAStreamer(device=torch.device("cpu"), max_pinned_ram_bytes=budget)
+
+
+def weights(count=4):
+    return {"weight": torch.ones(count, dtype=torch.float16)}
+
+
+def hidden_state_packet():
+    from hivemind.swarm.swarm_fabric import compress_hidden_states_fp8
+
+    return compress_hidden_states_fp8(torch.arange(8, dtype=torch.float16).reshape(1, 2, 4))
+
+
+def test_packet_serialization_does_not_claim_a_session_resumption():
+    transport = quic.AsyncQUICGeoRingTransport()
+    transport.serialize_packet_0rtt("peer", hidden_state_packet())
+    assert transport.zero_rtt_tickets["peer"].resumed_count == 0
+
+
+def test_remote_send_requires_explicit_endpoint_and_never_uses_loopback(monkeypatch):
+    transport = quic.AsyncQUICGeoRingTransport()
+    monkeypatch.setattr(quic, "run_local_link", lambda *args, **kwargs: pytest.fail("must not start loopback"))
+    with pytest.raises(ValueError, match="explicit trusted LinkEndpoint"):
+        transport.transmit_compressed_hidden_state("peer", hidden_state_packet())
+    assert transport._remote_links == {}
+
+
+def test_remote_transport_caches_endpoint_clients_and_reports_acknowledgments(monkeypatch):
+    from hivemind.swarm import quic_link
+
+    identity = quic_link.LinkIdentity.generate()
+    first = quic_link.LinkEndpoint("127.0.0.1", 4433, identity.ca_pem)
+    second = quic_link.LinkEndpoint("127.0.0.1", 4434, identity.ca_pem)
+    clients = []
+
+    class FakeRemoteLink:
+        def __init__(self, endpoint):
+            self.endpoint = endpoint
+            self.calls = []
+            clients.append(self)
+
+        async def send_frames(self, frames):
+            self.calls.append(list(frames))
+            resumed = len(self.calls) > 1
+            return quic_link.LinkRun("quic_0rtt" if resumed else "quic", len(frames), len(frames),
+                                     elapsed_s=0.012, session_resumed=resumed, early_data_accepted=resumed)
+
+    monkeypatch.setattr(quic_link, "RemoteHiddenStateLink", FakeRemoteLink)
+    monkeypatch.setattr(quic, "run_local_link", lambda *args, **kwargs: pytest.fail("must not start loopback"))
+    transport = quic.AsyncQUICGeoRingTransport(remote_endpoint=first)
+    packet = hidden_state_packet()
+    one = transport.transmit_compressed_hidden_state("peer", packet)
+    two = transport.transmit_compressed_hidden_state("peer", packet)
+    alternate = transport.transmit_compressed_hidden_state("other-peer", packet, endpoint=second)
+    assert len(clients) == 2
+    assert [len(client.calls) for client in clients] == [2, 1]
+    assert clients[0].endpoint == first and clients[1].endpoint == second
+    assert transport.remote_endpoint == first
+    assert one["transport_used"] == "quic_stream" and not one["session_resumed"]
+    assert two["transport_used"] == "quic_0rtt_stream" and two["session_resumed"]
+    assert two["frame_acknowledged"] and two["transport_latency_ms"] == 12.0
+    assert alternate["endpoint_port"] == 4434 and not alternate["session_resumed"]
+    assert "frame_verified" not in two  # A frame count is not a tensor/model execution proof.
+    assert transport.zero_rtt_tickets["peer"].resumed_count == 1
+    restored, _ = transport.deserialize_packet_0rtt(clients[0].calls[0][0])
+    assert restored.original_shape == packet.original_shape
+    assert len(clients[0].calls[0]) == 1  # No hidden warmup payload.
+
+
+def test_remote_transport_propagates_delivery_failure_without_retry(monkeypatch):
+    from hivemind.swarm import quic_link
+
+    identity = quic_link.LinkIdentity.generate()
+    endpoint = quic_link.LinkEndpoint("127.0.0.1", 4433, identity.ca_pem)
+    calls = []
+
+    class FailingRemoteLink:
+        def __init__(self, endpoint):
+            pass
+
+        async def send_frames(self, frames):
+            calls.append(list(frames))
+            raise ConnectionError("delivery is uncertain")
+
+    monkeypatch.setattr(quic_link, "RemoteHiddenStateLink", FailingRemoteLink)
+    transport = quic.AsyncQUICGeoRingTransport(remote_endpoint=endpoint)
+    with pytest.raises(ConnectionError, match="delivery is uncertain"):
+        transport.transmit_compressed_hidden_state("peer", hidden_state_packet())
+    assert len(calls) == 1
+    assert transport.zero_rtt_tickets["peer"].resumed_count == 0
+
+
+@pytest.mark.asyncio
+async def test_remote_transport_sends_to_existing_receiver_and_reuses_tls_ticket():
+    from hivemind.swarm import quic_link
+
+    identity = quic_link.LinkIdentity.generate()
+    received = []
+    transport = quic.AsyncQUICGeoRingTransport()
+
+    def receive(frame):
+        packet, _ = transport.deserialize_packet_0rtt(frame)
+        received.append(packet)
+
+    server = await quic_link.QuicHiddenStateServer(identity, on_frame=receive).start()
+    try:
+        endpoint = quic_link.LinkEndpoint("127.0.0.1", server.port, identity.ca_pem)
+        packet = hidden_state_packet()
+        first = await transport.send_compressed_hidden_states("peer", [packet, packet], endpoint=endpoint)
+        second = await transport.send_compressed_hidden_states("peer", [packet], endpoint=endpoint)
+        assert first.frames_delivered == 2 and not first.session_resumed
+        assert second.frames_delivered == 1 and second.session_resumed
+        assert second.early_data_accepted
+        assert server.frames_received == 3 and len(received) == 3
+        assert all(item.original_shape == packet.original_shape for item in received)
+        assert len(transport._remote_links) == 1
+    finally:
+        server.close()
+
