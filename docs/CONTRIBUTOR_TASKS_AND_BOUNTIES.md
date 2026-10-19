@@ -1,24 +1,25 @@
-# 🛠️ Project HiveMind — Large-Scale Contributor Tasks, Empirical Results & `$HIVE` Bounties (`v1.3.0`)
+# 🛠️ Project HiveMind — Large-Scale Contributor Tasks, Empirical Results & `$HIVE` Bounties (`v1.5.0`)
 
 <div align="center">
-<img src="assets/hivemind_season3_results_and_roadmap.svg" alt="Project HiveMind Season 3 Empirical Results, Community Collaboration & Season 4 Roadmap" width="100%"/>
+<img src="assets/hivemind_season3_results_and_roadmap.svg" alt="Project HiveMind Season 3 & 4 Empirical Results, Community Collaboration & Roadmap" width="100%"/>
 </div>
 
 > **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
 >
-> **Current Status (`v1.3.0`):**
-> - **All 15 Pull Requests Merged (`100%` Merge Rate):**
+> **Current Status (`v1.5.0`):**
+> - **All 21 Pull Requests Merged (`100%` Merge Rate across Waves 1, 2 & 3):**
 >   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5` (`HM-M1-01` through `HM-M5-02` + `HM-DOC-01`).
 >   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18` (`HM-S3-01` through `HM-S3-05`).
+>   - **Wave 3 Season 4 (`PR #32`, `#34`–`#37` by `@clark719664` & `PR #33` by `@pedromineo`):** Closed Issues `#26`–`#31` (`HM-S4-01` through `HM-S4-06`).
 >   - **CI & Dependency Security (`PR #12`, `#13`, `#19`, `#20` by `@dependabot`):** Hardened GitHub Actions and Python dependencies.
-> - **Hardware & Formal Verification:** **`26 / 26` automated tests passing** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`27 / 27` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
-> - **Now Open for Contributors:** **6 New Season 4 / Wave 3 Community Bounties ([Issues `#26`–`#31`](https://github.com/xaviercallens/HiveMind/issues), `11,600 $HIVE` pool)**!
+> - **Hardware & Formal Verification:** **`36 / 36` automated tests passing** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`32 / 32` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
+> - **Hugging Face Community Sharing Hub & Swarm Mining Guilds (`v1.5.0`):** Portable multi-domain LoRA adapter bundles (`r=8..64 -> r=16` via truncated SVD), PEFT Model Card generator, and 3 Swarm Mining Guild Alliances live in [`src/hivemind/swarm/hf_community_hub.py`](../src/hivemind/swarm/hf_community_hub.py).
 
 ---
 
-## 🏆 1. Merged Community Pull Request Registry (Waves 1 & 2 — `15/15` PRs Merged)
+## 🏆 1. Merged Community Pull Request Registry (Waves 1, 2 & 3 — `21/21` PRs Merged)
 
-| Issue / Task ID | Wave & Track | Task Title | Merged PR & Contributor | Review & RTX 2070 Verification Result | Bounty Awarded |
+| Issue / Task ID | Wave & Track | Task Title | Merged PR & Contributor | Review & Verification Result | Bounty Awarded |
 | :--- | :--- | :--- | :---: | :--- | :---: |
 | **HM-M1-01** ([`#1`](https://github.com/xaviercallens/HiveMind/issues/1)) | **Wave 1 / M1** | Native `AsyncQUICGeoRingTransport` HTTP/3 0-RTT & `libp2p` WebSocket Fallback | ✅ **[`PR #9`](https://github.com/xaviercallens/HiveMind/pull/9)** (`@clark719664`) | `2,526.2 fps` UDP 0-RTT burst (`MAGIC_QUIC_0RTT`) | `2,500 $HIVE` |
 | **HM-M1-02** | **Wave 1 / M1** | Kademlia DHT GossipSub Live Expert Table & `<25ms` Game Preemption Failover | ✅ **Core + `PR #9`** (`@xaviercallens`) | `2.695 ms` GossipSub failover on game launch | `1,500 $HIVE` |
@@ -34,52 +35,19 @@
 | **HM-S3-03** ([`#16`](https://github.com/xaviercallens/HiveMind/issues/16)) | **Wave 2 / S3** | Season 3 Campaign Missions 9–12 & Interactive WebGL 3D Geo-Ring Topology HUD (`:8090`) | ✅ **[`PR #24`](https://github.com/xaviercallens/HiveMind/pull/24)** (`@clark719664`) | `10` Campaign + `2` Bonus Missions, 4-Node 3D Globe | `1,200 $HIVE` |
 | **HM-S3-04** ([`#17`](https://github.com/xaviercallens/HiveMind/issues/17)) | **Wave 2 / S3** | Season 3 Domain Expert QLoRA Trainer, Top-$k$ FP8 Compressor & CAS Registry (`btm_moe.py`) | ✅ **[`PR #25`](https://github.com/xaviercallens/HiveMind/pull/25)** (`@clark719664`) | `4/4` experts `-86.8%` loss, `12.79x` delta comp | `1,000 $HIVE` |
 | **HM-S3-05** ([`#18`](https://github.com/xaviercallens/HiveMind/issues/18)) | **Wave 2 / S3** | Formal Lean 4 Proofs for Prefix-Trie Speculative Acceptance & RFC 9001 0-RTT Bounds | ✅ **[`PR #21`](https://github.com/xaviercallens/HiveMind/pull/21)** (`@clark719664`) | **27/27 Lean 4 Theorems (`0 sorry`, `0` axioms)** | `1,500 $HIVE` |
-| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `26/26` CI checks | `Automated` |
+| **HM-S4-01** ([`#26`](https://github.com/xaviercallens/HiveMind/issues/26)) | **Wave 3 / S4** | Cross-Platform AMD ROCm (`gfx1100`/`gfx1030`) & Apple Silicon (`MPS`) 4-Bit Expert Dispatch & DMA | ✅ **[`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32)** (`@clark719664`) + **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33)** (`@pedromineo`) | `cuda_stream`, `hip_stream`, `mps_unified`, `cpu_copy` | `2,000 $HIVE` |
+| **HM-S4-02** ([`#27`](https://github.com/xaviercallens/HiveMind/issues/27)) | **Wave 3 / S4** | Hierarchical 2-Tier `ContinentalSuperRingRouter` & BBRv1 `AdaptiveCongestionController` | ✅ **[`PR #37`](https://github.com/xaviercallens/HiveMind/pull/37)** (`@clark719664`) + **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33)** (`@pedromineo`) | `<20 ms` intra-continent + single-bridge inter-continent | `2,500 $HIVE` |
+| **HM-S4-03** ([`#28`](https://github.com/xaviercallens/HiveMind/issues/28)) | **Wave 3 / S4** | Cryptographic `ZK-OPoI v2` Activation Spot-Check with $O(\log L)$ Merkle Inclusion Proofs | ✅ **[`PR #35`](https://github.com/xaviercallens/HiveMind/pull/35)** (`@clark719664`) + **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33)** (`@pedromineo`) | Dual $L_\infty \le 0.08$, $\cos \ge 0.992$ & Merkle verified | `2,000 $HIVE` |
+| **HM-S4-04** ([`#29`](https://github.com/xaviercallens/HiveMind/issues/29)) | **Wave 3 / S4** | Season 4 Hack-Miner Campaign Missions 13–16 & Live `/ws/swarm-telemetry` WebSocket HUD | ✅ **[`PR #36`](https://github.com/xaviercallens/HiveMind/pull/36)** (`@clark719664`) + **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33)** (`@pedromineo`) | `CONTRACT-HF-13..16` + live WS telemetry frame | `1,800 $HIVE` |
+| **HM-S4-05** ([`#30`](https://github.com/xaviercallens/HiveMind/issues/30)) | **Wave 3 / S4** | Dynamic SVD Rank-Adaptive LoRA Projection (`r=8..64 -> r=16`) & 32-Expert MoE (`< 2.0 GB`) | ✅ **[`PR #34`](https://github.com/xaviercallens/HiveMind/pull/34)** (`@clark719664`) + **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33)** (`@pedromineo`) | `>=99.4%` spectral energy, `32` experts in `0.107 GB` | `1,500 $HIVE` |
+| **HM-S4-06** ([`#31`](https://github.com/xaviercallens/HiveMind/issues/31)) | **Wave 3 / S4** | Formal Lean 4 Proofs (`Theorem 28`–`32`) for Quadratic DAO, SVD & Super-Ring Bounds | ✅ **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33)** (`@pedromineo`) | **32/32 Lean 4 Theorems (`0 sorry`, `0` axioms)** | `1,800 $HIVE` |
+| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `36/36` CI checks | `Automated` |
 
 ---
 
-## 📊 2. First Season 3 Empirical Results (`artifacts/season3_community_collaboration_results.json`)
+## 🤝 2. How to Propose Season 5 Bounties & Share Community Adapter Bundles
 
-Executed on our local **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** after merging and harmonizing `PR #21`–`#25`:
+1. **Export & Share a Community LoRA Bundle (`v1.5.0`):** Use `CommunityAdapterBundleManager` in [`src/hivemind/swarm/hf_community_hub.py`](../src/hivemind/swarm/hf_community_hub.py) to package your trained domain adapters (`r=8..64`) into a Hugging Face Hub-ready directory (`README.md`, `adapter_config.json`, `hivemind_swarm_manifest.json`) and earn automatic `$HIVE` + `PTS` reuse royalties whenever peer nodes import your bundle.
+2. **Verify Locally:** Run `.\.venv\Scripts\python.exe -m pytest tests/ -v --tb=short` to ensure all `36/36` tests pass and `verify_lean4_specification()` reports `32/32` theorems with `0 sorry` and `0` user axioms.
+3. **Submit Your PR:** Open a Pull Request against `main` using our [PR Template](../.github/PULL_REQUEST_TEMPLATE.md).
 
-### 2.1 Season 3 Specialized QLoRA Domain Experts (`HM-S3-04` / `PR #25`)
-| Domain Expert | Dataset Corpus | Inner Loss ($H=16$) | Loss Reduction | Top-5% + FP8 Wire Compression | Swarm Store CAS Checkpoint CID |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| **`Rust_Systems_Security`** | `anon/rust-code-instructions` | `1.6358 -> 0.2154` | **`-86.83%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-rust_systems_security...` |
-| **`Solidity_Smart_Contracts`** | `hivemind/solidity-audit-invariants` | `1.6255 -> 0.2080` | **`-87.20%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-solidity_smart_contracts...` |
-| **`Biomedical_Clinical_QA`** | `qiaojin/PubMedQA` | `1.6682 -> 0.2301` | **`-86.21%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-biomedical_clinical_qa...` |
-| **`Lean4_Theorem_Prover`** | `hivemind/lean4-mathlib-proofs` | `1.7031 -> 0.2231` | **`-86.90%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-lean4_theorem_prover...` |
-
-### 2.2 Season 3 Hack-Miner Campaign Missions 7–12 (`HM-S3-03` / `PR #24`)
-| Contract ID | Mission Codename & Expert | Loss Trajectory | Points Awarded | `$HIVE` Minted | CUDA Spot-Check |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| `CONTRACT-HF-07-LEAN4-FORMAL` | Operation: Lean 4 Soundness Sentinel (`Lean4_Formal_Verification`) | `3.12 -> 0.78` (`-75.0%`) | `+2,182 PTS` | `+15.0 $HIVE` | `PASS` |
-| `CONTRACT-HF-08-SOLIDITY-ESCROW` | Operation: L2 State-Channel Escrow Vault (`Solidity_L2_Escrow_Audit`) | `3.12 -> 0.78` (`-75.0%`) | `+2,232 PTS` | `+15.0 $HIVE` | `PASS` |
-| `CONTRACT-HF-09-CROSS-CONTINENT-RELAY` | Mission 9: Cross-Continent Ring Relay (`Cross_Continent_QUIC_Relay`) | `3.12 -> 0.63` (`-79.8%`) | `+2,337 PTS` | `+15.0 $HIVE` | `PASS` |
-| `CONTRACT-HF-10-ZK-SPOTCHECK-AUDIT` | Mission 10: Zero-Knowledge Spot-Check Audit (`ZK_SpotCheck_Byzantine_Auditor`) | `3.12 -> 0.63` (`-79.8%`) | `+2,437 PTS` | `+15.0 $HIVE` | `PASS` |
-| `CONTRACT-HF-11-DYNAMIC-16EXPERT-FUSION` | Mission 11: Dynamic 16-Expert Fusion (`Dynamic_16Expert_MoE_Router`) | `3.12 -> 0.63` (`-79.8%`) | `+2,537 PTS` | `+15.0 $HIVE` | `PASS` |
-| `CONTRACT-HF-12-SWARM-DAO-GOVERNANCE` | Mission 12: Sovereign Swarm DAO Governance (`Sovereign_Swarm_DAO_Governor`) | `3.12 -> 0.63` (`-79.8%`) | `+2,637 PTS` | `+15.0 $HIVE` | `PASS` |
-
----
-
-## 🚀 3. Open Wave 3 / Season 4 Community Bounties (`Issues #26–#31` — `11,600 $HIVE` Pool)
-
-With all Wave 1 (`#1`–`#5`) and Wave 2 Season 3 (`#14`–`#18`) issues completed and merged, the following **6 isolated Season 4 tracks** are now open on GitHub for parallel community Pull Requests:
-
-| Issue & Task ID | Track | Season 4 Task Description | Difficulty | Target Branch Prefix | Bounty Pool |
-| :--- | :--- | :--- | :---: | :--- | :---: |
-| **[`#26` (`HM-S4-01`)](https://github.com/xaviercallens/HiveMind/issues/26)** | **Track 1 (Multi-GPU/Vendor)** | Cross-Platform AMD ROCm (`gfx1100`/`gfx1030`) & Apple Silicon (`MPS`) 4-Bit Expert Dispatch & DMA Fallback | 🟡 Medium | `feat/s4-rocm-mps-backend` | **`2,000 $HIVE`** |
-| **[`#27` (`HM-S4-02`)](https://github.com/xaviercallens/HiveMind/issues/27)** | **Track 2 (Super-Ring WAN)** | Hierarchical 2-Tier Kademlia Super-Ring (`Continental Bridge -> Regional <20ms Geo-Ring`) & BBR Congestion Control | 🔴 Hard | `feat/s4-hierarchical-super-ring` | **`2,500 $HIVE`** |
-| **[`#28` (`HM-S4-03`)](https://github.com/xaviercallens/HiveMind/issues/28)** | **Track 3 (ZK-OPoI v2)** | Cryptographic Activation Spot-Check (`ZK-OPoI v2`) with $O(\log L)$ Merkle Inclusion Proofs & Dual $L_\infty$ Bounds | 🔴 Hard | `feat/s4-zk-opoi-merkle-inclusion` | **`2,000 $HIVE`** |
-| **[`#29` (`HM-S4-04`)](https://github.com/xaviercallens/HiveMind/issues/29)** | **Track 4 (Game & WS HUD)** | Season 4 Hack-Miner Campaign (Missions 13–16: `Triton`, `ZK`, `Quantum QASM`, `Agent Swarm`) & Live `/ws/swarm-telemetry` | 🟢 Starter | `game/s4-missions-13-16-websocket-hud` | **`1,800 $HIVE`** |
-| **[`#30` (`HM-S4-05`)](https://github.com/xaviercallens/HiveMind/issues/30)** | **Track 5 (SVD 32-MoE)** | Dynamic SVD Rank-Adaptive LoRA Merging (`r=8..64 -> r=16`) & 32-Expert Sparse MoE Scaling in `< 2.0 GB` VRAM | 🟡 Medium | `feat/s4-svd-rank-adaptive-moe` — ✅ **[`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32)** (`@clark719664`) | **`1,500 $HIVE`** |
-| **[`#31` (`HM-S4-06`)](https://github.com/xaviercallens/HiveMind/issues/31)** | **Track 6 (Formal Lean 4)** | Formal Lean 4 Proofs (`Theorem 28`–`32`) for Quadratic DAO Sybil Bounds, SVD Rank Savings & Super-Ring Latency | 🟢 Starter | `formal/s4-dao-superring-lean4` | **`1,800 $HIVE`** |
-
----
-
-## 🤝 4. How to Claim a Season 4 Bounty & Submit a Conflict-Free PR
-
-1. **Pick an Open Issue (`#26`–`#31`):** Comment `/claim` on any open issue in **[GitHub Issues](https://github.com/xaviercallens/HiveMind/issues)** or open a new proposal using our [Swarm Fabric Milestone](https://github.com/xaviercallens/HiveMind/issues/new?template=01_swarm_fabric_milestone.yml) or [Domain Expert Bounty](https://github.com/xaviercallens/HiveMind/issues/new?template=02_domain_expert_lora_bounty.yml) template.
-2. **Branch from `main`:** Create an isolated topic branch matching the track prefix (e.g., `git checkout -b feat/s4-rocm-mps-backend`).
-3. **Verify Locally:** Run `.\.venv\Scripts\python.exe -m pytest tests/ -v --tb=short` to ensure all `26/26+` tests pass and `verify_lean4_specification()` reports `0 sorry` and `0` user axioms.
-4. **Submit Your PR:** Open a Pull Request referencing `Closes #<issue_number>` using our [PR Template](../.github/PULL_REQUEST_TEMPLATE.md).

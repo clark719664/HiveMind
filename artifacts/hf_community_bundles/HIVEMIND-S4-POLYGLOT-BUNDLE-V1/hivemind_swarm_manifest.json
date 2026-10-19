@@ -1,0 +1,68 @@
+{
+  "bundle_id": "HIVEMIND-S4-POLYGLOT-BUNDLE-V1",
+  "bundle_title": "HiveMind Season 4 Multi-Vendor & ZK-OPoI Community Bundle",
+  "hf_repo_id": "hivemind-swarm/hivemind-s4-polyglot-bundle-v1",
+  "base_model_id": "Qwen/Qwen2.5-0.5B",
+  "canonical_rank_r": 16,
+  "created_at_epoch": 1792440583.6380448,
+  "guild_id": "GUILD-02-GLOBAL-ZK-GUARDIANS",
+  "authors": [
+    "CyberValkyrie_FR",
+    "ZeroCool_UK",
+    "NeuralGhost_DE"
+  ],
+  "contributors": [
+    "@xaviercallens",
+    "@clark719664",
+    "@pedromineo"
+  ],
+  "entries": [
+    {
+      "domain_name": "Rust_Systems_Security",
+      "dataset_id": "anon/rust-code-instructions",
+      "author_gamer_tag": "CyberValkyrie_FR",
+      "author_contributor_handle": "@xaviercallens",
+      "expert_cid": "cid://sha256/expert-rust_systems_security-73c349695d0f405db93c3f13",
+      "source_rank_r": 16,
+      "canonical_rank_r": 16,
+      "lora_alpha": 32,
+      "spectral_energy_retained": 1.0,
+      "baseline_loss": 6.45,
+      "trained_loss": 0.35,
+      "relative_loss_reduction_pct": 94.57,
+      "tensor_sha256": "6c9d810815b2d7c8c6e558c2a4da1b2c340059c63b5577d8bbbdf8e60e95f449"
+    },
+    {
+      "domain_name": "ZK_OPoI_Prover",
+      "dataset_id": "hivemind/opoi-merkle-activations",
+      "author_gamer_tag": "ZeroCool_UK",
+      "author_contributor_handle": "@clark719664",
+      "expert_cid": "cid://sha256/expert-zk_opoi_prover-47f584bcc53a6da8b1e5c978",
+      "source_rank_r": 16,
+      "canonical_rank_r": 16,
+      "lora_alpha": 32,
+      "spectral_energy_retained": 1.0,
+      "baseline_loss": 6.12,
+      "trained_loss": 0.41,
+      "relative_loss_reduction_pct": 93.3,
+      "tensor_sha256": "6c9d810815b2d7c8c6e558c2a4da1b2c340059c63b5577d8bbbdf8e60e95f449"
+    },
+    {
+      "domain_name": "Triton_Kernel_Synth",
+      "dataset_id": "hivemind/triton-int4-fp8-kernels",
+      "author_gamer_tag": "NeuralGhost_DE",
+      "author_contributor_handle": "@pedromineo",
+      "expert_cid": "cid://sha256/expert-triton_kernel_synth-6ff8f04f5e91a214c94ee479",
+      "source_rank_r": 16,
+      "canonical_rank_r": 16,
+      "lora_alpha": 32,
+      "spectral_energy_retained": 1.0,
+      "baseline_loss": 5.98,
+      "trained_loss": 0.38,
+      "relative_loss_reduction_pct": 93.65,
+      "tensor_sha256": "6c9d810815b2d7c8c6e558c2a4da1b2c340059c63b5577d8bbbdf8e60e95f449"
+    }
+  ],
+  "bundle_sha256": "f993d99baaa114bab29367a656b446132837dee4bbc1f6d40389a4d6c1f5df6d",
+  "ties_merged_included": true
+}

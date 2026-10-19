@@ -410,6 +410,7 @@ theorem quadratic_voting_cost_bound
     (h_votes : 1 ≤ votes)
     (h_cost : cost = votes * votes) :
     votes ≤ cost := by
+  have h_mul : votes * 1 ≤ votes * votes := Nat.mul_le_mul_left votes h_votes
   omega
 
 /-- Theorem 29 (Steamworks Sybil account floor): `S` fake identities cost at least
@@ -435,7 +436,7 @@ theorem svd_rank_truncation_parameter_savings
     (h_rank : rTarget < rSource)
     (h_dims : 1 ≤ dIn + dOut) :
     rTarget * (dIn + dOut) < rSource * (dIn + dOut) := by
-  omega
+  exact Nat.mul_lt_mul_of_pos_right h_rank h_dims
 
 /-- Theorem 32 (Merkle inclusion depth): a sibling path never needs more hashes than
     there are other leaves. -/

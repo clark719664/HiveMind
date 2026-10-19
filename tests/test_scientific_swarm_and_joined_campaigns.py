@@ -129,6 +129,103 @@ def test_dual_miner_and_contributor_leaderboard_and_hf_badges() -> None:
     assert dual["best_miner_champion"]["gamer_tag"] == "CyberValkyrie_FR"
     assert dual["best_miner_champion"]["peers_leveraged_count"] >= 3
     assert dual["best_contributor_champion"]["contributor_handle"] == "@xaviercallens"
+    contrib_handles = [c["contributor_handle"] for c in dual["contributor_standings"]]
+    assert "@clark719664" in contrib_handles
+    assert "@pedromineo" in contrib_handles
     assert len(dual["miner_standings"]) == 4
-    assert len(dual["contributor_standings"]) >= 2
+    assert len(dual["contributor_standings"]) >= 3
     assert "HF_SWARM_KNOWLEDGE_DONOR" in dual["hf_gamification_badges_catalog"]
+
+
+def test_hf_community_hub_bundle_sharing_and_swarm_guilds(tmp_path: Path) -> None:
+    """
+    Verifies the v1.5.0 Hugging Face Community Sharing Hub & Swarm Mining Guilds:
+    - Exporting a multi-domain community LoRA bundle (`r=8`, `r=16`, `r=32`, `r=64` normalized to `r=16` via truncated SVD)
+    - Generating the Hugging Face Hub `README.md` Model Card, `adapter_config.json`, and `hivemind_swarm_manifest.json`
+    - Zero-retraining peer import with SHA-256 verification and automatic `$HIVE` + `PTS` reuse royalty settlement
+    - Swarm Mining Guild synergy multipliers (`1.30x`–`1.45x`) and Guild Alliance Leaderboard
+    """
+    from hivemind.swarm.hf_community_hub import (
+        CommunityAdapterBundleManager,
+        SwarmMiningGuildEngine,
+    )
+
+    store = ContentAddressedSwarmStore(tmp_path / "community_cas")
+    manager = CommunityAdapterBundleManager(store=store)
+
+    def _make_adapter(rank_r: int, seed: int) -> dict[str, torch.Tensor]:
+        gen = torch.Generator().manual_seed(seed)
+        return {
+            "base_model.model.model.layers.0.mlp.gate_proj.lora_A.default.weight": torch.randn(
+                rank_r, 64, generator=gen
+            ),
+            "base_model.model.model.layers.0.mlp.gate_proj.lora_B.default.weight": torch.randn(
+                128, rank_r, generator=gen
+            ),
+        }
+
+    bundle_dir = tmp_path / "hf_bundle_s4_guild02"
+    pub = manager.create_and_publish_bundle(
+        bundle_id="HIVEMIND-S4-POLYGLOT-BUNDLE-V1",
+        bundle_title="HiveMind Season 4 Multi-Vendor & ZK-OPoI Community Bundle",
+        guild_id="GUILD-02-GLOBAL-ZK-GUARDIANS",
+        domain_adapters={
+            "Rust_Systems_Security": {
+                "lora_state_dict": _make_adapter(8, 101),
+                "dataset_id": "anon/rust-code-instructions",
+                "author_gamer_tag": "CyberValkyrie_FR",
+                "author_contributor_handle": "@xaviercallens",
+                "baseline_loss": 6.45,
+                "trained_loss": 0.35,
+            },
+            "ZK_OPoI_Prover": {
+                "lora_state_dict": _make_adapter(32, 202),
+                "dataset_id": "hivemind/opoi-merkle-activations",
+                "author_gamer_tag": "ZeroCool_UK",
+                "author_contributor_handle": "@clark719664",
+                "baseline_loss": 6.12,
+                "trained_loss": 0.41,
+            },
+            "Triton_Kernel_Synth": {
+                "lora_state_dict": _make_adapter(64, 303),
+                "dataset_id": "hivemind/triton-int4-fp8-kernels",
+                "author_gamer_tag": "NeuralGhost_DE",
+                "author_contributor_handle": "@pedromineo",
+                "baseline_loss": 5.98,
+                "trained_loss": 0.38,
+            },
+        },
+        output_dir=bundle_dir,
+        canonical_rank_r=16,
+    )
+
+    assert (bundle_dir / "README.md").exists()
+    assert (bundle_dir / "adapter_config.json").exists()
+    assert (bundle_dir / "hivemind_swarm_manifest.json").exists()
+    readme_text = (bundle_dir / "README.md").read_text(encoding="utf-8")
+    assert "library_name: peft" in readme_text
+    assert "@clark719664" in readme_text and "@pedromineo" in readme_text
+    assert pub["export_info"]["num_experts_exported"] == 3
+
+    import_res = manager.import_community_bundle(
+        bundle_dir=bundle_dir,
+        importer_agent_id="seti-node-tokyo-04",
+    )
+    assert import_res["status"] == "verified_and_hotplugged"
+    assert import_res["sha256_verified"] is True
+    assert import_res["royalties_settled_hive"] == 45.0
+    assert import_res["royalties_settled_pts"] == 750
+    assert manager.ledger.get_balance("CyberValkyrie_FR") >= 15.0
+
+    guild_engine = SwarmMiningGuildEngine()
+    act = guild_engine.record_guild_bundle_activity(
+        guild_id="GUILD-02-GLOBAL-ZK-GUARDIANS",
+        base_pts_earned=2000,
+        base_hive_earned=100.0,
+        peer_imports_count=3,
+    )
+    assert act["boosted_pts_added"] == int(2000 * 1.45)
+    lb = guild_engine.build_guild_leaderboard()
+    assert lb["num_guilds"] == 3
+    assert lb["top_guild_champion"]["guild_id"] == "GUILD-02-GLOBAL-ZK-GUARDIANS"
+

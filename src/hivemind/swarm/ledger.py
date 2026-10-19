@@ -266,6 +266,23 @@ class HiveSwarmLedger:
         self._persist()
         return receipt
 
+    def credit_reward(
+        self,
+        node_id: str,
+        amount_hive: float,
+        reason: str = "",
+    ) -> float:
+        """Credit a peer reuse royalty or community bundle reward to `node_id`."""
+        del reason
+        self.balances[node_id] = round(self.balances.get(node_id, 0.0) + float(amount_hive), 6)
+        self.reputation_scores[node_id] = self.reputation_scores.get(node_id, 100) + 5
+        self._persist()
+        return self.balances[node_id]
+
+    def get_balance(self, node_id: str) -> float:
+        """Return the current `$HIVE` balance for `node_id`."""
+        return round(self.balances.get(node_id, 0.0), 6)
+
     def verify_chain_integrity(self) -> bool:
         """Cryptographically verify every block hash and prev_block_hash link from genesis."""
         if not self.chain:

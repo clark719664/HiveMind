@@ -87,7 +87,7 @@ def train_single_domain_lora_adapter(
     lora_rank_r: int = 16,
     lora_alpha: int = 32,
     inner_steps: int = 12,
-    lr: float = 0.08,
+    lr: float = 0.11,
     topk_ratio: float = 0.05,
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
     """
@@ -95,6 +95,8 @@ def train_single_domain_lora_adapter(
     `reference_lora_state`, compresses the delta with `Top-k (k=0.05) + FP8 (float8_e4m3fn)`,
     and returns the reconstructed state dict alongside convergence and compression telemetry.
     """
+    import hashlib
+
     spec = SEASON_3_DOMAIN_EXPERT_SPECS.get(
         domain_name,
         {
@@ -107,7 +109,7 @@ def train_single_domain_lora_adapter(
         domain_name,
         CURATED_SEASON3_DOMAIN_CORPORA["Rust_Systems_Security"],
     )
-    domain_seed = abs(hash(domain_name)) % 10_000 + 101
+    domain_seed = int(hashlib.sha256(domain_name.encode("utf-8")).hexdigest()[:8], 16) % 10_000 + 101
 
     prefix_groups: Dict[str, Dict[str, torch.Tensor]] = {}
     for k, v in reference_lora_state.items():

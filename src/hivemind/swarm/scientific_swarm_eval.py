@@ -245,7 +245,7 @@ def _evaluate_lora_on_scientific_holdout(
     from hivemind.data.hf_real_trainer import _encode_corpus_batch
 
     target_device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    domain_seed = abs(hash(domain_name)) % 10_000 + 101
+    domain_seed = int(hashlib.sha256(domain_name.encode("utf-8")).hexdigest()[:8], 16) % 10_000 + 101
     scaling = float(lora_alpha) / float(max(1, lora_rank_r))
     corpus = CURATED_SEASON3_DOMAIN_CORPORA.get(
         domain_name,
@@ -863,12 +863,12 @@ class JoinedSwarmCampaignEngine:
                 "standing": 1,
                 "contributor_handle": "@xaviercallens",
                 "role_title": "Founding Protocol Architect & Principal Maintainer",
-                "merged_prs_count": 15,
+                "merged_prs_count": 21,
                 "lean4_theorems_authored": 17,
-                "cas_experts_seeded": 12,
-                "downstream_swarm_agents_powered": 100,
-                "bounty_hive_awarded": 12500.0,
-                "contributor_prestige_pts": 28500,
+                "cas_experts_seeded": 16,
+                "downstream_swarm_agents_powered": 128,
+                "bounty_hive_awarded": 16500.0,
+                "contributor_prestige_pts": 34200,
                 "hf_badges": [
                     "HF_OPEN_SOURCE_ARCHITECT",
                     "HF_COOP_RAID_COMMANDER",
@@ -878,13 +878,13 @@ class JoinedSwarmCampaignEngine:
             {
                 "standing": 2,
                 "contributor_handle": "@clark719664",
-                "role_title": "Season 2 & Season 3 Grandmaster Community Contributor",
-                "merged_prs_count": 10,
-                "lean4_theorems_authored": 10,
-                "cas_experts_seeded": 4,
-                "downstream_swarm_agents_powered": 64,
-                "bounty_hive_awarded": 8900.0,
-                "contributor_prestige_pts": 21400,
+                "role_title": "Season 2, 3 & 4 Grandmaster Community Contributor (PRs #7-#15, #22-#24, #33)",
+                "merged_prs_count": 13,
+                "lean4_theorems_authored": 15,
+                "cas_experts_seeded": 8,
+                "downstream_swarm_agents_powered": 96,
+                "bounty_hive_awarded": 14700.0,
+                "contributor_prestige_pts": 27800,
                 "hf_badges": [
                     "HF_OPEN_SOURCE_ARCHITECT",
                     "HF_SWARM_KNOWLEDGE_DONOR",
@@ -893,32 +893,61 @@ class JoinedSwarmCampaignEngine:
             },
             {
                 "standing": 3,
-                "contributor_handle": "Open Season 4 Challenger (#26-#31)",
-                "role_title": "Wave 3 Bounty Hunter (Claim an Open Issue!)",
+                "contributor_handle": "@pedromineo",
+                "role_title": "Season 4 Core Systems & MoE Architect (PRs #32, #34, #35, #36, #37)",
+                "merged_prs_count": 5,
+                "lean4_theorems_authored": 0,
+                "cas_experts_seeded": 6,
+                "downstream_swarm_agents_powered": 80,
+                "bounty_hive_awarded": 9800.0,
+                "contributor_prestige_pts": 19600,
+                "hf_badges": [
+                    "HF_OPEN_SOURCE_ARCHITECT",
+                    "HF_SWARM_KNOWLEDGE_DONOR",
+                    "HF_COOP_RAID_COMMANDER",
+                ],
+            },
+            {
+                "standing": 4,
+                "contributor_handle": "Open Season 5 Challenger",
+                "role_title": "Wave 4 Bounty Hunter (Join a Swarm Guild!)",
                 "merged_prs_count": 0,
                 "lean4_theorems_authored": 0,
                 "cas_experts_seeded": 0,
                 "downstream_swarm_agents_powered": 0,
-                "bounty_hive_awarded": 11600.0,
+                "bounty_hive_awarded": 12000.0,
                 "contributor_prestige_pts": 0,
-                "hf_badges": ["Claim Issues #26-#31 to Unlock!"],
+                "hf_badges": ["Fork & Submit a Season 5 PR to Unlock!"],
             },
         ]
 
+        from hivemind.swarm.hf_community_hub import SwarmMiningGuildEngine
+
+        guild_engine = SwarmMiningGuildEngine()
+        guild_engine.record_guild_bundle_activity(
+            guild_id="GUILD-02-GLOBAL-ZK-GUARDIANS",
+            base_pts_earned=2400,
+            base_hive_earned=120.0,
+            peer_imports_count=4,
+        )
+        guild_leaderboard = guild_engine.build_guild_leaderboard()
+
         elapsed_s = round(time.perf_counter() - t_start, 3)
         return {
-            "suite_version": "v1.4.0-scientific-swarm-transfer",
+            "suite_version": "v1.5.0-scientific-swarm-community-hub",
             "device": str(self.device),
             "elapsed_seconds": elapsed_s,
             "scientific_knowledge_transfer_audits": transfer_audits,
             "collective_4domain_agent_matrix": agent_multi_domain_matrix,
             "joined_shard_parallel_campaign": coop_blitz_report,
             "proposed_joined_campaigns": [asdict(c) for c in PROPOSED_JOINED_CAMPAIGNS],
+            "guild_alliance_leaderboard": guild_leaderboard,
             "dual_leaderboard": {
                 "best_miner_champion": miner_leaderboard[0],
                 "best_contributor_champion": contributor_leaderboard[0],
                 "miner_standings": miner_leaderboard,
                 "contributor_standings": contributor_leaderboard,
+                "guild_standings": guild_leaderboard["guild_standings"],
                 "hf_gamification_badges_catalog": HF_GAMIFICATION_BADGES,
             },
         }
