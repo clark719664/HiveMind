@@ -9,12 +9,16 @@ Implements the 4 Phase 2 Swarm Fabric milestones:
   FP8 (`float8_e4m3fn`) hidden-state wire compression.
 - M4 (OpenAI Gateway & OPoI): Probabilistic 5% Optimistic Proof-of-Inference (OPoI) activation
   audits, Layer-2 `$HIVE` state channels, and `/v1/chat/completions` OpenAI-compatible proxy.
+- S4 (HM-S4-03, ZK-OPoI v2): Layer-wise FP8 + per-row FP16 absmax activation commitments bound
+  into a binary Merkle tree with `O(log L)` inclusion proofs and dual
+  (`cosine_similarity`, normalized `L_infinity`) acceptance bounds.
 """
 
 from __future__ import annotations
 
 import hashlib
 import hmac
+import math
 import random
 import time
 from dataclasses import dataclass, field
@@ -696,12 +700,58 @@ class TokenTreeSpeculativeVerifier:
 # ============================================================================
 
 
-class OptimisticProofOfInferenceAuditor:
-    """M4: Probabilistic 5% Optimistic Proof-of-Inference (OPoI) Activation Auditor & Merkle Dispute Game (`HM-M4-02`)."""
+@dataclass
+class MerkleInclusionProof:
+    """HM-S4-03: `O(log L)` Merkle sibling path binding one quantized activation leaf to a root."""
 
-    def __init__(self, audit_probability: float = 0.05, min_cosine_sim: float = 0.99) -> None:
+    layer_idx: int
+    leaf_hash: str
+    siblings: List[str]
+    directions: List[int]
+    root: str
+    tree_size: int
+
+    @property
+    def proof_depth(self) -> int:
+        """Number of sibling hashes carried by the inclusion path (`O(log L)`)."""
+        return len(self.siblings)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Wire-format (JSON serializable) representation of the inclusion proof."""
+        return {
+            "layer_idx": self.layer_idx,
+            "leaf_hash": self.leaf_hash,
+            "siblings": list(self.siblings),
+            "directions": list(self.directions),
+            "root": self.root,
+            "tree_size": self.tree_size,
+            "proof_depth": self.proof_depth,
+        }
+
+
+class OptimisticProofOfInferenceAuditor:
+    """M4: Probabilistic 5% Optimistic Proof-of-Inference (OPoI) Activation Auditor & Merkle Dispute Game (`HM-M4-02`).
+
+    Season 4 (`HM-S4-03`) upgrades the auditor to **ZK-OPoI v2**: every layer's hidden state is
+    quantized to FP8 (`float8_e4m3fn`) with a per-row FP16 absmax scale, both are bound into a
+    binary Merkle tree, and a single audited layer is proven with an `O(log L)` inclusion path.
+    Two *independent* acceptance bounds must hold for a spot-check to pass:
+    `cosine_similarity >= 0.99` **and** a normalized `L_infinity` deviation bound.
+    """
+
+    def __init__(
+        self,
+        audit_probability: float = 0.05,
+        min_cosine_sim: float = 0.99,
+        max_normalized_linf: float = 0.10,
+    ) -> None:
         self.audit_probability = audit_probability
         self.min_cosine_sim = min_cosine_sim
+        self.max_normalized_linf = max_normalized_linf
+        # HM-S4-03: layer-wise quantized activation commitment (Merkle) state
+        self._merkle_leaves: List[str] = []
+        self._merkle_levels: List[List[str]] = []
+        self.merkle_root: str = ""
 
     def should_spot_audit_token(self, rng_seed: int | None = None) -> bool:
         rng = random.Random(rng_seed)
@@ -733,6 +783,203 @@ class OptimisticProofOfInferenceAuditor:
     def _hash_activation_tensor(t: torch.Tensor) -> str:
         vals = [round(float(x), 3) for x in t.detach().flatten().to(torch.float32)[:32].tolist()]
         return hashlib.sha256(str(vals).encode("utf-8")).hexdigest()
+
+    # ------------------------------------------------------------------
+    # HM-S4-03 (ZK-OPoI v2): Layer-Wise Merkle Commitment & Inclusion Proofs
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _raw_bytes(t: torch.Tensor) -> bytes:
+        """Serialize the raw little-endian bytes of a tensor for cryptographic commitment."""
+        flat = t.detach().cpu().contiguous().reshape(-1)
+        return flat.view(torch.uint8).numpy().tobytes()
+
+    @staticmethod
+    def _hash_merkle_pair(left: str, right: str) -> str:
+        """Binary Merkle node hash: `SHA256(left_hex || right_hex)`."""
+        return hashlib.sha256((left + right).encode("utf-8")).hexdigest()
+
+    @classmethod
+    def _quantized_leaf_hash(cls, packet: CompressedHiddenStatePacket) -> str:
+        """Bind the FP8 quantized hidden state **and** its per-row FP16 absmax scale into one leaf."""
+        fp8_bytes = cls._raw_bytes(packet.fp8_data)
+        scale_bytes = cls._raw_bytes(packet.absmax_scale)
+        metadata = (
+            "zk_opoi_v2|fp8=float8_e4m3fn|scale=float16"
+            f"|shape={tuple(packet.original_shape)}|scale_shape={tuple(packet.absmax_scale.shape)}"
+        )
+        digest = hashlib.sha256()
+        digest.update(fp8_bytes)
+        digest.update(b"|")
+        digest.update(scale_bytes)
+        digest.update(b"|")
+        digest.update(metadata.encode("utf-8"))
+        return digest.hexdigest()
+
+    def layer_commitment_hash(self, activation: torch.Tensor) -> str:
+        """HM-S4-03: Canonical leaf hash of one layer's FP8 + per-row FP16 absmax activation."""
+        return self._quantized_leaf_hash(compress_hidden_states_fp8(activation))
+
+    def commit_layer_activations(self, activations: Sequence[torch.Tensor]) -> Dict[str, Any]:
+        """HM-S4-03: Quantize every layer and bind the leaf hashes into a binary Merkle tree."""
+        if not activations:
+            raise ValueError("commit_layer_activations() requires at least one layer activation.")
+
+        leaves: List[str] = [self.layer_commitment_hash(act) for act in activations]
+
+        levels: List[List[str]] = [list(leaves)]
+        while len(levels[-1]) > 1:
+            current = levels[-1]
+            next_level: List[str] = []
+            for i in range(0, len(current), 2):
+                left = current[i]
+                # Odd-length level: the trailing node is duplicated into the next layer.
+                right = current[i + 1] if i + 1 < len(current) else current[i]
+                next_level.append(self._hash_merkle_pair(left, right))
+            levels.append(next_level)
+
+        self._merkle_leaves = leaves
+        self._merkle_levels = levels
+        self.merkle_root = levels[-1][0]
+
+        return {
+            "merkle_root": self.merkle_root,
+            "num_layers": len(leaves),
+            "leaf_hashes": list(leaves),
+            "tree_depth": len(levels) - 1,
+            "max_proof_depth": len(levels) - 1,
+            "proof_complexity": "O(log L)",
+            "quantization": "float8_e4m3fn+fp16_absmax_per_row",
+        }
+
+    def build_merkle_inclusion_proof(self, layer_idx: int) -> MerkleInclusionProof:
+        """HM-S4-03: Build the `O(log L)` Merkle sibling path for one committed layer."""
+        if not self._merkle_levels:
+            raise ValueError(
+                "No activation commitment exists: call commit_layer_activations() before building proofs."
+            )
+        if layer_idx < 0 or layer_idx >= len(self._merkle_leaves):
+            raise IndexError(
+                f"layer_idx {layer_idx} is out of range for {len(self._merkle_leaves)} committed layers."
+            )
+
+        siblings: List[str] = []
+        directions: List[int] = []
+        idx = layer_idx
+        for level in self._merkle_levels[:-1]:
+            sibling_idx = idx ^ 1
+            if sibling_idx < len(level):
+                siblings.append(level[sibling_idx])
+                directions.append(0 if sibling_idx < idx else 1)
+            else:
+                # Odd-length level: the trailing node was duplicated (its sibling is itself).
+                siblings.append(level[idx])
+                directions.append(1)
+            idx = idx >> 1
+
+        return MerkleInclusionProof(
+            layer_idx=layer_idx,
+            leaf_hash=self._merkle_leaves[layer_idx],
+            siblings=siblings,
+            directions=directions,
+            root=self.merkle_root,
+            tree_size=len(self._merkle_leaves),
+        )
+
+    @staticmethod
+    def _as_inclusion_proof(proof: "MerkleInclusionProof | Dict[str, Any]") -> MerkleInclusionProof:
+        if isinstance(proof, MerkleInclusionProof):
+            return proof
+        return MerkleInclusionProof(
+            layer_idx=int(proof.get("layer_idx", -1)),
+            leaf_hash=str(proof.get("leaf_hash", "")),
+            siblings=[str(s) for s in proof.get("siblings", [])],
+            directions=[int(d) for d in proof.get("directions", [])],
+            root=str(proof.get("root", "")),
+            tree_size=int(proof.get("tree_size", 0)),
+        )
+
+    def verify_merkle_inclusion_proof(
+        self,
+        proof: "MerkleInclusionProof | Dict[str, Any]",
+        leaf_hash: str | None = None,
+        expected_root: str | None = None,
+    ) -> Dict[str, Any]:
+        """HM-S4-03: Recompute the Merkle root from an inclusion path and check the leaf binding."""
+        parsed = self._as_inclusion_proof(proof)
+        leaf = leaf_hash or parsed.leaf_hash
+        computed_root = leaf
+        for sibling, direction in zip(parsed.siblings, parsed.directions):
+            if direction == 0:
+                computed_root = self._hash_merkle_pair(sibling, computed_root)
+            else:
+                computed_root = self._hash_merkle_pair(computed_root, sibling)
+
+        root = expected_root or parsed.root
+        included = computed_root == root
+        log_l_depth = math.ceil(math.log2(max(2, parsed.tree_size))) if parsed.tree_size else 0
+        return {
+            "layer_idx": parsed.layer_idx,
+            "included": included,
+            "root_match": included,
+            "computed_root": computed_root,
+            "expected_root": root,
+            "leaf_hash": leaf,
+            "proof_depth": parsed.proof_depth,
+            "tree_size": parsed.tree_size,
+            "is_log_l_proof": parsed.proof_depth <= log_l_depth,
+            "slashed": not included,
+        }
+
+    def audit_quantized_activation(
+        self,
+        peer_id: str,
+        claimed_activation: torch.Tensor,
+        recomputed_activation: torch.Tensor,
+    ) -> Dict[str, Any]:
+        """HM-S4-03: Dual-threshold audit in the quantized domain (cosine **and** normalized `L_inf`).
+
+        The comparison happens on the dequantized FP8/FP16 activations, i.e. exactly the domain
+        bound by the Merkle commitment. The normalized `L_infinity` bound is required because the
+        cosine similarity is scale invariant: a pure gain/scale forgery keeps
+        `cosine_similarity = 1.0` and is only exposed by the `L_infinity` bound.
+        """
+        claimed_packet = compress_hidden_states_fp8(claimed_activation)
+        recomputed_packet = compress_hidden_states_fp8(recomputed_activation)
+        a = decompress_hidden_states_fp8(claimed_packet, target_dtype=torch.float32).flatten()
+        b = decompress_hidden_states_fp8(recomputed_packet, target_dtype=torch.float32).flatten()
+
+        if a.numel() != b.numel():
+            raise ValueError(
+                "Claimed and recomputed activations must hold the same number of elements "
+                f"({a.numel()} != {b.numel()})."
+            )
+
+        cos_sim = float(
+            torch.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
+        )
+        linf = float((a - b).abs().max().item())
+        reference_absmax = float(b.abs().max().item())
+        normalized_linf = linf / max(reference_absmax, 1e-6)
+
+        cosine_passed = cos_sim >= self.min_cosine_sim
+        linf_passed = normalized_linf <= self.max_normalized_linf
+        dual_bound_passed = bool(cosine_passed and linf_passed)
+
+        return {
+            "peer_id": peer_id,
+            "cosine_similarity": round(cos_sim, 6),
+            "cosine_threshold": self.min_cosine_sim,
+            "cosine_passed": cosine_passed,
+            "normalized_linf": round(normalized_linf, 6),
+            "linf_bound": self.max_normalized_linf,
+            "linf_passed": linf_passed,
+            "max_abs_diff": round(linf, 6),
+            "reference_absmax": round(reference_absmax, 6),
+            "dual_bound_passed": dual_bound_passed,
+            "zk_opoi_passed": dual_bound_passed,
+            "slashed": not dual_bound_passed,
+        }
 
     def run_merkle_fraud_dispute_game(
         self,
