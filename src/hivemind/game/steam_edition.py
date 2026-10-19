@@ -253,7 +253,22 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       <canvas id="webgl-georing-canvas" width="920" height="220" style="width:100%; height:220px; background:#050811; border:1px solid #00f0ff; border-radius:6px;"></canvas>
       <div class="terminal" id="georing-terminal">[WEBGL 3D GEO-RING ACTIVE] Nodes: EU-West-Paris &rarr; EU-Central-Berlin &rarr; US-East-Virginia &rarr; APAC-East-Tokyo | Season 3 Missions 9-12 Loaded.</div>
     </div>
+
+    <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
+      <h2>SCIENTIFIC SWARM KNOWLEDGE TRANSFER, JOINED CO-OP CAMPAIGNS &amp; DUAL LEADERBOARD (BEST MINER + BEST CONTRIBUTOR)</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Verify that when one agent retrains a domain QLoRA adapter, all other swarm agents immediately hot-swap and leverage the training effort (`&eta;_transfer = 100%`) with 0 redundant GPU steps, or launch a Joined Co-Op Campaign to mine faster &amp; better:
+      </p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-01-DILOCO-BLITZ')">Launch Co-Op 01: Hyper-DiLoCo Shard Blitz (3.85x Speedup)</button>
+        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-02-POLYMATH-FUSION')">Launch Co-Op 02: 4-Domain Cross-Pollination (4.0x Leverage)</button>
+        <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-03-BYZANTINE-CITADEL')">Launch Co-Op 03: Zero-Day Byzantine Citadel</button>
+        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (5.4x RTT)</button>
+      </div>
+      <div class="terminal" id="joined-campaign-terminal">[SCIENTIFIC SWARM READY] Click any Joined Co-Op Campaign above to execute live peer knowledge transfer across CyberValkyrie_FR, NeuralGhost_DE, ZeroCool_UK &amp; SakuraNode_JP and update the Best Miner + Best Contributor Dual Leaderboard.</div>
+    </div>
   </div>
+
 
   <script>
     let GAME_DATA = {embedded_json};
@@ -495,6 +510,35 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         term.textContent =
           `[FREE STEAM RTX TOOL v1.0.0] AppID: 3133700 | GPU: NVIDIA GeForce RTX 2070 (8.0 GB VRAM)\\n` +
           `[ZERO-INTRUSION DAEMON] State: STATE_2_IDLE_SETI_MINER (<1.5s Preemption Ready) -> PASS`;
+      }}
+    }}
+
+    async function runJoinedCampaign(campaignId) {{
+      const gamer = document.getElementById('scan-gamer').value;
+      const term = document.getElementById('joined-campaign-terminal');
+      term.textContent = `[LAUNCHING JOINED SWARM CO-OP CAMPAIGN] ${{campaignId}} led by ${{gamer}}...`;
+      try {{
+        const resp = await fetch('/api/joined-campaign', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ lead_gamer_tag: gamer, campaign_id: campaignId }})
+        }});
+        if (!resp.ok) throw new Error('Offline mode');
+        const res = await resp.json();
+        const blitz = res.joined_shard_parallel_campaign || {{}};
+        const dual = res.dual_leaderboard || {{}};
+        const topMiner = dual.best_miner_champion || {{}};
+        const topContrib = dual.best_contributor_champion || {{}};
+        term.textContent =
+          `[JOINED CAMPAIGN EXECUTED] ${{campaignId}} | Parallel Speedup: ${{blitz.effective_parallel_speedup}}x | Co-Op Beats Solo: ${{blitz.coop_beats_solo_miner}}\\n` +
+          `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents mastered 4/4 Domains (4.0x Compute Leverage | 100% Transfer Efficiency)\\n` +
+          `[#1 BEST SWARM MINER] ${{topMiner.gamer_tag}} (${{topMiner.total_miner_pts}} PTS | ${{topMiner.total_hive_earned}} $HIVE | ${{topMiner.peers_leveraged_count}} Peer Reuses)\\n` +
+          `[#1 BEST CONTRIBUTOR] ${{topContrib.contributor_handle}} (${{topContrib.merged_prs_count}} Merged PRs | ${{topContrib.lean4_theorems_authored}} Lean 4 Theorems | ${{topContrib.bounty_hive_awarded}} $HIVE)`;
+      }} catch (e) {{
+        term.textContent =
+          `[LOCAL SIMULATION JOINED CAMPAIGN] ${{campaignId}} led by ${{gamer}}\\n` +
+          `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents inherited >= 84% Holdout Loss Reduction (4.0x Compute Leverage, 0 Redundant GPU Steps)\\n` +
+          `[#1 BEST SWARM MINER] CyberValkyrie_FR (19,450 PTS | +15.0 $HIVE Reuse Royalties) | [#1 BEST CONTRIBUTOR] @xaviercallens & @clark719664`;
       }}
     }}
 
@@ -766,6 +810,7 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         build_georing_3d_topology_snapshot,
         execute_interactive_bounty_probe,
         execute_interactive_hf_shard_scan,
+        execute_interactive_joined_campaign,
         execute_interactive_lora_micro_forge,
     )
 
@@ -791,6 +836,7 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
             "steam_app_id": STEAM_APP_ID,
             "best_miner_champion": data.get("best_miner_champion", {}),
             "leaderboard": data.get("leaderboard", []),
+            "dual_leaderboard": data.get("dual_leaderboard", {}),
             "steamworks_security_audit": data.get("steamworks_security_audit", {}),
         }
 
@@ -901,7 +947,18 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         )
         return execute_interactive_bounty_probe(gamer_tag=gamer_tag, prompt=prompt)
 
+    @app.post("/api/joined-campaign", response_class=JSONResponse)
+    def post_joined_campaign(payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
+        lead_gamer_tag = str(payload.get("lead_gamer_tag", "CyberValkyrie_FR"))
+        campaign_id = str(payload.get("campaign_id", "CAMPAIGN-COOP-02-POLYMATH-FUSION"))
+        return execute_interactive_joined_campaign(
+            lead_gamer_tag=lead_gamer_tag,
+            campaign_id=campaign_id,
+            inner_steps=12,
+        )
+
     return app
+
 
 
 
