@@ -104,8 +104,8 @@ now true. Commit tested checkpoints and give the user exact SHAs and commands.
 
 ## Final cloud verification
 
-The final source suite passed 467 tests, with 2 opt-in live-network skips and
-4 PEFT warnings, in 60.48 seconds. Real Lean was available; hardware was CPU-only.
+The final source suite passed 470 tests, with 2 opt-in live-network skips and
+4 PEFT warnings, in 59.77 seconds. Real Lean was available; hardware was CPU-only.
 Generated Steam HTML and paper run reports were excluded from publication.
 Generate the HUD locally from the updated source renderer; do not treat the
 previous checked-in static snapshot as the updated UI.
