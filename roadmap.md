@@ -1,5 +1,7 @@
 # 🗺️ Project HiveMind — Master Engineering Roadmap & Peer Development Plan
 
+> **Steam status:** The Hack-Miner is a local prototype. The previously advertised App ID belongs to another product; see [Steam integration status](docs/STEAM_STATUS.md). Leaderboards and cloud saves on `main` are local simulations, not verified Valve services.
+
 > **Mission:** Transform millions of idle consumer gaming GPUs (**8 GB–12 GB VRAM**) and local NVMe drives into a verifiable, Byzantine-fault-tolerant **Sparse Mixture-of-Experts (MoE)** training and inference supercomputer.
 
 ```mermaid
@@ -16,7 +18,7 @@ flowchart LR
         B2["M2: 3-Tier NVMe -> Pinned RAM -> VRAM\nAsync DMA (0ms Swap) + Macro/Micro Router"]
         B3["M3: Eagle/Medusa Token Tree Speculation\n(γ=6) + FP8 Hidden-State Wire"]
         B4["M4: OpenAI /v1/chat/completions Proxy\n+ 5% OPoI Audits + L2 $HIVE Channels"]
-        B5["M5: HiveMind: Neural Breach\nFree Steam Edition (AppID 3133700)"]
+        B5["M5: HiveMind: Neural Breach\nLocal Hack-Miner Prototype"]
     end
 
     subgraph P3["🚀 Phase 3: Global WAN Scale-Out (OPEN FOR CONTRIBUTORS)"]
@@ -50,9 +52,9 @@ All Phase 1 components are implemented, benchmarked on a local **NVIDIA GeForce 
 
 ---
 
-## ⚡ Phase 2 — "Swarm Fabric" (M1–M4) & Gamified Steam Edition (M5)
+## ⚡ Phase 2 — "Swarm Fabric" (M1–M4) & local Hack-Miner prototype (M5)
 
-The core Phase 2 **Swarm Fabric** engine (`src/hivemind/swarm/swarm_fabric.py`) and **Free Steam Edition** (`src/hivemind/game/`) are implemented and verified (`16/16` passing tests). We are actively scaling out with community contributors across five tracks:
+The core Phase 2 **Swarm Fabric** engine (`src/hivemind/swarm/swarm_fabric.py`) and **Local Hack-Miner Prototype** (`src/hivemind/game/`) are implemented and verified (`16/16` passing tests). We are actively scaling out with community contributors across five tracks:
 
 ### Milestone M1: Sub-20ms Regional Geo-Ring Transport (`feat/m1-*`)
 - [x] **Core Implemented:** `RegionalGeoRingTransport` with 160-bit Kademlia XOR distance routing and `<20 ms` regional peer admission (`src/hivemind/swarm/swarm_fabric.py`).
@@ -73,8 +75,8 @@ The core Phase 2 **Swarm Fabric** engine (`src/hivemind/swarm/swarm_fabric.py`) 
 - [ ] **Open Contributor Task [`HM-M4-01`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m4-01-streaming-sse-streamtrue-v1chatcompletions-proxy-for-cursor--continuedev):** Streaming SSE (`stream=True`) support on `/v1/chat/completions` for live integration with Cursor, Continue.dev, and Cline.
 - [ ] **Open Contributor Task [`HM-M4-02`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m4-02-merkle-proof-fraud-dispute-game-for-optimistic-proof-of-inference-opoi):** Merkle-proof activation dispute game & automated L2 escrow slashing.
 
-### Milestone M5: `HiveMind: Neural Breach` Free Steam Edition (`AppID: 3133700`) & Hugging Face Domains (`game/*`, `expert/*`)
-- [x] **Core Implemented:** Playable 3-Mission Hugging Face Hack-Miner (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`) + Final Boss 3-Expert Sparse MoE Speculative Raid (`5.60x` RTT speedup), Steamworks $5/VAC Sybil gate, HMAC Leaderboard receipts, and Cyberpunk Web HUD (`http://127.0.0.1:8090`).
+### Milestone M5: `HiveMind: Neural Breach` Local Hack-Miner Prototype & Hugging Face Domains (`game/*`, `expert/*`)
+- [x] **Core Implemented:** Playable 3-Mission Hugging Face Hack-Miner (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`) + Final Boss 3-Expert Sparse MoE Speculative Raid (`5.60x` RTT speedup), simulated Steam $5/VAC checks, HMAC Leaderboard receipts, and Cyberpunk Web HUD (`http://127.0.0.1:8090`).
 - [ ] **Open Contributor Task [`HM-M5-01`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m5-01-native-steam_api64dll-bridge--live-steam-rich-presence):** Native `steam_api64.dll` / `libsteam_api.so` ctypes wrapper for live Steam Overlay & Friends Rich Presence.
 - [ ] **Open Contributor Task [`HM-M5-02`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md#task-hm-m5-02-season-2-hugging-face-domain-expert-bounties):** Season 2 Hugging Face Domain Expert Missions (`Rust_Systems`, `CyberSecurity`, `Legal_Contracts`, `Multilingual_FR/ES`).
 

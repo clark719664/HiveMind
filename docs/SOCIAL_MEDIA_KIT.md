@@ -1,5 +1,7 @@
 # 📣 Project HiveMind — Community Promotion & Social Media Kit
 
+> **Steam status:** The Hack-Miner is a local prototype. The previously advertised App ID belongs to another product; see [Steam integration status](STEAM_STATUS.md). Leaderboards and cloud saves on `main` are local simulations, not verified Valve services.
+
 Use these ready-to-publish templates across **Reddit**, **Hacker News**, **X (Twitter)**, **LinkedIn**, **Discord / Hugging Face**, and **Steam Community Announcements** to rally contributors, gamers, and open-source ML engineers around **Project HiveMind**.
 
 ---
@@ -8,7 +10,7 @@ Use these ready-to-publish templates across **Reddit**, **Hacker News**, **X (Tw
 
 **Title Options:**
 - `[P] Project HiveMind: Turn idle 8GB–12GB gaming GPUs into a community-owned Sparse MoE cluster (4-bit NF4 DiLoCo-QLoRA + Branch-Train-Mix + P2P Speculative Decoding — Tested on RTX 2070)`
-- `[Open Source] We built SETI@home meets Petals & DiLoCo for 8GB consumer GPUs — train 4-bit NF4 domain experts offline, fuse them into a Top-2 Sparse MoE, and play the Free Steam Hugging Face Hack-Miner!`
+- `[Open Source] We built SETI@home meets Petals & DiLoCo for 8GB consumer GPUs — train 4-bit NF4 domain experts offline, fuse them into a Top-2 Sparse MoE, and play the local Hugging Face Hack-Miner prototype!`
 
 **Body (Markdown):**
 ```markdown
@@ -46,7 +48,7 @@ However, the gaming community sits on millions of idle RTX 20/30/40-series GPUs 
 
 4. **SETI-Swarm Lifecycle & Proof-of-Useful-Work (`$HIVE`)**
    - **Win32 Zero-Intrusion Daemon:** Hooks `GetLastInputInfo` and process tables — if you move your mouse or launch a game, the loop dumps its state to NVMe in `< 1.5s` and yields 100% of VRAM.
-   - **Gamified Free Steam Edition (`HiveMind: Neural Breach`, AppID `3133700`):** Players scan real Hugging Face datasets (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`), train local 4-bit NF4 QLoRA adapters to crack held-out bounties, fuse a 3-Expert Sparse MoE Boss, and compete on the Steamworks Leaderboard!
+   - **Gamified Local Hack-Miner Prototype (`HiveMind: Neural Breach`):** Players scan real Hugging Face datasets (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`), train local 4-bit NF4 QLoRA adapters to crack held-out bounties, fuse a 3-Expert Sparse MoE Boss, and compete on the local demo leaderboard!
 
 ---
 
@@ -116,8 +118,8 @@ hivemind play-hack-game --inner-steps 8
 > • Top-k + FP8 wire deltas: `16.78 MB -> 5.04 MB (3.33x)`
 > • Code (`2.65 -> 0.35`), STEM (`4.02 -> 0.16`), Math & FR all converged!
 
-**Tweet 5/6 (Free Steam Edition Hack-Miner):**
-> 🎮 We also built **HiveMind: Neural Breach** (Free Steam Edition, AppID `3133700`)!
+**Tweet 5/6 (Local Hack-Miner Prototype):**
+> 🎮 We also built **HiveMind: Neural Breach**!
 >
 > Gamers scan live @huggingface datasets (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`), train QLoRA adapters to crack held-out bounties (`204.05 -> 5.55` PPL drop!), and fuse a 3-Expert MoE Boss with `5.60x` speculative speedup!
 
@@ -147,7 +149,7 @@ hivemind play-hack-game --inner-steps 8
 > 1. **Zero-copy 4-bit NF4 + DiLoCo-QLoRA**: Streams open-weight safetensors (`Qwen2.5`) directly to `cuda:0` via meta-device initialization without CPU RAM spikes. Nodes train domain LoRA experts for $H$ local steps and upload Top-$k$ + `float8_e4m3fn` pseudo-gradients (`3.33x` wire reduction, `500x` lower communication frequency).
 > 2. **10% Spot-Check Validation + Multi-Krum**: Using deterministic CUDA settings (`CUBLAS_WORKSPACE_CONFIG=:4096:8`), validators replay a single 50-step micro-checkpoint segment ($\epsilon \le 10^{-4}$) instead of running 2x redundant BOINC workunits, and filter outlier poisoners outside $2\sigma$ pairwise cosine similarity.
 > 3. **Factored In-Place Sparse MoE Upcycling (Branch-Train-Mix)**: Averages self-attention adapters in-place and upcycles domain SwiGLU FFN branches into a Top-2 Sparse MoE (96 experts / 1.44B logical parameters running in `1,527 MiB` peak VRAM on an 8 GB RTX 2070, with the gating router $W_g$ kept in FP32 to avoid FP16 AdamW underflow).
-> 4. **Phase 2 "Swarm Fabric" & Free Steam Edition (`HiveMind: Neural Breach`)**: Includes Kademlia `<20ms` Geo-Rings (M1), Pinned Host RAM async DMA expert streaming (M2), Eagle/Medusa token tree verification $\gamma=6$ (M3), an OpenAI-compatible `/v1/chat/completions` gateway with 5% Optimistic Proof-of-Inference audits (M4), and a gamified Hugging Face Hack-Miner (`hivemind play-hack-game`).
+> 4. **Phase 2 "Swarm Fabric" & Local Hack-Miner Prototype (`HiveMind: Neural Breach`)**: Includes Kademlia `<20ms` Geo-Rings (M1), Pinned Host RAM async DMA expert streaming (M2), Eagle/Medusa token tree verification $\gamma=6$ (M3), an OpenAI-compatible `/v1/chat/completions` gateway with 5% Optimistic Proof-of-Inference audits (M4), and a gamified Hugging Face Hack-Miner (`hivemind play-hack-game`).
 >
 > We've structured the repo for peer development with scoped issues in `docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`. Would love your feedback on the deterministic CUDA validation and 3-tier DMA memory design!
 
@@ -165,7 +167,7 @@ Today we're releasing **Project HiveMind v2.1** (16/16 passing test suite, bench
 ✅ **Byzantine Fault Tolerance:** Deterministic 10% micro-checkpoint spot-checks ($\epsilon \le 10^{-4}$) + Multi-Krum 2-sigma poisoner defense.
 ✅ **Factored Branch-Train-Mix (BTM) Sparse MoE Upcycling:** 96 domain FFN experts (1.44B logical params) in just 1,527 MiB peak VRAM on an 8GB card!
 ✅ **Phase 2 "Swarm Fabric" (M1–M4):** Kademlia <20ms Geo-Rings, Pinned RAM -> VRAM async DMA (0ms swap), Token Tree Speculation ($\gamma=6$), and an OpenAI `/v1/chat/completions` proxy with 5% OPoI audits.
-🎮 **Bonus — `HiveMind: Neural Breach` (Free Steam Edition, AppID 3133700):** Scan real Hugging Face datasets (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`), train QLoRA experts to crack bounties, and climb the Steamworks Leaderboard!
+🎮 **Bonus — `HiveMind: Neural Breach`:** Scan real Hugging Face datasets (`CodeAlpaca-20k`, `PubMedQA`, `GSM8K`), train QLoRA experts to crack bounties, and climb the local demo leaderboard!
 
 🤝 **We are looking for open-source contributors!** Check out our contributor roadmap, branch/PR workflow, and `$HIVE` bounties:
 🔗 GitHub: https://github.com/xaviercallens/HiveMind

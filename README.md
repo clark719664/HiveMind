@@ -4,7 +4,7 @@
 [![Lean 4 Verified](https://img.shields.io/badge/Lean%204-17%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20(8GB%20VRAM)-76b900?style=for-the-badge)](artifacts/poc_qwen25_rtx2070_report.json)
-[![Steam Free Edition](https://img.shields.io/badge/Steam%20AppID-3133700%20(Free%20Edition)-1b2838?style=for-the-badge)](steam_dist/HiveMind_Steam_FreeEdition/)
+[![Local Hack-Miner Prototype](https://img.shields.io/badge/Hack--Miner-local%20prototype-1b2838?style=for-the-badge)](docs/STEAM_STATUS.md)
 [![Swarm Fabric](https://img.shields.io/badge/Phase%202-Swarm%20Fabric%20M1--M4-00f0ff?style=for-the-badge)](src/hivemind/swarm/swarm_fabric.py)
 [![PRs Welcome](https://img.shields.io/badge/PRs%20%26%20Bounties-Welcome%20(%24HIVE)-ff00a0?style=for-the-badge)](CONTRIBUTING.md)
 
@@ -16,7 +16,7 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 - 📄 **Foundational Research Article (LaTeX & 10-Page PDF):** [`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex)
 - 📐 **Machine-Checked Lean 4 Formal Specification (`0 sorry`, `0 axiom`):** [`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean)
 - 🧬 **AutoevolveAI Peer-Review & Cross-Session Pipeline:** [`paper/autoevolve_peer_review_pipeline.py`](paper/autoevolve_peer_review_pipeline.py) | [`paper/AUTOEVOLVE_SESSION_MANIFEST.json`](paper/AUTOEVOLVE_SESSION_MANIFEST.json)
-- 🎮 **Free-to-Play Steam Edition (`AppID: 3133700`):** [`HiveMind: Neural Breach // Hugging Face Hack-Miner`](steam_dist/HiveMind_Steam_FreeEdition/README_FREE_STEAM_EDITION.md)
+- 🎮 **Local Hack-Miner prototype:** [`HiveMind: Neural Breach // Hugging Face Hack-Miner`](steam_dist/HiveMind_Steam_FreeEdition/README_FREE_STEAM_EDITION.md). See [Steam integration status](docs/STEAM_STATUS.md) before trying the package.
 - 🛠️ **Contributor Tasks & `$HIVE` Bounties:** [`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 - 🤝 **Peer Development & PR Guide:** [`CONTRIBUTING.md`](CONTRIBUTING.md) | 📣 **Social Promotion Kit:** [`docs/SOCIAL_MEDIA_KIT.md`](docs/SOCIAL_MEDIA_KIT.md)
 
@@ -101,9 +101,11 @@ We built and verified the end-to-end PoC (`hivemind run-poc`) on a mid-range **8
 
 ---
 
-## 🎮 Free Steam Edition: `HiveMind: Neural Breach // Hugging Face Hack-Miner` (`AppID: 3133700`)
+## 🎮 Local prototype: `HiveMind: Neural Breach // Hugging Face Hack-Miner`
 
-To make decentralized AI training engaging for the gaming community, Project HiveMind includes a **100% Free-to-Play Steam Edition** ([`steam_dist/HiveMind_Steam_FreeEdition`](steam_dist/HiveMind_Steam_FreeEdition)) where players compete on the **Steamworks Global Leaderboard** by scanning real Hugging Face datasets, training 4-bit NF4 QLoRA experts on their GPU, cracking held-out bounties, and fusing a **3-Expert Sparse MoE Final Boss** (`E=2 -> E=3` hot-plug):
+Project HiveMind includes a **local Hack-Miner prototype** ([`steam_dist/HiveMind_Steam_FreeEdition`](steam_dist/HiveMind_Steam_FreeEdition)) that presents dataset scanning, GPU QLoRA training, and a combined MoE model as missions and a boss raid. Its leaderboard, achievements and cloud-save files are local demo features. The previously advertised Steam App ID belongs to an unrelated product; this repository does not provide a verified HiveMind Steam installation link. See [Steam integration status](docs/STEAM_STATUS.md).
+
+The following tables are recorded local demo results, not live Steam standings or transferable reward balances:
 
 | Mission & Live Hugging Face Dataset | Pre-LoRA $\rightarrow$ Post-LoRA Solution Perplexity | Top Mission Miner | Expert CID Minted in Swarm Vault |
 | :--- | :---: | :---: | :--- |
@@ -112,7 +114,7 @@ To make decentralized AI training engaging for the gaming community, Project Hiv
 | **#3 Quantum Crypto-Proof** (`openai/gsm8k`) | `48.20 -> 5.45` (**-88.7% PPL**) | `CyberValkyrie_FR` | `cid://sha256/fa94cd52531f3b497b84...` |
 | **#4 Final Boss Speculative Raid** (`3-Expert Top-2 Sparse MoE`) | Router Loss `1.8602 -> 1.2981` | **`5.60x` RTT Speedup** ($\gamma=5$) | Peak VRAM: **`1,192.66 MiB`** (`5.62 GB` free) |
 
-### 🏆 Steamworks Season Leaderboard (`ISteamLeaderboards` HMAC Verified)
+### 🏆 Recorded local demo leaderboard (local HMAC receipts)
 
 | Rank | Gamer Tag & Cyber-Rank | Data Recon | LoRA Training | HF Bounty | Swarm & Boss Raid | Total Score & `$HIVE` |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -188,7 +190,7 @@ HiveMind/
 │   ├── game/                       # HiveMind: Neural Breach // Hugging Face Hack-Miner & Steam Packager
 │   └── cli/                        # CLI entrypoints (`run-poc`, `play-hack-game`, `serve-hack-hud`, etc.)
 ├── steam_dist/
-│   └── HiveMind_Steam_FreeEdition/ # Standalone Free Steam Edition package (AppID: 3133700) & Web HUD
+│   └── HiveMind_Steam_FreeEdition/ # Local launchers, demo metadata & Web HUD; requires repository
 ├── artifacts/                      # Verified RTX 2070 benchmark & Hack-Miner telemetry JSON reports
 └── tests/                          # 17/17 unit & integration test suite (`pytest -v`)
 ```
@@ -203,7 +205,7 @@ We welcome contributions from systems engineers, ML researchers, and gamers! See
 2. **Create a Topic Branch:**
    - `feat/m1-<slug>` | `feat/m2-<slug>` | `feat/m3-<slug>` | `feat/m4-<slug>` — Swarm Fabric milestones
    - `expert/<domain>-<dataset>` — New Hugging Face QLoRA domain expert & Hack-Miner mission
-   - `game/<slug>` — Free Steam Edition (`AppID: 3133700`) & Cyberpunk Web HUD improvements
+   - `game/<slug>` — Local Hack-Miner prototype & Cyberpunk Web HUD improvements
 3. **Verify the 8 GB VRAM Ceiling, Lean 4 Spec & Test Suite (`17/17` Tests):**
    ```bash
    uv run --no-sync pytest tests/ -v
@@ -225,7 +227,7 @@ pytest -v
 # 2. Run the real 4-bit NF4 Qwen2.5 + DiLoCo-QLoRA + 96-Expert Sparse MoE PoC
 hivemind run-poc --model-id Qwen/Qwen2.5-0.5B --lora-rank 16 --inner-steps 10
 
-# 3. Play the Gamified Hugging Face Hack-Miner (Free Steam Edition AppID 3133700)
+# 3. Play the local Hugging Face Hack-Miner prototype
 hivemind play-hack-game --inner-steps 8
 
 # 4. Launch the Interactive Cyberpunk Web HUD (http://127.0.0.1:8090)

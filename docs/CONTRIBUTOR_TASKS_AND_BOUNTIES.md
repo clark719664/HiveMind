@@ -1,6 +1,8 @@
 # 🛠️ Project HiveMind — Large Contributor Tasks, Architecture Roadmap & `$HIVE` Bounties
 
-> **Status:** Phase 1 & Local RTX 2070 PoC (`16/16` Passing Tests) + Gamified Steam Edition (`AppID: 3133700`) + Phase 2 Swarm Fabric Core (M1–M4) are **LIVE**.
+> **Steam status:** The Hack-Miner is a local prototype. The previously advertised App ID belongs to another product; see [Steam integration status](STEAM_STATUS.md). Leaderboards and cloud saves on `main` are local simulations, not verified Valve services.
+
+> **Status:** Phase 1 & Local RTX 2070 PoC (`16/16` Passing Tests) + local Hack-Miner prototype + Phase 2 Swarm Fabric Core (M1–M4) are **LIVE**.
 > We are now recruiting systems engineers, CUDA kernel developers, P2P networking hackers, ML researchers, and game developers to scale **Project HiveMind** from regional clusters to a global 10,000-node consumer GPU swarm!
 
 ---
@@ -16,7 +18,7 @@
 | **HM-M3-01** | **M3 (Tree Speculation)** | Custom Triton `float8_e4m3fn` Group-Quantization Kernel & Dynamic Medusa/Eagle Tree Mask ($\gamma=6..8$) | 🔴 Hard | `feat/m3-triton-fp8-tree` | `3,000 $HIVE` |
 | **HM-M4-01** | **M4 (OpenAI & OPoI)** | Streaming SSE (`stream=True`) `/v1/chat/completions` Proxy for Cursor, Continue.dev & Cline | 🟢 Starter | `feat/m4-openai-sse-stream` | `1,200 $HIVE` |
 | **HM-M4-02** | **M4 (OpenAI & OPoI)** | Merkle-Proof Fraud Dispute Game for Optimistic Proof-of-Inference (OPoI) & Layer-2 `$HIVE` Channels | 🔴 Hard | `feat/m4-opoi-dispute-game` | `2,500 $HIVE` |
-| **HM-M5-01** | **M5 (Steam Game)** | Native `steam_api64.dll` Ctypes/Pybind11 Binding for Live Steam Overlay & Rich Presence (`AppID: 3133700`) | 🟡 Medium | `game/steamworks-native-dll` | `1,800 $HIVE` |
+| **HM-M5-01** | **M5 (Steam Game)** | Native `steam_api64.dll` Ctypes/Pybind11 Binding for Live Steam Overlay & Rich Presence | 🟡 Medium | `game/steamworks-native-dll` | `1,800 $HIVE` |
 | **HM-M5-02** | **M5 (HF Domains)** | Season 2 Hugging Face Hack-Miner Missions: `Rust_Systems`, `CyberSec_Audit`, `Legal_Med`, `Multilingual_FR` | 🟢 Starter | `expert/<domain-name>` | `1,000 $HIVE` / expert |
 
 ---
@@ -82,11 +84,11 @@
 
 ---
 
-## 🎮 Track M5: `HiveMind: Neural Breach` Free Steam Edition (`AppID: 3133700`) & Hugging Face Domains (`src/hivemind/game/`)
+## 🎮 Track M5: `HiveMind: Neural Breach` Local Hack-Miner Prototype & Hugging Face Domains (`src/hivemind/game/`)
 
 ### Task `HM-M5-01`: Native `steam_api64.dll` Bridge & Live Steam Rich Presence
 - **Scope:**
-  1. Extend `SteamworksSDKBridge` (`src/hivemind/client/steamworks.py`) to dynamically load `steam_api64.dll` / `libsteam_api.so` when present alongside `steam_appid.txt` (`3133700`), while keeping deterministic HMAC fallback for headless/CI runs.
+  1. Extend `SteamworksSDKBridge` (`src/hivemind/client/steamworks.py`) to dynamically load `steam_api64.dll` / `libsteam_api.so` when present alongside a `steam_appid.txt` containing a verified, publisher-assigned HiveMind App ID, while keeping deterministic HMAC fallback for headless/CI runs.
   2. Broadcast live Steam Friends Rich Presence: `"Hack-Mining PubMedQA on RTX 2070 | Rank V: Singularity Core | +45.0 $HIVE"`.
 
 ### Task `HM-M5-02`: Season 2 Hugging Face Domain Expert Bounties

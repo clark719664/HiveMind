@@ -1,8 +1,10 @@
 # Contributing to Project HiveMind 🧠⚡
 
+> **Steam status:** The Hack-Miner is a local prototype. The previously advertised App ID belongs to another product; see [Steam integration status](docs/STEAM_STATUS.md). Leaderboards and cloud saves on `main` are local simulations, not verified Valve services.
+
 Welcome to **Project HiveMind** — the open-source decentralized training and inference framework (think **SETI@home / Folding@home** meets **Petals** and **DiLoCo**) that aggregates idle consumer gaming GPUs (**8 GB–12 GB VRAM**) and local NVMe storage into a community-owned **Sparse Mixture-of-Experts (MoE)** cluster.
 
-Whether you are a systems engineer optimizing **QUIC/Libp2p P2P rings**, a CUDA kernel hacker building **FP8 / asynchronous DMA pipelines**, an ML researcher training new **Hugging Face QLoRA domain experts**, or a game developer expanding **`HiveMind: Neural Breach` (Free Steam Edition — AppID `3133700`)**, this guide explains how our peer development workflow operates.
+Whether you are a systems engineer optimizing **QUIC/Libp2p P2P rings**, a CUDA kernel hacker building **FP8 / asynchronous DMA pipelines**, an ML researcher training new **Hugging Face QLoRA domain experts**, or a game developer expanding **`HiveMind: Neural Breach`**, this guide explains how our peer development workflow operates.
 
 ---
 
@@ -28,7 +30,7 @@ Large-scale peer development is organized into **5 modular tracks** so contribut
 | **BOINC & OpenAI Gateway (M4)** | `src/hivemind/boinc/` | Deterministic Spot-Check Validator ($\epsilon \le 10^{-4}$), Workunit dispatcher, `/v1/chat/completions` OpenAI proxy, OPoI 5% activation audits |
 | **Swarm Fabric (M1–M4)** | `src/hivemind/swarm/` | Kademlia XOR Geo-Rings (`<20ms` RTT), Pinned Host RAM async DMA (`cudaHostAlloc`), 2-Level Macro/Micro Router, Eagle/Medusa Token Tree Speculation ($\gamma=6$), `$HIVE` PoUW L1/L2 Ledger |
 | **Zero-Intrusion Daemon** | `src/hivemind/client/` | Win32 `GetLastInputInfo` idle hook, GPU process scanner, `<1.5s` NVMe emergency checkpoint & VRAM yield, Steamworks `ISteamUser` / `ISteamLeaderboards` anti-Sybil bridge |
-| **Steam Game (`AppID: 3133700`)** | `src/hivemind/game/` & `steam_dist/` | `HiveMind: Neural Breach // Hugging Face Hack-Miner`, Cyberpunk Web HUD (`:8090`), live HF shard recon, Boss Raid MoE fusion |
+| **Local Hack-Miner game** | `src/hivemind/game/` & `steam_dist/` | `HiveMind: Neural Breach // Hugging Face Hack-Miner`, Cyberpunk Web HUD (`:8090`), live HF shard recon, Boss Raid MoE fusion |
 
 👉 See **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)** for the full catalog of open engineering tasks and issue specs.
 
@@ -66,7 +68,7 @@ Always branch off the latest `main` using one of these prefixes:
 - `feat/m3-<slug>` — Milestone M3: Eagle/Medusa token tree speculative decoding & FP8 wire kernels
 - `feat/m4-<slug>` — Milestone M4: OpenAI `/v1/chat/completions` proxy, OPoI 5% audits & Layer-2 `$HIVE` state channels
 - `expert/<domain>-<dataset>` — New Hugging Face QLoRA domain expert branch & bounty mission
-- `game/<slug>` — `HiveMind: Neural Breach` Free Steam Edition (`AppID: 3133700`), Web HUD, or Steamworks SDK features
+- `game/<slug>` — `HiveMind: Neural Breach` Local Hack-Miner Prototype, Web HUD, or Steamworks SDK features
 - `fix/<slug>` — Bug fixes, 8 GB VRAM OOM fixes, or CUDA determinism patches
 - `docs/<slug>` — Documentation, benchmarks, tutorials, and community localization
 
@@ -136,4 +138,4 @@ Want to add a new domain expert (e.g., `Rust_Systems`, `Cybersecurity_Audit`, `L
 
 Merged Pull Requests that advance **Swarm Fabric (M1–M4)** or add verified **Hugging Face Domain Experts** receive:
 - **Genesis Contributor Allocation** recorded in the repository's PoUW Contributor Registry.
-- **Apex Architect Badge** in the `HiveMind: Neural Breach` Free Steam Edition (`AppID: 3133700`) Global Leaderboard.
+- **Apex Architect Badge** in the `HiveMind: Neural Breach` local demo leaderboard.
