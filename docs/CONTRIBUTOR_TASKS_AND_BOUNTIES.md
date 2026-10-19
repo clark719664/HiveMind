@@ -1,122 +1,85 @@
-# 🛠️ Project HiveMind — Large Contributor Tasks, Architecture Roadmap & `$HIVE` Bounties
+# 🛠️ Project HiveMind — Large-Scale Contributor Tasks, Empirical Results & `$HIVE` Bounties (`v1.3.0`)
+
+<div align="center">
+<img src="assets/hivemind_season3_results_and_roadmap.svg" alt="Project HiveMind Season 3 Empirical Results, Community Collaboration & Season 4 Roadmap" width="100%"/>
+</div>
 
 > **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
 >
-> **Status:** Phase 1 & Local RTX 2070 PoC (`20/20` Passing Tests) + Free Steam RTX Tool & Hack-Miner Prototype v1.0.0 (Season 1 & Season 2 6-Mission Campaign + 12-Expert Sparse MoE) + Phase 2 Swarm Fabric (M1–M5: `HM-M1-01` through `HM-M5-02`) are **LIVE & VERIFIED**.
-> All 6 community Pull Requests (`#6`–`#10` by `@clark719664` closing Issues `#1`–`#5`, and `#11` by `@radialmonster` adding `docs/STEAM_STATUS.md`) have been reviewed and integrated!
+> **Current Status (`v1.3.0`):**
+> - **All 15 Pull Requests Merged (`100%` Merge Rate):**
+>   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5` (`HM-M1-01` through `HM-M5-02` + `HM-DOC-01`).
+>   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18` (`HM-S3-01` through `HM-S3-05`).
+>   - **CI & Dependency Security (`PR #12`, `#13`, `#19`, `#20` by `@dependabot`):** Hardened GitHub Actions and Python dependencies.
+> - **Hardware & Formal Verification:** **`25 / 25` automated tests passing** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`27 / 27` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
+> - **Now Open for Contributors:** **6 New Season 4 / Wave 3 Community Bounties ([Issues `#26`–`#31`](https://github.com/xaviercallens/HiveMind/issues), `11,600 $HIVE` pool)**!
 
 ---
 
-## 📊 Contributor Task Matrix & Merged PR Registry
+## 🏆 1. Merged Community Pull Request Registry (Waves 1 & 2 — `15/15` PRs Merged)
 
-| Issue ID | Milestone Track | Task Title | Status & Merged PR | Target Branch Prefix | Bounty Pool |
+| Issue / Task ID | Wave & Track | Task Title | Merged PR & Contributor | Review & RTX 2070 Verification Result | Bounty Awarded |
 | :--- | :--- | :--- | :---: | :--- | :---: |
-| **HM-M1-01** (`#1`) | **M1 (Transport)** | Native `AsyncQUICGeoRingTransport` HTTP/3 0-RTT & Libp2p WebSocket NAT Hole-Punching (`STUN/TURN/ICE`) | ✅ **MERGED (`PR #9` by `@clark719664`)** | `feat/m1-quic-nat-traversal` | `2,500 $HIVE` |
-| **HM-M1-02** | **M1 (Transport)** | Kademlia DHT GossipSub Live Expert Table & Automatic Regional Geo-Ring Failover (`<25ms`) | ✅ **COMPLETED** | `feat/m1-kademlia-gossipsub` | `1,500 $HIVE` |
-| **HM-M2-01** (`#2`) | **M2 (3-Tier Memory)** | Double-Buffered CUDA Stream Lookahead Prefetcher (`slot_A` / `slot_B` Overlap with Attention) | ✅ **MERGED (`PR #7` by `@clark719664`)** | `feat/m2-double-buffer-dma` | `3,000 $HIVE` |
-| **HM-M2-02** | **M2 (3-Tier Memory)** | Bounded LRU NVMe-to-Pinned-RAM Cache (`max_pinned_ram_bytes`) for 8 GB GPUs | ✅ **COMPLETED** | `feat/m2-nvme-mmap-cache` | `2,000 $HIVE` |
-| **HM-M3-01** (`#3`) | **M3 (Tree Speculation)** | Triton `float8_e4m3fn` Group-Quantization Kernel & Prefix-Trie 2D Causal Tree-Attention Mask ($\gamma=6..8$) | ✅ **MERGED (`PR #8` by `@clark719664`)** | `feat/m3-triton-fp8-tree` | `3,000 $HIVE` |
-| **HM-M4-01** (`#4`) | **M4 (OpenAI & OPoI)** | Streaming SSE (`stream=True`) `/v1/chat/completions` Proxy for Cursor, Continue.dev & Cline | ✅ **MERGED (`PR #6` by `@clark719664`)** | `feat/m4-openai-sse-stream` | `1,200 $HIVE` |
-| **HM-M4-02** | **M4 (OpenAI & OPoI)** | Merkle-Proof Fraud Dispute Game for Optimistic Proof-of-Inference (OPoI) & Layer-2 `$HIVE` Refund | ✅ **COMPLETED** | `feat/m4-opoi-dispute-game` | `2,500 $HIVE` |
-| **HM-M5-01** (`#5`) | **M5 (Steam Game)** | Native `steam_api64.dll` Ctypes Bridge, Live Steam Overlay & Rich Presence | ✅ **MERGED (`PR #10` by `@clark719664`)** | `game/steamworks-native-dll` | `1,800 $HIVE` |
-| **HM-M5-02** (`#5`) | **M5 (HF Domains)** | Season 2 Hugging Face Hack-Miner Missions: `Rust_Systems_Security`, `CyberSecurity_Vulnerability_Recon`, `Multilingual_FR_Synthesis` (`E=2 -> E=6` MoE) | ✅ **MERGED (`PR #10` by `@clark719664`)** | `expert/<domain-name>` | `1,000 $HIVE` / expert |
-| **HM-DOC-01** | **M5 (Steam Docs)** | Steam AppID `3133700` Public Store Audit & Local Hack-Miner Prototype Status (`docs/STEAM_STATUS.md`) | ✅ **MERGED (`PR #11` by `@radialmonster`)** | `fix/steam-release-documentation` | `1,000 $HIVE` |
+| **HM-M1-01** ([`#1`](https://github.com/xaviercallens/HiveMind/issues/1)) | **Wave 1 / M1** | Native `AsyncQUICGeoRingTransport` HTTP/3 0-RTT & `libp2p` WebSocket Fallback | ✅ **[`PR #9`](https://github.com/xaviercallens/HiveMind/pull/9)** (`@clark719664`) | `2,526.2 fps` UDP 0-RTT burst (`MAGIC_QUIC_0RTT`) | `2,500 $HIVE` |
+| **HM-M1-02** | **Wave 1 / M1** | Kademlia DHT GossipSub Live Expert Table & `<25ms` Game Preemption Failover | ✅ **Core + `PR #9`** (`@xaviercallens`) | `2.695 ms` GossipSub failover on game launch | `1,500 $HIVE` |
+| **HM-M2-01** ([`#2`](https://github.com/xaviercallens/HiveMind/issues/2)) | **Wave 1 / M2** | 2-Slot Double-Buffered CUDA Stream Lookahead Prefetcher (`slot_A` / `slot_B`) | ✅ **[`PR #7`](https://github.com/xaviercallens/HiveMind/pull/7)** (`@clark719664`) | `0.0 ms` exposed swap stall (`12/12` experts) | `3,000 $HIVE` |
+| **HM-M2-02** | **Wave 1 / M2** | Bounded LRU NVMe-to-Pinned-RAM Cache (`max_pinned_ram_bytes`) for 8 GB GPUs | ✅ **Core + `PR #7`** (`@xaviercallens`) | `8/8` Pinned RAM LRU cap enforced cleanly | `2,000 $HIVE` |
+| **HM-M3-01** ([`#3`](https://github.com/xaviercallens/HiveMind/issues/3)) | **Wave 1 / M3** | Triton `float8_e4m3fn` Quantization Kernel & Prefix-Trie 2D Causal Tree Mask ($\gamma=6..8$) | ✅ **[`PR #8`](https://github.com/xaviercallens/HiveMind/pull/8)** (`@clark719664`) | `2.0x` FP8 wire compression + `(1,1,10,10)` trie mask | `3,000 $HIVE` |
+| **HM-M4-01** ([`#4`](https://github.com/xaviercallens/HiveMind/issues/4)) | **Wave 1 / M4** | Streaming SSE (`stream=True`) `/v1/chat/completions` Proxy for Cursor & Continue.dev | ✅ **[`PR #6`](https://github.com/xaviercallens/HiveMind/pull/6)** (`@clark719664`) | Sync + SSE `data: [DONE]` + L2 voucher verified | `1,200 $HIVE` |
+| **HM-M4-02** | **Wave 1 / M4** | 12-Layer Merkle Fraud Dispute Game for OPoI & Layer-2 `$HIVE` Escrow Refund | ✅ **Core + `PR #6`** (`@xaviercallens`) | Layer `#7` corruption caught & slashed `100%` | `2,500 $HIVE` |
+| **HM-M5-01/02** ([`#5`](https://github.com/xaviercallens/HiveMind/issues/5)) | **Wave 1 / M5** | Native `steam_api64.dll` Bridge, Rich Presence & Season 2 HF Missions (`Rust`, `CyberSec`, `FR`) | ✅ **[`PR #10`](https://github.com/xaviercallens/HiveMind/pull/10)** (`@clark719664`) | `-98.4%` PPL on Rust, `35/35` Rich Presence live | `2,800 $HIVE` |
+| **HM-DOC-01** | **Wave 1 / Docs** | Steam AppID `3133700` Public Store Audit & Local Hack-Miner Prototype Status | ✅ **[`PR #11`](https://github.com/xaviercallens/HiveMind/pull/11)** (`@radialmonster`) | Documented in [`docs/STEAM_STATUS.md`](STEAM_STATUS.md) | `1,000 $HIVE` |
+| **HM-S3-01** ([`#14`](https://github.com/xaviercallens/HiveMind/issues/14)) | **Wave 2 / S3** | Multi-Node WAN NAT Traversal with RFC 5389 STUN, TURN CGNAT Relay & UDP Hole-Punching | ✅ **[`PR #22`](https://github.com/xaviercallens/HiveMind/pull/22)** (`@clark719664`) | `0.22 ms` direct UDP hole-punch + TURN fallback | `1,500 $HIVE` |
+| **HM-S3-02** ([`#15`](https://github.com/xaviercallens/HiveMind/issues/15)) | **Wave 2 / S3** | Triton INT4 + FP8 Fused MoE Router Kernel (`pack_int4_nf4_weights` + Top-2 FP8 Projection) | ✅ **[`PR #23`](https://github.com/xaviercallens/HiveMind/pull/23)** (`@clark719664`) | `3.88x` VRAM compression, `cos_sim = 0.9963` | `2,000 $HIVE` |
+| **HM-S3-03** ([`#16`](https://github.com/xaviercallens/HiveMind/issues/16)) | **Wave 2 / S3** | Season 3 Campaign Missions 9–12 & Interactive WebGL 3D Geo-Ring Topology HUD (`:8090`) | ✅ **[`PR #24`](https://github.com/xaviercallens/HiveMind/pull/24)** (`@clark719664`) | `10` Campaign + `2` Bonus Missions, 4-Node 3D Globe | `1,200 $HIVE` |
+| **HM-S3-04** ([`#17`](https://github.com/xaviercallens/HiveMind/issues/17)) | **Wave 2 / S3** | Season 3 Domain Expert QLoRA Trainer, Top-$k$ FP8 Compressor & CAS Registry (`btm_moe.py`) | ✅ **[`PR #25`](https://github.com/xaviercallens/HiveMind/pull/25)** (`@clark719664`) | `4/4` experts `-86.8%` loss, `12.79x` delta comp | `1,000 $HIVE` |
+| **HM-S3-05** ([`#18`](https://github.com/xaviercallens/HiveMind/issues/18)) | **Wave 2 / S3** | Formal Lean 4 Proofs for Prefix-Trie Speculative Acceptance & RFC 9001 0-RTT Bounds | ✅ **[`PR #21`](https://github.com/xaviercallens/HiveMind/pull/21)** (`@clark719664`) | **27/27 Lean 4 Theorems (`0 sorry`, `0` axioms)** | `1,500 $HIVE` |
+| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `25/25` CI checks | `Automated` |
 
 ---
 
+## 📊 2. First Season 3 Empirical Results (`artifacts/season3_community_collaboration_results.json`)
 
-## 🌐 Track M1: P2P Transport & Kademlia Geo-Rings (`src/hivemind/swarm/swarm_fabric.py`)
+Executed on our local **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** after merging and harmonizing `PR #21`–`#25`:
 
-### Task `HM-M1-01`: Native `aioquic` HTTP/3 0-RTT & Libp2p WebSocket NAT Hole-Punching
-- **Problem:** Consumer gaming PCs sit behind residential NATs and CGNATs. While `RegionalGeoRingTransport` implements 160-bit Kademlia XOR distance routing and `<20 ms` regional admission control, we need real UDP hole-punching (`STUN/ICE`) over `aioquic` with automatic fallback to `libp2p` WebSockets over TLS.
-- **Scope:**
-  1. Implement `AsyncQUICGeoRingTransport` in `src/hivemind/swarm/quic_transport.py`.
-  2. Support 0-RTT session resumption for micro-batch hidden-state frames (`CompressedHiddenStatePacket`).
-  3. Add loopback multi-socket latency benchmark in `tests/test_seti_swarm_v2.py`.
-- **Acceptance Criteria:**
-  - Sustains $\ge 100$ hidden-state frames/sec on localhost UDP loopback with `< 1.5 ms` serialization overhead.
-  - Gracefully falls back to WebSocket framing when UDP is blocked.
+### 2.1 Season 3 Specialized QLoRA Domain Experts (`HM-S3-04` / `PR #25`)
+| Domain Expert | Dataset Corpus | Inner Loss ($H=16$) | Loss Reduction | Top-5% + FP8 Wire Compression | Swarm Store CAS Checkpoint CID |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **`Rust_Systems_Security`** | `anon/rust-code-instructions` | `1.6358 -> 0.2154` | **`-86.83%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-rust_systems_security...` |
+| **`Solidity_Smart_Contracts`** | `hivemind/solidity-audit-invariants` | `1.6255 -> 0.2080` | **`-87.20%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-solidity_smart_contracts...` |
+| **`Biomedical_Clinical_QA`** | `qiaojin/PubMedQA` | `1.6682 -> 0.2301` | **`-86.21%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-biomedical_clinical_qa...` |
+| **`Lean4_Theorem_Prover`** | `hivemind/lean4-mathlib-proofs` | `1.7031 -> 0.2231` | **`-86.90%`** | **`12.79x`** (`660 B` wire) | `cid://sha256/expert-lean4_theorem_prover...` |
 
-### Task `HM-M1-02`: Kademlia DHT GossipSub Live Expert Table & Regional Failover
-- **Problem:** When a gamer launches a fullscreen game on Steam, `ZeroIntrusionDaemon` yields 100% of VRAM in `< 1.5s`. The Regional Geo-Ring must reroute active Top-2 MoE token streams to a standby replica peer in `< 25 ms` without dropping an active `/v1/chat/completions` request.
-- **Scope:**
-  1. Add heartbeat health probes and hot-standby peer promotion in `RegionalGeoRingTransport`.
-  2. Broadcast `PREEMPTING_FOR_GAME` gossip frames immediately when `ZeroIntrusionDaemon.poll_and_preempt()` triggers.
-
----
-
-## ⚡ Track M2: 3-Tier NVMe $\rightarrow$ Pinned RAM $\rightarrow$ CUDA VRAM Memory (`src/hivemind/swarm/swarm_fabric.py`)
-
-### Task `HM-M2-01`: Double-Buffered CUDA Stream Lookahead Prefetcher
-- **Problem:** An 8 GB GPU cannot hold 64+ domain experts simultaneously in VRAM, but a gaming PC typically has 16 GB–32 GB of System RAM and PCIe 3.0/4.0 bandwidth (`12–25 GB/s`). Streaming a 16 MB LoRA expert from Pinned Host RAM (`cudaHostAlloc`) takes only `~0.8 ms`.
-- **Scope:**
-  1. Extend `PinnedRAMExpertDMAStreamer` with a 2-slot double buffer (`slot_A`, `slot_B`) on a dedicated non-blocking `torch.cuda.Stream`.
-  2. Use `TwoLevelMacroMicroRouter` predictions at Transformer layer $L$ to prefetch the Top-2 micro-experts for layer $L+1$ while layer $L$ executes self-attention.
-  3. Record CUDA event timing (`torch.cuda.Event(enable_timing=True)`) to prove `0.0 ms` exposed stall latency on 8 GB RTX cards.
-
-### Task `HM-M2-02`: Zero-Copy `mmap` NVMe-to-Pinned-RAM LRU Cache
-- **Scope:**
-  1. Integrate `safetensors` memory-mapped (`mmap`) loading from the Content-Addressed Swarm Store (`cid://sha256/...`) into the Pinned Host RAM tier.
-  2. Implement an LRU eviction policy capped at a user-configurable System RAM budget (default `4.0 GB`).
+### 2.2 Season 3 Hack-Miner Campaign Missions 7–12 (`HM-S3-03` / `PR #24`)
+| Contract ID | Mission Codename & Expert | Loss Trajectory | Points Awarded | `$HIVE` Minted | CUDA Spot-Check |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| `CONTRACT-HF-07-LEAN4-FORMAL` | Operation: Lean 4 Soundness Sentinel (`Lean4_Formal_Verification`) | `3.12 -> 0.78` (`-75.0%`) | `+2,182 PTS` | `+15.0 $HIVE` | `PASS` |
+| `CONTRACT-HF-08-SOLIDITY-ESCROW` | Operation: L2 State-Channel Escrow Vault (`Solidity_L2_Escrow_Audit`) | `3.12 -> 0.78` (`-75.0%`) | `+2,232 PTS` | `+15.0 $HIVE` | `PASS` |
+| `CONTRACT-HF-09-CROSS-CONTINENT-RELAY` | Mission 9: Cross-Continent Ring Relay (`Cross_Continent_QUIC_Relay`) | `3.12 -> 0.63` (`-79.8%`) | `+2,337 PTS` | `+15.0 $HIVE` | `PASS` |
+| `CONTRACT-HF-10-ZK-SPOTCHECK-AUDIT` | Mission 10: Zero-Knowledge Spot-Check Audit (`ZK_SpotCheck_Byzantine_Auditor`) | `3.12 -> 0.63` (`-79.8%`) | `+2,437 PTS` | `+15.0 $HIVE` | `PASS` |
+| `CONTRACT-HF-11-DYNAMIC-16EXPERT-FUSION` | Mission 11: Dynamic 16-Expert Fusion (`Dynamic_16Expert_MoE_Router`) | `3.12 -> 0.63` (`-79.8%`) | `+2,537 PTS` | `+15.0 $HIVE` | `PASS` |
+| `CONTRACT-HF-12-SWARM-DAO-GOVERNANCE` | Mission 12: Sovereign Swarm DAO Governance (`Sovereign_Swarm_DAO_Governor`) | `3.12 -> 0.63` (`-79.8%`) | `+2,637 PTS` | `+15.0 $HIVE` | `PASS` |
 
 ---
 
-## 🌲 Track M3: Eagle/Medusa Token Tree Speculation & FP8 Kernels (`src/hivemind/swarm/swarm_fabric.py`)
+## 🚀 3. Open Wave 3 / Season 4 Community Bounties (`Issues #26–#31` — `11,600 $HIVE` Pool)
 
-### Task `HM-M3-01`: Custom Triton `float8_e4m3fn` Quantization Kernel & Dynamic Speculative Tree Attention
-- **Problem:** Standard autoregressive P2P MoE inference pays network RTT on every single token. `TokenTreeSpeculativeVerifier` ($\gamma=6$) + `compress_hidden_states_fp8` reduces RTT by up to `6.0x`, and can be further accelerated with fused Triton kernels and tree-attention masks.
-- **Scope:**
-  1. Write a fused Triton kernel (with PyTorch native fallback for Windows WDDM / CPU CI) for per-token absmax `float8_e4m3fn` activation compression + decompression.
-  2. Extend `TokenTreeSpeculativeVerifier` to construct a 2D causal tree-attention mask so the Top-2 Sparse MoE ring verifies multiple speculative branches `[root -> (b1, b2) -> ...]` in a single forward pass.
+With all Wave 1 (`#1`–`#5`) and Wave 2 Season 3 (`#14`–`#18`) issues completed and merged, the following **6 isolated Season 4 tracks** are now open on GitHub for parallel community Pull Requests:
 
----
-
-## 🔐 Track M4: OpenAI Gateway, OPoI Audits & Layer-2 `$HIVE` State Channels (`src/hivemind/boinc/coordinator_api.py`)
-
-### Task `HM-M4-01`: Streaming SSE (`stream=True`) `/v1/chat/completions` Proxy for Cursor & Continue.dev
-- **Problem:** AI coding assistants (`Cursor`, `Continue.dev`, `Cline`, `OpenWebUI`) expect Server-Sent Events (`text/event-stream`) with `chat.completion.chunk` deltas when `"stream": true` is passed to `/v1/chat/completions`.
-- **Scope:**
-  1. Upgrade `POST /v1/chat/completions` in `src/hivemind/boinc/coordinator_api.py` to support both synchronous JSON and `StreamingResponse` (`text/event-stream`) mode.
-  2. Emit real-time speculative tree verification batches (4–6 tokens per SSE chunk) and attach the final OPoI audit + Layer-2 `$HIVE` voucher in the closing usage chunk.
-
-### Task `HM-M4-02`: Merkle-Proof Fraud Dispute Game for Optimistic Proof-of-Inference (OPoI)
-- **Scope:**
-  1. Extend `OptimisticProofOfInferenceAuditor` and `HiveLayer2StateChannel` so a challenged inference provider can submit a compact Merkle commitment of layer activations.
-  2. Automatically slash dishonest inference hosts in `HiveSwarmLedger` and refund the consumer's Layer-2 state channel escrow.
-
----
-
-## 🎮 Track M5: `HiveMind: Neural Breach` Free Steam Edition (`AppID: 3133700`) & Hugging Face Domains (`src/hivemind/game/`)
-
-### Task `HM-M5-01`: Native `steam_api64.dll` Bridge & Live Steam Rich Presence
-- **Scope:**
-  1. Extend `SteamworksSDKBridge` (`src/hivemind/client/steamworks.py`) to dynamically load `steam_api64.dll` / `libsteam_api.so` when present alongside `steam_appid.txt` (`3133700`), while keeping deterministic HMAC fallback for headless/CI runs.
-  2. Broadcast live Steam Friends Rich Presence: `"Hack-Mining PubMedQA on RTX 2070 | Rank V: Singularity Core | +45.0 $HIVE"`.
-
-### Task `HM-M5-02`: Season 2 Hugging Face Domain Expert Bounties
-- **Scope:** Add new playable missions to `src/hivemind/game/hf_hack_miner.py` and verify their QLoRA convergence on an 8 GB GPU:
-  - **Mission 4 (`Rust_Systems_Security`):** `anon/rust-code-instructions`
-  - **Mission 5 (`CyberSecurity_Vulnerability_Recon`):** CVE / secure coding dataset
-  - **Mission 6 (`Multilingual_FR_Synthesis`):** French instruction & reasoning dataset
-
-## 🚀 Next Wave — Season 3 & Phase 3 Global WAN Scale-Out Tasks (OPEN FOR CONTRIBUTORS)
-
-With all Wave 1 milestones (`HM-M1-01` through `HM-M5-02`) merged and verified (`20/20` tests passing), the following **5 isolated parallel tracks** are now open for community PRs:
-
-| Task ID | Track | Task Description | Difficulty | Target Branch Prefix | Bounty Pool |
+| Issue & Task ID | Track | Season 4 Task Description | Difficulty | Target Branch Prefix | Bounty Pool |
 | :--- | :--- | :--- | :---: | :--- | :---: |
-| **HM-S3-01** | **Track 1 (WAN P2P)** | Cross-Continent Geo-Ring Bridge & Dynamic Relay Selection (`EU-West` $\leftrightarrow$ `US-East` $\leftrightarrow$ `AP-Tokyo`) | 🔴 Hard | `feat/s3-wan-georing-bridge` | `3,500 $HIVE` |
-| **HM-S3-02** | **Track 2 (CUDA/DMA)** | Multi-GPU / Peer-to-Peer PCIe NVLink & Vulkan/ROCm Consumer Fallback for 8GB–12GB Nodes | 🔴 Hard | `feat/s3-rocm-vulkan-backend` | `3,500 $HIVE` |
-| **HM-S3-03** | **Track 3 (MoE Core)** | 12-to-32 Expert Hierarchical BTM Upcycling & Dynamic Load-Balancing Auxiliary Loss | 🟡 Medium | `feat/s3-hierarchical-moe32` | `2,500 $HIVE` |
-| **HM-S3-04** | **Track 4 (HF Experts)** | Season 3 Hugging Face Hack-Miner Missions: `Lean4_Formal_Math`, `Verilog_RTL_Hardware`, `Biochem_Protein_Design` | 🟢 Starter | `expert/s3-<domain>` | `1,500 $HIVE` / expert |
-| **HM-S3-05** | **Track 5 (Gateway/UI)** | WebSocket Live Telemetry Stream & Multi-Node Swarm Topology Map in Cyberpunk Web HUD (`:8090`) | 🟢 Starter | `game/s3-live-topology-hud` | `1,800 $HIVE` |
+| **[`#26` (`HM-S4-01`)](https://github.com/xaviercallens/HiveMind/issues/26)** | **Track 1 (Multi-GPU/Vendor)** | Cross-Platform AMD ROCm (`gfx1100`/`gfx1030`) & Apple Silicon (`MPS`) 4-Bit Expert Dispatch & DMA Fallback | 🟡 Medium | `feat/s4-rocm-mps-backend` | **`2,000 $HIVE`** |
+| **[`#27` (`HM-S4-02`)](https://github.com/xaviercallens/HiveMind/issues/27)** | **Track 2 (Super-Ring WAN)** | Hierarchical 2-Tier Kademlia Super-Ring (`Continental Bridge -> Regional <20ms Geo-Ring`) & BBR Congestion Control | 🔴 Hard | `feat/s4-hierarchical-super-ring` | **`2,500 $HIVE`** |
+| **[`#28` (`HM-S4-03`)](https://github.com/xaviercallens/HiveMind/issues/28)** | **Track 3 (ZK-OPoI v2)** | Cryptographic Activation Spot-Check (`ZK-OPoI v2`) with $O(\log L)$ Merkle Inclusion Proofs & Dual $L_\infty$ Bounds | 🔴 Hard | `feat/s4-zk-opoi-merkle-inclusion` | **`2,000 $HIVE`** |
+| **[`#29` (`HM-S4-04`)](https://github.com/xaviercallens/HiveMind/issues/29)** | **Track 4 (Game & WS HUD)** | Season 4 Hack-Miner Campaign (Missions 13–16: `Triton`, `ZK`, `Quantum QASM`, `Agent Swarm`) & Live `/ws/swarm-telemetry` | 🟢 Starter | `game/s4-missions-13-16-websocket-hud` | **`1,800 $HIVE`** |
+| **[`#30` (`HM-S4-05`)](https://github.com/xaviercallens/HiveMind/issues/30)** | **Track 5 (SVD 32-MoE)** | Dynamic SVD Rank-Adaptive LoRA Merging (`r=8..64 -> r=16`) & 32-Expert Sparse MoE Scaling in `< 2.0 GB` VRAM | 🟡 Medium | `feat/s4-svd-rank-adaptive-moe` | **`1,500 $HIVE`** |
+| **[`#31` (`HM-S4-06`)](https://github.com/xaviercallens/HiveMind/issues/31)** | **Track 6 (Formal Lean 4)** | Formal Lean 4 Proofs (`Theorem 28`–`32`) for Quadratic DAO Sybil Bounds, SVD Rank Savings & Super-Ring Latency | 🟢 Starter | `formal/s4-dao-superring-lean4` | **`1,800 $HIVE`** |
 
 ---
 
-## 🤝 How to Claim a Task & Submit a Parallel PR
+## 🤝 4. How to Claim a Season 4 Bounty & Submit a Conflict-Free PR
 
-1. Open or claim an issue using the **[Swarm Fabric Milestone Task](https://github.com/xaviercallens/HiveMind/issues/new?template=01_swarm_fabric_milestone.yml)** or **[Domain Expert Bounty](https://github.com/xaviercallens/HiveMind/issues/new?template=02_domain_expert_lora_bounty.yml)** template (or comment `/claim` on an existing open issue).
-2. Create an isolated topic branch off `main` following the track prefix (e.g., `git checkout -b feat/s3-wan-georing-bridge` or `git checkout -b expert/s3-lean4-math`).
-3. Run `uv run --no-sync pytest tests/ -v` to verify all `20/20+` tests pass and `verify_lean4_specification()` reports `0 sorry`.
-4. Open a Pull Request against `main` using our [PR Template](../.github/PULL_REQUEST_TEMPLATE.md)!
-
+1. **Pick an Open Issue (`#26`–`#31`):** Comment `/claim` on any open issue in **[GitHub Issues](https://github.com/xaviercallens/HiveMind/issues)** or open a new proposal using our [Swarm Fabric Milestone](https://github.com/xaviercallens/HiveMind/issues/new?template=01_swarm_fabric_milestone.yml) or [Domain Expert Bounty](https://github.com/xaviercallens/HiveMind/issues/new?template=02_domain_expert_lora_bounty.yml) template.
+2. **Branch from `main`:** Create an isolated topic branch matching the track prefix (e.g., `git checkout -b feat/s4-rocm-mps-backend`).
+3. **Verify Locally:** Run `.\.venv\Scripts\python.exe -m pytest tests/ -v --tb=short` to ensure all `25/25+` tests pass and `verify_lean4_specification()` reports `0 sorry` and `0` user axioms.
+4. **Submit Your PR:** Open a Pull Request referencing `Closes #<issue_number>` using our [PR Template](../.github/PULL_REQUEST_TEMPLATE.md).
