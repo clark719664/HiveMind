@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgArch" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#060a12"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <marker id="arrowCyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#00f0ff"/>
+    </marker>
+    <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#ff00a0"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="520" rx="14" fill="url(#bgArch)" stroke="#1e293b" stroke-width="2"/>
+  <text x="600" y="34" font-family="'Segoe UI', sans-serif" font-size="20" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1">
+    PROJECT HIVEMIND — 5-LAYER DECENTRALIZED TRAINING, SWARM FABRIC &amp; STEAM HACK-MINER ARCHITECTURE
+  </text>
+
+  <!-- LAYER 1: CONSUMER GAMING NODES -->
+  <g transform="translate(30, 55)">
+    <rect width="350" height="205" rx="10" fill="#0b1528" stroke="#00f0ff" stroke-width="1.5"/>
+    <rect width="350" height="30" rx="10" fill="#00f0ff" opacity="0.15"/>
+    <text x="175" y="20" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="#00f0ff" text-anchor="middle">
+      1. ZERO-INTRUSION CONSUMER GPU NODES (8GB-12GB)
+    </text>
+    <text x="18" y="52" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• Win32 GetLastInputInfo &amp; Steam Process Hook</text>
+    <text x="18" y="74" font-family="Consolas, monospace" font-size="12" fill="#10b981">• &lt;150ms Emergency NVMe Checkpoint &amp; VRAM Yield</text>
+    <text x="18" y="96" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• Zero-Copy 4-Bit NF4 Safetensors Stream Loader</text>
+    <text x="18" y="118" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• QLoRA (r=16..64) + Paged 8-Bit AdamW Inner Loop</text>
+    <text x="18" y="140" font-family="Consolas, monospace" font-size="12" fill="#00f0ff">• Content-Addressed NVMe Vault (16KB Merkle PoS)</text>
+    <text x="18" y="162" font-family="Consolas, monospace" font-size="12" fill="#f59e0b">• 3-State Autonomous Daemon (Idle/Train/Serve)</text>
+    <text x="18" y="184" font-family="Consolas, monospace" font-size="12" fill="#94a3b8">• Steamworks $5 Non-Limited &amp; VAC Anti-Sybil Gate</text>
+  </g>
+
+  <!-- LAYER 2: BYZANTINE VALIDATION & DILOCO OUTER -->
+  <g transform="translate(425, 55)">
+    <rect width="350" height="205" rx="10" fill="#0b1528" stroke="#10b981" stroke-width="1.5"/>
+    <rect width="350" height="30" rx="10" fill="#10b981" opacity="0.15"/>
+    <text x="175" y="20" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="#10b981" text-anchor="middle">
+      2. BYZANTINE VALIDATION &amp; DILOCO OUTER LOOP
+    </text>
+    <text x="18" y="52" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• Top-k (1%-5%) + FP8 (float8_e4m3fn) Wire Delta</text>
+    <text x="18" y="74" font-family="Consolas, monospace" font-size="12" fill="#10b981">• 10% Deterministic CUDA Spot-Check (ε ≤ 1e-4)</text>
+    <text x="18" y="96" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• CUBLAS_WORKSPACE_CONFIG=:4096:8 Bitwise Replay</text>
+    <text x="18" y="118" font-family="Consolas, monospace" font-size="12" fill="#ff00a0">• 2σ-Clipped Multi-Krum Poisoner Rejection</text>
+    <text x="18" y="140" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• DiLoCo Nesterov Outer Momentum (500x Less Comm)</text>
+    <text x="18" y="162" font-family="Consolas, monospace" font-size="12" fill="#00f0ff">• HMAC-SHA256 Signed Parquet Workunit Shards</text>
+    <text x="18" y="184" font-family="Consolas, monospace" font-size="12" fill="#f59e0b">• $HIVE PoUW Block Minting (45/15/40 Split)</text>
+  </g>
+
+  <!-- LAYER 3: FACTORED BTM SPARSE MOE & 3-TIER DMA -->
+  <g transform="translate(820, 55)">
+    <rect width="350" height="205" rx="10" fill="#0b1528" stroke="#a855f7" stroke-width="1.5"/>
+    <rect width="350" height="30" rx="10" fill="#a855f7" opacity="0.15"/>
+    <text x="175" y="20" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="#c084fc" text-anchor="middle">
+      3. FACTORED BTM SPARSE MOE &amp; 3-TIER DMA (M2)
+    </text>
+    <text x="18" y="52" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• Shared Attention Averaging + FFN Expert Upcycle</text>
+    <text x="18" y="74" font-family="Consolas, monospace" font-size="12" fill="#c084fc">• Dynamic Runtime Expert Hot-Plug (E=2 → E=12..96)</text>
+    <text x="18" y="96" font-family="Consolas, monospace" font-size="12" fill="#10b981">• FP32 Gating Router (Wg) — Zero FP16 Underflow</text>
+    <text x="18" y="118" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• 2-Level Macro/Micro Router (G_macro → G_micro)</text>
+    <text x="18" y="140" font-family="Consolas, monospace" font-size="12" fill="#00f0ff">• Bounded LRU Pinned Host RAM Cache (pin_memory)</text>
+    <text x="18" y="162" font-family="Consolas, monospace" font-size="12" fill="#10b981">• 2-Slot Double-Buffered CUDA DMA (slot_A/slot_B)</text>
+    <text x="18" y="184" font-family="Consolas, monospace" font-size="12" fill="#f59e0b">• 0.0 ms Exposed Layer Lookahead Swap Latency</text>
+  </g>
+
+  <!-- LAYER 4: SWARM FABRIC P2P INFERENCE & OPENAI GATEWAY -->
+  <g transform="translate(30, 290)">
+    <rect width="555" height="195" rx="10" fill="#0b1528" stroke="#ff00a0" stroke-width="1.5"/>
+    <rect width="555" height="30" rx="10" fill="#ff00a0" opacity="0.15"/>
+    <text x="277" y="20" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="#ff00a0" text-anchor="middle">
+      4. SWARM FABRIC P2P INFERENCE (M1, M3, M4) &amp; OPENAI SSE GATEWAY
+    </text>
+    <text x="18" y="54" font-family="Consolas, monospace" font-size="12" fill="#00f0ff">• M1 Geo-Ring: 160-Bit Kademlia XOR (&lt;20ms RTT) + QUIC 0-RTT (2,800+ fps)</text>
+    <text x="18" y="76" font-family="Consolas, monospace" font-size="12" fill="#10b981">• M1 Failover: &lt;25ms GossipSub Standby Promotion on Fullscreen Game Launch</text>
+    <text x="18" y="98" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• M3 Speculation: Triton/PyTorch FP8 Wire + Prefix-Trie 2D Tree Mask (γ=6..8)</text>
+    <text x="18" y="120" font-family="Consolas, monospace" font-size="12" fill="#f59e0b">• M4 OPoI Audit: 5% Activation Commitment + 12-Layer Merkle Fraud Dispute Game</text>
+    <text x="18" y="142" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• M4 L2 Channels: Off-Chain HMAC Micro-Vouchers + Automatic Fraud Escrow Refund</text>
+    <text x="18" y="166" font-family="Consolas, monospace" font-size="12" fill="#ff00a0">• OpenAI Proxy: POST /v1/chat/completions (Sync &amp; text/event-stream SSE [DONE])</text>
+  </g>
+
+  <!-- LAYER 5: STEAM HACK-MINER GAME, FORMAL LEAN 4 & AUTOEVOLVE -->
+  <g transform="translate(615, 290)">
+    <rect width="555" height="195" rx="10" fill="#0b1528" stroke="#f59e0b" stroke-width="1.5"/>
+    <rect width="555" height="30" rx="10" fill="#f59e0b" opacity="0.15"/>
+    <text x="277" y="20" font-family="Consolas, monospace" font-size="13" font-weight="bold" fill="#fbbf24" text-anchor="middle">
+      5. HUGGING FACE HACK-MINER (M5), LEAN 4 PROOFS &amp; PEER COLLABORATION
+    </text>
+    <text x="18" y="54" font-family="Consolas, monospace" font-size="12" fill="#fbbf24">• Season 1 &amp; 2 HF Missions: CodeAlpaca, PubMedQA, GSM8K, Rust, CyberSec, Aya-FR</text>
+    <text x="18" y="76" font-family="Consolas, monospace" font-size="12" fill="#10b981">• Omega Boss Raid: 6-Expert Top-2 Sparse MoE Fusion (-98.5% Solution PPL Drop)</text>
+    <text x="18" y="98" font-family="Consolas, monospace" font-size="12" fill="#00f0ff">• Cyberpunk Web HUD (:8090): Live QLoRA Forge, RTX Diagnostic &amp; Rich Presence</text>
+    <text x="18" y="120" font-family="Consolas, monospace" font-size="12" fill="#e2e8f0">• Lean 4 Formal Spec: 17 Machine-Checked Theorems (0 sorry, 0 user axioms)</text>
+    <text x="18" y="142" font-family="Consolas, monospace" font-size="12" fill="#c084fc">• Foundation Paper: 10-Page LaTeX/PDF Article (AutoevolveAI Score: 9.43/10)</text>
+    <text x="18" y="166" font-family="Consolas, monospace" font-size="12" fill="#10b981">• Parallel Governance: Protected main, Immutable v* Releases &amp; 5 PR Tracks</text>
+  </g>
+
+  <!-- Connecting Arrows -->
+  <line x1="380" y1="155" x2="420" y2="155" stroke="#00f0ff" stroke-width="2.5" marker-end="url(#arrowCyan)"/>
+  <line x1="775" y1="155" x2="815" y2="155" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+  <line x1="995" y1="260" x2="450" y2="288" stroke="#ff00a0" stroke-width="2" marker-end="url(#arrowPink)"/>
+  <line x1="585" y1="385" x2="610" y2="385" stroke="#00f0ff" stroke-width="2.5" marker-end="url(#arrowCyan)"/>
+</svg>

@@ -2,7 +2,7 @@ name: HiveMind Swarm CI & Verification Suite
 
 on:
   push:
-    branches: [main, "feat/**", "expert/**", "game/**", "fix/**"]
+    branches: [main, "feat/**", "expert/**", "game/**", "fix/**", "docs/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -10,11 +10,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify-swarm-suite:
-    name: "Verify 4 Core Pillars, Swarm Fabric (M1-M4) & Steam Hack-Miner (16/16 Tests)"
+    name: "Verify 4 Core Pillars, Swarm Fabric (M1-M5), Lean 4 Spec & Steam Hack-Miner (20/20 Tests)"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout Project HiveMind
@@ -33,7 +37,18 @@ jobs:
           uv venv
           uv pip install pytest httpx fastapi uvicorn pydantic pyyaml rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
 
-      - name: Run Full 16-Test Verification Suite
+      - name: Audit Lean 4 Formal Specification Invariants (0 sorry, 0 axiom, >=17 Theorems)
+        run: |
+          uv run --no-sync python -c "
+          from paper.autoevolve_peer_review_pipeline import verify_lean4_specification
+          res = verify_lean4_specification()
+          print('Lean 4 Audit:', res)
+          assert res['sorry_count'] == 0, 'sorry detected in Lean 4 spec!'
+          assert res['user_axiom_count'] == 0, 'user axiom detected in Lean 4 spec!'
+          assert res['theorem_count'] >= 17, 'expected >= 17 theorems!'
+          "
+
+      - name: Run Full 20-Test Verification Suite
         env:
           CUBLAS_WORKSPACE_CONFIG: ":4096:8"
           PYTHONHASHSEED: "42"

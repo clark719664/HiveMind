@@ -1,11 +1,14 @@
-# Project HiveMind — Architecture & Subsystem Code Owners
-# Every Pull Request touching core cryptographic, VRAM, or consensus layers triggers review.
+# Project HiveMind — Multi-Track Architecture & Subsystem Code Owners
+# Every Pull Request touching core cryptographic, VRAM, Lean 4, or consensus layers triggers review.
 
 *                                       @xaviercallens
 /src/hivemind/core/                     @xaviercallens
-/src/hivemind/boinc/                    @xaviercallens
-/src/hivemind/swarm/                    @xaviercallens
-/src/hivemind/client/                   @xaviercallens
-/src/hivemind/game/                     @xaviercallens
-/steam_dist/                            @xaviercallens
+/src/hivemind/boinc/                    @xaviercallens @clark719664
+/src/hivemind/swarm/                    @xaviercallens @clark719664
+/src/hivemind/client/                   @xaviercallens @clark719664
+/src/hivemind/game/                     @xaviercallens @clark719664 @radialmonster
+/steam_dist/                            @xaviercallens @radialmonster
+/docs/                                  @xaviercallens @radialmonster
+/lean4/                                 @xaviercallens
+/paper/                                 @xaviercallens
 /.github/                               @xaviercallens

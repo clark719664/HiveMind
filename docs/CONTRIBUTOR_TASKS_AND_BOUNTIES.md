@@ -99,11 +99,24 @@
   - **Mission 5 (`CyberSecurity_Vulnerability_Recon`):** CVE / secure coding dataset
   - **Mission 6 (`Multilingual_FR_Synthesis`):** French instruction & reasoning dataset
 
+## 🚀 Next Wave — Season 3 & Phase 3 Global WAN Scale-Out Tasks (OPEN FOR CONTRIBUTORS)
+
+With all Wave 1 milestones (`HM-M1-01` through `HM-M5-02`) merged and verified (`20/20` tests passing), the following **5 isolated parallel tracks** are now open for community PRs:
+
+| Task ID | Track | Task Description | Difficulty | Target Branch Prefix | Bounty Pool |
+| :--- | :--- | :--- | :---: | :--- | :---: |
+| **HM-S3-01** | **Track 1 (WAN P2P)** | Cross-Continent Geo-Ring Bridge & Dynamic Relay Selection (`EU-West` $\leftrightarrow$ `US-East` $\leftrightarrow$ `AP-Tokyo`) | 🔴 Hard | `feat/s3-wan-georing-bridge` | `3,500 $HIVE` |
+| **HM-S3-02** | **Track 2 (CUDA/DMA)** | Multi-GPU / Peer-to-Peer PCIe NVLink & Vulkan/ROCm Consumer Fallback for 8GB–12GB Nodes | 🔴 Hard | `feat/s3-rocm-vulkan-backend` | `3,500 $HIVE` |
+| **HM-S3-03** | **Track 3 (MoE Core)** | 12-to-32 Expert Hierarchical BTM Upcycling & Dynamic Load-Balancing Auxiliary Loss | 🟡 Medium | `feat/s3-hierarchical-moe32` | `2,500 $HIVE` |
+| **HM-S3-04** | **Track 4 (HF Experts)** | Season 3 Hugging Face Hack-Miner Missions: `Lean4_Formal_Math`, `Verilog_RTL_Hardware`, `Biochem_Protein_Design` | 🟢 Starter | `expert/s3-<domain>` | `1,500 $HIVE` / expert |
+| **HM-S3-05** | **Track 5 (Gateway/UI)** | WebSocket Live Telemetry Stream & Multi-Node Swarm Topology Map in Cyberpunk Web HUD (`:8090`) | 🟢 Starter | `game/s3-live-topology-hud` | `1,800 $HIVE` |
+
 ---
 
-## 🚀 How to Claim a Task
+## 🤝 How to Claim a Task & Submit a Parallel PR
 
-1. Open a new issue using the **[Swarm Fabric Milestone Task](https://github.com/xaviercallens/HiveMind/issues/new?template=01_swarm_fabric_milestone.yml)** or **[Domain Expert Bounty](https://github.com/xaviercallens/HiveMind/issues/new?template=02_domain_expert_lora_bounty.yml)** template (or comment `/claim` on an existing open issue).
-2. Create a branch following the convention in the table above (e.g., `git checkout -b feat/m4-openai-sse-stream`).
-3. Run `uv run --no-sync pytest tests/ -v` to verify all 16+ tests pass.
+1. Open or claim an issue using the **[Swarm Fabric Milestone Task](https://github.com/xaviercallens/HiveMind/issues/new?template=01_swarm_fabric_milestone.yml)** or **[Domain Expert Bounty](https://github.com/xaviercallens/HiveMind/issues/new?template=02_domain_expert_lora_bounty.yml)** template (or comment `/claim` on an existing open issue).
+2. Create an isolated topic branch off `main` following the track prefix (e.g., `git checkout -b feat/s3-wan-georing-bridge` or `git checkout -b expert/s3-lean4-math`).
+3. Run `uv run --no-sync pytest tests/ -v` to verify all `20/20+` tests pass and `verify_lean4_specification()` reports `0 sorry`.
 4. Open a Pull Request against `main` using our [PR Template](../.github/PULL_REQUEST_TEMPLATE.md)!
+
