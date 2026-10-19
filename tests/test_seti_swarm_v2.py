@@ -488,6 +488,30 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     assert body["hivemind_swarm_fabric"]["tree_speculation_gamma"] == 6
     assert body["hivemind_swarm_fabric"]["opoi_audit"]["opoi_passed"] is True
 
+    import json
+
+    stream_resp = client.post(
+        "/v1/chat/completions",
+        json={
+            "model": "hivemind-qwen2.5-sparse-moe-top2",
+            "stream": True,
+            "messages": [{"role": "user", "content": "Write a Python function to compute 3 blocks * 50 HIVE."}],
+        },
+    )
+    assert stream_resp.status_code == 200
+    assert "text/event-stream" in stream_resp.headers["content-type"]
+    sse_lines = [line for line in stream_resp.text.splitlines() if line.startswith("data: ")]
+    assert sse_lines[-1] == "data: [DONE]"
+    chunks = [json.loads(line[6:]) for line in sse_lines[:-1]]
+    assert all(c["object"] == "chat.completion.chunk" for c in chunks)
+    assembled = "".join(c["choices"][0]["delta"].get("content", "") for c in chunks)
+    assert assembled == body["choices"][0]["message"]["content"]
+    closing_chunk = chunks[-1]
+    assert closing_chunk["choices"][0]["finish_reason"] == "stop"
+    assert closing_chunk["hivemind_swarm_fabric"]["opoi_audit"]["opoi_passed"] is True
+    assert closing_chunk["hivemind_swarm_fabric"]["l2_state_channel_voucher"]["nonce"] >= 1
+    assert closing_chunk["usage"]["completion_tokens"] > 0
+
 
 def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> None:
     """Verify Lean 4 formal specification (0 sorry, 0 axiom), foundation .tex/.pdf article, and AutoevolveAI peer review."""
