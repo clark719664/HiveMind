@@ -108,6 +108,286 @@ def _extract_ab_pair(
     return None
 
 
+@dataclass
+class SVDLoARankProjectionReport:
+    """Telemetry describing a truncated-SVD LoRA rank projection (`HM-S4-05`).
+
+    Attributes:
+        source_rank_r: Rank `r_src` detected on the incoming adapter.
+        target_rank_r: Canonical rank `r_dst` the adapter was projected onto.
+        num_projected_pairs: Number of (A, B) LoRA factor pairs reprojected.
+        num_padded_pairs: Number of pairs whose source rank was below `target_rank_r`.
+        num_identity_pairs: Number of pairs already at `target_rank_r`.
+        mean_spectral_energy_retained: Mean fraction of the Frobenius spectral
+            energy of `D = B @ A` preserved by the truncated SVD.
+        min_spectral_energy_retained: Minimum per-pair spectral energy retention.
+        max_relative_delta_error: Maximum relative Frobenius error between the
+            source effective delta and the projected effective delta.
+        source_params: Total number of LoRA parameters before projection.
+        target_params: Total number of LoRA parameters after projection.
+        source_lora_alpha: `alpha` assumed for the source adapter.
+        target_lora_alpha: `alpha` the projected adapter is meant to be used with.
+    """
+
+    source_rank_r: int
+    target_rank_r: int
+    num_projected_pairs: int
+    num_padded_pairs: int
+    num_identity_pairs: int
+    mean_spectral_energy_retained: float
+    min_spectral_energy_retained: float
+    max_relative_delta_error: float
+    source_params: int
+    target_params: int
+    source_lora_alpha: float
+    target_lora_alpha: float
+
+    @property
+    def compression_ratio(self) -> float:
+        """Parameter compression factor achieved by the rank projection."""
+        if self.target_params <= 0:
+            return 1.0
+        return round(self.source_params / self.target_params, 4)
+
+
+def _orient_lora_pair(
+    lora_a: torch.Tensor,
+    lora_b: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, bool]:
+    """Return a LoRA (A, B) pair in the canonical PEFT layout `A=[r, in]`, `B=[out, r]`."""
+    if lora_a.dim() != 2 or lora_b.dim() != 2:
+        raise ValueError(
+            "LoRA factors must be 2-D tensors, got "
+            f"{tuple(lora_a.shape)} and {tuple(lora_b.shape)}."
+        )
+    if lora_a.shape[0] == lora_b.shape[1]:
+        return lora_a, lora_b, False
+    if lora_a.shape[1] == lora_b.shape[0]:
+        return lora_a.t().contiguous(), lora_b.t().contiguous(), True
+    raise ValueError(
+        f"Incompatible LoRA factor shapes {tuple(lora_a.shape)} / {tuple(lora_b.shape)}: "
+        "expected A=[r, in_features] and B=[out_features, r] (or the transposed layout)."
+    )
+
+
+def pair_lora_ab_keys(lora_state_dict: dict[str, torch.Tensor]) -> list[tuple[str, str]]:
+    """Pair every `lora_A` key of a LoRA state dict with its matching `lora_B` key."""
+    pairs: list[tuple[str, str]] = []
+    for key in lora_state_dict:
+        if "lora_A" not in key:
+            continue
+        b_key = key.replace("lora_A", "lora_B")
+        if b_key in lora_state_dict:
+            pairs.append((key, b_key))
+    return pairs
+
+
+def detect_lora_rank(lora_state_dict: dict[str, torch.Tensor]) -> int | None:
+    """Detect the rank `r` of a LoRA state dict (`None` when it holds no LoRA pair)."""
+    ranks: set[int] = set()
+    for a_key, b_key in pair_lora_ab_keys(lora_state_dict):
+        a_t = lora_state_dict[a_key]
+        b_t = lora_state_dict[b_key]
+        if a_t.shape[0] == b_t.shape[1]:
+            ranks.add(int(a_t.shape[0]))
+        elif a_t.shape[1] == b_t.shape[0]:
+            ranks.add(int(a_t.shape[1]))
+    if not ranks:
+        return None
+    if len(ranks) > 1:
+        raise ValueError(f"Heterogeneous LoRA ranks detected in a single adapter: {sorted(ranks)}.")
+    return ranks.pop()
+
+
+def svd_project_lora_pair(
+    lora_a: torch.Tensor,
+    lora_b: torch.Tensor,
+    target_rank_r: int,
+    scale_b: float = 1.0,
+) -> tuple[torch.Tensor, torch.Tensor, float]:
+    """Truncated-SVD projection of a LoRA (A, B) factor pair onto `target_rank_r`.
+
+    Computes the Eckart-Young optimal rank-`target_rank_r` approximation of the
+    effective weight delta `D = B @ A` and refactors it back into a LoRA pair
+    `(A', B')` such that `B' @ A' ~= D_k` (the truncated spectral expansion of `D`).
+
+    The computation never materializes the dense `D` matrix: a QR decomposition of
+    `B` is combined with the SVD of the (small) `R @ A` core, which is
+    mathematically equivalent to the SVD of `D` but costs `O(r * n)` instead of
+    `O(min(m, n)^3)` — critical to stay inside the `< 2.0 GB` VRAM budget while
+    hot-plugging 32 experts.
+
+    Args:
+        lora_a: LoRA down-projection factor `A` with shape `[r, in_features]`.
+        lora_b: LoRA up-projection factor `B` with shape `[out_features, r]`.
+        target_rank_r: Canonical rank the pair is projected onto.
+        scale_b: Multiplicative factor applied to `B'` (used to keep the
+            `alpha / r` scaling convention consistent across ranks).
+
+    Returns:
+        `(lora_a_new, lora_b_new, spectral_energy_retained)` where
+        `spectral_energy_retained = sum(s[:k]^2) / sum(s^2)` is the fraction of the
+        Frobenius spectral energy of `D` captured by the truncated expansion.
+    """
+    if target_rank_r < 1:
+        raise ValueError(f"target_rank_r must be >= 1, got {target_rank_r}.")
+
+    a_t = lora_a.detach().to(torch.float32)
+    b_t = lora_b.detach().to(torch.float32)
+
+    q_b, r_core = torch.linalg.qr(b_t)  # q_b: [out, k], r_core: [k, r]
+    core = r_core @ a_t  # [k, in] - the only matrix we ever factorize
+    u, s, vh = torch.linalg.svd(core, full_matrices=False)
+
+    total_energy = float(torch.sum(s * s).item())
+    k_eff = int(min(target_rank_r, s.numel()))
+    u_k = u[:, :k_eff]
+    s_k = s[:k_eff]
+    vh_k = vh[:k_eff, :]
+
+    sqrt_s = torch.sqrt(s_k.clamp_min(0.0))
+    left = q_b @ u_k  # [out, k_eff] left singular vectors of D
+    b_new = (left * sqrt_s.unsqueeze(0)) * float(scale_b)
+    a_new = sqrt_s.unsqueeze(1) * vh_k
+
+    if k_eff < target_rank_r:
+        # Pad lower-rank adapters up to the canonical rank with zero rows/columns:
+        # the effective delta is preserved exactly while the nominal rank matches.
+        pad = target_rank_r - k_eff
+        a_new = torch.cat([a_new, a_new.new_zeros((pad, a_new.shape[1]))], dim=0)
+        b_new = torch.cat([b_new, b_new.new_zeros((b_new.shape[0], pad))], dim=1)
+
+    retained = 1.0 if total_energy <= 0.0 else float(torch.sum(s_k * s_k).item()) / total_energy
+    return a_new, b_new, retained
+
+
+def project_lora_state_dict_to_rank(
+    lora_state_dict: dict[str, torch.Tensor],
+    target_rank_r: int = 16,
+    source_lora_alpha: float | None = None,
+    target_lora_alpha: float | None = None,
+    source_rank_r: int | None = None,
+) -> tuple[dict[str, torch.Tensor], SVDLoARankProjectionReport]:
+    """Project a whole LoRA state dict onto a canonical rank via truncated SVD.
+
+    Higher-rank adapters (`r=32`, `r=64`) are compressed and lower-rank adapters
+    (`r=8`) are zero-padded, always landing on the same canonical rank so that
+    heterogeneous community adapters can be hot-plugged into one unified
+    `UpcycledSparseMoEModel` without VRAM bloat.
+
+    The `alpha / r` scaling convention is preserved: the returned adapter obeys
+
+        (target_lora_alpha / target_rank_r) * B' @ A'
+            ~= (source_lora_alpha / source_rank_r) * B @ A
+
+    so the effective weight delta of the caller is unchanged (up to the truncation
+    error of the discarded spectral tail).
+
+    Args:
+        lora_state_dict: LoRA state dict with `lora_A` / `lora_B` tensor pairs.
+        target_rank_r: Canonical rank to project onto.
+        source_lora_alpha: `alpha` of the source adapter (defaults to the
+            community-standard `2 * r` convention).
+        target_lora_alpha: `alpha` the projected adapter will be used with
+            (defaults to the community-standard `2 * target_rank_r` convention).
+        source_rank_r: Explicit source rank override (auto-detected by default).
+
+    Returns:
+        `(projected_state_dict, report)`.
+    """
+    if target_rank_r < 1:
+        raise ValueError(f"target_rank_r must be >= 1, got {target_rank_r}.")
+
+    pairs = pair_lora_ab_keys(lora_state_dict)
+    detected_rank = detect_lora_rank(lora_state_dict)
+    src_r = int(source_rank_r) if source_rank_r is not None else int(detected_rank or 0)
+    if src_r <= 0:
+        empty = {k: (v.detach().clone() if isinstance(v, torch.Tensor) else v) for k, v in lora_state_dict.items()}
+        report = SVDLoARankProjectionReport(
+            source_rank_r=0,
+            target_rank_r=int(target_rank_r),
+            num_projected_pairs=0,
+            num_padded_pairs=0,
+            num_identity_pairs=0,
+            mean_spectral_energy_retained=1.0,
+            min_spectral_energy_retained=1.0,
+            max_relative_delta_error=0.0,
+            source_params=0,
+            target_params=0,
+            source_lora_alpha=0.0,
+            target_lora_alpha=0.0,
+        )
+        return empty, report
+
+    src_alpha = float(source_lora_alpha) if source_lora_alpha is not None else 2.0 * src_r
+    dst_alpha = float(target_lora_alpha) if target_lora_alpha is not None else 2.0 * float(target_rank_r)
+    source_scaling = src_alpha / float(src_r)
+    target_scaling = dst_alpha / float(target_rank_r)
+    scale_b = source_scaling / target_scaling if target_scaling != 0.0 else 1.0
+
+    projected: dict[str, torch.Tensor] = {}
+    retentions: list[float] = []
+    rel_errors: list[float] = []
+    source_params = 0
+    target_params = 0
+    num_padded = 0
+    num_identity = 0
+    consumed: set[str] = set()
+
+    for a_key, b_key in pairs:
+        consumed.add(a_key)
+        consumed.add(b_key)
+        raw_a = lora_state_dict[a_key]
+        raw_b = lora_state_dict[b_key]
+        a_t, b_t, transposed = _orient_lora_pair(raw_a, raw_b)
+        pair_rank = int(a_t.shape[0])
+
+        a_new, b_new, retained = svd_project_lora_pair(
+            a_t, b_t, target_rank_r=target_rank_r, scale_b=scale_b
+        )
+        retentions.append(retained)
+        if pair_rank < target_rank_r:
+            num_padded += 1
+        elif pair_rank == target_rank_r:
+            num_identity += 1
+
+        # Relative Frobenius error between the source and the projected delta.
+        delta_src = b_t @ a_t
+        delta_dst = b_new @ a_new
+        denom = float(torch.linalg.norm(delta_src).item())
+        err = float(torch.linalg.norm(delta_dst - delta_src).item())
+        rel_errors.append(err / denom if denom > 0.0 else 0.0)
+
+        source_params += int(raw_a.numel()) + int(raw_b.numel())
+        target_params += int(a_new.numel()) + int(b_new.numel())
+
+        out_a = a_new.t().contiguous() if transposed else a_new.contiguous()
+        out_b = b_new.t().contiguous() if transposed else b_new.contiguous()
+        projected[a_key] = out_a.to(dtype=raw_a.dtype)
+        projected[b_key] = out_b.to(dtype=raw_b.dtype)
+
+    for key, value in lora_state_dict.items():
+        if key in consumed:
+            continue
+        projected[key] = value.detach().clone() if isinstance(value, torch.Tensor) else value
+
+    report = SVDLoARankProjectionReport(
+        source_rank_r=src_r,
+        target_rank_r=int(target_rank_r),
+        num_projected_pairs=len(pairs),
+        num_padded_pairs=num_padded,
+        num_identity_pairs=num_identity,
+        mean_spectral_energy_retained=round(sum(retentions) / max(1, len(retentions)), 6),
+        min_spectral_energy_retained=round(min(retentions) if retentions else 1.0, 6),
+        max_relative_delta_error=round(max(rel_errors) if rel_errors else 0.0, 8),
+        source_params=source_params,
+        target_params=target_params,
+        source_lora_alpha=round(src_alpha, 6),
+        target_lora_alpha=round(dst_alpha, 6),
+    )
+    return projected, report
+
+
 class UpcycledSwiGLUExpert(nn.Module):
     """Single domain-specialized SwiGLU FFN expert constructed via W_e = W_0 + (alpha/r) B_e A_e."""
 
@@ -318,6 +598,8 @@ class UpcycledSparseMoEModel(nn.Module):
         self.num_experts = len(expert_domains)
         self.top_k = top_k
         self.router_aux_loss_coef = router_aux_loss_coef
+        # Season 4 (`HM-S4-05`): telemetry of the last SVD rank-adaptive projection.
+        self.last_rank_projection_report: SVDLoARankProjectionReport | None = None
 
     def get_moe_blocks(self) -> list[SparseMoEMLPBlock]:
         blocks: list[SparseMoEMLPBlock] = []
@@ -348,13 +630,42 @@ class UpcycledSparseMoEModel(nn.Module):
         lora_state_dict: dict[str, torch.Tensor],
         lora_rank_r: int = 16,
         lora_alpha: int = 32,
+        target_rank_r: int | None = None,
+        source_lora_alpha: float | None = None,
     ) -> int:
-        """Phase 3.5 (BTM MoE v2): Hot-plug a new domain LoRA expert (E -> E+1) without retraining existing experts."""
+        """Phase 3.5 (BTM MoE v2): Hot-plug a new domain LoRA expert (E -> E+1) without retraining existing experts.
+
+        Args:
+            domain_name: Human-readable domain identifier of the new expert.
+            lora_state_dict: LoRA state dict of the incoming community adapter.
+            lora_rank_r: Rank declared by the caller (drives the `alpha / r` scaling).
+            lora_alpha: LoRA alpha declared by the caller.
+            target_rank_r: When set, the adapter is first projected onto this
+                canonical rank with a truncated SVD (`HM-S4-05`) so that
+                heterogeneous `r=8..64` adapters can share one canonical layout.
+            source_lora_alpha: `alpha` of the incoming adapter (defaults to `lora_alpha`).
+
+        Returns:
+            The new total number of experts `E+1`.
+        """
         scaling = float(lora_alpha) / float(lora_rank_r)
         device = next(self.backbone.parameters()).device
         dtype = next(self.backbone.parameters()).dtype
         cfg = self.backbone.config
         blocks = self.get_moe_blocks()
+
+        if target_rank_r is not None:
+            src_alpha = float(source_lora_alpha) if source_lora_alpha is not None else float(lora_alpha)
+            # The model keeps applying `lora_alpha / lora_rank_r` to the projected
+            # adapter, so the projection must compensate with the same scaling.
+            dst_alpha = float(lora_alpha) * float(target_rank_r) / float(lora_rank_r)
+            lora_state_dict, projection_report = project_lora_state_dict_to_rank(
+                lora_state_dict,
+                target_rank_r=target_rank_r,
+                source_lora_alpha=src_alpha,
+                target_lora_alpha=dst_alpha,
+            )
+            self.last_rank_projection_report = projection_report
 
         for layer_idx, blk in enumerate(blocks):
             ab_gate = _extract_ab_pair(lora_state_dict, layer_idx, "mlp.gate_proj")
@@ -410,6 +721,137 @@ class UpcycledSparseMoEModel(nn.Module):
                 out.loss = out.loss + self.router_aux_loss_coef * total_aux
         return out
 
+
+def measure_moe_vram_footprint_gb(
+    moe_model: UpcycledSparseMoEModel,
+    device: torch.device | None = None,
+) -> dict[str, float]:
+    """Measure the resident VRAM footprint of an upcycled Sparse MoE in GiB.
+
+    The factored (VRAM-efficient) expert layout stores only the LoRA factors
+    `(A, B)` of every expert on top of the *shared* base FFN, so the footprint
+    grows linearly with the number of hot-plugged experts while the base weights
+    are paid for only once.
+
+    Args:
+        moe_model: The upcycled Sparse MoE to profile.
+        device: Device to query for live CUDA allocations (auto-detected by default).
+
+    Returns:
+        Dictionary with the weight/buffer breakdown (MiB & GiB) and, when running
+        on CUDA, the live and peak allocated VRAM.
+    """
+    param_bytes = sum(p.numel() * p.element_size() for p in moe_model.parameters())
+    buffer_bytes = sum(b.numel() * b.element_size() for b in moe_model.buffers())
+    total_bytes = param_bytes + buffer_bytes
+
+    if device is None:
+        try:
+            device = next(moe_model.parameters()).device
+        except StopIteration:  # pragma: no cover - parameterless model
+            device = torch.device("cpu")
+
+    footprint: dict[str, float] = {
+        "num_experts": float(moe_model.num_experts),
+        "param_mb": round(param_bytes / (1024**2), 4),
+        "buffer_mb": round(buffer_bytes / (1024**2), 4),
+        "total_mb": round(total_bytes / (1024**2), 4),
+        "total_gb": round(total_bytes / (1024**3), 6),
+        "cuda_allocated_gb": 0.0,
+        "cuda_peak_gb": 0.0,
+    }
+    if device.type == "cuda" and torch.cuda.is_available():
+        footprint["cuda_allocated_gb"] = round(torch.cuda.memory_allocated(device) / (1024**3), 6)
+        footprint["cuda_peak_gb"] = round(torch.cuda.max_memory_allocated(device) / (1024**3), 6)
+    return footprint
+
+
+def hotplug_rank_adaptive_experts(
+    moe_model: UpcycledSparseMoEModel,
+    expert_lora_states: dict[str, dict[str, torch.Tensor]],
+    target_rank_r: int = 16,
+    lora_alpha: int | None = None,
+    expert_lora_alphas: dict[str, float] | None = None,
+    vram_budget_gb: float = 2.0,
+) -> dict[str, Any]:
+    """Season 4 (`HM-S4-05`): hot-plug heterogeneous community adapters at scale.
+
+    Every incoming adapter is projected onto the canonical `target_rank_r` with a
+    truncated SVD (`project_lora_state_dict_to_rank`) before being hot-plugged,
+    so `r=8`, `r=16`, `r=32` and `r=64` community adapters can all live inside a
+    single `UpcycledSparseMoEModel` without VRAM bloat.
+
+    Args:
+        moe_model: Target Sparse MoE receiving the new experts.
+        expert_lora_states: Mapping `domain_name -> LoRA state dict`.
+        target_rank_r: Canonical rank every adapter is projected onto.
+        lora_alpha: Alpha the projected adapters are used with (defaults to the
+            community-standard `2 * target_rank_r`).
+        expert_lora_alphas: Optional per-domain source alpha of the incoming adapter.
+        vram_budget_gb: VRAM budget used to flag budget compliance.
+
+    Returns:
+        Telemetry dictionary with the expert counts, per-expert projection reports
+        and the VRAM footprint measured before and after the hot-plug.
+    """
+    if target_rank_r < 1:
+        raise ValueError(f"target_rank_r must be >= 1, got {target_rank_r}.")
+
+    dst_alpha = float(lora_alpha) if lora_alpha is not None else 2.0 * float(target_rank_r)
+    footprint_before = measure_moe_vram_footprint_gb(moe_model)
+
+    projection_reports: dict[str, dict[str, Any]] = {}
+    plugged_domains: list[str] = []
+    for domain_name, lora_state in expert_lora_states.items():
+        src_r = detect_lora_rank(lora_state) or target_rank_r
+        src_alpha = (
+            float(expert_lora_alphas[domain_name])
+            if expert_lora_alphas is not None and domain_name in expert_lora_alphas
+            else 2.0 * float(src_r)
+        )
+        projected, report = project_lora_state_dict_to_rank(
+            lora_state,
+            target_rank_r=target_rank_r,
+            source_lora_alpha=src_alpha,
+            target_lora_alpha=dst_alpha,
+            source_rank_r=src_r,
+        )
+        projection_reports[domain_name] = {
+            "source_rank_r": report.source_rank_r,
+            "target_rank_r": report.target_rank_r,
+            "num_projected_pairs": report.num_projected_pairs,
+            "num_padded_pairs": report.num_padded_pairs,
+            "num_identity_pairs": report.num_identity_pairs,
+            "mean_spectral_energy_retained": report.mean_spectral_energy_retained,
+            "min_spectral_energy_retained": report.min_spectral_energy_retained,
+            "max_relative_delta_error": report.max_relative_delta_error,
+            "compression_ratio": report.compression_ratio,
+            "source_params": report.source_params,
+            "target_params": report.target_params,
+        }
+        moe_model.hotplug_domain_expert(
+            domain_name=domain_name,
+            lora_state_dict=projected,
+            lora_rank_r=target_rank_r,
+            lora_alpha=int(dst_alpha),
+        )
+        plugged_domains.append(domain_name)
+
+    footprint_after = measure_moe_vram_footprint_gb(moe_model)
+    return {
+        "initial_num_experts": int(footprint_before["num_experts"]),
+        "final_num_experts": int(moe_model.num_experts),
+        "num_plugged_experts": len(plugged_domains),
+        "plugged_domains": plugged_domains,
+        "target_rank_r": int(target_rank_r),
+        "lora_alpha": dst_alpha,
+        "projection_reports": projection_reports,
+        "vram_footprint_before_gb": footprint_before["total_gb"],
+        "vram_footprint_after_gb": footprint_after["total_gb"],
+        "vram_footprint_after_mb": footprint_after["total_mb"],
+        "vram_budget_gb": float(vram_budget_gb),
+        "within_vram_budget": bool(footprint_after["total_gb"] < float(vram_budget_gb)),
+    }
 
 
 def upcycle_branches_to_sparse_moe(
