@@ -444,6 +444,13 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     )
     assert tree_res["tree_depth_gamma"] == 6
     assert tree_res["accepted_length"] == 7  # 6 draft tokens + 1 bonus token
+    assert tree_res["num_tree_nodes"] == 10
+    mask_info = TokenTreeSpeculativeVerifier(gamma=8).build_causal_tree_attention_mask(
+        [[1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 3, 4, 9, 10, 11, 12]]
+    )
+    assert mask_info["tree_depth_gamma"] == 8
+    assert mask_info["causal_tree_mask"].shape == (13, 13)
+    assert bool(mask_info["causal_tree_mask"][-1, 0]) is True
 
     # M4: OPoI 5% Activation Auditor, Layer-2 $HIVE State Channel & OpenAI /v1/chat/completions
     auditor = OptimisticProofOfInferenceAuditor(audit_probability=0.05)

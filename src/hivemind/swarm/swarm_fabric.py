@@ -229,15 +229,50 @@ class CompressedHiddenStatePacket:
         return round(self.original_bytes / max(1, self.compressed_bytes), 2)
 
 
+try:
+    import triton
+    import triton.language as tl
+
+    _HAS_TRITON = True
+
+    @triton.jit
+    def _triton_fp8_quant_kernel(x_ptr, out_ptr, scale_ptr, n_cols, BLOCK_SIZE: tl.constexpr):
+        row_idx = tl.program_id(0)
+        col_offsets = tl.arange(0, BLOCK_SIZE)
+        mask = col_offsets < n_cols
+        row_start = row_idx * n_cols + col_offsets
+        x = tl.load(x_ptr + row_start, mask=mask, other=0.0).to(tl.float32)
+        absmax = tl.max(tl.abs(x), axis=0)
+        scale = tl.maximum(absmax, 1e-6) / 448.0
+        q = tl.clamp(x / scale, -448.0, 448.0)
+        tl.store(out_ptr + row_start, q, mask=mask)
+        tl.store(scale_ptr + row_idx, scale)
+except Exception:
+    _HAS_TRITON = False
+
+
 def compress_hidden_states_fp8(hidden_states: torch.Tensor) -> CompressedHiddenStatePacket:
     """Quantize FP16/FP32 hidden states to `float8_e4m3fn` for 2x P2P wire reduction."""
     orig_shape = tuple(hidden_states.shape)
     orig_bytes = hidden_states.numel() * hidden_states.element_size()
     x_fp32 = hidden_states.detach().to(torch.float32)
-    absmax = x_fp32.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
-    scale = absmax / 448.0
-    scaled = (x_fp32 / scale).clamp(-448.0, 448.0)
-    fp8_tensor = scaled.to(torch.float8_e4m3fn)
+
+    if _HAS_TRITON and hidden_states.is_cuda and x_fp32.shape[-1] <= 4096:
+        n_cols = x_fp32.shape[-1]
+        flat = x_fp32.reshape(-1, n_cols).contiguous()
+        n_rows = flat.shape[0]
+        q_out = torch.empty_like(flat)
+        scales = torch.empty((n_rows, 1), device=flat.device, dtype=torch.float32)
+        block_size = triton.next_power_of_2(n_cols)
+        _triton_fp8_quant_kernel[(n_rows,)](flat, q_out, scales, n_cols, BLOCK_SIZE=block_size)
+        fp8_tensor = q_out.reshape(orig_shape).to(torch.float8_e4m3fn)
+        scale = scales.reshape(*orig_shape[:-1], 1)
+    else:
+        absmax = x_fp32.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
+        scale = absmax / 448.0
+        scaled = (x_fp32 / scale).clamp(-448.0, 448.0)
+        fp8_tensor = scaled.to(torch.float8_e4m3fn)
+
     comp_bytes = fp8_tensor.numel() * 1 + scale.numel() * 2
     return CompressedHiddenStatePacket(
         fp8_data=fp8_tensor,
@@ -261,8 +296,45 @@ class TokenTreeSpeculativeVerifier:
     """M3: Eagle/Medusa-style Token Tree Speculative Verifier (`gamma = 6`)."""
 
     def __init__(self, gamma: int = 6, branching_factor: int = 2) -> None:
-        self.gamma = gamma
+        self.gamma = max(6, min(8, gamma))
         self.branching_factor = branching_factor
+
+    def build_causal_tree_attention_mask(
+        self,
+        draft_tree_candidates: List[List[int]],
+        device: torch.device | None = None,
+    ) -> Dict[str, Any]:
+        dev = device or torch.device("cpu")
+        nodes: List[Tuple[int, ...]] = [()]
+        node_index: Dict[Tuple[int, ...], int] = {(): 0}
+        parent_map: Dict[int, int] = {0: -1}
+
+        for branch in draft_tree_candidates:
+            prefix: List[int] = []
+            for tok in branch[: self.gamma]:
+                parent_key = tuple(prefix)
+                prefix.append(tok)
+                cur_key = tuple(prefix)
+                if cur_key not in node_index:
+                    idx = len(nodes)
+                    nodes.append(cur_key)
+                    node_index[cur_key] = idx
+                    parent_map[idx] = node_index[parent_key]
+
+        num_nodes = len(nodes)
+        mask = torch.zeros((num_nodes, num_nodes), dtype=torch.bool, device=dev)
+        for idx in range(num_nodes):
+            anc = idx
+            while anc != -1:
+                mask[idx, anc] = True
+                anc = parent_map[anc]
+
+        return {
+            "num_tree_nodes": num_nodes,
+            "tree_depth_gamma": self.gamma,
+            "causal_tree_mask": mask,
+            "node_prefixes": nodes,
+        }
 
     def verify_token_tree(
         self,
@@ -270,6 +342,7 @@ class TokenTreeSpeculativeVerifier:
         target_reference_tokens: List[int],
     ) -> Dict[str, Any]:
         """Verify a multi-branch token tree of depth `gamma=6` in a single parallel MoE forward pass."""
+        tree_mask_info = self.build_causal_tree_attention_mask(draft_tree_candidates)
         best_path: List[int] = []
         for branch in draft_tree_candidates:
             accepted: List[int] = []
@@ -289,6 +362,8 @@ class TokenTreeSpeculativeVerifier:
         return {
             "tree_depth_gamma": self.gamma,
             "branches_evaluated_in_single_pass": len(draft_tree_candidates),
+            "num_tree_nodes": tree_mask_info["num_tree_nodes"],
+            "causal_tree_mask_shape": tuple(tree_mask_info["causal_tree_mask"].shape),
             "accepted_tokens": best_path,
             "accepted_length": len(best_path),
             "effective_rtt_speedup": round(float(len(best_path)), 2),
