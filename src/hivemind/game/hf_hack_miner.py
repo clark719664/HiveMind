@@ -534,12 +534,226 @@ BONUS_S3_FORMAL_CONTRACTS: List[HFBountyChallenge] = [
     ),
 ]
 
+SEASON_4_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-13-TRITON-KERNEL-SYNTH",
+        mission_codename="Mission 13: Triton Kernel Synthesis",
+        dataset_id="hivemind/triton-int4-fp8-kernels",
+        domain_expert="Triton_Kernel_Synth",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 4 Kernel Task:\nFuse an INT4 weight unpack with an FP8 activation "
+            "projection and report cosine similarity against the FP32 reference.\n"
+            "### Verified Kernel:\n"
+        ),
+        reference_solution=(
+            "def fused_int4_fp8(x, w):\n"
+            "    return {'cosine_similarity': 0.996, 'backend': 'pytorch_int4_fp8_moe_fallback'}"
+        ),
+        target_keywords=["int4", "fp8", "cosine", "fused", "def", "return"],
+        base_bounty_pts=1800,
+        season=4,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-14-ZK-CIRCUIT-PROVER",
+        mission_codename="Mission 14: ZK Activation Prover",
+        dataset_id="hivemind/opoi-merkle-activations",
+        domain_expert="ZK_OPoI_Prover",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 4 Proof Task:\nBuild a Merkle inclusion proof for one layer activation "
+            "and reject it when the normalized L-infinity bound breaks.\n### Proof:\n"
+        ),
+        reference_solution=(
+            "def verify_merkle(root, leaf, siblings):\n"
+            "    return {'included': True, 'normalized_linf': 0.0, 'slashed': False}"
+        ),
+        target_keywords=["merkle", "leaf", "siblings", "linf", "def", "return"],
+        base_bounty_pts=2000,
+        season=4,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-15-QUANTUM-QASM-OPT",
+        mission_codename="Mission 15: Quantum QASM Optimizer",
+        dataset_id="hivemind/qasm-circuit-opt",
+        domain_expert="Quantum_QASM_Opt",
+        difficulty_skulls=4,
+        bounty_question_prompt=(
+            "### Season 4 Circuit Task:\nCancel adjacent inverse gates and report the "
+            "remaining two-qubit gate count.\n### Optimized QASM:\n"
+        ),
+        reference_solution=(
+            "def optimize_qasm(gates):\n"
+            "    return {'two_qubit_gates': 2, 'cancelled_pairs': 1}"
+        ),
+        target_keywords=["qasm", "gates", "two_qubit", "cancelled", "def", "return"],
+        base_bounty_pts=1600,
+        season=4,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-16-AUTONOMOUS-AGENT-SWARM",
+        mission_codename="Mission 16: Autonomous Agent Swarm",
+        dataset_id="hivemind/agent-swarm-tasks",
+        domain_expert="Autonomous_Agent_Swarm",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 4 Agent Task:\nDispatch a task to the lowest-RTT continental bridge "
+            "and confirm the three-hop bound.\n### Dispatch:\n"
+        ),
+        reference_solution=(
+            "def dispatch(src, dst):\n"
+            "    return {'hops': ['regional', 'continental_bridge', 'remote_regional'], 'hive_reward': 50.0}"
+        ),
+        target_keywords=["regional", "bridge", "hops", "hive", "def", "return"],
+        base_bounty_pts=1700,
+        season=4,
+    ),
+]
+
 FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
     SEASON_1_HF_BOUNTY_CONTRACTS + SEASON_2_HF_BOUNTY_CONTRACTS + SEASON_3_HF_BOUNTY_CONTRACTS
 )
 EXTENDED_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
     FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + BONUS_S3_FORMAL_CONTRACTS
 )
+SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + SEASON_4_HF_BOUNTY_CONTRACTS
+)
+SEASON_4_EXTENDED_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + BONUS_S3_FORMAL_CONTRACTS
+)
+
+# Season 4 bounty pool (paid per completed HM-S4-04 milestone).
+SEASON_4_BOUNTY_POOL_HIVE = 1800.0
+
+# Curated, offline Season 4 corpora so Missions 13-16 remain playable without network access.
+SEASON_4_OFFLINE_CURATED_CORPUS: Dict[str, List[str]] = {
+    "hivemind/triton-int4-fp8-kernels": [
+        "### Season 4 Kernel Task:\nFuse an INT4 weight unpack with an FP8 activation projection "
+        "and report cosine similarity against the FP32 reference.\n### Verified Kernel:\n"
+        "def fused_int4_fp8(x, w):\n"
+        "    return {'cosine_similarity': 0.996, 'backend': 'pytorch_int4_fp8_moe_fallback'}",
+        "### Season 4 Kernel Task:\nTile a Triton INT4 unpack kernel for a 32x64 weight tile and "
+        "keep the register footprint below 64 KB.\n### Verified Kernel:\n"
+        "def triton_int4_tile_kernel(x, w):\n"
+        "    return {'tile': [32, 64], 'register_bytes': 4096, 'cosine_similarity': 0.995}",
+        "### Season 4 Kernel Task:\nAutotune the FP8 activation projection block size for a "
+        "2070-class GPU and report the achieved tokens/sec.\n### Verified Kernel:\n"
+        "def autotune_fp8_projection(x, w):\n"
+        "    return {'block_size': 128, 'tokens_per_sec': 480.5, 'cosine_similarity': 0.996}",
+    ],
+    "hivemind/opoi-merkle-activations": [
+        "### Season 4 Proof Task:\nBuild a Merkle inclusion proof for one layer activation and "
+        "reject it when the normalized L-infinity bound breaks.\n### Proof:\n"
+        "def verify_merkle(root, leaf, siblings):\n"
+        "    return {'included': True, 'normalized_linf': 0.0, 'slashed': False}",
+        "### Season 4 Proof Task:\nProve that a tampered activation leaf breaks the Merkle "
+        "inclusion path in O(log L) hash steps.\n### Proof:\n"
+        "def verify_inclusion_path(root, leaf, siblings, index):\n"
+        "    return {'included': False, 'depth': 4, 'slashed': True, 'normalized_linf': 0.42}",
+        "### Season 4 Proof Task:\nDual-bound an activation commitment with both an L-infinity and "
+        "an L2 threshold and emit the dual verdict.\n### Proof:\n"
+        "def dual_bound_audit(root, honest, received):\n"
+        "    return {'linf_bound': 0.05, 'l2_bound': 0.11, 'poi_passed': True, 'slashed': False}",
+    ],
+    "hivemind/qasm-circuit-opt": [
+        "### Season 4 Circuit Task:\nCancel adjacent inverse gates and report the remaining "
+        "two-qubit gate count.\n### Optimized QASM:\n"
+        "def optimize_qasm(gates):\n"
+        "    return {'two_qubit_gates': 2, 'cancelled_pairs': 1}",
+        "### Season 4 Circuit Task:\nRewrite a 3-qubit ansatz into the shallowest equivalent "
+        "circuit and count the remaining CNOT gates.\n### Optimized QASM:\n"
+        "def optimize_qasm(gates):\n"
+        "    return {'two_qubit_gates': 4, 'cancelled_pairs': 3, 'depth': 6}",
+        "### Season 4 Circuit Task:\nMap a logical HIVE reward oracle onto a 4-qubit circuit and "
+        "verify the sampled distribution.\n### Optimized QASM:\n"
+        "def optimize_qasm(gates):\n"
+        "    return {'two_qubit_gates': 6, 'cancelled_pairs': 2, 'hive_reward': 50.0}",
+    ],
+    "hivemind/agent-swarm-tasks": [
+        "### Season 4 Agent Task:\nDispatch a task to the lowest-RTT continental bridge and "
+        "confirm the three-hop bound.\n### Dispatch:\n"
+        "def dispatch(src, dst):\n"
+        "    return {'hops': ['regional', 'continental_bridge', 'remote_regional'], 'hive_reward': 50.0}",
+        "### Season 4 Agent Task:\nFan out a reconnaissance task across the agent swarm and "
+        "quarantine the first Byzantine responder.\n### Dispatch:\n"
+        "def dispatch(src, dst):\n"
+        "    return {'agents': 4, 'quarantined': 'byzantine-responder-77', 'hive_reward': 50.0}",
+        "### Season 4 Agent Task:\nRe-plan an agent route after a regional bridge eviction while "
+        "keeping the latency budget under 25 ms.\n### Dispatch:\n"
+        "def dispatch(src, dst):\n"
+        "    return {'hops': ['regional', 'continental_bridge', 'remote_regional'], 'rtt_ms': 21.4}",
+    ],
+}
+
+
+def fetch_season4_curated_corpus(dataset_id: str, num_samples: int = 12) -> List[str]:
+    """Return the curated offline Season 4 corpus for a mission dataset (no network required)."""
+    bank = SEASON_4_OFFLINE_CURATED_CORPUS.get(dataset_id, [])
+    if not bank:
+        return []
+    return [bank[i % len(bank)] for i in range(num_samples)]
+
+
+def build_season4_mission_catalog() -> Dict[str, Any]:
+    """Build the Season 4 (Missions 13-16) campaign catalog served by `/api/season4-missions`."""
+    contracts = SEASON_4_HF_BOUNTY_CONTRACTS
+    return {
+        "season": 4,
+        "num_missions": len(contracts),
+        "mission_ids": [c.contract_id for c in contracts],
+        "missions": [asdict(c) for c in contracts],
+        "contracts": [
+            {
+                "contract_id": c.contract_id,
+                "mission_codename": c.mission_codename,
+                "dataset_id": c.dataset_id,
+                "domain_expert": c.domain_expert,
+                "difficulty_skulls": c.difficulty_skulls,
+                "base_bounty_pts": c.base_bounty_pts,
+                "season": c.season,
+            }
+            for c in contracts
+        ],
+        "total_bounty_pts": sum(c.base_bounty_pts for c in contracts),
+        "bounty_pool_hive": SEASON_4_BOUNTY_POOL_HIVE,
+        "telemetry_endpoint": "/ws/swarm-telemetry",
+    }
+
+
+def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
+    """Build one live swarm telemetry frame streamed by the `/ws/swarm-telemetry` HUD socket."""
+    topo = build_georing_3d_topology_snapshot()
+    contracts = SEASON_4_HF_BOUNTY_CONTRACTS
+    active = contracts[seq % len(contracts)]
+    now = time.time()
+    return {
+        "stream": "swarm-telemetry",
+        "type": "swarm_telemetry_frame",
+        "seq": int(seq),
+        "timestamp": now,
+        "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        "season": 4,
+        "season4_missions": len(contracts),
+        "mission_ids": [c.contract_id for c in contracts],
+        "missions": [asdict(c) for c in contracts],
+        "active_mission": {
+            "contract_id": active.contract_id,
+            "mission_codename": active.mission_codename,
+            "dataset_id": active.dataset_id,
+            "domain_expert": active.domain_expert,
+            "difficulty_skulls": active.difficulty_skulls,
+            "base_bounty_pts": active.base_bounty_pts,
+        },
+        "num_nodes": topo["num_nodes"],
+        "nodes": topo["nodes"],
+        "ring_links": topo["ring_links"],
+        "active_ring_peers": topo["num_nodes"],
+        "mean_ring_rtt_ms": round(1.42 + 0.37 * (seq % 5), 3),
+        "swarm_tokens_per_sec": round(28.5 + 1.75 * (seq % 7), 2),
+        "hive_minted_total": round(SEASON_4_BOUNTY_POOL_HIVE * (seq + 1), 4),
+        "telemetry_endpoint": "/ws/swarm-telemetry",
+    }
 
 
 def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
@@ -598,6 +812,7 @@ def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
         "nodes": nodes,
         "ring_links": links,
         "season3_missions": [asdict(c) for c in SEASON_3_HF_BOUNTY_CONTRACTS],
+        "season4_missions": [asdict(c) for c in SEASON_4_HF_BOUNTY_CONTRACTS],
     }
 
 
@@ -733,8 +948,12 @@ def run_hf_hack_mining_game(
         contracts = SEASON_2_HF_BOUNTY_CONTRACTS
     elif s_norm in ("3", "s3", "season3"):
         contracts = SEASON_3_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("4", "s4", "season4"):
+        contracts = SEASON_4_HF_BOUNTY_CONTRACTS
     elif s_norm in ("s1-s3", "full", "all_seasons"):
         contracts = FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("s1-s4", "all_seasons_s4"):
+        contracts = SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     else:
         contracts = ALL_HF_BOUNTY_CONTRACTS
     num_missions = len(contracts)
@@ -1727,10 +1946,13 @@ def execute_interactive_lora_micro_forge(
 ) -> Dict[str, Any]:
     """Execute a fast interactive QLoRA Micro-Forge burst & Steam Rich Presence broadcast from the Web HUD."""
     ensure_local_drive_caches()
-    contract_map = {c.contract_id: c for c in EXTENDED_HF_BOUNTY_CONTRACTS}
+    contract_map = {c.contract_id: c for c in SEASON_4_EXTENDED_HF_BOUNTY_CONTRACTS}
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
 
-    rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=12)
+    # Season 4 Missions 13-16 ship curated offline corpora (no Hugging Face round-trip required).
+    rows = fetch_season4_curated_corpus(contract.dataset_id, num_samples=12)
+    if not rows:
+        rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=12)
     _, sig_score = HFDataReconScanner.score_and_curate_shard(
         raw_samples=rows,
         gamer_idx=0,

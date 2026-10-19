@@ -5,19 +5,29 @@ Packages the game as a Free-to-Play Steam distribution (`D:\\xdev\\Decentralized
 - `steam_store_manifest.json` (F2P store page metadata, Steamworks Achievements & Leaderboards)
 - `steamworks_sdk/app_build_3133700.vdf` & `depot_build_3133701.vdf` (Valve SteamPipe build scripts)
 - `Launch_HiveMind_HackMiner.bat` (1-click Windows Steam launcher)
-- `web_ui/index.html` (Interactive Cyberpunk Hugging Face Hack-Miner & Swarm Leaderboard HUD)
+- `web_ui/index.html` (Interactive Cyberpunk Hugging Face Hack-Miner & Swarm Leaderboard HUD
+  with the live `/ws/swarm-telemetry` WebSocket stream for the Season 4 campaign)
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from typing import Any, Dict
 
 from hivemind.config import ARTIFACTS_ROOT, PROJECT_ROOT
 
+try:  # pragma: no cover - FastAPI is only required for the live HUD server
+    from fastapi import WebSocket
+except Exception:  # pragma: no cover - resolved lazily by `create_hack_miner_fastapi_app`
+    WebSocket = Any  # type: ignore[assignment,misc]
+
 STEAM_APP_ID = 3133700
 STEAM_DEPOT_ID = 3133701
+
+# Live `/ws/swarm-telemetry` frame cadence (seconds between HUD telemetry pushes).
+SWARM_TELEMETRY_INTERVAL_SECONDS = 1.0
 
 
 def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
@@ -254,6 +264,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       <div class="terminal" id="georing-terminal">[WEBGL 3D GEO-RING ACTIVE] Nodes: EU-West-Paris &rarr; EU-Central-Berlin &rarr; US-East-Virginia &rarr; APAC-East-Tokyo | Season 3 Missions 9-12 Loaded.</div>
     </div>
 
+<<<<<<< HEAD
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
       <h2>SCIENTIFIC SWARM KNOWLEDGE TRANSFER, JOINED CO-OP CAMPAIGNS &amp; DUAL LEADERBOARD (BEST MINER + BEST CONTRIBUTOR)</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
@@ -266,6 +277,23 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (5.4x RTT)</button>
       </div>
       <div class="terminal" id="joined-campaign-terminal">[SCIENTIFIC SWARM READY] Click any Joined Co-Op Campaign above to execute live peer knowledge transfer across CyberValkyrie_FR, NeuralGhost_DE, ZeroCool_UK &amp; SakuraNode_JP and update the Best Miner + Best Contributor Dual Leaderboard.</div>
+=======
+    <div class="card" id="season4-missions-panel" style="grid-column: 1 / -1;">
+      <h2>SEASON 4 HACK-MINER CAMPAIGN (MISSIONS 13-16) &amp; LIVE <code>/ws/swarm-telemetry</code> WEBSOCKET</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Season 4 bounty contracts (<code>Triton Kernel Synthesis</code>, <code>ZK Activation Prover</code>,
+        <code>Quantum QASM Optimizer</code>, <code>Autonomous Agent Swarm</code>) with a real-time WebSocket
+        telemetry stream pushed by the local Hack-Miner HUD server:
+      </p>
+      <div id="season4-mission-buttons">
+        <button class="btn" onclick="selectSeason4Mission(0)">S4 M13: Triton Kernel</button>
+        <button class="btn" onclick="selectSeason4Mission(1)">S4 M14: ZK Prover</button>
+        <button class="btn" onclick="selectSeason4Mission(2)">S4 M15: Quantum QASM</button>
+        <button class="btn btn-cyan" onclick="selectSeason4Mission(3)">S4 M16: Agent Swarm</button>
+      </div>
+      <div class="terminal" id="season4-terminal">[SEASON 4] Loading bounty contracts 13-16 from /api/season4-missions...</div>
+      <div class="terminal" id="swarm-telemetry-terminal">[WS] Connecting to /ws/swarm-telemetry ...</div>
+>>>>>>> pr-36
     </div>
   </div>
 
@@ -538,13 +566,92 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         term.textContent =
           `[LOCAL SIMULATION JOINED CAMPAIGN] ${{campaignId}} led by ${{gamer}}\\n` +
           `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents inherited >= 84% Holdout Loss Reduction (4.0x Compute Leverage, 0 Redundant GPU Steps)\\n` +
-          `[#1 BEST SWARM MINER] CyberValkyrie_FR (19,450 PTS | +15.0 $HIVE Reuse Royalties) | [#1 BEST CONTRIBUTOR] @xaviercallens & @clark719664`;
+          `[#1 BEST SWARM MINER] CyberValkyrie_FR (19,450 PTS | +15.0 $HIVE Reuse Royalties) | [#1 BEST CONTRIBUTOR] @xaviercallens, @clark719664 & @pedromineo`;
       }}
     }}
 
+    // ---- Season 4 Missions 13-16 + live /ws/swarm-telemetry stream (HM-S4-04) ----
+    let SEASON4_MISSIONS = [];
+    let telemetrySocket = null;
+
+    async function loadSeason4Missions() {{
+      const term = document.getElementById('season4-terminal');
+      try {{
+        const resp = await fetch('/api/season4-missions');
+        if (!resp.ok) throw new Error('offline');
+        const res = await resp.json();
+        SEASON4_MISSIONS = res.contracts || [];
+        const ids = res.missions || [];
+        term.textContent =
+          `[SEASON 4 BOUNTY CONTRACTS] ${{ids.length}} missions loaded (pool: ${{res.bounty_pool_hive}} $HIVE)\\n` +
+          ids.map((id, i) => `  [${{i + 13}}] ${{id}}`).join('\\n');
+        if (SEASON4_MISSIONS.length) selectSeason4Mission(0);
+      }} catch (e) {{
+        term.textContent =
+          `[SEASON 4 OFFLINE MODE] Missions 13-16 unavailable (HUD opened from file:// or server offline).\\n` +
+          `  [13] CONTRACT-HF-13-TRITON-KERNEL-SYNTH | [14] CONTRACT-HF-14-ZK-CIRCUIT-PROVER\\n` +
+          `  [15] CONTRACT-HF-15-QUANTUM-QASM-OPT | [16] CONTRACT-HF-16-AUTONOMOUS-AGENT-SWARM`;
+      }}
+    }}
+
+    function selectSeason4Mission(idx) {{
+      const m = SEASON4_MISSIONS[idx];
+      if (!m) return;
+      const term = document.getElementById('season4-terminal');
+      term.textContent =
+        `[SEASON 4 CONTRACT] ${{m.contract_id}} // ${{m.mission_codename}}\\n` +
+        `[HF DATASET NODE] ${{m.dataset_id}} -> Expert: ${{m.domain_expert}}\\n` +
+        `[DIFFICULTY] ${{'*'.repeat(m.difficulty_skulls || 5)}} | [BASE BOUNTY] ${{m.base_bounty_pts}} PTS\\n` +
+        `[TELEMETRY] Live frame stream on /ws/swarm-telemetry (Season 4: 4 contracts, 1,800 $HIVE pool)`;
+    }}
+
+    function renderTelemetryFrame(f) {{
+      const term = document.getElementById('swarm-telemetry-terminal');
+      if (!term || !f) return;
+      const m = f.active_mission || {{}};
+      const lb = (f.leaderboard || [])[0] || {{}};
+      term.textContent =
+        `[LIVE TELEMETRY] seq ${{f.seq}} | ${{f.timestamp_iso}} | stream=${{f.stream}}\\n` +
+        `[SEASON 4] ${{f.season4_missions}} contracts | active: ${{m.contract_id}} (${{m.domain_expert}})\\n` +
+        `[SWARM RING] ${{f.num_nodes}} nodes | ${{f.active_ring_peers}} peers | mean RTT ${{f.mean_ring_rtt_ms}} ms\\n` +
+        `[THROUGHPUT] ${{f.swarm_tokens_per_sec}} tok/s | mined ${{f.hive_minted_total}} $HIVE\\n` +
+        `[LEADER] ${{lb.gamer_tag || 'n/a'}} | ${{lb.total_points || 0}} PTS | ${{Number(lb.hive_balance || 0).toFixed(4)}} $HIVE`;
+    }}
+
+    function connectSwarmTelemetry() {{
+      const term = document.getElementById('swarm-telemetry-terminal');
+      if (!term) return;
+      if (!window.WebSocket || !window.location.host) {{
+        term.textContent = '[WS OFFLINE] Open the HUD through http://127.0.0.1:8090 to stream live /ws/swarm-telemetry frames.';
+        return;
+      }}
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = `${{proto}}//${{window.location.host}}/ws/swarm-telemetry`;
+      try {{
+        telemetrySocket = new WebSocket(url);
+      }} catch (e) {{
+        term.textContent = '[WS ERROR] ' + e;
+        return;
+      }}
+      telemetrySocket.onopen = () => {{
+        term.textContent = '[WS OPEN] ' + url + ' - streaming live swarm telemetry...';
+      }};
+      telemetrySocket.onmessage = (ev) => {{
+        try {{ renderTelemetryFrame(JSON.parse(ev.data)); }} catch (e) {{ /* ignore malformed frames */ }}
+      }};
+      telemetrySocket.onerror = () => {{
+        term.textContent = '[WS ERROR] /ws/swarm-telemetry unavailable (offline HUD mode).';
+      }};
+      telemetrySocket.onclose = () => {{
+        term.textContent = '[WS CLOSED] Reconnecting to /ws/swarm-telemetry in 3s...';
+        setTimeout(connectSwarmTelemetry, 3000);
+      }};
+    }}
     renderLeaderboard();
     selectMission(0);
     renderMoE();
+    loadSeason4Missions();
+    connectSwarmTelemetry();
   </script>
 </body>
 </html>
@@ -808,6 +915,8 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     from hivemind.core.quantization import measure_vram_footprint
     from hivemind.game.hf_hack_miner import (
         build_georing_3d_topology_snapshot,
+        build_season4_mission_catalog,
+        build_swarm_telemetry_frame,
         execute_interactive_bounty_probe,
         execute_interactive_hf_shard_scan,
         execute_interactive_joined_campaign,
@@ -848,8 +957,74 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
             "steam_app_id": STEAM_APP_ID,
             "missions": data.get("missions", []),
             "season3_missions": topo["season3_missions"],
+            "season4_missions": topo["season4_missions"],
             "moe_boss_fusion": data.get("moe_boss_fusion", {}),
         }
+
+    @app.get("/api/season4-missions", response_class=JSONResponse)
+    def get_season4_missions() -> Dict[str, Any]:
+        """Serve the Season 4 Hack-Miner campaign catalog (Missions 13-16)."""
+        catalog = build_season4_mission_catalog()
+        return {
+            "steam_app_id": STEAM_APP_ID,
+            "season": 4,
+            "num_missions": catalog["num_missions"],
+            "missions": catalog["mission_ids"],
+            "mission_ids": catalog["mission_ids"],
+            "contracts": catalog["contracts"],
+            "mission_details": catalog["missions"],
+            "season4_missions": catalog["missions"],
+            "total_bounty_pts": catalog["total_bounty_pts"],
+            "bounty_pool_hive": catalog["bounty_pool_hive"],
+            "telemetry_endpoint": catalog["telemetry_endpoint"],
+        }
+
+    def _build_telemetry_frame(seq: int) -> Dict[str, Any]:
+        """Build a live `/ws/swarm-telemetry` frame enriched with the current leaderboard state."""
+        frame = build_swarm_telemetry_frame(seq)
+        try:
+            data = json.loads(state_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+        frame["leaderboard"] = data.get("leaderboard", [])
+        frame["best_miner_champion"] = data.get("best_miner_champion", {})
+        frame["steam_app_id"] = STEAM_APP_ID
+        return frame
+
+    @app.websocket("/ws/swarm-telemetry")
+    async def swarm_telemetry(websocket: "WebSocket") -> None:
+        """Stream live Season 4 swarm telemetry frames to the Cyberpunk Web HUD."""
+        await websocket.accept()
+        disconnected = asyncio.Event()
+
+        async def _watch_for_disconnect() -> None:
+            try:
+                while True:
+                    message = await websocket.receive()
+                    if message.get("type") == "websocket.disconnect":
+                        break
+            except Exception:
+                pass
+            finally:
+                disconnected.set()
+
+        watcher = asyncio.ensure_future(_watch_for_disconnect())
+        try:
+            seq = 0
+            while not disconnected.is_set():
+                await websocket.send_json(_build_telemetry_frame(seq))
+                seq += 1
+                try:
+                    await asyncio.wait_for(
+                        disconnected.wait(), timeout=SWARM_TELEMETRY_INTERVAL_SECONDS
+                    )
+                except asyncio.TimeoutError:
+                    continue
+        except Exception:
+            # The HUD client closed the socket (or the server is shutting down).
+            pass
+        finally:
+            watcher.cancel()
 
     @app.get("/api/georing-topology", response_class=JSONResponse)
     def get_georing_topology() -> Dict[str, Any]:
