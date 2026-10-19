@@ -14,8 +14,11 @@ Kademlia Super-Ring: the regional Geo-Ring stays the Tier-1 `< 20 ms` data plane
 
 from __future__ import annotations
 
+import math
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from numbers import Integral
 from typing import TYPE_CHECKING, Any, Dict
 
 import torch
@@ -25,6 +28,56 @@ from hivemind.core.btm_upcycle import UpcycledSparseMoEModel
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, avoids a circular runtime import.
     from hivemind.swarm.quic_transport import ContinentalSuperRingRouter
+
+
+@contextmanager
+def _temporary_model_top_k(model: nn.Module, top_k: int):
+    """Keep draft/target routing separate even when their modules are shared."""
+    blocks = list(model.get_moe_blocks()) if isinstance(model, UpcycledSparseMoEModel) else []
+    previous = [(block, block.top_k, block.router.top_k) for block in blocks]
+    try:
+        for block in blocks:
+            block.top_k = top_k
+            block.router.top_k = top_k
+        yield
+    finally:
+        for block, block_top_k, router_top_k in previous:
+            block.top_k = block_top_k
+            block.router.top_k = router_top_k
+
+
+@contextmanager
+def _evaluation_mode(*models: nn.Module):
+    # Save individual flags so shared modules and mixed train/eval states survive.
+    previous = {module: module.training for model in models for module in model.modules()}
+    try:
+        for model in models:
+            model.eval()
+        yield
+    finally:
+        for module, training in previous.items():
+            module.training = training
+
+
+def _model_device(model: nn.Module, fallback: torch.device) -> torch.device:
+    parameter = next(model.parameters(), None)
+    if parameter is not None:
+        return parameter.device
+    buffer = next(model.buffers(), None)
+    return buffer.device if buffer is not None else fallback
+
+
+def _sampling_probabilities(logits: torch.Tensor) -> torch.Tensor:
+    """Normalize on CPU in float64 to reduce residual subtraction roundoff."""
+    probabilities = torch.softmax(logits.detach().to(device="cpu", dtype=torch.float64), dim=-1)
+    if not bool(torch.isfinite(probabilities).all()):
+        raise ValueError("model logits must define finite categorical probabilities")
+    return probabilities
+
+
+def _sample_token(probabilities: torch.Tensor, generator: torch.Generator | None) -> int:
+    device = generator.device if generator is not None else probabilities.device
+    return int(torch.multinomial(probabilities.to(device), 1, generator=generator).item())
 
 
 @dataclass
@@ -172,16 +225,33 @@ class RegionalDHTSwarmRing:
         max_new_tokens: int = 20,
         draft_gamma: int = 5,
         simulated_network_rtt_ms: float = 18.5,
+        *,
+        generator: torch.Generator | None = None,
     ) -> SpeculativeSwarmResult:
-        """Generate tokens using local draft speculation (gamma=5) + single-pass MoE swarm verification."""
-        device = next(moe_target_model.parameters()).device
-        moe_target_model.eval()
-        draft_model.eval()
-        moe_target_model.reset_routing_telemetry()
+        """Sample from the target distribution using single-pass speculative verification.
 
+        Each proposal is sampled from its draft distribution q and accepted with
+        probability min(1, p(token)/q(token)). A rejection emits a sample from
+        normalized max(p-q, 0) and discards the remaining proposal suffix. If all
+        proposals are accepted, the final target position supplies a bonus sample.
+        Both models must be causal and share token IDs/vocabulary. One prompt is
+        supported. Pass a seeded generator for reproducible sampling; the reported
+        network RTT remains a simulation, not a measured WAN execution.
+        """
+        if isinstance(max_new_tokens, bool) or not isinstance(max_new_tokens, Integral) or max_new_tokens < 0:
+            raise ValueError("max_new_tokens must be a nonnegative integer")
+        if isinstance(draft_gamma, bool) or not isinstance(draft_gamma, Integral) or draft_gamma < 1:
+            raise ValueError("draft_gamma must be a positive integer")
+        if not math.isfinite(simulated_network_rtt_ms) or simulated_network_rtt_ms < 0:
+            raise ValueError("simulated_network_rtt_ms must be finite and nonnegative")
+        if prompt_ids.dim() == 1:
+            prompt_ids = prompt_ids.unsqueeze(0)
+        if prompt_ids.dim() != 2 or prompt_ids.size(0) != 1 or prompt_ids.size(1) == 0:
+            raise ValueError("prompt_ids must contain one nonempty prompt")
+        device = _model_device(moe_target_model, prompt_ids.device)
+        draft_device = _model_device(draft_model, device)
+        moe_target_model.reset_routing_telemetry()
         seq = prompt_ids.to(device, dtype=torch.long)
-        if seq.dim() == 1:
-            seq = seq.unsqueeze(0)
         prompt_len = seq.size(1)
 
         generated: list[int] = []
@@ -190,68 +260,63 @@ class RegionalDHTSwarmRing:
         proposed_total = 0
 
         t0 = time.perf_counter()
-        with torch.no_grad():
+        with torch.no_grad(), _evaluation_mode(moe_target_model, draft_model):
             while len(generated) < max_new_tokens:
-                # 1. Local Draft Pass (Top-1 single-expert mode) proposes gamma=5 tokens with zero network RTT
-                draft_seq = seq.clone()
+                proposal_count = min(draft_gamma, max_new_tokens - len(generated))
+                draft_seq = seq.to(draft_device)
                 draft_tokens: list[int] = []
-                if isinstance(draft_model, UpcycledSparseMoEModel):
-                    for blk in draft_model.get_moe_blocks():
-                        blk.top_k = 1
-                        blk.router.top_k = 1
-                for _ in range(draft_gamma):
-                    d_out = draft_model(input_ids=draft_seq)
-                    next_tok = int(torch.argmax(d_out.logits[:, -1, :], dim=-1).item())
-                    draft_tokens.append(next_tok)
-                    draft_seq = torch.cat(
-                        [draft_seq, torch.tensor([[next_tok]], device=device, dtype=torch.long)],
-                        dim=1,
-                    )
+                draft_probabilities: list[torch.Tensor] = []
+                with _temporary_model_top_k(draft_model, 1):
+                    for _ in range(proposal_count):
+                        d_logits = draft_model(input_ids=draft_seq).logits
+                        if d_logits.ndim != 3 or d_logits.shape[:2] != draft_seq.shape:
+                            raise ValueError("draft model must return logits for every input position")
+                        q = _sampling_probabilities(d_logits[0, -1, :])
+                        next_tok = _sample_token(q, generator)
+                        draft_tokens.append(next_tok)
+                        draft_probabilities.append(q)
+                        draft_seq = torch.cat(
+                            [draft_seq, draft_seq.new_tensor([[next_tok]])], dim=1
+                        )
+                proposed_total += len(draft_tokens)
 
-                # 2. P2P Sparse MoE Swarm (Top-2 multi-expert mode) verifies all gamma=5 tokens in ONE forward pass
-                if isinstance(moe_target_model, UpcycledSparseMoEModel):
-                    for blk in moe_target_model.get_moe_blocks():
-                        blk.top_k = moe_target_model.top_k
-                        blk.router.top_k = moe_target_model.top_k
+                # A causal target forward supplies p at every proposed prefix and
+                # at the extra position after the last proposal.
+                with _temporary_model_top_k(moe_target_model, getattr(moe_target_model, "top_k", 2)):
+                    m_logits = moe_target_model(input_ids=draft_seq.to(device)).logits
                 verification_passes += 1
-                m_out = moe_target_model(input_ids=draft_seq)
+                if m_logits.ndim != 3 or m_logits.shape[:2] != draft_seq.shape:
+                    raise ValueError("target model must return logits for every input position")
                 start_pos = seq.size(1) - 1
-                target_logits = m_out.logits[:, start_pos : start_pos + draft_gamma + 1, :].squeeze(0)
-                target_probs = torch.softmax(target_logits.to(torch.float32), dim=-1)
-                target_preds = torch.argmax(target_probs, dim=-1)
+                target_probs = _sampling_probabilities(
+                    m_logits[0, start_pos : start_pos + proposal_count + 1, :]
+                )
+                if any(q.shape != target_probs[0].shape for q in draft_probabilities):
+                    raise ValueError("draft and target models must share the same vocabulary")
 
-                accepted_in_pass = 0
+                emitted: list[int] = []
+                all_accepted = True
                 for i, d_tok in enumerate(draft_tokens):
-                    proposed_total += 1
-                    t_tok = int(target_preds[i].item())
-                    max_p = float(target_probs[i, t_tok].item())
-                    draft_p = float(target_probs[i, d_tok].item())
-                    # Speculative rejection sampling criterion: accept if matches argmax or within high-density support
-                    if d_tok == t_tok or (max_p > 0 and (draft_p / max_p) >= 0.65):
-                        generated.append(d_tok)
+                    p, q = target_probs[i], draft_probabilities[i]
+                    acceptance = min(1.0, float((p[d_tok] / q[d_tok]).item()))
+                    random_device = generator.device if generator is not None else p.device
+                    uniform = float(torch.rand((), dtype=torch.float64, device=random_device, generator=generator).item())
+                    if uniform < acceptance:
+                        emitted.append(d_tok)
                         accepted_total += 1
-                        accepted_in_pass += 1
-                        if len(generated) >= max_new_tokens:
-                            break
                     else:
-                        # Accept the target MoE correction token and resync draft sequence
-                        generated.append(t_tok)
-                        accepted_total += 1
-                        accepted_in_pass += 1
+                        residual = torch.clamp(p - q, min=0)
+                        residual_mass = residual.sum()
+                        if float(residual_mass.item()) <= 0:
+                            raise RuntimeError("a rejected proposal must have positive residual mass")
+                        emitted.append(_sample_token(residual / residual_mass, generator))
+                        all_accepted = False
                         break
 
-                # If all gamma draft tokens matched, we also get 1 bonus token from the final position
-                if accepted_in_pass == draft_gamma and len(generated) < max_new_tokens:
-                    bonus_tok = int(target_preds[draft_gamma].item())
-                    generated.append(bonus_tok)
-
-                seq = torch.cat(
-                    [
-                        prompt_ids.to(device, dtype=torch.long).reshape(1, -1),
-                        torch.tensor([generated], device=device, dtype=torch.long),
-                    ],
-                    dim=1,
-                )
+                if all_accepted and len(generated) + len(emitted) < max_new_tokens:
+                    emitted.append(_sample_token(target_probs[proposal_count], generator))
+                generated.extend(emitted)
+                seq = torch.cat([seq, seq.new_tensor([emitted])], dim=1)
 
         compute_elapsed_sec = time.perf_counter() - t0
         # Account for single-pass regional ring RTT (1 RTT per verification pass instead of 1 RTT per token)

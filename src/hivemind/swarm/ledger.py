@@ -16,6 +16,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import os
+import tempfile
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -242,28 +245,58 @@ class HiveSwarmLedger:
         rtt_speedup: float,
         rate_per_token: float = 0.005,
     ) -> InferenceSettlementReceipt:
-        total_fee = round(verified_tokens * rate_per_token, 6)
+        if type(verified_tokens) is not int or verified_tokens <= 0:
+            raise ValueError("Verified token count must be a positive integer.")
+        if not math.isfinite(rate_per_token) or rate_per_token < 0:
+            raise ValueError("Token rate must be finite and nonnegative.")
+        if not math.isfinite(rtt_speedup) or rtt_speedup < 0:
+            raise ValueError("RTT speedup must be finite and nonnegative.")
+        if not isinstance(consumer_node_id, str) or not consumer_node_id:
+            raise ValueError("A consumer node ID is required.")
+        providers = list(provider_node_ids)
+        if (not providers or any(not isinstance(pid, str) or not pid for pid in providers)
+                or len(set(providers)) != len(providers)):
+            raise ValueError("Settlement requires distinct, nonempty provider IDs.")
+        try:
+            total_fee = round(verified_tokens * rate_per_token, 6)
+        except OverflowError as exc:
+            raise ValueError("Settlement fee is not finite.") from exc
+        if not math.isfinite(total_fee):
+            raise ValueError("Settlement fee is not finite.")
+        for node_id in set(providers) | {consumer_node_id}:
+            balance = self.balances.get(node_id, 0.0)
+            if not math.isfinite(balance) or balance < 0:
+                raise ValueError("Settlement balances must be finite and nonnegative.")
         consumer_bal = self.balances.get(consumer_node_id, 0.0)
         if consumer_bal < total_fee:
             raise ValueError(
                 f"Node {consumer_node_id} has insufficient $HIVE ({consumer_bal} < {total_fee})"
             )
 
-        self.balances[consumer_node_id] = round(consumer_bal - total_fee, 6)
-        share = round(total_fee / max(1, len(provider_node_ids)), 6)
-        for pid in provider_node_ids:
-            self.balances[pid] = round(self.balances.get(pid, 0.0) + share, 6)
-
+        old_balances = self.balances.copy()
+        old_history_length = len(self.settlement_history)
         receipt = InferenceSettlementReceipt(
             consumer_node_id=consumer_node_id,
-            expert_provider_nodes=provider_node_ids,
+            expert_provider_nodes=providers,
             domain_expert=domain_expert,
             verified_tokens=verified_tokens,
             rtt_speedup=rtt_speedup,
             fee_paid_hive=total_fee,
         )
-        self.settlement_history.append(receipt)
-        self._persist()
+        try:
+            self.balances[consumer_node_id] = round(consumer_bal - total_fee, 6)
+            # Distribute integer micro-HIVE, preserving total value despite rounding.
+            share_micro, remainder = divmod(round(total_fee * 1_000_000), len(providers))
+            for index, pid in enumerate(providers):
+                share = (share_micro + (index < remainder)) / 1_000_000
+                self.balances[pid] = round(self.balances.get(pid, 0.0) + share, 6)
+            self.settlement_history.append(receipt)
+            self._persist()
+        except Exception:
+            self.balances.clear()
+            self.balances.update(old_balances)
+            del self.settlement_history[old_history_length:]
+            raise
         return receipt
 
     def credit_reward(
@@ -304,4 +337,16 @@ class HiveSwarmLedger:
                 "slashed_registry": self.slashed_registry,
                 "settlement_history": [asdict(s) for s in self.settlement_history],
             }
-            self.ledger_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            # Commit atomically so a failed write cannot truncate the previous ledger.
+            fd, temporary_path = tempfile.mkstemp(prefix=f".{self.ledger_path.name}.", dir=self.ledger_path.parent)
+            try:
+                with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                    json.dump(data, handle, indent=2, allow_nan=False)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                os.replace(temporary_path, self.ledger_path)
+            finally:
+                try:
+                    os.unlink(temporary_path)
+                except OSError:
+                    pass

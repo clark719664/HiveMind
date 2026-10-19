@@ -181,7 +181,9 @@ class PinnedRAMExpertDMAStreamer:
         device: torch.device | None = None,
         max_pinned_ram_bytes: int = 4 * 1024 * 1024 * 1024,
     ) -> None:
-        self.device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if isinstance(max_pinned_ram_bytes, bool) or not isinstance(max_pinned_ram_bytes, int) or max_pinned_ram_bytes < 0:
+            raise ValueError("max_pinned_ram_bytes must be a nonnegative integer")
+        self.device = torch.device(device) if device is not None else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.max_pinned_ram_bytes = max_pinned_ram_bytes
         self.current_pinned_bytes = 0
         self.pinned_host_cache: Dict[str, Dict[str, torch.Tensor]] = {}
@@ -208,19 +210,27 @@ class PinnedRAMExpertDMAStreamer:
         lora_state_dict: Dict[str, torch.Tensor],
     ) -> int:
         """Stage a LoRA expert in page-locked Host RAM (`pin_memory`) with LRU eviction (`HM-M2-02`)."""
+        # Enforce the retained-host-cache budget before conversion/allocation or
+        # eviction, including an oversized replacement of an existing expert.
+        total_bytes = sum(value.numel() * 2 for value in lora_state_dict.values())
+        if total_bytes > self.max_pinned_ram_bytes:
+            raise ValueError("expert exceeds the pinned host RAM budget")
         pinned_dict: Dict[str, torch.Tensor] = {}
-        total_bytes = 0
         for k, v in lora_state_dict.items():
-            cpu_t = v.detach().to(device="cpu", dtype=torch.float16).contiguous()
-            if torch.cuda.is_available():
+            cpu_t = v.detach().to(device="cpu", dtype=torch.float16).contiguous().clone()
+            if self.device.type == "cuda":
                 try:
                     cpu_t = cpu_t.pin_memory()
                 except Exception:
                     pass
             pinned_dict[k] = cpu_t
-            total_bytes += cpu_t.numel() * cpu_t.element_size()
 
-        # Enforce LRU eviction if Pinned RAM budget is exceeded
+        previous = self.pinned_host_cache.pop(expert_name, {})
+        self.current_pinned_bytes -= sum(t.numel() * t.element_size() for t in previous.values())
+        if expert_name in self.lru_order:
+            self.lru_order.remove(expert_name)
+
+        # Enforce LRU eviction if Pinned RAM budget is exceeded.
         while (
             self.lru_order
             and self.current_pinned_bytes + total_bytes > self.max_pinned_ram_bytes
@@ -235,7 +245,17 @@ class PinnedRAMExpertDMAStreamer:
         self.lru_order.append(expert_name)
         self.pinned_host_cache[expert_name] = pinned_dict
         self.current_pinned_bytes += total_bytes
+        # A restaged expert must not continue exposing an older device copy.
+        for slot in self.double_buffer_slots.values():
+            slot.pop(expert_name, None)
+        self._refresh_active_vram_cache()
         return total_bytes
+
+    def _refresh_active_vram_cache(self) -> None:
+        """Keep only references owned by one of the two live buffer slots."""
+        self.active_vram_cache.clear()
+        for slot in self.double_buffer_slots.values():
+            self.active_vram_cache.update(slot)
 
     def async_dma_prefetch_to_vram(
         self,
@@ -244,20 +264,39 @@ class PinnedRAMExpertDMAStreamer:
         layer_idx: int | None = None,
         target_slot: str | None = None,
     ) -> Dict[str, Any]:
-        """Stream an expert from Pinned Host RAM into a 2-slot double buffer (`slot_A`/`slot_B`) (`HM-M2-01`)."""
-        if expert_name not in self.pinned_host_cache:
-            raise KeyError(f"Expert '{expert_name}' not staged in Pinned Host RAM.")
+        """Transfer one expert, replacing the selected double-buffer slot.
 
-        if expert_name in self.lru_order:
-            self.lru_order.remove(expert_name)
-            self.lru_order.append(expert_name)
-
-        if target_slot in self.double_buffer_slots:
-            slot_name = str(target_slot)
+        CUDA copies use a DMA stream, but this method waits for completion before
+        returning. The reported attention overlap is a simulation.
+        """
+        if target_slot is not None and target_slot not in self.double_buffer_slots:
+            raise ValueError("target_slot must be slot_A or slot_B")
+        if target_slot is not None:
+            slot_name = target_slot
         elif layer_idx is not None:
             slot_name = "slot_A" if (layer_idx % 2 == 0) else "slot_B"
         else:
             slot_name = self._active_slot
+        return self._prefetch_expert_to_slot(
+            expert_name, simulated_attention_compute_ms, layer_idx, slot_name, append=False
+        )
+
+    def _prefetch_expert_to_slot(
+        self,
+        expert_name: str,
+        simulated_attention_compute_ms: float,
+        layer_idx: int | None,
+        slot_name: str,
+        *,
+        append: bool,
+    ) -> Dict[str, Any]:
+        if not math.isfinite(simulated_attention_compute_ms) or simulated_attention_compute_ms < 0:
+            raise ValueError("simulated_attention_compute_ms must be finite and nonnegative")
+        if expert_name not in self.pinned_host_cache:
+            raise KeyError(f"Expert '{expert_name}' not staged in Pinned Host RAM.")
+        if expert_name in self.lru_order:
+            self.lru_order.remove(expert_name)
+            self.lru_order.append(expert_name)
 
         src_dict = self.pinned_host_cache[expert_name]
         vram_dict: Dict[str, torch.Tensor] = {}
@@ -276,14 +315,16 @@ class PinnedRAMExpertDMAStreamer:
         else:
             t0 = time.perf_counter()
             for k, v in src_dict.items():
-                vram_dict[k] = v.to(device=self.device)
+                vram_dict[k] = v.to(device=self.device, copy=True)
             raw_transfer_ms = round((time.perf_counter() - t0) * 1000.0, 3)
 
         exposed_swap_latency_ms = round(
             max(0.0, raw_transfer_ms - simulated_attention_compute_ms), 3
         )
-        self.active_vram_cache[expert_name] = vram_dict
+        if not append:
+            self.double_buffer_slots[slot_name].clear()
         self.double_buffer_slots[slot_name][expert_name] = vram_dict
+        self._refresh_active_vram_cache()
         self._active_slot = "slot_B" if slot_name == "slot_A" else "slot_A"
         return {
             "expert_name": expert_name,
@@ -294,6 +335,8 @@ class PinnedRAMExpertDMAStreamer:
             "raw_dma_transfer_ms": raw_transfer_ms,
             "overlapped_attention_ms": simulated_attention_compute_ms,
             "exposed_swap_latency_ms": exposed_swap_latency_ms,
+            "overlap_is_simulated": True,
+            "transfer_synchronized": True,
         }
 
     def prefetch_lookahead_layer(
@@ -308,15 +351,18 @@ class PinnedRAMExpertDMAStreamer:
         active_slot = "slot_A" if layer_idx % 2 == 0 else "slot_B"
         lookahead_slot = "slot_B" if active_slot == "slot_A" else "slot_A"
         self.double_buffer_slots[lookahead_slot].clear()
+        self._refresh_active_vram_cache()
 
         transfers = []
         for expert_name in route_info["selected_micro_experts"]:
             if expert_name in self.pinned_host_cache:
                 transfers.append(
-                    self.async_dma_prefetch_to_vram(
+                    self._prefetch_expert_to_slot(
                         expert_name,
-                        simulated_attention_compute_ms=simulated_attention_compute_ms,
-                        target_slot=lookahead_slot,
+                        simulated_attention_compute_ms,
+                        layer_idx + 1,
+                        lookahead_slot,
+                        append=True,
                     )
                 )
 
@@ -328,7 +374,8 @@ class PinnedRAMExpertDMAStreamer:
             "active_compute_slot": active_slot,
             "lookahead_dma_slot": lookahead_slot,
             "selected_macro_cluster": route_info["selected_macro_cluster"],
-            "prefetched_experts": list(route_info["selected_micro_experts"].keys()),
+            "prefetched_experts": [transfer["expert_name"] for transfer in transfers],
+            "missing_experts": [name for name in route_info["selected_micro_experts"] if name not in self.pinned_host_cache],
             "total_raw_dma_ms": total_raw_ms,
             "exposed_swap_latency_ms": exposed_ms,
             "staging_mode": self.staging_mode,
@@ -1108,9 +1155,15 @@ class HiveLayer2StateChannel:
         rate_per_token: float = 0.005,
         secret_key: bytes = b"HiveMind-L2-StateChannel-Key",
     ) -> None:
+        if not math.isfinite(escrow_hive) or escrow_hive < 0:
+            raise ValueError("Escrow must be finite and nonnegative.")
+        if not math.isfinite(rate_per_token) or rate_per_token < 0:
+            raise ValueError("Token rate must be finite and nonnegative.")
+        if not provider_ids or len(set(provider_ids)) != len(provider_ids):
+            raise ValueError("A channel requires distinct provider IDs.")
         self.channel_id = f"l2-chan-{hashlib.sha256(f'{consumer_id}:{time.time()}'.encode()).hexdigest()[:12]}"
         self.consumer_id = consumer_id
-        self.provider_ids = provider_ids
+        self.provider_ids = list(provider_ids)
         self.escrow_hive = escrow_hive
         self.rate_per_token = rate_per_token
         self.secret_key = secret_key
@@ -1119,15 +1172,21 @@ class HiveLayer2StateChannel:
         self.cumulative_hive_spent = 0.0
         self.latest_voucher: StateChannelVoucher | None = None
         self.disputed_and_refunded: bool = False
+        self.settled_tokens = 0
+        self.settled_hive = 0.0
 
     def sign_micro_voucher(self, tokens_generated: int) -> StateChannelVoucher:
         """Issue an instant 0-latency off-chain `$HIVE` micro-voucher for `tokens_generated`."""
-        fee = round(tokens_generated * self.rate_per_token, 6)
-        if self.cumulative_hive_spent + fee > self.escrow_hive:
+        if self.disputed_and_refunded:
+            raise ValueError("A disputed/refunded channel is closed.")
+        if type(tokens_generated) is not int or tokens_generated <= 0:
+            raise ValueError("Generated token count must be a positive integer.")
+        cumulative_fee = round((self.cumulative_tokens + tokens_generated) * self.rate_per_token, 6)
+        if cumulative_fee > self.escrow_hive:
             raise ValueError("L2 State Channel escrow exhausted.")
         self.nonce += 1
         self.cumulative_tokens += tokens_generated
-        self.cumulative_hive_spent = round(self.cumulative_hive_spent + fee, 6)
+        self.cumulative_hive_spent = cumulative_fee
         payload = (
             f"{self.channel_id}:{self.consumer_id}:{self.nonce}:"
             f"{self.cumulative_tokens}:{self.cumulative_hive_spent:.6f}"
@@ -1145,10 +1204,10 @@ class HiveLayer2StateChannel:
         return self.latest_voucher
 
     def refund_consumer_escrow(self) -> float:
-        """Refund accumulated off-chain vouchers back to the consumer if OPoI Merkle fraud is proven."""
-        refunded = self.cumulative_hive_spent
-        self.cumulative_hive_spent = 0.0
-        self.cumulative_tokens = 0
+        """Cancel unsettled liability after fraud; already settled L1 fees are not refunded."""
+        refunded = round(self.cumulative_hive_spent - self.settled_hive, 6)
+        self.cumulative_hive_spent = self.settled_hive
+        self.cumulative_tokens = self.settled_tokens
         self.latest_voucher = None
         self.disputed_and_refunded = True
         return refunded
@@ -1159,20 +1218,26 @@ class HiveLayer2StateChannel:
         domain_expert: str = "Python_Systems_Code",
     ) -> Dict[str, Any]:
         """Close/checkpoint the L2 channel and settle accumulated `$HIVE` fees on L1 `HiveSwarmLedger`."""
-        if self.latest_voucher is None or self.cumulative_tokens == 0:
-            return {"status": "no_vouchers_to_settle", "settled_hive": 0.0}
+        pending_tokens = self.cumulative_tokens - self.settled_tokens
+        if self.latest_voucher is None or pending_tokens == 0:
+            return {"status": "no_vouchers_to_settle", "settled_hive": 0.0, "settled_tokens": 0}
+        pending_hive = round(self.cumulative_hive_spent - self.settled_hive, 6)
         tx = ledger.settle_swarm_inference(
             consumer_node_id=self.consumer_id,
             provider_node_ids=self.provider_ids,
             domain_expert=domain_expert,
-            verified_tokens=self.cumulative_tokens,
+            verified_tokens=pending_tokens,
             rtt_speedup=6.0,
-            rate_per_token=self.rate_per_token,
+            # Preserve cumulative six-decimal pricing across settlement boundaries.
+            rate_per_token=pending_hive / pending_tokens,
         )
+        # Advance only after successful settlement, so a failed payment is retryable.
+        self.settled_tokens = self.cumulative_tokens
+        self.settled_hive = self.cumulative_hive_spent
         return {
             "channel_id": self.channel_id,
             "final_nonce": self.nonce,
-            "settled_tokens": self.cumulative_tokens,
+            "settled_tokens": pending_tokens,
             "settled_hive": tx.fee_paid_hive,
             "l1_settlement_tx": tx,
         }

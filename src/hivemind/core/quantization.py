@@ -8,6 +8,7 @@ Windows pagefile exhaustion on low-space C: drives while executing 100% on the l
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 
 import torch
@@ -57,15 +58,18 @@ class NF4QuantState:
 
     packed_4bit: torch.Tensor       # uint8 [ceil(N/2)]
     q_absmax_uint8: torch.Tensor    # uint8 [num_blocks] (Double Quantization level 1)
-    superblock_scale: float         # FP32 scale for q_absmax_uint8 (Double Quantization level 2)
+    superblock_scale: float         # float64 scale for q_absmax_uint8 (Double Quantization level 2)
     original_shape: tuple[int, ...]
     block_size: int = 64
 
     @property
     def storage_bytes(self) -> int:
-        if hasattr(self, "_computed_storage_bytes"):
-            return int(getattr(self, "_computed_storage_bytes"))
-        return int(self.packed_4bit.numel() + self.q_absmax_uint8.numel() + 4)
+        # Encoded tensor buffers plus a float64 scale; excludes shape/framing metadata.
+        return int(
+            self.packed_4bit.numel() * self.packed_4bit.element_size()
+            + self.q_absmax_uint8.numel() * self.q_absmax_uint8.element_size()
+            + 8
+        )
 
 
 @dataclass
@@ -82,64 +86,82 @@ class QuantizedModelBundle:
     trainable_params: int
     total_params: int
     lora_size_mb: float
+    nf4_storage_mode: str = "unquantized"
+
+
+def dequantize_tensor_nf4(
+    state: NF4QuantState,
+    *,
+    dtype: torch.dtype = torch.float32,
+    device: torch.device | str = "cpu",
+) -> torch.Tensor:
+    """Reconstruct weights solely from the stored NF4 nibbles and quantized scales."""
+    if type(state.block_size) is not int or state.block_size <= 0:
+        raise ValueError("NF4 block_size must be a positive integer.")
+    if any(type(dim) is not int or dim < 0 for dim in state.original_shape):
+        raise ValueError("Invalid NF4 tensor shape.")
+    numel = math.prod(state.original_shape)
+    num_blocks = (numel + state.block_size - 1) // state.block_size
+    padded_numel = num_blocks * state.block_size
+    if (state.packed_4bit.dtype != torch.uint8 or state.q_absmax_uint8.dtype != torch.uint8
+            or state.packed_4bit.ndim != 1 or state.q_absmax_uint8.ndim != 1
+            or state.packed_4bit.numel() != (padded_numel + 1) // 2
+            or state.q_absmax_uint8.numel() != num_blocks):
+        raise ValueError("NF4 packed buffers do not match the tensor shape.")
+    if not math.isfinite(state.superblock_scale) or state.superblock_scale <= 0:
+        raise ValueError("NF4 scale must be finite and positive.")
+    if not numel:
+        return torch.empty(state.original_shape, dtype=dtype, device=device)
+    packed = state.packed_4bit.to(device)
+    indices = torch.stack((packed & 0x0F, packed >> 4), dim=1).flatten()[:padded_numel]
+    scales = state.q_absmax_uint8.to(device=device, dtype=torch.float32) * state.superblock_scale
+    if not torch.isfinite(scales).all() or bool((scales <= 0).any()):
+        raise ValueError("Invalid NF4 block scales.")
+    values = NF4_CODEBOOK.to(device)[indices.long()].reshape(num_blocks, state.block_size)
+    return (values * scales[:, None]).flatten()[:numel].reshape(state.original_shape).to(dtype)
 
 
 def quantize_tensor_nf4_double_quant(
     weight: torch.Tensor,
     block_size: int = 64,
 ) -> tuple[NF4QuantState, torch.Tensor]:
-    """Quantize a 2D weight matrix to 4-bit NormalFloat (NF4) with 8-bit Double Quantization.
+    """Store real NF4/uint8 buffers and return their dense reconstruction.
 
-    Returns both the compact packed 4-bit `NF4QuantState` (0.515 bytes/param) and the
-    reconstructed NF4 weight tensor for fast PEFT Linear forward passes on Turing/Ampere GPUs.
+    Packed buffers are retained on CPU. The returned floating-point tensor is
+    dense: installing it in an nn.Linear does not provide 4-bit resident weights.
     """
+    if type(block_size) is not int or block_size <= 0:
+        raise ValueError("NF4 block_size must be a positive integer.")
+    if not weight.is_floating_point() or not torch.isfinite(weight).all():
+        raise ValueError("NF4 weights must be finite floating-point values.")
     orig_shape = tuple(weight.shape)
-    orig_device = weight.device
-    orig_dtype = weight.dtype
-
-    flat = weight.detach().to(torch.float32).reshape(-1)
+    # clone is required: float32 inputs otherwise alias their detached storage.
+    flat = weight.detach().to(torch.float32).reshape(-1).clone()
     numel = flat.numel()
-    pad = (block_size - (numel % block_size)) % block_size
-    if pad > 0:
+    if not numel:
+        state = NF4QuantState(torch.empty(0, dtype=torch.uint8), torch.empty(0, dtype=torch.uint8), 1.0, orig_shape, block_size)
+        return state, weight.detach().clone()
+    pad = (-numel) % block_size
+    if pad:
         flat = torch.nn.functional.pad(flat, (0, pad))
-
     blocks = flat.reshape(-1, block_size)
     block_absmax = blocks.abs().max(dim=1).values.clamp_(min=1e-12)
-
-    # Double Quantization: quantize FP32 block_absmax into uint8 [1..255]
     super_scale = float(block_absmax.max().item()) / 255.0
-    if super_scale <= 0.0:
-        super_scale = 1.0
     q_absmax_u8 = torch.round(block_absmax / super_scale).clamp_(1, 255).to(torch.uint8)
     dequant_absmax = q_absmax_u8.to(torch.float32) * super_scale
-    num_blocks = int(q_absmax_u8.numel())
-    del block_absmax, q_absmax_u8
-
-    # In-place normalize each block to [-1, 1] and map to nearest NF4 quantile index [0..15]
-    blocks.div_(dequant_absmax.unsqueeze(1)).clamp_(-1.0, 1.0)
+    blocks.div_(dequant_absmax[:, None]).clamp_(-1.0, 1.0)
     codebook = NF4_CODEBOOK.to(flat.device)
-    midpoints = 0.5 * (codebook[:-1] + codebook[1:])
-    idx_4bit = torch.bucketize(blocks, midpoints)
-    total_padded_elems = int(idx_4bit.numel())
-    blocks.copy_(codebook[idx_4bit]).mul_(dequant_absmax.unsqueeze(1))
-    del idx_4bit, dequant_absmax, codebook, midpoints
-
-    reconstructed = blocks.reshape(-1)[:numel].reshape(orig_shape).to(
-        device=orig_device, dtype=orig_dtype
-    )
-    del blocks, flat
-
-    # Compact metadata state (stores exact 4-bit + 8-bit double-quant byte footprint without duplicating RAM)
-    packed_len = (total_padded_elems + 1) // 2
+    indices = torch.bucketize(blocks, 0.5 * (codebook[:-1] + codebook[1:])).to(torch.uint8).flatten()
+    if indices.numel() % 2:
+        indices = torch.nn.functional.pad(indices, (0, 1))
+    packed = indices[0::2] | (indices[1::2] << 4)
     state = NF4QuantState(
-        packed_4bit=torch.empty(0, dtype=torch.uint8),
-        q_absmax_uint8=torch.empty(0, dtype=torch.uint8),
-        superblock_scale=super_scale,
-        original_shape=orig_shape,
-        block_size=block_size,
+        packed_4bit=packed.cpu(), q_absmax_uint8=q_absmax_u8.cpu(),
+        superblock_scale=super_scale, original_shape=orig_shape, block_size=block_size,
     )
-    state._computed_storage_bytes = int(packed_len + num_blocks + 4)  # type: ignore[attr-defined]
-    return state, reconstructed
+    # Release the temporary encoder buffers before allocating dense decode buffers.
+    del flat, blocks, block_absmax, q_absmax_u8, dequant_absmax, codebook, indices, packed
+    return state, dequantize_tensor_nf4(state, dtype=weight.dtype, device=weight.device)
 
 
 def resolve_compute_dtype(dtype_name: str, device: torch.device) -> torch.dtype:
@@ -190,7 +212,7 @@ def apply_nf4_double_quant_to_backbone(
     base_model: Qwen2ForCausalLM,
     double_quant: bool = True,
 ) -> tuple[bool, float]:
-    """Apply 4-bit NormalFloat (NF4) + Double Quantization across all decoder Linear layers."""
+    """Apply NF4 reconstruction; return resident-4-bit status (False) and packed MiB."""
     total_nf4_bytes = 0
     block_size = 64 if double_quant else 128
 
@@ -210,7 +232,8 @@ def apply_nf4_double_quant_to_backbone(
                 lin.nf4_quant_state = q_state  # type: ignore[attr-defined]
                 total_nf4_bytes += q_state.storage_bytes
 
-    return True, round(total_nf4_bytes / (1024**2), 3)
+    base_model._nf4_storage_mode = "dense_reconstruction"  # type: ignore[attr-defined]
+    return False, round(total_nf4_bytes / (1024**2), 3)
 
 
 def build_local_qwen2_backbone(
@@ -292,9 +315,11 @@ def attach_qlora_adapters(
         if param.requires_grad or "lora_" in name:
             param.requires_grad = True
             trainable_params += param.numel()
-            lora_bytes += param.numel() * 2  # FP16/BF16 size
+            lora_bytes += param.numel() * param.element_size()
 
-    has_nf4 = any(hasattr(m, "nf4_quant_state") for m in peft_model.modules())
+    # NF4-rounded dense Linear weights are not resident 4-bit weights.
+    storage_mode = getattr(base_model, "_nf4_storage_mode", "unquantized")
+    has_nf4 = storage_mode == "packed_runtime"
     nf4_mb = float(getattr(base_model, "_nf4_compressed_mb", 0.0))
 
     base_sha = compute_state_dict_sha256(
@@ -311,6 +336,7 @@ def attach_qlora_adapters(
         trainable_params=trainable_params,
         total_params=total_params,
         lora_size_mb=round(lora_bytes / (1024**2), 3),
+        nf4_storage_mode=storage_mode,
     )
 
 
@@ -423,7 +449,8 @@ def stream_load_hf_causal_lm(
 
     nf4_mb = round(total_nf4_bytes / (1024**2), 3)
     base_model._nf4_compressed_mb = nf4_mb  # type: ignore[attr-defined]
-    return base_model, apply_nf4, nf4_mb
+    base_model._nf4_storage_mode = "dense_reconstruction" if total_nf4_bytes else "unquantized"  # type: ignore[attr-defined]
+    return base_model, False, nf4_mb
 
 
 def load_hf_qlora_model(

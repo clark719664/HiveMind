@@ -531,6 +531,8 @@ class SparseMoEMLPBlock(nn.Module):
         top_k: int = 2,
         dtype: torch.dtype = torch.float32,
         shared_base_ffn: tuple[nn.Linear, nn.Linear, nn.Linear] | None = None,
+        reference_lora_pairs: dict[str, tuple[torch.Tensor, torch.Tensor] | None] | None = None,
+        reference_lora_scaling: float = 1.0,
     ) -> None:
         super().__init__()
         self.hidden_size = hidden_size
@@ -548,6 +550,18 @@ class SparseMoEMLPBlock(nn.Module):
             dtype=dtype,
         )
         self.experts = nn.ModuleList(experts)
+        # Dense experts already include their own adapter. Retain only the first
+        # expert's small factors so future hot-plugs can recover W0 without
+        # keeping another full dense FFN resident. Reconstruction is subject to
+        # the rounding precision of the existing merged expert weights.
+        self.reference_lora_scaling = reference_lora_scaling
+        for projection in ("gate", "up", "down"):
+            pair = (reference_lora_pairs or {}).get(projection)
+            for index, suffix in enumerate(("A", "B")):
+                self.register_buffer(
+                    f"reference_{projection}_{suffix}",
+                    pair[index].detach().float().clone() if pair is not None else None,
+                )
         self.last_aux_loss: torch.Tensor = torch.tensor(0.0)
         self.register_buffer("expert_token_counts", torch.zeros(self.num_experts, dtype=torch.long))
 
@@ -691,9 +705,21 @@ class UpcycledSparseMoEModel(nn.Module):
                 )
             else:
                 ref_exp: UpcycledSwiGLUExpert = blk.experts[0]  # type: ignore[assignment]
-                w0_gate = ref_exp.gate_proj.weight.detach().to(torch.float32)
-                w0_up = ref_exp.up_proj.weight.detach().to(torch.float32)
-                w0_down = ref_exp.down_proj.weight.detach().to(torch.float32)
+
+                def recover_base(projection: str) -> torch.Tensor:
+                    merged = getattr(ref_exp, f"{projection}_proj").weight.detach().to(torch.float32)
+                    ref_a = getattr(blk, f"reference_{projection}_A", None)
+                    ref_b = getattr(blk, f"reference_{projection}_B", None)
+                    if ref_a is not None and ref_b is not None:
+                        return merged - blk.reference_lora_scaling * (
+                            ref_b.to(device=device, dtype=torch.float32)
+                            @ ref_a.to(device=device, dtype=torch.float32)
+                        )
+                    return merged
+
+                w0_gate = recover_base("gate")
+                w0_up = recover_base("up")
+                w0_down = recover_base("down")
                 w_gate = w0_gate + (
                     scaling * (ab_gate[1].to(device) @ ab_gate[0].to(device)) if ab_gate else 0.0
                 )
@@ -877,10 +903,12 @@ def upcycle_branches_to_sparse_moe(
 
     scaling = float(lora_alpha) / float(lora_rank_r)
 
-    # Unwrap PeftModel to obtain the underlying CausalLM decoder structure
-    raw_causal_lm = getattr(peft_or_base_model, "base_model", peft_or_base_model)
-    if hasattr(raw_causal_lm, "model") and hasattr(raw_causal_lm.model, "model"):
-        raw_causal_lm = raw_causal_lm.model
+    # PeftModel.get_base_model() returns the CausalLM. A bare Transformers
+    # CausalLM.base_model instead returns only its decoder, dropping lm_head.
+    get_base_model = getattr(peft_or_base_model, "get_base_model", None)
+    raw_causal_lm = get_base_model() if callable(get_base_model) else peft_or_base_model
+    if not hasattr(raw_causal_lm, "lm_head") or not hasattr(getattr(raw_causal_lm, "model", None), "layers"):
+        raise ValueError("MoE upcycling requires a CausalLM with a decoder model.layers and lm_head.")
 
     if target_device is None:
         target_device = next(raw_causal_lm.parameters()).device
@@ -1033,6 +1061,13 @@ def upcycle_branches_to_sparse_moe(
                     expert_domains=expert_domains,
                     top_k=top_k,
                     dtype=target_dtype,
+                    reference_lora_pairs={
+                        projection: _extract_ab_pair(
+                            branch_lora_states[expert_domains[0]], layer_idx, f"mlp.{projection}_proj"
+                        )
+                        for projection in ("gate", "up", "down")
+                    },
+                    reference_lora_scaling=scaling,
                 ).to(work_dev)
 
     moe_model = UpcycledSparseMoEModel(

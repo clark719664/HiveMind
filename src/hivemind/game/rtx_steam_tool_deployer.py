@@ -155,6 +155,8 @@ def run_intense_rtx_stress_suite(
             )
             evict_ms = round(float(preempt_res.emergency_dump_latency_sec) * 1000.0, 2)
 
+            is_4bit_nf4 = bundle.is_4bit_nf4
+            nf4_storage_mode = bundle.nf4_storage_mode
             del out, x, opt, trainable, preempt_res, bundle, base_model
             gc.collect()
             if torch.cuda.is_available():
@@ -165,7 +167,8 @@ def run_intense_rtx_stress_suite(
                 {
                     "cycle": cycle_idx + 1,
                     "simulated_game_launch": game_exe,
-                    "is_4bit_nf4": torch.cuda.is_available(),
+                    "is_4bit_nf4": is_4bit_nf4,
+                    "nf4_storage_mode": nf4_storage_mode,
                     "initial_loss": round(losses[0], 4),
                     "final_loss": round(losses[-1], 4),
                     "peak_allocated_mb": vram_during["peak_allocated_mb"],
@@ -806,10 +809,7 @@ def run_intense_rtx_stress_suite(
 
         lean_audit = verify_lean4_specification()
         stage10_summary = {
-            "theorem_count": lean_audit["theorem_count"],
-            "sorry_count": lean_audit["sorry_count"],
-            "user_axiom_count": lean_audit["user_axiom_count"],
-            "tier_a_machine_checked": lean_audit["tier_a_machine_checked"],
+            **lean_audit,
             "season3_theorems_present": (
                 "prefix_trie_shared_nodes_reduce_attention_flops" in lean_audit["theorems"]
                 and "quic_0rtt_anti_replay_rejects_duplicate_nonce" in lean_audit["theorems"]
@@ -819,7 +819,8 @@ def run_intense_rtx_stress_suite(
                 and "rfc9001_0rtt_monotonic_nonce_anti_replay" in lean_audit["theorems"]
             ),
             "formal_spec_verified": (
-                lean_audit["theorem_count"] >= 27
+                lean_audit["tier_a_machine_checked"] is True
+                and lean_audit["theorem_count"] >= 27
                 and lean_audit["sorry_count"] == 0
                 and lean_audit["user_axiom_count"] == 0
             ),
@@ -945,6 +946,25 @@ def deploy_free_steam_rtx_tool_v1(
     """Run (or attach) the RTX Stress Certification and deploy v1.0.0 of the Free Steam Tool."""
     if stress_report is None:
         stress_report = run_intense_rtx_stress_suite()
+
+    from paper.autoevolve_peer_review_pipeline import (
+        FormalVerificationError,
+        require_machine_checked,
+        verify_lean4_specification,
+    )
+
+    if stress_report.get("all_stages_passed") is not True:
+        raise FormalVerificationError("Steam package blocked: stress certification did not pass")
+    formal_audit = stress_report.get("stage10_lean4_21_theorems_formal_audit", {})
+    require_machine_checked(formal_audit)
+    if formal_audit.get("formal_spec_verified") is not True:
+        raise FormalVerificationError("Steam package blocked: formal specification was not verified")
+    # A supplied/stale report cannot certify the current checkout. Recompile
+    # before writing a package or a deployment certificate.
+    current_audit = verify_lean4_specification()
+    require_machine_checked(current_audit)
+    if formal_audit.get("spec_sha256") != current_audit["spec_sha256"]:
+        raise FormalVerificationError("Steam package blocked: proof source changed since certification")
 
     pkg_info = build_free_steam_edition_package(output_root=output_root)
     pkg_dir = Path(pkg_info["package_root"])

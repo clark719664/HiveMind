@@ -436,11 +436,12 @@ def rocm_supports_native_bf16(gcn_arch: str | None) -> bool:
     """
     if not gcn_arch:
         return False  # Unknown target: stay on the universally supported FP16 path.
-    arch = str(gcn_arch).lower()
+    arch = str(gcn_arch).lower().split(":", 1)[0]
     if not arch.startswith("gfx"):
         return False
     family = arch[3:5]
-    if family == "9":  # CDNA / CDNA2 / CDNA3 (MI100 / MI200 / MI300)
+    if arch in {"gfx908", "gfx90a", "gfx940", "gfx941", "gfx942", "gfx950"}:
+        # CDNA matrix-instruction targets; do not include older gfx900/gfx906 Vega.
         return True
     if family == "11":  # RDNA3 (gfx1100 = Radeon RX 7000 series)
         return True

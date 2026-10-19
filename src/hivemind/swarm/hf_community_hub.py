@@ -19,9 +19,14 @@ gamification for the HiveMind SETI-Swarm & Hack-Miner ecosystem:
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import copy
 import hashlib
 import json
+import math
+import os
 from pathlib import Path
+import tempfile
+import threading
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -335,6 +340,7 @@ class CommunityAdapterBundleManager:
         self.published_bundles: Dict[str, CommunityAdapterBundle] = {}
         self.import_history: List[Dict[str, Any]] = []
         self.miner_royalty_pts: Dict[str, int] = {}
+        self._import_lock = threading.RLock()
 
     def create_and_publish_bundle(
         self,
@@ -453,6 +459,17 @@ class CommunityAdapterBundleManager:
         moe_model: Optional[UpcycledSparseMoEModel] = None,
     ) -> Dict[str, Any]:
         """Import a shared community bundle, verify SHA-256 integrity, hot-plug into `moe_model`, and settle `$HIVE` royalties."""
+        with self._import_lock:
+            return self._import_community_bundle(bundle_dir, importer_agent_id, moe_model)
+
+    def _import_community_bundle(
+        self,
+        bundle_dir: Path,
+        importer_agent_id: str,
+        moe_model: Optional[UpcycledSparseMoEModel],
+    ) -> Dict[str, Any]:
+        # All untrusted input is checked before touching live model or ledger state.
+        bundle_dir = Path(bundle_dir)
         manifest_path = bundle_dir / "hivemind_swarm_manifest.json"
         weights_path = bundle_dir / "community_experts_canonical_r16.pt"
         if not weights_path.exists():
@@ -465,38 +482,73 @@ class CommunityAdapterBundleManager:
             weights_path, map_location="cpu", weights_only=True
         )
 
-        verified_entries: List[str] = []
-        royalties_paid: List[Dict[str, Any]] = []
-        initial_experts = moe_model.num_experts if moe_model is not None else 0
-
-        for entry in manifest["entries"]:
+        if not isinstance(manifest, dict) or not isinstance(loaded_states, dict):
+            raise ValueError("Community bundle manifest and weights must be mappings.")
+        for key in ("bundle_id", "hf_repo_id", "bundle_sha256"):
+            if not isinstance(manifest.get(key), str) or not manifest[key]:
+                raise ValueError(f"Community bundle requires a nonempty '{key}'.")
+        entries = manifest.get("entries")
+        if not isinstance(entries, list) or not entries:
+            raise ValueError("Community bundle requires at least one expert entry.")
+        seen_domains: set[str] = set()
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError("Community expert entries must be mappings.")
+            for key in ("domain_name", "tensor_sha256", "author_gamer_tag", "author_contributor_handle"):
+                if not isinstance(entry.get(key), str) or not entry[key]:
+                    raise ValueError(f"Community expert requires a nonempty '{key}'.")
             dom = entry["domain_name"]
-            state = loaded_states[dom]
+            if dom in seen_domains:
+                raise ValueError(f"Duplicate community expert '{dom}'.")
+            seen_domains.add(dom)
+            for key in ("canonical_rank_r", "lora_alpha"):
+                value = entry.get(key)
+                if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                    raise ValueError(f"Community expert '{dom}' requires a positive integer '{key}'.")
+            state = loaded_states.get(dom)
+            if not isinstance(state, dict) or not state:
+                raise ValueError(f"Community expert '{dom}' has no tensor state.")
+            if any(
+                not isinstance(key, str) or not isinstance(tensor, torch.Tensor)
+                or not tensor.is_floating_point() or not bool(torch.isfinite(tensor).all())
+                for key, tensor in state.items()
+            ):
+                raise ValueError(f"Community expert '{dom}' contains invalid or nonfinite tensors.")
             actual_sha = _compute_state_dict_sha256(state)
             if actual_sha != entry["tensor_sha256"]:
                 raise ValueError(
                     f"SHA-256 mismatch when importing community expert '{dom}': "
                     f"expected {entry['tensor_sha256']}, got {actual_sha}"
                 )
+        if set(loaded_states) != seen_domains:
+            raise ValueError("Community bundle weights and manifest domains differ.")
+        recomputed_bundle_sha = hashlib.sha256(
+            "|".join(f"{e['domain_name']}:{e['tensor_sha256']}" for e in entries).encode("utf-8")
+        ).hexdigest()
+        if recomputed_bundle_sha != manifest["bundle_sha256"]:
+            raise ValueError("Bundle manifest SHA-256 integrity check failed.")
+        if not math.isfinite(self.royalty_hive_per_import) or self.royalty_hive_per_import < 0:
+            raise ValueError("Community import royalties must be finite and nonnegative.")
+        if self.royalty_pts_per_import < 0:
+            raise ValueError("Community import points must be nonnegative.")
+
+        verified_entries: List[str] = []
+        royalties_paid: List[Dict[str, Any]] = []
+        initial_experts = moe_model.num_experts if moe_model is not None else 0
+        staged_ledger = copy.deepcopy(self.ledger)
+        ledger_path = self.ledger.ledger_path
+        staged_ledger.ledger_path = None
+        staged_pts = dict(self.miner_royalty_pts)
+        for entry in entries:
+            dom = entry["domain_name"]
             verified_entries.append(dom)
-
-            if moe_model is not None and dom not in moe_model.expert_domains:
-                moe_model.hotplug_domain_expert(
-                    domain_name=dom,
-                    lora_state_dict=state,
-                    lora_rank_r=int(entry["canonical_rank_r"]),
-                    lora_alpha=int(entry["lora_alpha"]),
-                )
-
             author_tag = entry["author_gamer_tag"]
-            self.ledger.credit_reward(
+            staged_ledger.credit_reward(
                 node_id=author_tag,
                 amount_hive=self.royalty_hive_per_import,
                 reason=f"Community Bundle Import Royalty ({manifest['bundle_id']} -> {dom} by {importer_agent_id})",
             )
-            self.miner_royalty_pts[author_tag] = (
-                self.miner_royalty_pts.get(author_tag, 0) + self.royalty_pts_per_import
-            )
+            staged_pts[author_tag] = staged_pts.get(author_tag, 0) + self.royalty_pts_per_import
             royalties_paid.append(
                 {
                     "domain_name": dom,
@@ -507,13 +559,52 @@ class CommunityAdapterBundleManager:
                 }
             )
 
-        recomputed_bundle_sha = hashlib.sha256(
-            "|".join(
-                f"{e['domain_name']}:{e['tensor_sha256']}" for e in manifest["entries"]
-            ).encode("utf-8")
-        ).hexdigest()
-        if recomputed_bundle_sha != manifest["bundle_sha256"]:
-            raise ValueError("Bundle manifest SHA-256 integrity check failed.")
+        # Hot-plugging only appends experts and replaces the router/count buffers.
+        # Keep their original references for rollback, without duplicating base weights.
+        model_snapshot = None
+        if moe_model is not None:
+            model_snapshot = (
+                list(moe_model.expert_domains), moe_model.num_experts,
+                [(block, list(block.experts), list(block.expert_domains), block.num_experts,
+                  block.router.wg, block.router.num_experts, block.expert_token_counts)
+                 for block in moe_model.get_moe_blocks()],
+            )
+        staged_path: Path | None = None
+        try:
+            if ledger_path is not None:
+                ledger_path = Path(ledger_path)
+                ledger_path.parent.mkdir(parents=True, exist_ok=True)
+                with tempfile.NamedTemporaryFile(dir=ledger_path.parent, prefix=".community-import-", delete=False) as f:
+                    staged_path = Path(f.name)
+                staged_ledger.ledger_path = staged_path
+                staged_ledger._persist()
+                staged_ledger.ledger_path = None
+            if moe_model is not None:
+                for entry in entries:
+                    dom = entry["domain_name"]
+                    if dom not in moe_model.expert_domains:
+                        moe_model.hotplug_domain_expert(
+                            domain_name=dom, lora_state_dict=loaded_states[dom],
+                            lora_rank_r=entry["canonical_rank_r"], lora_alpha=entry["lora_alpha"],
+                        )
+            if staged_path is not None:
+                os.replace(staged_path, ledger_path)
+                staged_path = None
+        except Exception:
+            if model_snapshot is not None:
+                moe_model.expert_domains, moe_model.num_experts, blocks = model_snapshot
+                for block, experts, domains, count, router, router_count, counts in blocks:
+                    block.experts = torch.nn.ModuleList(experts)
+                    block.expert_domains, block.num_experts = domains, count
+                    block.router.wg, block.router.num_experts = router, router_count
+                    block.expert_token_counts = counts
+            raise
+        finally:
+            if staged_path is not None:
+                staged_path.unlink(missing_ok=True)
+        staged_ledger.ledger_path = self.ledger.ledger_path
+        self.ledger.__dict__.update(staged_ledger.__dict__)
+        self.miner_royalty_pts = staged_pts
 
         final_experts = moe_model.num_experts if moe_model is not None else len(verified_entries)
         receipt = {

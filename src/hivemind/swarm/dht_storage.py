@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -43,6 +44,8 @@ class ContentAddressedSwarmStore:
         shard_id: int,
         samples: List[str],
     ) -> Tuple[str, Path, int]:
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", domain_name):
+            raise ValueError("invalid domain name")
         payload = {
             "domain": domain_name,
             "shard_id": shard_id,
@@ -76,7 +79,10 @@ class ContentAddressedSwarmStore:
         prev_block_hash: str,
         chunk_size: int = 256,
     ) -> StorageProofReceipt:
+        if chunk_size < 1:
+            raise ValueError("chunk_size must be positive")
         raw_bytes = Path(shard_path).read_bytes()
+        actual_cid = f"cid://sha256/{hashlib.sha256(raw_bytes).hexdigest()[:32]}"
         chunks = [
             raw_bytes[i : i + chunk_size]
             for i in range(0, max(1, len(raw_bytes)), chunk_size)
@@ -97,7 +103,7 @@ class ContentAddressedSwarmStore:
             challenged_chunk_index=challenged_idx,
             merkle_proof_hash=merkle_proof,
             bytes_stored=len(raw_bytes),
-            verified=shard_cid in self.node_pins.get(node_id, []),
+            verified=(shard_cid == actual_cid and shard_cid in self.node_pins.get(node_id, [])),
         )
 
     def publish_lora_expert_checkpoint(
@@ -106,18 +112,14 @@ class ContentAddressedSwarmStore:
         lora_state_dict: Dict[str, torch.Tensor],
         metadata: Dict[str, object],
     ) -> Tuple[str, Path]:
-        serializable_meta = json.dumps(metadata, sort_keys=True).encode("utf-8")
-        hasher = hashlib.sha256(serializable_meta)
-        cpu_state: Dict[str, torch.Tensor] = {}
-        for k in sorted(lora_state_dict.keys()):
-            t = lora_state_dict[k].detach().cpu().to(torch.float16).contiguous()
-            cpu_state[k] = t
-            hasher.update(t.numpy().tobytes())
-
-        digest = hasher.hexdigest()
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", domain_name):
+            raise ValueError("invalid domain name")
+        cpu_state = {key: tensor.detach().cpu().to(torch.float16).contiguous()
+                     for key, tensor in lora_state_dict.items()}
+        digest = self._expert_digest(metadata, cpu_state)
         expert_cid = f"cid://sha256/expert-{domain_name.lower()}-{digest[:24]}"
         out_path = self.experts_dir / f"expert_{domain_name.lower()}_{digest[:12]}.pt"
-        torch.save({"cid": expert_cid, "metadata": metadata, "lora_state": cpu_state}, out_path)
+        torch.save({"cid": expert_cid, "domain": domain_name, "metadata": metadata, "lora_state": cpu_state}, out_path)
         self.cid_to_path[expert_cid] = out_path
         return expert_cid, out_path
 
@@ -136,9 +138,36 @@ class ContentAddressedSwarmStore:
             else:
                 raise FileNotFoundError(f"Expert CID {cid_str} not found in local CAS index.")
 
-        payload = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-        cid = str(payload.get("cid", ""))
-        meta = dict(payload.get("metadata", {}))
-        raw_state: Dict[str, torch.Tensor] = payload.get("lora_state", {})
+        payload = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        if not isinstance(payload, dict):
+            raise ValueError("invalid checkpoint payload")
+        cid = payload.get("cid", "")
+        meta = payload.get("metadata", {})
+        raw_state = payload.get("lora_state", {})
+        domain = payload.get("domain", "")
+        if not isinstance(domain, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", domain):
+            raise ValueError("checkpoint lacks a valid bound domain")
+        digest = self._expert_digest(meta, raw_state)
+        expected = f"cid://sha256/expert-{domain.lower()}-{digest[:24]}"
+        if cid != expected or (str(expert_cid_or_path).startswith("cid://") and str(expert_cid_or_path) != cid):
+            raise ValueError("checkpoint content does not match requested CID")
         lora_state = {k: v.to(dtype=dtype) for k, v in raw_state.items()}
         return cid, meta, lora_state
+
+    @staticmethod
+    def _expert_digest(metadata: Dict[str, object], state: Dict[str, torch.Tensor]) -> str:
+        if not isinstance(metadata, dict) or not isinstance(state, dict) or not state:
+            raise ValueError("checkpoint metadata and nonempty tensor state required")
+        hasher = hashlib.sha256(json.dumps(metadata, sort_keys=True, allow_nan=False).encode("utf-8"))
+        for name in sorted(state):
+            tensor = state[name]
+            if not isinstance(name, str) or not isinstance(tensor, torch.Tensor) or not torch.isfinite(tensor).all():
+                raise ValueError("checkpoint requires named finite tensors")
+            tensor = tensor.detach().cpu().contiguous()
+            descriptor = json.dumps([name, str(tensor.dtype), list(tensor.shape)]).encode("utf-8")
+            hasher.update(len(descriptor).to_bytes(8, "big"))
+            hasher.update(descriptor)
+            raw = tensor.view(torch.uint8).numpy().tobytes()
+            hasher.update(len(raw).to_bytes(8, "big"))
+            hasher.update(raw)
+        return hasher.hexdigest()

@@ -111,6 +111,8 @@ def run_diloco_inner_loop(
     emergency_checkpoint_dir: Path | None = None,
 ) -> InnerLoopResult:
     """Execute H local AdamW steps on LoRA parameters with micro-checkpointing every s steps."""
+    if inner_steps_H <= 0 or checkpoint_interval_s <= 0 or micro_batch_size <= 0:
+        raise ValueError("Inner steps, checkpoint interval and batch size must be positive.")
     configure_deterministic_runtime(rng_seed)
     device = next(model.parameters()).device
     model.train()
@@ -211,6 +213,14 @@ def run_diloco_inner_loop(
         theta_final = micro_checkpoints[steps_completed].state_snapshot
     else:
         theta_final = extract_lora_state_dict(model)
+    # A preemption between periodic checkpoints must still commit its final state.
+    if steps_completed not in micro_checkpoints:
+        micro_checkpoints[steps_completed] = MicroCheckpointRecord(
+            step=steps_completed,
+            lora_sha256=compute_state_dict_sha256(theta_final),
+            loss_value=final_loss,
+            state_snapshot=theta_final,
+        )
     raw_delta = compute_pseudo_gradient_delta(theta_init, theta_final)
     compressed_delta = compress_lora_delta(
         delta_dict=raw_delta,
@@ -251,8 +261,13 @@ def replay_inner_segment(
     rng_seed: int = 42,
     micro_batch_size: int = 1,
     initial_step_state: dict[str, torch.Tensor] | None = None,
+    step_callback: Callable[[int], None] | None = None,
 ) -> dict[str, torch.Tensor]:
-    """Deterministically replay a segment of inner steps for BOINC Validator spot-checking."""
+    """Replay from step zero so AdamW moments and random-number state are reproducible."""
+    if not 0 <= start_step <= end_step:
+        raise ValueError("Replay step range is invalid.")
+    if start_step and initial_step_state is None:
+        raise ValueError("Nonzero replay requires the initial state to reconstruct AdamW moments.")
     configure_deterministic_runtime(rng_seed)
     device = next(model.parameters()).device
     model.train()
@@ -285,6 +300,8 @@ def replay_inner_segment(
         del outputs, loss, input_ids, labels
         optimizer.step()
         optimizer.zero_grad(set_to_none=True)
+        if step_callback is not None:
+            step_callback(step)
 
     del optimizer
     if torch.cuda.is_available():

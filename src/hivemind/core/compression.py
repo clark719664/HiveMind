@@ -9,6 +9,7 @@ achieving 4x-10x wire reduction on top of DiLoCo's 500x step-frequency reduction
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 import torch
 
 
@@ -27,8 +28,13 @@ class CompressedTensorPayload:
 
     @property
     def compressed_bytes(self) -> int:
-        # 1 byte per FP8 value + 2 bytes per delta-coded/uint16 index in block-sparse wire format
-        return int(self.fp8_values.numel() * 1 + self.indices.numel() * 2 + 8)
+        # The payload currently carries int32 indices, not an encoded uint16 stream.
+        # Count the actual tensor buffers plus the float64 scale (excluding framing).
+        return int(
+            self.fp8_values.numel() * self.fp8_values.element_size()
+            + self.indices.numel() * self.indices.element_size()
+            + 8
+        )
 
 
 @dataclass
@@ -74,6 +80,8 @@ def compress_tensor_topk_fp8(
         raise ValueError(f"topk_ratio must be in (0, 1], got {topk_ratio}")
 
     flat = tensor.detach().to(torch.float32).cpu().reshape(-1)
+    if not torch.isfinite(flat).all():
+        raise ValueError("Cannot compress non-finite delta values.")
     numel = flat.numel()
     k = max(1, int(round(numel * topk_ratio)))
 
@@ -116,13 +124,42 @@ def decompress_tensor_topk_fp8(
     device: torch.device | str = "cpu",
 ) -> torch.Tensor:
     """Decompress a Top-k + FP8 payload back into a dense tensor of original_shape."""
+    if (
+        not isinstance(payload.original_numel, int)
+        or payload.original_numel < 0
+        or any(not isinstance(dim, int) or dim < 0 for dim in payload.original_shape)
+        or math.prod(payload.original_shape) != payload.original_numel
+    ):
+        raise ValueError("Compressed payload shape and element count disagree.")
+    if not math.isfinite(payload.scale) or payload.scale <= 0:
+        raise ValueError("Compressed payload scale must be finite and positive.")
+    if payload.indices.ndim != 1 or payload.fp8_values.ndim != 1:
+        raise ValueError("Compressed payload indices and values must be one-dimensional.")
+    if payload.indices.dtype not in (torch.int32, torch.int64):
+        raise ValueError("Compressed payload indices must be integers.")
+    if payload.fp8_values.dtype not in (torch.int8, getattr(torch, "float8_e4m3fn", torch.int8)):
+        raise ValueError("Unsupported compressed value dtype.")
+    indices = payload.indices.detach().to(device="cpu", dtype=torch.long)
+    values = payload.fp8_values.detach().to(device="cpu", dtype=torch.float32)
+    if indices.numel() != values.numel() or indices.numel() > payload.original_numel:
+        raise ValueError("Compressed payload indices and values have inconsistent lengths.")
+    if indices.numel() and (
+        int(indices.min()) < 0
+        or int(indices.max()) >= payload.original_numel
+        or indices.unique().numel() != indices.numel()
+    ):
+        raise ValueError("Compressed payload indices must be unique and within bounds.")
+    if not torch.isfinite(values).all():
+        raise ValueError("Compressed payload contains non-finite values.")
     out = torch.zeros(payload.original_numel, dtype=torch.float32, device="cpu")
     if hasattr(torch, "float8_e4m3fn") and payload.fp8_values.dtype == torch.float8_e4m3fn:
-        dequant = payload.fp8_values.to(torch.float32) * payload.scale
+        dequant = values * payload.scale
     else:
-        dequant = payload.fp8_values.to(torch.float32) * (FP8_E4M3_MAX / 127.0) * payload.scale
+        dequant = values * (FP8_E4M3_MAX / 127.0) * payload.scale
 
-    out.index_copy_(0, payload.indices.to(torch.long), dequant)
+    if not torch.isfinite(dequant).all():
+        raise ValueError("Compressed payload dequantization overflowed.")
+    out.index_copy_(0, indices, dequant)
     return out.reshape(payload.original_shape).to(device=device, dtype=dtype)
 
 
@@ -140,8 +177,8 @@ def compress_lora_delta(
     compressed_bytes = 0
 
     for name, tensor in delta_dict.items():
-        # Reference uncompressed size in BF16/FP16 (2 bytes per parameter)
-        uncompressed_bytes += tensor.numel() * 2
+        # Compare against the actual submitted tensor representation.
+        uncompressed_bytes += tensor.numel() * tensor.element_size()
         payload = compress_tensor_topk_fp8(tensor, topk_ratio=topk_ratio)
         tensors[name] = payload
         compressed_bytes += payload.compressed_bytes

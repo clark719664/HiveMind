@@ -59,7 +59,7 @@ def _encode_corpus_batch(
     seed: int,
     is_holdout: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Deterministically projects domain corpus strings into reproducible semantic manifold feature/target tensors."""
+    """Synthetic regression fixture; corpus text is not encoded or learned here."""
     import math
 
     gen_manifold = torch.Generator().manual_seed(seed)
@@ -192,6 +192,8 @@ def train_single_domain_lora_adapter(
     init_loss_mean = round(sum(initial_losses) / max(1, len(initial_losses)), 6)
     final_loss_mean = round(sum(final_losses) / max(1, len(final_losses)), 6)
     metrics = {
+        "training_backend": "synthetic_regression_fixture",
+        "actual_text_training": False,
         "domain_name": domain_name,
         "dataset_id": spec["dataset_id"],
         "lora_rank_r": int(reference_lora_state[next(iter(reference_lora_state))].shape[0]),
@@ -278,4 +280,89 @@ def train_and_publish_season3_domain_experts(
         "domains": list(receipts.keys()),
         "receipts": receipts,
         "hotplug_summary": hotplug_summary,
+    }
+
+
+def train_tokenized_domain_adapter(
+    model: nn.Module,
+    tokenizer: Any,
+    samples: Sequence[str],
+    *,
+    steps: int = 10,
+    max_length: int = 256,
+    learning_rate: float = 1e-4,
+) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+    """Train an already-adapted causal LM on actual supplied text.
+
+    Dataset download and license selection belong to the caller. This path never
+    substitutes random feature regression for language-model training. Only LoRA
+    parameters may be trainable; the caller chooses the backbone and its precision.
+    No benchmark quality or held-out improvement is inferred from training loss.
+    """
+    import hashlib
+    import math
+
+    if not samples or any(not isinstance(text, str) or not text.strip() for text in samples):
+        raise ValueError("samples must contain nonempty text strings")
+    if steps < 1 or max_length < 2 or not math.isfinite(learning_rate) or learning_rate <= 0:
+        raise ValueError("invalid training steps, sequence length or learning rate")
+    trainable = [(name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad]
+    if not trainable or any('lora_' not in name for name, _ in trainable):
+        raise ValueError("model must have only LoRA parameters unfrozen")
+    device = trainable[0][1].device
+    # Tokenize each sample independently: no padding token is required and pad
+    # labels cannot accidentally become part of the language-model objective.
+    batches = []
+    for text in samples:
+        encoded = tokenizer(text, return_tensors='pt', truncation=True, max_length=max_length)
+        ids = encoded['input_ids']
+        if ids.ndim != 2 or ids.shape[0] != 1 or ids.shape[1] < 2:
+            raise ValueError("every sample must tokenize to at least two tokens")
+        attention = encoded.get('attention_mask', torch.ones_like(ids))
+        if attention.shape != ids.shape:
+            raise ValueError("attention mask shape must match tokens")
+        batches.append((ids.to(device), attention.to(device)))
+    initial = {name: value.detach().clone() for name, value in trainable}
+    was_training = model.training
+    optimizer = torch.optim.AdamW([value for _, value in trainable], lr=learning_rate)
+    losses = []
+    try:
+        model.train()
+        for index in range(steps):
+            ids, attention = batches[index % len(batches)]
+            labels = ids.clone().masked_fill(attention == 0, -100)
+            optimizer.zero_grad(set_to_none=True)
+            result = model(input_ids=ids, attention_mask=attention, labels=labels)
+            loss = result.loss
+            if loss is None or loss.ndim != 0 or not torch.isfinite(loss):
+                raise ValueError("model returned a nonfinite or nonscalar loss")
+            loss.backward()
+            norm = torch.nn.utils.clip_grad_norm_([value for _, value in trainable], 1.0,
+                                                 error_if_nonfinite=True)
+            optimizer.step()
+            if any(not torch.isfinite(value).all() for _, value in trainable):
+                raise ValueError("optimizer produced nonfinite adapter parameters")
+            losses.append(float(loss.detach()))
+    except Exception:
+        with torch.no_grad():
+            for name, value in trainable:
+                value.copy_(initial[name])
+        raise
+    finally:
+        optimizer.zero_grad(set_to_none=True)
+        model.train(was_training)
+    state = {name: value.detach().cpu().clone() for name, value in trainable}
+    digest = hashlib.sha256()
+    for text in samples:
+        data = text.encode('utf-8')
+        digest.update(len(data).to_bytes(8, 'big'))
+        digest.update(data)
+    return state, {
+        'training_backend': 'causal_lm_lora',
+        'samples_sha256': digest.hexdigest(),
+        'sample_count': len(samples),
+        'steps_completed': len(losses),
+        'training_losses': losses,
+        'heldout_evaluated': False,
+        'adapter_parameters_changed': any(not torch.equal(initial[name].cpu(), state[name]) for name in state),
     }

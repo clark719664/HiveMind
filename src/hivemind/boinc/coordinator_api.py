@@ -3,13 +3,14 @@
 Provides:
 - Workunit (WU) scheduling across E=8 domain branches
 - Cryptographically signed Parquet dataset sharding
-- Deterministic Spot-Check verification (10% verification overhead)
+- Deterministic full-prefix replay verification until optimizer snapshots are available
 - Multi-Krum + Nesterov outer-loop aggregation
 - SteamID64 node reputation tracking & Compute-to-API credit minting
 """
 
 from __future__ import annotations
 
+import copy
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -89,6 +90,7 @@ class BOINCCoordinatorService:
             cosine_sigma=config.cosine_outlier_sigma,
         )
         self.active_workunits: dict[str, BOINCWorkunit] = {}
+        self._workunit_assignments: dict[str, tuple[str, str, dict[str, torch.Tensor]]] = {}
         self.pending_branch_deltas: dict[str, dict[str, dict[str, torch.Tensor]]] = {
             dom: {} for dom in self.branches
         }
@@ -168,8 +170,11 @@ class BOINCCoordinatorService:
             seq_len=seq_len,
             num_sequences=num_sequences,
         )
-        self.active_workunits[wu_id] = wu
-        return wu, {k: v.clone() for k, v in branch_state.lora_state.items()}
+        # Keep independent trusted copies: callers may mutate the returned objects.
+        self.active_workunits[wu_id] = copy.deepcopy(wu)
+        initial_state = {k: v.detach().clone() for k, v in branch_state.lora_state.items()}
+        self._workunit_assignments[wu_id] = (worker_id, steam_id64, initial_state)
+        return wu, {k: v.clone() for k, v in initial_state.items()}
 
     def validate_and_record_submission(
         self,
@@ -181,23 +186,55 @@ class BOINCCoordinatorService:
         weight_decay: float = 0.01,
         micro_batch_size: int = 1,
     ) -> SpotCheckVerdict:
-        """Run 50-step segment spot-check validation, update reputation, and queue delta for Multi-Krum."""
-        token_sequences = verify_and_load_parquet_shard(
-            shard_path=workunit.data_shard_parquet,
-            expected_sha256=workunit.shard_sha256,
-            expected_hmac_signature=workunit.shard_hmac_signature,
-            rng_seed=workunit.rng_seed,
-        )
-        verdict = self.validator.verify_submission(
-            validator_model=validator_model,
-            workunit=workunit,
-            submission=submission,
-            token_sequences=token_sequences,
-            steam_id64=steam_id64,
-            lr=lr,
-            weight_decay=weight_decay,
-            micro_batch_size=micro_batch_size,
-        )
+        """Validate a live assignment once, then update reputation and queue its bound delta."""
+        def reject_assignment(reason: str) -> SpotCheckVerdict:
+            # An unauthenticated/mismatched claim must not penalize another account.
+            return SpotCheckVerdict(
+                wu_id=workunit.wu_id, worker_id=submission.worker_id, steam_id64=steam_id64,
+                segment_start_step=0, segment_end_step=0, verification_overhead_pct=0.0,
+                max_abs_divergence=float("inf"), tolerance_eps=self.validator.tolerance_eps,
+                hash_matched=False, passed=False, steam_account_flagged=False, reason=reason,
+            )
+
+        assigned = self.active_workunits.get(workunit.wu_id)
+        assignment = self._workunit_assignments.get(workunit.wu_id)
+        if assigned is None or assignment is None:
+            return reject_assignment("Unknown, consumed or currently validating workunit.")
+        worker_id, assigned_steam_id, trusted_initial = assignment
+        if assigned != workunit:
+            return reject_assignment("Workunit metadata differs from the coordinator assignment.")
+        if worker_id != submission.worker_id or assigned_steam_id != steam_id64:
+            return reject_assignment("Submission identity does not match the assigned worker/account.")
+        if assigned.outer_step != self.branches[assigned.branch_name].outer_step + 1:
+            return reject_assignment("Workunit belongs to a stale outer step.")
+        # dict.pop reserves the assignment before expensive replay. A concurrent
+        # duplicate cannot reach the reward path while the first call is running.
+        if self.active_workunits.pop(workunit.wu_id, None) is None:
+            return reject_assignment("Workunit is already being validated.")
+        try:
+            token_sequences = verify_and_load_parquet_shard(
+                shard_path=assigned.data_shard_parquet,
+                expected_sha256=assigned.shard_sha256,
+                expected_hmac_signature=assigned.shard_hmac_signature,
+                rng_seed=assigned.rng_seed,
+            )
+            verdict = self.validator.verify_submission(
+                validator_model=validator_model,
+                workunit=assigned,
+                submission=submission,
+                token_sequences=token_sequences,
+                steam_id64=steam_id64,
+                lr=lr,
+                weight_decay=weight_decay,
+                micro_batch_size=micro_batch_size,
+                trusted_initial_state=trusted_initial,
+            )
+            # Finish decoding before minting credits or changing reputation.
+            decompressed = decompress_lora_delta(submission.compressed_delta) if verdict.passed else None
+        except Exception:
+            self.active_workunits[assigned.wu_id] = assigned
+            raise
+        self._workunit_assignments.pop(assigned.wu_id, None)
         rec = self.reputation_ledger.setdefault(
             steam_id64,
             NodeReputationRecord(steam_id64=steam_id64, worker_id=submission.worker_id),
@@ -207,14 +244,11 @@ class BOINCCoordinatorService:
             rec.contributed_tflops = round(rec.contributed_tflops + 0.125 * submission.steps_completed, 3)
             rec.minted_api_credits = round(rec.minted_api_credits + 10.0, 2)
             rec.reputation_score = min(100.0, round(rec.reputation_score + 2.5, 2))
-            # Decompress uploaded Top-k + FP8 delta package on the server
-            decompressed = decompress_lora_delta(submission.compressed_delta)
-            self.pending_branch_deltas[workunit.branch_name][submission.worker_id] = decompressed
+            self.pending_branch_deltas[assigned.branch_name][submission.worker_id] = decompressed
         else:
             rec.rejected_workunits += 1
             rec.reputation_score = 0.0
             rec.flagged_byzantine = True
-
         return verdict
 
     def inject_raw_delta_for_aggregation(
