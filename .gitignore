@@ -30,3 +30,6 @@ models_cache/
 *.sqlite3
 .pytest_cache/
 .ruff_cache/
+
+# Local Lean compiler build products
+/lean4/.lake/
