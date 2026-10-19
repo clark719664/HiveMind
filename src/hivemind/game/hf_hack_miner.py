@@ -294,6 +294,56 @@ DEFAULT_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
         target_keywords=["50", "12", "3", "hive", "block", "=", "*"],
         base_bounty_pts=850,
     ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-04-RUST-SYSTEMS",
+        mission_codename="Operation: Borrow-Checker Fortress",
+        dataset_id="anon/rust-code-instructions",
+        domain_expert="Rust_Systems_Security",
+        difficulty_skulls=4,
+        bounty_question_prompt=(
+            "### Instruction:\nWrite a safe Rust function `checked_escrow_sub(balance: u64, amount: u64) -> Option<u64>` "
+            "that prevents underflow.\n### Response:\n"
+        ),
+        reference_solution=(
+            "pub fn checked_escrow_sub(balance: u64, amount: u64) -> Option<u64> {\n"
+            "    balance.checked_sub(amount)\n"
+            "}"
+        ),
+        target_keywords=["fn", "u64", "Option", "checked_sub", "balance", "amount"],
+        base_bounty_pts=800,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-05-CYBERSEC-RECON",
+        mission_codename="Operation: Zero-Day Sentinel",
+        dataset_id="cve-bench/secure-coding-audit",
+        domain_expert="CyberSecurity_Vulnerability_Recon",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Security Audit:\nHow do you remediate SQL injection in a Python parameterized cursor query?\n### Remediation:\n"
+        ),
+        reference_solution=(
+            "Use bound query parameters (`cursor.execute('SELECT * FROM users WHERE id = ?', (user_id,))`) "
+            "instead of string interpolation."
+        ),
+        target_keywords=["cursor", "execute", "select", "parameter", "query", "sql"],
+        base_bounty_pts=850,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-06-MULTILINGUAL-FR",
+        mission_codename="Operation: Lumiere Francophone",
+        dataset_id="ministere-culture/french-instruct-reasoning",
+        domain_expert="Multilingual_FR_Synthesis",
+        difficulty_skulls=3,
+        bounty_question_prompt=(
+            "### Instruction (FR):\nExpliquez comment le routage MoE Top-2 reduit la latence d'inference P2P.\n### Reponse:\n"
+        ),
+        reference_solution=(
+            "Le routeur MoE Top-2 active seulement deux experts specialises par jeton, "
+            "reduisant le calcul et la bande passante P2P de 75 pourcent."
+        ),
+        target_keywords=["routeur", "moe", "experts", "latence", "jeton", "calcul"],
+        base_bounty_pts=700,
+    ),
 ]
 
 

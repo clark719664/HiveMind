@@ -8,9 +8,11 @@ Implements:
 
 from __future__ import annotations
 
+import ctypes
 import hashlib
 import hmac
 from dataclasses import dataclass, field
+from pathlib import Path
 
 STEAMWORKS_APP_ID = 3133700  # Project HiveMind: Neural Breach Free Steam Edition AppID
 MIN_STEAM_SPEND_USD = 5.0
@@ -54,6 +56,35 @@ class SteamworksSDKBridge:
         self.signing_secret = signing_secret
         self.leaderboard: dict[str, SteamUserTelemetry] = {}
         self.sybil_rejection_log: list[dict[str, str]] = []
+        self.rich_presence_log: dict[str, str] = {}
+        self._native_dll = self._try_load_native_steam_dll()
+
+    @staticmethod
+    def _try_load_native_steam_dll() -> ctypes.CDLL | None:
+        for candidate in ("steam_api64.dll", "libsteam_api.so", "libsteam_api.dylib"):
+            if Path(candidate).exists():
+                try:
+                    return ctypes.CDLL(str(Path(candidate).resolve()))
+                except OSError:
+                    continue
+        return None
+
+    def set_rich_presence(
+        self,
+        steam_id64: str,
+        dataset_name: str,
+        gpu_model: str,
+        rank_title: str,
+        hive_earned: float,
+    ) -> str:
+        status = f"Hack-Mining {dataset_name} on {gpu_model} | {rank_title} | +{hive_earned:.1f} $HIVE"
+        if self._native_dll is not None and hasattr(self._native_dll, "SteamAPI_ISteamFriends_SetRichPresence"):
+            try:
+                self._native_dll.SteamAPI_ISteamFriends_SetRichPresence(b"status", status.encode("utf-8"))
+            except Exception:
+                pass
+        self.rich_presence_log[steam_id64] = status
+        return status
 
     def get_auth_session_ticket(
         self,
