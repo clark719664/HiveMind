@@ -403,9 +403,56 @@ SEASON_2_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
     ),
 ]
 
+SEASON_3_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-07-LEAN4-FORMAL",
+        mission_codename="Operation: Lean 4 Soundness Sentinel",
+        dataset_id="hoskinson-center/proofnet",
+        domain_expert="Lean4_Formal_Verification",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Lean 4 Formal Verification Task:\nProve that a 0-RTT anti-replay window "
+            "rejects any packet with `nonce <= maxSeen`.\n### Machine-Checked Proof:\n"
+        ),
+        reference_solution=(
+            "theorem quic_0rtt_anti_replay_rejects_duplicate_nonce (nonce maxSeen : Nat)\n"
+            "    (hReplay : nonce <= maxSeen) :\n"
+            "    acceptZeroRttNonce nonce maxSeen = false := by\n"
+            "  unfold acceptZeroRttNonce\n"
+            "  simp [Nat.not_lt.mpr hReplay]"
+        ),
+        target_keywords=["theorem", "nonce", "maxseen", "false", "unfold", "simp"],
+        base_bounty_pts=1100,
+        season=3,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-08-SOLIDITY-ESCROW",
+        mission_codename="Operation: L2 State-Channel Escrow Vault",
+        dataset_id="ASSERT-KTH/DISL-Solidity-Smart-Contracts",
+        domain_expert="Solidity_L2_Escrow_Audit",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### L2 Escrow Invariant Audit:\nVerify that provider payout plus consumer refund "
+            "equals total escrow deposit when `spend <= escrow`.\n### Invariant Proof:\n"
+        ),
+        reference_solution=(
+            "require(spend <= escrow, 'Escrow exceeded');\n"
+            "uint256 providerPayout = spend;\n"
+            "uint256 consumerRefund = escrow - spend;\n"
+            "assert(providerPayout + consumerRefund == escrow);"
+        ),
+        target_keywords=["escrow", "spend", "providerpayout", "consumerrefund", "assert", "require"],
+        base_bounty_pts=1150,
+        season=3,
+    ),
+]
+
 DEFAULT_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = SEASON_1_HF_BOUNTY_CONTRACTS
 ALL_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
     SEASON_1_HF_BOUNTY_CONTRACTS + SEASON_2_HF_BOUNTY_CONTRACTS
+)
+EXTENDED_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_1_HF_BOUNTY_CONTRACTS + SEASON_2_HF_BOUNTY_CONTRACTS + SEASON_3_HF_BOUNTY_CONTRACTS
 )
 
 
@@ -1508,7 +1555,7 @@ def execute_interactive_lora_micro_forge(
 ) -> Dict[str, Any]:
     """Execute a fast interactive QLoRA Micro-Forge burst & Steam Rich Presence broadcast from the Web HUD."""
     ensure_local_drive_caches()
-    contract_map = {c.contract_id: c for c in ALL_HF_BOUNTY_CONTRACTS}
+    contract_map = {c.contract_id: c for c in EXTENDED_HF_BOUNTY_CONTRACTS}
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
 
     rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=12)

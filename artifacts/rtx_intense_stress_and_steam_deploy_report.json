@@ -1,13 +1,15 @@
 {
-  "certification_title": "HiveMind Free Steam RTX Tool & Game v1.0.0 \u2014 Intense GPU Stress Certification",
+  "certification_title": "HiveMind Free Steam RTX Tool & Game v1.1.0 \u2014 10-Stage Intense GPU Stress Certification",
   "steam_app_id": 3133700,
   "steam_depot_id": 3133701,
   "release_version": "1.0.0",
+  "extended_validation_version": "1.1.0",
+  "stages_executed": 10,
   "all_stages_passed": true,
   "certification_hmac": "rtx_steam_cert_5a56da8bb80d7bb39ae2296fdc3fb3e8",
   "hardware": {
     "system_ram_total_gb": 15.89,
-    "system_ram_available_gb": 6.22,
+    "system_ram_available_gb": 5.88,
     "torch_version": "2.6.0+cu124",
     "cuda_available": true,
     "gpu_name": "NVIDIA GeForce RTX 2070",
@@ -19,17 +21,17 @@
     "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)"
   },
   "vram_telemetry": {
-    "allocated_mb": 64.02,
-    "reserved_mb": 66.0,
+    "allocated_mb": 64.04,
+    "reserved_mb": 68.0,
     "peak_allocated_mb": 103.02,
-    "free_vram_gb": 6.87,
+    "free_vram_gb": 6.86,
     "total_vram_gb": 8.0
   },
-  "elapsed_seconds": 4.85,
+  "elapsed_seconds": 6.98,
   "stage1_vram_and_preemption_torture": {
     "cycles_executed": 3,
     "all_preemptions_under_1500ms": true,
-    "max_preempt_eviction_ms": 150.6,
+    "max_preempt_eviction_ms": 135.5,
     "vram_drift_across_cycles_mb": 0.0,
     "zero_vram_leak_verified": true,
     "cycles": [
@@ -41,9 +43,9 @@
         "final_loss": 7.6644,
         "peak_allocated_mb": 103.02,
         "allocated_after_preempt_mb": 64.0,
-        "preempt_eviction_ms": 150.6,
+        "preempt_eviction_ms": 135.5,
         "preempt_within_1500ms_sla": true,
-        "cycle_elapsed_s": 1.191
+        "cycle_elapsed_s": 1.093
       },
       {
         "cycle": 2,
@@ -53,9 +55,9 @@
         "final_loss": 7.63,
         "peak_allocated_mb": 103.02,
         "allocated_after_preempt_mb": 64.0,
-        "preempt_eviction_ms": 134.4,
+        "preempt_eviction_ms": 133.7,
         "preempt_within_1500ms_sla": true,
-        "cycle_elapsed_s": 0.787
+        "cycle_elapsed_s": 0.772
       },
       {
         "cycle": 3,
@@ -65,9 +67,9 @@
         "final_loss": 7.6985,
         "peak_allocated_mb": 103.02,
         "allocated_after_preempt_mb": 64.0,
-        "preempt_eviction_ms": 132.3,
+        "preempt_eviction_ms": 135.1,
         "preempt_within_1500ms_sla": true,
-        "cycle_elapsed_s": 0.739
+        "cycle_elapsed_s": 0.785
       }
     ]
   },
@@ -114,7 +116,7 @@
   "stage4_p2p_swarm_fabric_burst": {
     "udp_0rtt_packets_sent": 100,
     "udp_0rtt_packets_verified": 100,
-    "udp_0rtt_throughput_fps": 2767.8,
+    "udp_0rtt_throughput_fps": 2526.2,
     "fp8_wire_compression_ratio": 1.98,
     "stun_ice_candidate": "candidate:1 1 UDP 2130706431 127.0.0.1 4433 typ srflx",
     "gossipsub_failover_latency_ms": 2.695,
@@ -123,8 +125,8 @@
     "token_tree_mask_shape": [
       1,
       1,
-      25,
-      25
+      19,
+      19
     ],
     "token_tree_accepted_length": 7,
     "l2_vouchers_signed": 50,
@@ -156,5 +158,47 @@
       "POST /api/run-rtx-diagnostic": 200
     },
     "all_endpoints_200_ok": true
+  },
+  "stage7_rtx_tensorcore_fp16_fp8_benchmark": {
+    "num_fused_experts": 16,
+    "top_k": 2,
+    "router_dtype": "float32",
+    "fp8_compression_ratio": 1.97,
+    "sqnr_db": 31.79,
+    "fused_kernel_latency_ms": 19.7604,
+    "fp16_gemm_gflops": 52.1,
+    "sqnr_above_20db": true
+  },
+  "stage8_wan_nat_stun_hole_punching_and_replay_defense": {
+    "restricted_cone_direct_udp_verified": true,
+    "restricted_cone_rtt_ms": 0.485,
+    "symmetric_nat_turn_fallback_verified": true,
+    "monotonic_nonces_accepted": true,
+    "duplicate_nonce_rejected": true,
+    "stale_nonce_rejected": true,
+    "expired_ticket_rejected": true,
+    "anti_replay_100pct_accurate": true
+  },
+  "stage9_season3_hack_miner_and_16_expert_cas": {
+    "season3_contracts_forged": [
+      "CONTRACT-HF-07-LEAN4-FORMAL",
+      "CONTRACT-HF-08-SOLIDITY-ESCROW"
+    ],
+    "season3_domains": [
+      "Lean4_Formal_Verification",
+      "Solidity_L2_Escrow_Audit"
+    ],
+    "season3_all_spotchecks_passed": true,
+    "cas_expert_cid": "cid://sha256/expert-lean4_formal_verification-7fc7c4b804c528b24f9ce130",
+    "cas_roundtrip_verified": true,
+    "lora_top5pct_fp8_compression_ratio": 11.91
+  },
+  "stage10_lean4_21_theorems_formal_audit": {
+    "theorem_count": 21,
+    "sorry_count": 0,
+    "user_axiom_count": 0,
+    "tier_a_machine_checked": true,
+    "season3_theorems_present": true,
+    "formal_spec_verified": true
   }
 }

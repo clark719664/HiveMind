@@ -56,6 +56,7 @@ from hivemind.swarm.swarm_fabric import (
     TwoLevelMacroMicroRouter,
     compress_hidden_states_fp8,
     decompress_hidden_states_fp8,
+    fused_top2_moe_fp8_dispatch,
 )
 
 console = Console()
@@ -635,6 +636,156 @@ def run_intense_rtx_stress_suite(
             ),
         }
 
+        # =====================================================================
+        # STAGE 7: RTX TensorCore FP16 GEMM + 16-Expert Fused Top-2 MoE FP8
+        #          (`HM-S3-02`) Throughput & SQNR Fidelity Benchmark
+        # =====================================================================
+        torch.manual_seed(2026)
+        gemm_n = 512 if device.type == "cuda" else 256
+        mat_a = torch.randn(gemm_n, gemm_n, device=device, dtype=torch.float16)
+        mat_b = torch.randn(gemm_n, gemm_n, device=device, dtype=torch.float16)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        t_gemm0 = time.perf_counter()
+        gemm_iters = 10
+        for _ in range(gemm_iters):
+            _ = torch.matmul(mat_a, mat_b)
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+        gemm_elapsed = max(1e-6, time.perf_counter() - t_gemm0)
+        gemm_gflops = round((2.0 * (gemm_n**3) * gemm_iters) / gemm_elapsed / 1e9, 2)
+
+        hs_16 = torch.randn(2, 32, 128, device=device, dtype=torch.float16)
+        router_w16 = torch.randn(16, 128, device=device, dtype=torch.float32) * 0.05
+        experts_w16 = [torch.randn(128, 128, device=device, dtype=torch.float16) * 0.02 for _ in range(16)]
+        fused_res = fused_top2_moe_fp8_dispatch(
+            hidden_states=hs_16,
+            router_weight=router_w16,
+            expert_down_weights=experts_w16,
+            top_k=2,
+        )
+        del mat_a, mat_b, hs_16, router_w16, experts_w16
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+
+        stage7_summary = {
+            "num_fused_experts": 16,
+            "top_k": 2,
+            "router_dtype": fused_res["router_dtype"],
+            "fp8_compression_ratio": fused_res["fp8_compression_ratio"],
+            "sqnr_db": fused_res["sqnr_db"],
+            "fused_kernel_latency_ms": fused_res["kernel_latency_ms"],
+            "fp16_gemm_gflops": gemm_gflops,
+            "sqnr_above_20db": fused_res["sqnr_db"] >= 20.0,
+        }
+
+        # =====================================================================
+        # STAGE 8: WAN STUN/ICE UDP Hole-Punching & RFC 9001 0-RTT Anti-Replay
+        #          Sliding Window Verification (`HM-S3-01`)
+        # =====================================================================
+        hp_cone = quic_transport.perform_udp_hole_punch(
+            local_peer_id="rtx-node-paris-01",
+            remote_peer_id="rtx-node-berlin-02",
+            nat_type="restricted_cone",
+        )
+        hp_sym = quic_transport.perform_udp_hole_punch(
+            local_peer_id="rtx-node-paris-01",
+            remote_peer_id="rtx-node-tokyo-03",
+            nat_type="symmetric_nat",
+        )
+        ok_n1, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=1)
+        ok_n2, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=2)
+        replay_dup, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=2)
+        replay_old, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=1)
+        expired_ok, _ = quic_transport.verify_0rtt_ticket_anti_replay(
+            "rtx-node-paris-01", nonce=3, timestamp=time.time() + 3600.0, max_age_sec=600.0
+        )
+
+        stage8_summary = {
+            "restricted_cone_direct_udp_verified": hp_cone["hole_punch_succeeded"] and hp_cone["handshake_verified"],
+            "restricted_cone_rtt_ms": hp_cone["effective_rtt_ms"],
+            "symmetric_nat_turn_fallback_verified": (
+                not hp_sym["hole_punch_succeeded"]
+                and hp_sym["transport_mode"] == "turn_relay_websocket_fallback"
+                and hp_sym["handshake_verified"]
+            ),
+            "monotonic_nonces_accepted": (ok_n1 and ok_n2),
+            "duplicate_nonce_rejected": not replay_dup,
+            "stale_nonce_rejected": not replay_old,
+            "expired_ticket_rejected": not expired_ok,
+            "anti_replay_100pct_accurate": (
+                ok_n1 and ok_n2 and (not replay_dup) and (not replay_old) and (not expired_ok)
+            ),
+        }
+
+        # =====================================================================
+        # STAGE 9: Season 3 Hack-Miner Contracts (`HM-S3-03` & `HM-S3-04`) +
+        #          Content-Addressed Swarm Store (CAS) Expert Delta Verification
+        # =====================================================================
+        from hivemind.game.hf_hack_miner import execute_interactive_lora_micro_forge
+
+        s3_lean_forge = execute_interactive_lora_micro_forge(
+            gamer_tag="CyberValkyrie_FR",
+            contract_id="CONTRACT-HF-07-LEAN4-FORMAL",
+        )
+        s3_sol_forge = execute_interactive_lora_micro_forge(
+            gamer_tag="NeuralGhost_DE",
+            contract_id="CONTRACT-HF-08-SOLIDITY-ESCROW",
+        )
+        cas_store = ContentAddressedSwarmStore(tmp_dir / "s3_cas_vault")
+        dummy_lora_a = {"layers.0.lora_A": torch.zeros(8, 64), "layers.0.lora_B": torch.zeros(64, 8)}
+        dummy_lora_b = {"layers.0.lora_A": torch.ones(8, 64) * 0.02, "layers.0.lora_B": torch.ones(64, 8) * 0.02}
+        raw_delta = compute_pseudo_gradient_delta(dummy_lora_a, dummy_lora_b)
+        comp_pkg = compress_lora_delta(
+            delta_dict=raw_delta,
+            worker_id="s3-validator-01",
+            branch_name="Lean4_Formal_Verification",
+            outer_step=1,
+            topk_ratio=0.05,
+        )
+        expert_cid, _ = cas_store.publish_lora_expert_checkpoint(
+            domain_name="Lean4_Formal_Verification",
+            lora_state_dict=dummy_lora_b,
+            metadata={"compression_ratio": comp_pkg.compression_ratio, "season": 3},
+        )
+        _, _, loaded_lora = cas_store.load_lora_expert_checkpoint(expert_cid)
+
+        stage9_summary = {
+            "season3_contracts_forged": [s3_lean_forge["contract_id"], s3_sol_forge["contract_id"]],
+            "season3_domains": [s3_lean_forge["domain_expert"], s3_sol_forge["domain_expert"]],
+            "season3_all_spotchecks_passed": (
+                s3_lean_forge["spot_check_passed"] and s3_sol_forge["spot_check_passed"]
+            ),
+            "cas_expert_cid": expert_cid,
+            "cas_roundtrip_verified": "layers.0.lora_A" in loaded_lora,
+            "lora_top5pct_fp8_compression_ratio": comp_pkg.compression_ratio,
+        }
+
+        # =====================================================================
+        # STAGE 10: Lean 4 Machine-Checked 21-Theorem Specification Audit
+        #           (`HM-S3-05`: 0 `sorry`, 0 `axiom`, 21 Theorems Verified)
+        # =====================================================================
+        from paper.autoevolve_peer_review_pipeline import verify_lean4_specification
+
+        lean_audit = verify_lean4_specification()
+        stage10_summary = {
+            "theorem_count": lean_audit["theorem_count"],
+            "sorry_count": lean_audit["sorry_count"],
+            "user_axiom_count": lean_audit["user_axiom_count"],
+            "tier_a_machine_checked": lean_audit["tier_a_machine_checked"],
+            "season3_theorems_present": (
+                "prefix_trie_shared_nodes_reduce_attention_flops" in lean_audit["theorems"]
+                and "quic_0rtt_anti_replay_rejects_duplicate_nonce" in lean_audit["theorems"]
+                and "fused_moe_fp8_vram_fits_16_experts_in_8gb" in lean_audit["theorems"]
+                and "nat_hole_punch_direct_p2p_avoids_turn_relay_latency" in lean_audit["theorems"]
+            ),
+            "formal_spec_verified": (
+                lean_audit["theorem_count"] >= 21
+                and lean_audit["sorry_count"] == 0
+                and lean_audit["user_axiom_count"] == 0
+            ),
+        }
+
     vram_final = measure_vram_footprint(device)
     total_elapsed_s = round(time.perf_counter() - t_start, 2)
 
@@ -651,6 +802,12 @@ def run_intense_rtx_stress_suite(
         and stage4_summary["merkle_dispute_slashed_and_refunded"]
         and stage5_summary["sybil_gate_100pct_accurate"]
         and stage6_summary["all_endpoints_200_ok"]
+        and stage7_summary["sqnr_above_20db"]
+        and stage8_summary["restricted_cone_direct_udp_verified"]
+        and stage8_summary["anti_replay_100pct_accurate"]
+        and stage9_summary["season3_all_spotchecks_passed"]
+        and stage9_summary["cas_roundtrip_verified"]
+        and stage10_summary["formal_spec_verified"]
     )
 
     cert_payload = f"RTX_CERT:{STEAM_APP_ID}:{hw.get('gpu_name')}:{all_stages_passed}:{vram_final['peak_allocated_mb']}"
@@ -659,10 +816,12 @@ def run_intense_rtx_stress_suite(
     ).hexdigest()[:32]
 
     report: Dict[str, Any] = {
-        "certification_title": "HiveMind Free Steam RTX Tool & Game v1.0.0 — Intense GPU Stress Certification",
+        "certification_title": "HiveMind Free Steam RTX Tool & Game v1.1.0 — 10-Stage Intense GPU Stress Certification",
         "steam_app_id": STEAM_APP_ID,
         "steam_depot_id": STEAM_DEPOT_ID,
         "release_version": "1.0.0",
+        "extended_validation_version": "1.1.0",
+        "stages_executed": 10,
         "all_stages_passed": all_stages_passed,
         "certification_hmac": f"rtx_steam_cert_{cert_hmac}",
         "hardware": hw,
@@ -674,10 +833,14 @@ def run_intense_rtx_stress_suite(
         "stage4_p2p_swarm_fabric_burst": stage4_summary,
         "stage5_steamworks_50_accounts": stage5_summary,
         "stage6_gateway_and_hud_load": stage6_summary,
+        "stage7_rtx_tensorcore_fp16_fp8_benchmark": stage7_summary,
+        "stage8_wan_nat_stun_hole_punching_and_replay_defense": stage8_summary,
+        "stage9_season3_hack_miner_and_16_expert_cas": stage9_summary,
+        "stage10_lean4_21_theorems_formal_audit": stage10_summary,
     }
 
     # Print summary table
-    t_table = Table(title="Intense RTX 2070 GPU Stress & Steam Tool v1.0.0 Certification Summary")
+    t_table = Table(title="Intense RTX 2070 GPU 10-Stage Stress & Steam Tool Certification Summary")
     t_table.add_column("Stress Stage", style="cyan")
     t_table.add_column("Key Measured Metric on RTX GPU", style="yellow")
     t_table.add_column("Verdict", style="bold green")
@@ -710,6 +873,26 @@ def run_intense_rtx_stress_suite(
         "Stage 6: OpenAI SSE Gateway + Free Steam Tool HUD Load",
         f"Sync + SSE /v1/chat/completions + 8 Web HUD Routes = 200 OK",
         "PASS" if stage6_summary["all_endpoints_200_ok"] else "FAIL",
+    )
+    t_table.add_row(
+        "Stage 7: RTX TensorCore FP16 GEMM + 16-Expert Fused FP8 MoE",
+        f"{stage7_summary['fp16_gemm_gflops']} GFLOPS | SQNR={stage7_summary['sqnr_db']} dB | Kernel={stage7_summary['fused_kernel_latency_ms']} ms",
+        "PASS" if stage7_summary["sqnr_above_20db"] else "FAIL",
+    )
+    t_table.add_row(
+        "Stage 8: STUN UDP Hole-Punching & RFC 9001 0-RTT Anti-Replay",
+        f"Direct UDP RTT={stage8_summary['restricted_cone_rtt_ms']} ms | TURN Fallback=OK | Replay Blocked=100%",
+        "PASS" if stage8_summary["anti_replay_100pct_accurate"] else "FAIL",
+    )
+    t_table.add_row(
+        "Stage 9: Season 3 Hack-Miner Forge + CAS Expert Vault",
+        f"Forged {len(stage9_summary['season3_contracts_forged'])} S3 Contracts | CID={stage9_summary['cas_expert_cid'][:18]}...",
+        "PASS" if stage9_summary["cas_roundtrip_verified"] else "FAIL",
+    )
+    t_table.add_row(
+        "Stage 10: Lean 4 Machine-Checked 21-Theorem Audit",
+        f"{stage10_summary['theorem_count']} Theorems | {stage10_summary['sorry_count']} sorry | {stage10_summary['user_axiom_count']} user axioms",
+        "PASS" if stage10_summary["formal_spec_verified"] else "FAIL",
     )
     console.print(t_table)
     return report

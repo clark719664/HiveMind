@@ -685,6 +685,74 @@ class HiveLayer2StateChannel:
         }
 
 
+def fused_top2_moe_fp8_dispatch(
+    hidden_states: torch.Tensor,
+    router_weight: torch.Tensor,
+    expert_down_weights: List[torch.Tensor],
+    top_k: int = 2,
+) -> Dict[str, Any]:
+    """HM-S3-02: Fused FP32 Top-2 Sparse MoE Gating + FP8 (`E4M3`) Activation Quantization + Expert Dispatch."""
+    import math
+
+    device = hidden_states.device
+    orig_dtype = hidden_states.dtype
+
+    use_cuda_events = device.type == "cuda" and torch.cuda.is_available()
+    if use_cuda_events:
+        ev_start = torch.cuda.Event(enable_timing=True)
+        ev_end = torch.cuda.Event(enable_timing=True)
+        ev_start.record()
+    t0 = time.perf_counter()
+
+    # 1. Mixed-Precision FP32 Router Gating (Theorem 3.2 invariant)
+    hs_fp32 = hidden_states.to(torch.float32)
+    wg_fp32 = router_weight.to(device=device, dtype=torch.float32)
+    logits = torch.matmul(hs_fp32, wg_fp32.t())
+    probs = torch.softmax(logits, dim=-1)
+    k = min(top_k, probs.shape[-1])
+    top_vals, top_idx = torch.topk(probs, k=k, dim=-1)
+    norm_weights = (top_vals / top_vals.sum(dim=-1, keepdim=True).clamp_min(1e-6)).to(orig_dtype)
+
+    # 2. Fused FP8 (E4M3) Activation Quantization & SQNR Fidelity Check
+    fp8_pkt = compress_hidden_states_fp8(hidden_states)
+    quant_hs = decompress_hidden_states_fp8(fp8_pkt).to(device=device, dtype=orig_dtype)
+    signal_power = float(torch.mean(hidden_states.to(torch.float32) ** 2).item())
+    noise_power = float(
+        torch.mean((hidden_states.to(torch.float32) - quant_hs.to(torch.float32)) ** 2).item()
+    )
+    sqnr_db = round(10.0 * math.log10(max(signal_power, 1e-9) / max(noise_power, 1e-9)), 2)
+
+    # 3. Sparse Top-2 Expert Dispatch
+    out = torch.zeros_like(quant_hs)
+    num_experts = len(expert_down_weights)
+    expert_Projections = [w.to(device=device, dtype=orig_dtype) for w in expert_down_weights]
+    for e_idx in range(num_experts):
+        for slot_i in range(k):
+            mask = (top_idx[..., slot_i] == e_idx).unsqueeze(-1)
+            if mask.any():
+                w_scale = norm_weights[..., slot_i].unsqueeze(-1)
+                proj = torch.matmul(quant_hs, expert_Projections[e_idx])
+                out = out + torch.where(mask, proj * w_scale, torch.zeros_like(out))
+
+    if use_cuda_events:
+        ev_end.record()
+        torch.cuda.synchronize(device)
+        kernel_ms = round(float(ev_start.elapsed_time(ev_end)), 4)
+    else:
+        kernel_ms = round((time.perf_counter() - t0) * 1000.0, 4)
+
+    return {
+        "output": out,
+        "top_k_indices": top_idx,
+        "top_k_weights": norm_weights,
+        "fp8_compression_ratio": fp8_pkt.compression_ratio,
+        "sqnr_db": sqnr_db,
+        "kernel_latency_ms": kernel_ms,
+        "router_dtype": "float32",
+        "expert_compute_dtype": str(orig_dtype),
+    }
+
+
 from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport, ZeroRTTSessionTicket  # noqa: E402, F401
 
 

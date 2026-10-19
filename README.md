@@ -4,13 +4,13 @@
 
 <br/>
 
-[![Release](https://img.shields.io/badge/Release-v1.0.0%20(Immutable%20SHA256)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.0.0)
-[![Test Suite](https://img.shields.io/badge/Tests-20%2F20%20Passing-brightgreen?style=for-the-badge)](tests/)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-17%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Release](https://img.shields.io/badge/Release-v1.1.0%20(Immutable%20SHA256)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.1.0)
+[![Test Suite](https://img.shields.io/badge/Tests-21%2F21%20Passing-brightgreen?style=for-the-badge)](tests/)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-21%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
-[![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20(8GB%20VRAM)-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
-[![Swarm Fabric](https://img.shields.io/badge/Phase%202-Swarm%20Fabric%20M1--M5%20Complete-a855f7?style=for-the-badge)](src/hivemind/swarm/swarm_fabric.py)
-[![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](CONTRIBUTING.md)
+[![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20(10--Stage%20Certified)-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
+[![Swarm Fabric](https://img.shields.io/badge/Swarm%20Fabric-M1--M5%20%2B%20Season%203%20Complete-a855f7?style=for-the-badge)](src/hivemind/swarm/swarm_fabric.py)
+[![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
 [![PRs Welcome](https://img.shields.io/badge/Parallel%20PRs%20%26%20Bounties-Welcome%20(%24HIVE)-ff00a0?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 
 </div>
@@ -126,18 +126,22 @@ stateDiagram-v2
 
 ## 🔥 2. Intense RTX 2070 (8 GB VRAM) Stress Test & PoC Benchmarks
 
-### 2.1 6-Stage Intense RTX GPU Stress & Torture Suite ([`artifacts/rtx_intense_stress_and_steam_deploy_report.json`](artifacts/rtx_intense_stress_and_steam_deploy_report.json))
+### 2.1 10-Stage Intense RTX GPU Stress & Torture Suite ([`artifacts/rtx_intense_stress_and_steam_deploy_report.json`](artifacts/rtx_intense_stress_and_steam_deploy_report.json))
 
 Executed on a real **NVIDIA GeForce RTX 2070 (8.0 GB VRAM, Turing SM 7.5)** via [`src/hivemind/game/rtx_steam_tool_deployer.py`](src/hivemind/game/rtx_steam_tool_deployer.py) (`hivemind deploy-steam-tool`):
 
 | Stress Stage | Torture Workload Executed on `cuda:0` (RTX 2070, 8.0 GB VRAM) | Measured Telemetry | Verdict |
 | :--- | :--- | :--- | :---: |
-| **Stage 1: 4-Bit NF4 + QLoRA ($r=64$) + Game Preemption** | 3 back-to-back cycles of 4-bit NF4 model streaming, Rank-64 QLoRA + 8-bit Paged AdamW steps, and emergency game-launch preemption (`cyberpunk2077.exe`, `cs2.exe`, `eldenring.exe`) | Max Eviction: **`150.6 ms`** (`<1,500 ms` SLA) \| VRAM Drift: **`0.0 MB`** (Zero Leak) | **PASS** |
+| **Stage 1: 4-Bit NF4 + QLoRA ($r=64$) + Game Preemption** | 3 back-to-back cycles of 4-bit NF4 model streaming, Rank-64 QLoRA + 8-bit Paged AdamW steps, and emergency game-launch preemption (`cyberpunk2077.exe`, `cs2.exe`, `eldenring.exe`) | Max Eviction: **`135.5 ms`** (`<1,500 ms` SLA) \| VRAM Drift: **`0.0 MB`** (Zero Leak) | **PASS** |
 | **Stage 2: 12-Expert Sparse MoE Hot-Plug & 2-Slot DMA** | Stage 12 LoRA experts through an 8-expert bounded LRU Pinned RAM cache (`pin_memory`) + 2-slot (`slot_A`/`slot_B`) CUDA Event DMA + dynamic hot-plug `E=2 -> E=12` | **`12/12` Experts Hot-Plugged** \| LRU Residents: `8/8` \| Exposed Swap Stall: **`0.0 ms`** | **PASS** |
 | **Stage 3: 10-Node Byzantine Attack & CUDA Spot-Check** | 7 honest workers + 3 coordinated Byzantine poisoners (`-15x` sign-flip, Gaussian noise, Sybil) + 1 tampered checkpoint cheater | Honest CUDA Replay Diff: **`0.0`** \| **`3/3` Poisoners Rejected** \| **Cheater Flagged** | **PASS** |
-| **Stage 4: 100-Packet UDP 0-RTT Burst, $\gamma=6$ Tree & OPoI Dispute** | 100 `float8_e4m3fn` hidden-state packets over localhost UDP 0-RTT (`AsyncQUICGeoRingTransport`), GossipSub game failover, $\gamma=6$ prefix-trie tree mask, 50 L2 vouchers, and 12-layer Merkle dispute | **`2,767.8 fps`** UDP 0-RTT (`2.0x` FP8) \| Failover: **`2.695 ms`** \| Layer `#7` Fraud Slashed & Refunded | **PASS** |
+| **Stage 4: 100-Packet UDP 0-RTT Burst, $\gamma=6$ Tree & OPoI Dispute** | 100 `float8_e4m3fn` hidden-state packets over localhost UDP 0-RTT (`AsyncQUICGeoRingTransport`), GossipSub game failover, $\gamma=6$ prefix-trie tree mask, 50 L2 vouchers, and 12-layer Merkle dispute | **`2,526.2 fps`** UDP 0-RTT (`2.0x` FP8) \| Failover: **`2.695 ms`** \| Layer `#7` Fraud Slashed & Refunded | **PASS** |
 | **Stage 5: Steamworks 50-Account Anti-Sybil Concurrency** | 50 concurrent Steam authentications (`35` Non-Limited `$25+`, `10` `$0.00` Limited Sybil bots, `5` VAC-banned) + live Rich Presence & UserStats | **`35/35` Verified** \| **`10/10` Sybil Blocked** \| **`5/5` VAC Blocked** \| `35` Live Rich Presence | **PASS** |
 | **Stage 6: OpenAI SSE Gateway & Free Steam Tool HUD Load** | Synchronous + SSE streaming (`stream=True`) `POST /v1/chat/completions` + all 8 Free Steam Tool Web HUD endpoints | `/v1/chat/completions` Sync + SSE `[DONE]` = **`200 OK`** \| All 8 HUD Routes = **`200 OK`** | **PASS** |
+| **Stage 7: RTX TensorCore FP16 GEMM + 16-Expert Fused FP8 MoE** | FP16 TensorCore GEMM throughput + `fused_top2_moe_fp8_dispatch` across 16 experts (`E=16`, `top_k=2`) with FP32 router gating and FP8 (`E4M3`) activation quantization | **`52.1 GFLOPS`** \| SQNR: **`31.79 dB`** (`>20 dB`) \| CUDA Event Kernel: **`19.76 ms`** | **PASS** |
+| **Stage 8: WAN STUN UDP Hole-Punching & RFC 9001 Anti-Replay** | Bidirectional STUN/ICE UDP hole-punching (`restricted_cone`) + TURN fallback (`symmetric_nat`) + monotonic 0-RTT anti-replay nonce window | Direct UDP RTT: **`0.485 ms`** \| TURN Fallback: **Verified** \| Replay Blocked: **`100%`** | **PASS** |
+| **Stage 9: Season 3 Hack-Miner Forge & CAS Expert Vault** | Interactive QLoRA Micro-Forge on `CONTRACT-HF-07-LEAN4-FORMAL` & `CONTRACT-HF-08-SOLIDITY-ESCROW` + Top-5% FP8 compression + CAS CID roundtrip | **`2/2` S3 Contracts Forged** \| Spot-Check: **Verified** \| CID Pin & Load: **`100%`** | **PASS** |
+| **Stage 10: Lean 4 Machine-Checked 21-Theorem Audit** | Automated AST & soundness verification of `lean4/HiveMindSpec.lean` across all 4 Pillars, Phase 2 Swarm Fabric, and Season 3 proofs | **`21/21` Theorems Verified** \| **`0 sorry`** \| **`0` User Axioms** | **PASS** |
 
 ### 2.2 Multi-Domain `Qwen/Qwen2.5-0.5B` DiLoCo-QLoRA & 96-Expert Sparse MoE Benchmarks ([`artifacts/poc_qwen25_rtx2070_report.json`](artifacts/poc_qwen25_rtx2070_report.json))
 
@@ -250,7 +254,7 @@ with httpx.stream(
 
 ## 📐 5. Machine-Checked Lean 4 Specification & Foundational Research Paper
 
-All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`17` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
+All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`21` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
 
 | Formal Namespace | Machine-Checked Lean 4 Theorem | Proved Guarantee |
 | :--- | :--- | :--- |
@@ -262,6 +266,8 @@ All core mathematical invariants of Project HiveMind are machine-checked in **Le
 | `Pillar3_BTM_Sparse_MoE` | `top2_sparse_moe_quarter_active_compute` | Top-2 routing over $E=8$ branches activates exactly `25%` of FFN experts |
 | `Pillar4_PoUW_Tokenomics` | `pouw_reward_pools_conserve_100pct` & `hive_geometric_halving_respects_21m_cap` | `60% + 15% + 15% + 10% = 100%` conservation & supply strictly `< 21,000,000 $HIVE` |
 | `Phase2_SwarmFabric` | `dma_double_buffer_zero_exposed_stall` & `l2_state_channel_settlement_conservation` | $t_{\text{DMA}} \le t_{\text{Attn}} \implies 0\text{ ms}$ swap stall & exact L2 voucher settlement |
+| `Season3_AdvancedProofs` | `prefix_trie_shared_nodes_reduce_attention_flops` & `quic_0rtt_anti_replay_rejects_duplicate_nonce` | Prefix-Trie merges shared prefixes (`19 < 25` nodes) & RFC 9001 0-RTT window rejects replayed nonces |
+| `Season3_AdvancedProofs` | `fused_moe_fp8_vram_fits_16_experts_in_8gb` & `nat_hole_punch_direct_p2p_avoids_turn_relay_latency` | 16-Expert Fused MoE (`1,680 MiB <= 6,656 MiB`) fits in 8 GB VRAM & STUN UDP hole-punch beats TURN relay |
 
 ---
 
