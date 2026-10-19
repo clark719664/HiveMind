@@ -841,3 +841,44 @@ def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
         assert "data: [DONE]" in raw_sse
 
 
+def test_s3_02_triton_int4_fp8_fused_moe_router_kernel() -> None:
+    """
+    Validates Season 3 Milestone HM-S3-02:
+    - 4-bit INT4/NF4 weight packing (2 nibbles per uint8 byte + FP16 scale) and on-the-fly dequantization
+    - Fused Top-2 Sparse MoE routing + FP8 (`float8_e4m3fn`) hidden-state activation projection
+    - Numerical parity (`cosine_similarity >= 0.99`) and >= 3.2x VRAM weight compression
+    """
+    from hivemind.swarm.swarm_fabric import (
+        benchmark_fused_int4_fp8_moe_kernel,
+        fused_int4_fp8_moe_route_and_project,
+        pack_int4_nf4_weights,
+        unpack_int4_nf4_weights,
+    )
+
+    torch.manual_seed(7)
+    w = torch.randn(32, 64, dtype=torch.float32)
+    packed_u8, scale_fp16 = pack_int4_nf4_weights(w)
+    assert packed_u8.dtype == torch.uint8
+    assert packed_u8.shape == (32, 32)
+    w_restored = unpack_int4_nf4_weights(packed_u8, scale_fp16, original_in_dim=64)
+    w_cos = torch.nn.functional.cosine_similarity(
+        w.flatten().unsqueeze(0), w_restored.flatten().unsqueeze(0)
+    ).item()
+    assert w_cos >= 0.99
+
+    x = torch.randn(2, 8, 64, dtype=torch.float32)
+    router_w = torch.randn(8, 64, dtype=torch.float32)
+    experts = [torch.randn(64, 64, dtype=torch.float32) for _ in range(8)]
+    res = fused_int4_fp8_moe_route_and_project(x, router_w, experts, top_k=2)
+    assert res["output"].shape == (2, 8, 64)
+    assert res["top_k_indices"].shape == (16, 2)
+    assert res["cosine_similarity"] >= 0.99
+    assert res["vram_compression_ratio"] >= 3.2
+
+    bench = benchmark_fused_int4_fp8_moe_kernel(batch_tokens=32, hidden_dim=64, num_experts=8, top_k=2)
+    assert bench["parity_verified"] is True
+    assert bench["cosine_similarity"] >= 0.99
+    assert bench["throughput_tokens_per_sec"] > 0
+
+
+

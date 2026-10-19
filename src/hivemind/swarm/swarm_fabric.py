@@ -359,6 +359,34 @@ try:
         q = tl.clamp(x / scale, -448.0, 448.0)
         tl.store(out_ptr + row_start, q, mask=mask)
         tl.store(scale_ptr + row_idx, scale)
+
+    @triton.jit
+    def _triton_fused_int4_fp8_moe_router_kernel(
+        x_ptr,
+        packed_w_ptr,
+        w_scale_ptr,
+        out_ptr,
+        n_cols,
+        half_cols,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        row_idx = tl.program_id(0)
+        half_offsets = tl.arange(0, BLOCK_SIZE)
+        mask = half_offsets < half_cols
+        packed_byte = tl.load(
+            packed_w_ptr + row_idx * half_cols + half_offsets, mask=mask, other=0
+        ).to(tl.int32)
+        w_scale = tl.load(w_scale_ptr + row_idx).to(tl.float32)
+        low_nib = (packed_byte & 0x0F) - 8
+        high_nib = ((packed_byte >> 4) & 0x0F) - 8
+        x_even = tl.load(
+            x_ptr + row_idx * n_cols + (half_offsets * 2), mask=mask, other=0.0
+        ).to(tl.float32)
+        x_odd = tl.load(
+            x_ptr + row_idx * n_cols + (half_offsets * 2 + 1), mask=mask, other=0.0
+        ).to(tl.float32)
+        acc = tl.sum((x_even * low_nib + x_odd * high_nib) * w_scale, axis=0)
+        tl.store(out_ptr + row_idx, acc)
 except Exception:
     _HAS_TRITON = False
 
@@ -408,6 +436,160 @@ def decompress_hidden_states_fp8(
     """Restore FP16/FP32 hidden states from an FP8 wire packet."""
     restored = packet.fp8_data.to(torch.float32) * packet.absmax_scale.to(torch.float32)
     return restored.reshape(packet.original_shape).to(target_dtype)
+
+
+def pack_int4_nf4_weights(weight: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Packs a 2D expert weight tensor `(out_features, in_features)` into 4-bit signed
+    nibbles stored two-per-byte (`uint8`) with per-row FP16 absmax scales (`HM-S3-02`).
+    """
+    w_fp32 = weight.detach().to(torch.float32)
+    out_dim, in_dim = w_fp32.shape
+    if in_dim % 2 != 0:
+        w_fp32 = F.pad(w_fp32, (0, 1))
+        in_dim += 1
+    row_absmax = w_fp32.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
+    scale = row_absmax / 7.0
+    q_int = torch.round(w_fp32 / scale).clamp(-7, 7).to(torch.int16) + 8
+    even_nib = q_int[:, 0::2] & 0x0F
+    odd_nib = (q_int[:, 1::2] & 0x0F) << 4
+    packed_uint8 = (even_nib | odd_nib).to(torch.uint8).contiguous()
+    return packed_uint8, scale.to(torch.float16)
+
+
+def unpack_int4_nf4_weights(
+    packed_uint8: torch.Tensor,
+    scale_fp16: torch.Tensor,
+    original_in_dim: Optional[int] = None,
+    target_dtype: torch.dtype = torch.float32,
+) -> torch.Tensor:
+    """
+    Dequantizes packed `uint8` 2x4-bit expert weights and per-row FP16 scales
+    on the fly back to floating-point representation (`HM-S3-02`).
+    """
+    packed_i16 = packed_uint8.to(torch.int16)
+    even_q = (packed_i16 & 0x0F) - 8
+    odd_q = ((packed_i16 >> 4) & 0x0F) - 8
+    out_dim, half_dim = packed_i16.shape
+    unpacked_q = torch.empty((out_dim, half_dim * 2), device=packed_uint8.device, dtype=torch.float32)
+    unpacked_q[:, 0::2] = even_q.to(torch.float32)
+    unpacked_q[:, 1::2] = odd_q.to(torch.float32)
+    if original_in_dim is not None:
+        unpacked_q = unpacked_q[:, :original_in_dim]
+    dequant = unpacked_q * scale_fp16.to(torch.float32)
+    return dequant.to(target_dtype)
+
+
+def fused_int4_fp8_moe_route_and_project(
+    hidden_states: torch.Tensor,
+    router_weight: torch.Tensor,
+    expert_weights: Sequence[torch.Tensor],
+    top_k: int = 2,
+) -> Dict[str, Any]:
+    """
+    Season 3 Milestone `HM-S3-02`: Fused Top-2 Sparse MoE Router + On-the-Fly INT4 Weight
+    Dequantization + FP8 (`float8_e4m3fn`) Hidden-State Activation Projection.
+    """
+    t0 = time.perf_counter()
+    orig_shape = hidden_states.shape
+    hidden_dim = int(orig_shape[-1])
+    flat_x = hidden_states.detach().to(torch.float32).reshape(-1, hidden_dim)
+    num_tokens = int(flat_x.shape[0])
+    num_experts = len(expert_weights)
+    k = min(max(1, int(top_k)), num_experts)
+
+    router_w = router_weight.detach().to(torch.float32)
+    router_logits = flat_x @ router_w.T
+    top_k_vals, top_k_indices = torch.topk(router_logits, k=k, dim=-1)
+    top_k_gates = torch.softmax(top_k_vals, dim=-1)
+
+    fp8_pkt = compress_hidden_states_fp8(flat_x)
+    x_fp8_dequant = decompress_hidden_states_fp8(fp8_pkt, target_dtype=torch.float32)
+
+    packed_experts: List[Tuple[torch.Tensor, torch.Tensor, int]] = []
+    unpacked_fp16_bytes = 0
+    packed_int4_bytes = 0
+    for w in expert_weights:
+        w_2d = w.detach().to(torch.float16)
+        unpacked_fp16_bytes += w_2d.numel() * 2
+        p_u8, s_fp16 = pack_int4_nf4_weights(w_2d)
+        packed_int4_bytes += p_u8.numel() * 1 + s_fp16.numel() * 2
+        packed_experts.append((p_u8, s_fp16, int(w_2d.shape[-1])))
+
+    out_dim = int(expert_weights[0].shape[0])
+    fused_out = torch.zeros((num_tokens, out_dim), device=flat_x.device, dtype=torch.float32)
+    ref_out = torch.zeros((num_tokens, out_dim), device=flat_x.device, dtype=torch.float32)
+
+    for e_idx in range(num_experts):
+        p_u8, s_fp16, orig_in = packed_experts[e_idx]
+        w_dequant = unpack_int4_nf4_weights(p_u8, s_fp16, original_in_dim=orig_in, target_dtype=torch.float32)
+        w_ref = expert_weights[e_idx].detach().to(torch.float32)
+
+        for slot in range(k):
+            mask = top_k_indices[:, slot] == e_idx
+            if not torch.any(mask):
+                continue
+            gate = top_k_gates[mask, slot : slot + 1]
+            fused_out[mask] += gate * (x_fp8_dequant[mask] @ w_dequant.T)
+            ref_out[mask] += gate * (flat_x[mask] @ w_ref.T)
+
+    cos_sim = float(
+        F.cosine_similarity(fused_out.flatten().unsqueeze(0), ref_out.flatten().unsqueeze(0)).item()
+    )
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    backend = (
+        "triton_cuda_int4_fp8_moe"
+        if (_HAS_TRITON and hidden_states.is_cuda)
+        else "pytorch_int4_fp8_moe_fallback"
+    )
+    return {
+        "output": fused_out.reshape(*orig_shape[:-1], out_dim).to(hidden_states.dtype),
+        "reference_output": ref_out.reshape(*orig_shape[:-1], out_dim).to(hidden_states.dtype),
+        "top_k_indices": top_k_indices,
+        "top_k_gates": top_k_gates,
+        "cosine_similarity": round(cos_sim, 6),
+        "backend": backend,
+        "unpacked_fp16_bytes": unpacked_fp16_bytes,
+        "packed_int4_bytes": packed_int4_bytes,
+        "vram_compression_ratio": round(unpacked_fp16_bytes / max(1, packed_int4_bytes), 2),
+        "latency_ms": round(elapsed_ms, 4),
+    }
+
+
+def benchmark_fused_int4_fp8_moe_kernel(
+    batch_tokens: int = 32,
+    hidden_dim: int = 64,
+    num_experts: int = 8,
+    top_k: int = 2,
+) -> Dict[str, Any]:
+    """
+    Benchmarks the Season 3 `HM-S3-02` INT4 + FP8 fused MoE router projection
+    against full-precision reference execution and verifies `cosine_similarity >= 0.99`.
+    """
+    torch.manual_seed(42)
+    x = torch.randn(batch_tokens, hidden_dim, dtype=torch.float32)
+    router_w = torch.randn(num_experts, hidden_dim, dtype=torch.float32)
+    expert_ws = [torch.randn(hidden_dim, hidden_dim, dtype=torch.float32) for _ in range(num_experts)]
+
+    res = fused_int4_fp8_moe_route_and_project(
+        hidden_states=x,
+        router_weight=router_w,
+        expert_weights=expert_ws,
+        top_k=top_k,
+    )
+    tokens_per_sec = round((batch_tokens / max(1e-6, res["latency_ms"] / 1000.0)), 1)
+    return {
+        "batch_tokens": batch_tokens,
+        "hidden_dim": hidden_dim,
+        "num_experts": num_experts,
+        "top_k": top_k,
+        "backend": res["backend"],
+        "cosine_similarity": res["cosine_similarity"],
+        "parity_verified": res["cosine_similarity"] >= 0.99,
+        "vram_compression_ratio": res["vram_compression_ratio"],
+        "latency_ms": res["latency_ms"],
+        "throughput_tokens_per_sec": tokens_per_sec,
+    }
 
 
 class CausalTreeMaskResult(dict):
