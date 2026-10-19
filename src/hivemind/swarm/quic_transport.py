@@ -9,7 +9,8 @@ Integrates contributor PR #9 (@clark719664) closing Issue #1:
 Season 4 Milestone `HM-S4-02` (Issue #27, branch `feat/s4-hierarchical-super-ring`) extends this
 transport with the 2-Tier Kademlia Continental Super-Ring:
 - `ContinentalSuperRingRouter` aggregates regional Geo-Rings (`EU`/`US`/`APAC`) and elects the
-  lowest-RTT **STUN-verified** peer of every region as a *Continental Bridge* (Tier-2), while
+  lowest-RTT peer of every region that the caller has flagged `stun_verified` (this module does
+  not run STUN itself) as a *Continental Bridge* (Tier-2), while
   intra-region traffic stays inside the `< 20 ms` Tier-1 Regional Geo-Ring.
 - `AdaptiveCongestionController` implements a BBR-inspired (BBRv1 delivery-rate model) adaptive
   congestion window for `CompressedHiddenStatePacket` bursts driven by measured RTT jitter and
@@ -126,13 +127,13 @@ class SuperRingPeerNode:
 
     @property
     def bridge_eligible(self) -> bool:
-        """Continental Bridge candidates must be STUN-verified (NAT-traversable) and reachable."""
+        """Bridge candidates must be flagged `stun_verified` by whoever built the peer list and have a measured RTT."""
         return bool(self.stun_verified) and self.rtt_ms > 0.0
 
 
 @dataclass
 class RegionalBridgePeer:
-    """A STUN-verified peer that can be elected as a continental bridge (`HM-S4-02`)."""
+    """Candidate continental bridge (`HM-S4-02`). `stun_verified` is caller-supplied; no STUN probe runs here."""
 
     peer_id: str
     continent: str
@@ -187,7 +188,7 @@ class ContinentalSuperRingRouter:
             )
 
     def elect_bridges(self) -> Dict[str, RegionalBridgePeer]:
-        """Elect one lowest-RTT STUN-verified bridge per continent (`HM-S4-02`)."""
+        """Elect the lowest-RTT peer flagged `stun_verified` in each continent (`HM-S4-02`)."""
         bridges: Dict[str, RegionalBridgePeer] = {}
         source_pool = self.bridge_peers or [
             RegionalBridgePeer(
