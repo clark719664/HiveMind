@@ -228,6 +228,23 @@
       <canvas id="webgl-georing-canvas" width="920" height="220" style="width:100%; height:220px; background:#050811; border:1px solid #00f0ff; border-radius:6px;"></canvas>
       <div class="terminal" id="georing-terminal">[WEBGL 3D GEO-RING ACTIVE] Nodes: EU-West-Paris &rarr; EU-Central-Berlin &rarr; US-East-Virginia &rarr; APAC-East-Tokyo | Season 3 Missions 9-12 Loaded.</div>
     </div>
+
+    <div class="card" id="season4-missions-panel" style="grid-column: 1 / -1;">
+      <h2>SEASON 4 HACK-MINER CAMPAIGN (MISSIONS 13-16) &amp; LIVE <code>/ws/swarm-telemetry</code> WEBSOCKET</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Season 4 bounty contracts (<code>Triton Kernel Synthesis</code>, <code>ZK Activation Prover</code>,
+        <code>Quantum QASM Optimizer</code>, <code>Autonomous Agent Swarm</code>) with a real-time WebSocket
+        telemetry stream pushed by the local Hack-Miner HUD server:
+      </p>
+      <div id="season4-mission-buttons">
+        <button class="btn" onclick="selectSeason4Mission(0)">S4 M13: Triton Kernel</button>
+        <button class="btn" onclick="selectSeason4Mission(1)">S4 M14: ZK Prover</button>
+        <button class="btn" onclick="selectSeason4Mission(2)">S4 M15: Quantum QASM</button>
+        <button class="btn btn-cyan" onclick="selectSeason4Mission(3)">S4 M16: Agent Swarm</button>
+      </div>
+      <div class="terminal" id="season4-terminal">[SEASON 4] Loading bounty contracts 13-16 from /api/season4-missions...</div>
+      <div class="terminal" id="swarm-telemetry-terminal">[WS] Connecting to /ws/swarm-telemetry ...</div>
+    </div>
   </div>
 
   <script>
@@ -512,23 +529,23 @@
       "node_id": "seti-node-paris-01",
       "region": "EU-West-Paris",
       "specialty_focus": "Code, Rust & Francophone Synthesis",
-      "total_points": 37755,
+      "total_points": 47703,
       "data_discovery_points": 2170,
-      "lora_training_points": 8730,
-      "solution_bounty_points": 19275,
+      "lora_training_points": 12398,
+      "solution_bounty_points": 25555,
       "swarm_contribution_points": 7580,
       "boss_raid_points": 886,
-      "hive_balance": 150.0,
+      "hive_balance": 210.0,
       "reputation_score": 160,
       "shards_mined": 6,
-      "bounties_solved": 20,
+      "bounties_solved": 24,
       "boss_raids_cleared": 1,
       "swarm_tokens_served": 466,
       "best_loss_reduction_pct": 96.39,
       "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
       "steam_leaderboard_receipt": "steam_lb_hmac_f3903ed052cbea8ac5dba7cbe33b",
-      "rich_presence_status": "Hack-Mining Mission 9: Cross-Continent Ring Relay (Cross_Continent_QUIC_Relay) on NVIDIA GeForce RTX 2070 | Rank V: Singularity Core (Apex Miner) | +15.00 $HIVE (2,337 PTS)",
+      "rich_presence_status": "Hack-Mining Mission 12: Sovereign Swarm DAO Governance (Sovereign_Swarm_DAO_Governor) on NVIDIA GeForce RTX 2070 | Rank V: Singularity Core (Apex Miner) | +15.00 $HIVE (2,637 PTS)",
       "rich_presence_hmac": "steam_rp_hmac_10702a789c30827784528bb4",
       "domains_forged": [
         "Python_Systems_Code",
@@ -558,23 +575,23 @@
       "node_id": "seti-node-lyon-02",
       "region": "EU-Central-Frankfurt",
       "specialty_focus": "Biomedical & Zero-Day Cyber Audit",
-      "total_points": 25688,
+      "total_points": 34926,
       "data_discovery_points": 2160,
-      "lora_training_points": 7060,
-      "solution_bounty_points": 11755,
+      "lora_training_points": 10618,
+      "solution_bounty_points": 17435,
       "swarm_contribution_points": 4713,
       "boss_raid_points": 769,
-      "hive_balance": 135.0,
+      "hive_balance": 195.0,
       "reputation_score": 160,
       "shards_mined": 6,
-      "bounties_solved": 9,
+      "bounties_solved": 13,
       "boss_raids_cleared": 1,
       "swarm_tokens_served": 146,
       "best_loss_reduction_pct": 95.86,
       "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
       "steam_leaderboard_receipt": "steam_lb_hmac_9510c7bb1c8176c8161aa3d8f571",
-      "rich_presence_status": "Hack-Mining Operation: L2 State-Channel Escrow Vault (Solidity_L2_Escrow_Audit) on NVIDIA GeForce RTX 2070 | Rank V: Singularity Core (Apex Miner) | +15.00 $HIVE (2,232 PTS)",
+      "rich_presence_status": "Hack-Mining Operation: Lean 4 Soundness Sentinel (Lean4_Formal_Verification) on NVIDIA GeForce RTX 2070 | Rank V: Singularity Core (Apex Miner) | +15.00 $HIVE (2,182 PTS)",
       "rich_presence_hmac": "steam_rp_hmac_308b003d846087c03d6dc4b2",
       "domains_forged": [
         "Python_Systems_Code",
@@ -603,23 +620,23 @@
       "node_id": "seti-node-nice-03",
       "region": "EU-West-London",
       "specialty_focus": "Quantitative Math & Crypto Proofs",
-      "total_points": 18855,
+      "total_points": 28393,
       "data_discovery_points": 2170,
-      "lora_training_points": 4213,
-      "solution_bounty_points": 7783,
+      "lora_training_points": 7771,
+      "solution_bounty_points": 13763,
       "swarm_contribution_points": 4689,
       "boss_raid_points": 745,
-      "hive_balance": 90.0,
+      "hive_balance": 150.0,
       "reputation_score": 160,
       "shards_mined": 6,
-      "bounties_solved": 6,
+      "bounties_solved": 10,
       "boss_raids_cleared": 1,
       "swarm_tokens_served": 146,
       "best_loss_reduction_pct": 97.36,
       "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
       "steam_leaderboard_receipt": "steam_lb_hmac_4e919d3e447c735df82322d53ea9",
-      "rich_presence_status": "Hack-Mining 6-Expert Sparse MoE Omega Raid on NVIDIA GeForce RTX 2070 | Rank VI: Singularity Core // Omega Hive Sovereign | +90.00 $HIVE (18,855 PTS)",
+      "rich_presence_status": "Hack-Mining Operation: L2 State-Channel Escrow Vault (Solidity_L2_Escrow_Audit) on NVIDIA GeForce RTX 2070 | Rank V: Singularity Core (Apex Miner) | +15.00 $HIVE (2,232 PTS)",
       "rich_presence_hmac": "steam_rp_hmac_0a83000db8bc2472b68cbab4",
       "domains_forged": [
         "Python_Systems_Code",
@@ -1649,9 +1666,89 @@
       }
     }
 
+    // ---- Season 4 Missions 13-16 + live /ws/swarm-telemetry stream (HM-S4-04) ----
+    let SEASON4_MISSIONS = [];
+    let telemetrySocket = null;
+
+    async function loadSeason4Missions() {
+      const term = document.getElementById('season4-terminal');
+      try {
+        const resp = await fetch('/api/season4-missions');
+        if (!resp.ok) throw new Error('offline');
+        const res = await resp.json();
+        SEASON4_MISSIONS = res.contracts || [];
+        const ids = res.missions || [];
+        term.textContent =
+          `[SEASON 4 BOUNTY CONTRACTS] ${ids.length} missions loaded (pool: ${res.bounty_pool_hive} $HIVE)\n` +
+          ids.map((id, i) => `  [${i + 13}] ${id}`).join('\n');
+        if (SEASON4_MISSIONS.length) selectSeason4Mission(0);
+      } catch (e) {
+        term.textContent =
+          `[SEASON 4 OFFLINE MODE] Missions 13-16 unavailable (HUD opened from file:// or server offline).\n` +
+          `  [13] CONTRACT-HF-13-TRITON-KERNEL-SYNTH | [14] CONTRACT-HF-14-ZK-CIRCUIT-PROVER\n` +
+          `  [15] CONTRACT-HF-15-QUANTUM-QASM-OPT | [16] CONTRACT-HF-16-AUTONOMOUS-AGENT-SWARM`;
+      }
+    }
+
+    function selectSeason4Mission(idx) {
+      const m = SEASON4_MISSIONS[idx];
+      if (!m) return;
+      const term = document.getElementById('season4-terminal');
+      term.textContent =
+        `[SEASON 4 CONTRACT] ${m.contract_id} // ${m.mission_codename}\n` +
+        `[HF DATASET NODE] ${m.dataset_id} -> Expert: ${m.domain_expert}\n` +
+        `[DIFFICULTY] ${'*'.repeat(m.difficulty_skulls || 5)} | [BASE BOUNTY] ${m.base_bounty_pts} PTS\n` +
+        `[TELEMETRY] Live frame stream on /ws/swarm-telemetry (Season 4: 4 contracts, 1,800 $HIVE pool)`;
+    }
+
+    function renderTelemetryFrame(f) {
+      const term = document.getElementById('swarm-telemetry-terminal');
+      if (!term || !f) return;
+      const m = f.active_mission || {};
+      const lb = (f.leaderboard || [])[0] || {};
+      term.textContent =
+        `[LIVE TELEMETRY] seq ${f.seq} | ${f.timestamp_iso} | stream=${f.stream}\n` +
+        `[SEASON 4] ${f.season4_missions} contracts | active: ${m.contract_id} (${m.domain_expert})\n` +
+        `[SWARM RING] ${f.num_nodes} nodes | ${f.active_ring_peers} peers | mean RTT ${f.mean_ring_rtt_ms} ms\n` +
+        `[THROUGHPUT] ${f.swarm_tokens_per_sec} tok/s | mined ${f.hive_minted_total} $HIVE\n` +
+        `[LEADER] ${lb.gamer_tag || 'n/a'} | ${lb.total_points || 0} PTS | ${Number(lb.hive_balance || 0).toFixed(4)} $HIVE`;
+    }
+
+    function connectSwarmTelemetry() {
+      const term = document.getElementById('swarm-telemetry-terminal');
+      if (!term) return;
+      if (!window.WebSocket || !window.location.host) {
+        term.textContent = '[WS OFFLINE] Open the HUD through http://127.0.0.1:8090 to stream live /ws/swarm-telemetry frames.';
+        return;
+      }
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = `${proto}//${window.location.host}/ws/swarm-telemetry`;
+      try {
+        telemetrySocket = new WebSocket(url);
+      } catch (e) {
+        term.textContent = '[WS ERROR] ' + e;
+        return;
+      }
+      telemetrySocket.onopen = () => {
+        term.textContent = '[WS OPEN] ' + url + ' - streaming live swarm telemetry...';
+      };
+      telemetrySocket.onmessage = (ev) => {
+        try { renderTelemetryFrame(JSON.parse(ev.data)); } catch (e) { /* ignore malformed frames */ }
+      };
+      telemetrySocket.onerror = () => {
+        term.textContent = '[WS ERROR] /ws/swarm-telemetry unavailable (offline HUD mode).';
+      };
+      telemetrySocket.onclose = () => {
+        term.textContent = '[WS CLOSED] Reconnecting to /ws/swarm-telemetry in 3s...';
+        setTimeout(connectSwarmTelemetry, 3000);
+      };
+    }
+
     renderLeaderboard();
     selectMission(0);
     renderMoE();
+    loadSeason4Missions();
+    connectSwarmTelemetry();
   </script>
 </body>
 </html>

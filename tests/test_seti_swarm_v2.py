@@ -1069,4 +1069,73 @@ def test_s3_04_additional_domain_expert_lora_adapters(tmp_path: Path) -> None:
     assert out.loss is not None
 
 
+def test_s4_04_season4_missions_13_16_and_live_telemetry() -> None:
+    """
+    Validates Season 4 Milestone HM-S4-04:
+    - Season 4 Hack-Miner Campaign Missions 13-16 (`SEASON_4_HF_BOUNTY_CONTRACTS`)
+    - `/api/season4-missions` REST catalog of the Season 4 bounty contracts
+    - Live `/ws/swarm-telemetry` WebSocket HUD stream (`swarm-telemetry` telemetry frames)
+    """
+    from fastapi.testclient import TestClient
+
+    from hivemind.game.hf_hack_miner import (
+        SEASON_4_EXTENDED_HF_BOUNTY_CONTRACTS,
+        SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS,
+        SEASON_4_HF_BOUNTY_CONTRACTS,
+        build_season4_mission_catalog,
+        build_swarm_telemetry_frame,
+        execute_interactive_lora_micro_forge,
+    )
+    from hivemind.game.steam_edition import create_hack_miner_fastapi_app
+
+    ids = [c.contract_id for c in SEASON_4_HF_BOUNTY_CONTRACTS]
+    assert ids == [
+        "CONTRACT-HF-13-TRITON-KERNEL-SYNTH",
+        "CONTRACT-HF-14-ZK-CIRCUIT-PROVER",
+        "CONTRACT-HF-15-QUANTUM-QASM-OPT",
+        "CONTRACT-HF-16-AUTONOMOUS-AGENT-SWARM",
+    ]
+    assert all(c.season == 4 for c in SEASON_4_HF_BOUNTY_CONTRACTS)
+    assert len(SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS) == 14
+    assert len(SEASON_4_EXTENDED_HF_BOUNTY_CONTRACTS) == 16
+
+    catalog = build_season4_mission_catalog()
+    assert catalog["season"] == 4
+    assert catalog["num_missions"] == 4
+    assert catalog["mission_ids"] == ids
+    assert catalog["bounty_pool_hive"] == 1800.0
+
+    frame = build_swarm_telemetry_frame(0)
+    assert frame["stream"] == "swarm-telemetry"
+    assert frame["season4_missions"] == 4
+    assert frame["mission_ids"] == ids
+
+    forge_res = execute_interactive_lora_micro_forge(
+        gamer_tag="CyberValkyrie_FR",
+        contract_id="CONTRACT-HF-13-TRITON-KERNEL-SYNTH",
+    )
+    assert forge_res["contract_id"] == "CONTRACT-HF-13-TRITON-KERNEL-SYNTH"
+    assert forge_res["season"] == 4
+    assert forge_res["total_pts_awarded"] > 1800
+
+    app = create_hack_miner_fastapi_app()
+    client = TestClient(app)
+
+    body = client.get("/api/season4-missions").json()
+    assert body["missions"] == ids
+    assert body["season"] == 4
+    assert len(body["contracts"]) == 4
+
+    html_resp = client.get("/")
+    assert html_resp.status_code == 200
+    assert "season4-missions-panel" in html_resp.text
+    assert "swarm-telemetry" in html_resp.text
+
+    with client.websocket_connect("/ws/swarm-telemetry") as socket:
+        ws_frame = socket.receive_json()
+    assert ws_frame["stream"] == "swarm-telemetry"
+    assert ws_frame["season4_missions"] == 4
+    assert ws_frame["mission_ids"] == ids
+
+
 
