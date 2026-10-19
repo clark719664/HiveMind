@@ -412,12 +412,20 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     udp_bench = quic_ring.benchmark_loopback_0rtt(
         torch.randn(1, 8, 32, dtype=torch.float16), num_frames=120
     )
+    # Real QUIC: the second connection resumed the TLS session and the server took frames as 0-RTT data.
+    assert udp_bench["protocol"] == "quic_0rtt"
+    assert udp_bench["session_resumed"] is True
+    assert udp_bench["early_data_accepted"] is True
+    assert udp_bench["server_early_frames"] > 0
+    assert udp_bench["frames_delivered"] == udp_bench["frames_verified"] == 120
     assert udp_bench["frames_per_sec"] >= 100.0
     assert udp_bench["serialization_overhead_ms"] < 1.5
     ws_bench = quic_ring.benchmark_loopback_0rtt(
         torch.randn(1, 8, 32, dtype=torch.float16), num_frames=20, simulate_udp_blocked=True
     )
-    assert ws_bench["protocol"] == "libp2p_websocket_tls"
+    assert ws_bench["protocol"] == "libp2p_websocket"
+    assert ws_bench["fallback_reason"] == "TimeoutError"
+    assert ws_bench["frames_verified"] == 20
 
     # M2: 2-Level Macro/Micro Router & Pinned Host RAM Async DMA Streamer (PR #7 Lookahead Prefetch)
     router = TwoLevelMacroMicroRouter(
@@ -745,13 +753,16 @@ def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
     # HM-M1-01: AsyncQUICGeoRingTransport (STUN/ICE + UDP 0-RTT datagram loopback)
     quic_tx = AsyncQUICGeoRingTransport(bind_host="127.0.0.1")
     ice_info = quic_tx.negotiate_stun_ice_candidate("peer-paris-01", local_port=4433)
-    assert ice_info["protocol"] == "quic_h3_0rtt"
+    assert ice_info["protocol"] == "quic_0rtt"
     assert len(ice_info["session_ticket_0rtt"]) == 24
+    assert ice_info["ice_candidate"].startswith("candidate:1 1 UDP 2130706431 127.0.0.1 ")
+    assert ice_info["ice_candidate"].endswith(" typ host")
 
     pkt = compress_hidden_states_fp8(torch.randn(1, 4, 16, dtype=torch.float16))
     udp_res = quic_tx.transmit_compressed_hidden_state_loopback(pkt, simulate_udp_blocked=False)
     assert udp_res["frame_verified"] is True
-    assert udp_res["transport_used"] == "udp_quic_0rtt_datagram"
+    assert udp_res["transport_used"] == "quic_0rtt_stream"
+    assert udp_res["early_data_accepted"] is True
 
     ws_res = quic_tx.transmit_compressed_hidden_state_loopback(pkt, simulate_udp_blocked=True)
     assert ws_res["frame_verified"] is True
@@ -855,39 +866,57 @@ def test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching() -> None:
     - Automatic 0-RTT TURN relay fallback when both peers are behind symmetric CGNAT
     - RFC 9001 monotonic 0-RTT anti-replay nonce enforcement
     """
+    from hivemind.swarm.nat_traversal import StunServer, TurnRelayServer
     from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport
 
+    class SymmetricNatStunServer(StunServer):
+        """Fixture: reports a mapping the other peer cannot reach, as a symmetric NAT does."""
+
+        def mapped_address_for(self, addr):
+            return addr[0], (addr[1] + 7919) % 64512 + 1024
+
     quic = AsyncQUICGeoRingTransport(region="EU-West-Paris", max_rtt_ms=15.0)
-    ep = quic.discover_stun_turn_endpoint(
-        peer_id="wan-node-berlin-01",
-        local_port=4433,
-        simulated_nat_type="restricted_cone",
-    )
-    assert ep["reflexive_ip"].startswith("198.51.100.")
-    assert 32768 <= ep["reflexive_port"] < 60768
-    assert ep["turn_relay_endpoint"].startswith("turn.hivemind.network:5349/alloc/")
+    with StunServer() as stun, StunServer() as stun_alt, TurnRelayServer({"hive": "relay-secret"}) as turn:
+        ep = quic.discover_stun_turn_endpoint(
+            peer_id="wan-node-berlin-01",
+            stun_servers=[stun.url, stun_alt.url],
+            turn_server=turn.url,
+            turn_username="hive",
+            turn_password="relay-secret",
+        )
+        assert ep["reflexive_ip"] == "127.0.0.1"
+        assert ep["stun_servers_answered"] == 2
+        assert ep["mapping_behaviour"] == "no_nat" and ep["hole_punchable"] is True
+        assert ep["turn_relay_endpoint"].startswith("127.0.0.1:")
+        assert len(turn.allocations) == 1
+        quic.release_turn_allocations()
+        assert len(turn.allocations) == 0
 
-    punch_res = quic.execute_udp_hole_punch(
-        peer_a_id="wan-node-berlin-01",
-        peer_b_id="wan-node-tokyo-02",
-        simulated_nat_a="restricted_cone",
-        simulated_nat_b="port_restricted_cone",
-    )
-    assert punch_res["direct_hole_punch_succeeded"] is True
-    assert punch_res["fallback_to_turn"] is False
-    assert punch_res["transport_mode"] == "direct_udp_hole_punch_0rtt"
-    assert punch_res["hole_punch_latency_ms"] < 5.0
-    assert punch_res["sub_5ms_verified"] is True
+        punch_res = quic.execute_udp_hole_punch(
+            peer_a_id="wan-node-berlin-01",
+            peer_b_id="wan-node-tokyo-02",
+            stun_server=stun.url,
+        )
+        assert punch_res["direct_hole_punch_succeeded"] is True
+        assert punch_res["fallback_to_turn"] is False
+        assert punch_res["transport_mode"] == "direct_udp_hole_punch"
+        assert punch_res["hole_punch_latency_ms"] < 5.0
+        assert punch_res["sub_5ms_verified"] is True
 
-    cgnat_res = quic.execute_udp_hole_punch(
-        peer_a_id="wan-cgnat-mobile-01",
-        peer_b_id="wan-cgnat-mobile-02",
-        simulated_nat_a="symmetric_cgnat",
-        simulated_nat_b="symmetric_cgnat",
-    )
+    with SymmetricNatStunServer() as symmetric_stun, TurnRelayServer({"hive": "relay-secret"}) as turn:
+        cgnat_res = quic.execute_udp_hole_punch(
+            peer_a_id="wan-cgnat-mobile-01",
+            peer_b_id="wan-cgnat-mobile-02",
+            stun_server=symmetric_stun.url,
+            turn_server=turn.url,
+            turn_username="hive",
+            turn_password="relay-secret",
+            direct_timeout=0.5,
+        )
     assert cgnat_res["direct_hole_punch_succeeded"] is False
     assert cgnat_res["fallback_to_turn"] is True
-    assert cgnat_res["transport_mode"] == "turn_allocation_relay_0rtt"
+    assert cgnat_res["relay_verified"] is True
+    assert cgnat_res["transport_mode"] == "turn_relay"
     assert cgnat_res["hole_punch_latency_ms"] < 5.0
 
     assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 101) is True

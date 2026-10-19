@@ -45,6 +45,7 @@ from hivemind.game.steam_edition import (
 )
 from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
 from hivemind.swarm.ledger import HiveSwarmLedger, WorkReceipt
+from hivemind.swarm.nat_traversal import TurnRelayServer
 from hivemind.swarm.swarm_fabric import (
     AsyncQUICGeoRingTransport,
     GeoRingPeer,
@@ -437,14 +438,9 @@ def run_intense_rtx_stress_suite(
         sample_hidden = torch.randn(1, 16, 256, device=device, dtype=torch.float16)
         fp8_pkt = compress_hidden_states_fp8(sample_hidden)
 
-        t_udp0 = time.perf_counter()
-        udp_verified_count = 0
-        for _ in range(udp_burst_packets):
-            u_res = quic_transport.transmit_compressed_hidden_state_loopback(fp8_pkt, simulate_udp_blocked=False)
-            if u_res["frame_verified"]:
-                udp_verified_count += 1
-        udp_elapsed_s = max(1e-6, time.perf_counter() - t_udp0)
-        udp_fps = round(udp_burst_packets / udp_elapsed_s, 1)
+        udp_burst = quic_transport.benchmark_loopback_0rtt(sample_hidden, num_frames=udp_burst_packets)
+        udp_verified_count = udp_burst["frames_verified"]
+        udp_fps = udp_burst["frames_per_sec"]
 
         geo_ring = RegionalGeoRingTransport(region="EU-West-Paris", max_rtt_ms=20.0)
         for p_i in range(1, 9):
@@ -696,18 +692,20 @@ def run_intense_rtx_stress_suite(
         hp_cone = quic_transport.perform_udp_hole_punch(
             local_peer_id="rtx-node-paris-01",
             remote_peer_id="rtx-node-berlin-02",
-            nat_type="restricted_cone",
         )
-        hp_sym = quic_transport.perform_udp_hole_punch(
-            local_peer_id="rtx-node-paris-01",
-            remote_peer_id="rtx-node-tokyo-03",
-            nat_type="symmetric_nat",
-        )
+        relay_secret = os.urandom(16).hex()
+        with TurnRelayServer({"hivemind": relay_secret}) as local_relay:
+            hp_relay = quic_transport.execute_udp_hole_punch(
+                peer_a_id="rtx-node-paris-01",
+                peer_b_id="rtx-node-tokyo-03",
+                turn_server=local_relay.url,
+                turn_username="hivemind",
+                turn_password=relay_secret,
+                transport_policy="relay",
+            )
         wan_punch = quic_transport.execute_udp_hole_punch(
             peer_a_id="rtx-node-paris-01",
             peer_b_id="rtx-node-berlin-02",
-            simulated_nat_a="restricted_cone",
-            simulated_nat_b="port_restricted_cone",
         )
         ok_n1, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=1)
         ok_n2, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=2)
@@ -725,11 +723,10 @@ def run_intense_rtx_stress_suite(
             ),
             "restricted_cone_rtt_ms": hp_cone["effective_rtt_ms"],
             "wan_hole_punch_latency_ms": wan_punch["hole_punch_latency_ms"],
-            "symmetric_nat_turn_fallback_verified": (
-                not hp_sym["hole_punch_succeeded"]
-                and hp_sym["transport_mode"] == "turn_relay_websocket_fallback"
-                and hp_sym["handshake_verified"]
+            "turn_relay_verified": (
+                hp_relay["relay_verified"] and hp_relay["transport_mode"] == "turn_relay"
             ),
+            "turn_relay_rtt_ms": hp_relay["hole_punch_latency_ms"],
             "monotonic_nonces_accepted": (ok_n1 and ok_n2),
             "duplicate_nonce_rejected": not replay_dup,
             "stale_nonce_rejected": not replay_old,
@@ -923,7 +920,8 @@ def run_intense_rtx_stress_suite(
     )
     t_table.add_row(
         "Stage 8: STUN UDP Hole-Punching & RFC 9001 0-RTT Anti-Replay",
-        f"Direct UDP RTT={stage8_summary['restricted_cone_rtt_ms']} ms | TURN Fallback=OK | Replay Blocked=100%",
+        f"Direct UDP RTT={stage8_summary['restricted_cone_rtt_ms']} ms | "
+        f"TURN Relay={'OK' if stage8_summary['turn_relay_verified'] else 'FAIL'} | Replay Blocked=100%",
         "PASS" if stage8_summary["anti_replay_100pct_accurate"] else "FAIL",
     )
     t_table.add_row(

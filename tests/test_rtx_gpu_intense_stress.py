@@ -72,7 +72,7 @@ def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Pa
     # Stage 8 assertions (WAN STUN UDP Hole-Punching & RFC 9001 0-RTT Anti-Replay)
     s8 = report["stage8_wan_nat_stun_hole_punching_and_replay_defense"]
     assert s8["restricted_cone_direct_udp_verified"] is True
-    assert s8["symmetric_nat_turn_fallback_verified"] is True
+    assert s8["turn_relay_verified"] is True
     assert s8["anti_replay_100pct_accurate"] is True
 
     # Stage 9 assertions (Season 3 Hack-Miner Forge & CAS Expert Vault)
@@ -140,7 +140,7 @@ def test_season3_rtx_fused_moe_fp8_nat_hole_punch_and_21_lean4_theorems() -> Non
 
     # 2. HM-S3-01: STUN UDP Hole-Punching & RFC 9001 0-RTT Anti-Replay
     transport = AsyncQUICGeoRingTransport(bind_host="127.0.0.1")
-    punch = transport.perform_udp_hole_punch("node-a", "node-b", nat_type="restricted_cone")
+    punch = transport.perform_udp_hole_punch("node-a", "node-b")
     assert punch["hole_punch_succeeded"] is True
     assert punch["handshake_verified"] is True
     wan_punch = transport.execute_udp_hole_punch("node-a", "node-b")
