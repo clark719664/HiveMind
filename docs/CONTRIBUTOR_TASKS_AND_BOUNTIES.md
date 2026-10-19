@@ -11,7 +11,7 @@
 >   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5` (`HM-M1-01` through `HM-M5-02` + `HM-DOC-01`).
 >   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18` (`HM-S3-01` through `HM-S3-05`).
 >   - **CI & Dependency Security (`PR #12`, `#13`, `#19`, `#20` by `@dependabot`):** Hardened GitHub Actions and Python dependencies.
-> - **Hardware & Formal Verification:** **`25 / 25` automated tests passing** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`27 / 27` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
+> - **Hardware & Formal Verification:** **`26 / 26` automated tests passing** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`27 / 27` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
 > - **Now Open for Contributors:** **6 New Season 4 / Wave 3 Community Bounties ([Issues `#26`–`#31`](https://github.com/xaviercallens/HiveMind/issues), `11,600 $HIVE` pool)**!
 
 ---
@@ -34,7 +34,7 @@
 | **HM-S3-03** ([`#16`](https://github.com/xaviercallens/HiveMind/issues/16)) | **Wave 2 / S3** | Season 3 Campaign Missions 9–12 & Interactive WebGL 3D Geo-Ring Topology HUD (`:8090`) | ✅ **[`PR #24`](https://github.com/xaviercallens/HiveMind/pull/24)** (`@clark719664`) | `10` Campaign + `2` Bonus Missions, 4-Node 3D Globe | `1,200 $HIVE` |
 | **HM-S3-04** ([`#17`](https://github.com/xaviercallens/HiveMind/issues/17)) | **Wave 2 / S3** | Season 3 Domain Expert QLoRA Trainer, Top-$k$ FP8 Compressor & CAS Registry (`btm_moe.py`) | ✅ **[`PR #25`](https://github.com/xaviercallens/HiveMind/pull/25)** (`@clark719664`) | `4/4` experts `-86.8%` loss, `12.79x` delta comp | `1,000 $HIVE` |
 | **HM-S3-05** ([`#18`](https://github.com/xaviercallens/HiveMind/issues/18)) | **Wave 2 / S3** | Formal Lean 4 Proofs for Prefix-Trie Speculative Acceptance & RFC 9001 0-RTT Bounds | ✅ **[`PR #21`](https://github.com/xaviercallens/HiveMind/pull/21)** (`@clark719664`) | **27/27 Lean 4 Theorems (`0 sorry`, `0` axioms)** | `1,500 $HIVE` |
-| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `25/25` CI checks | `Automated` |
+| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `26/26` CI checks | `Automated` |
 
 ---
 
@@ -72,7 +72,7 @@ With all Wave 1 (`#1`–`#5`) and Wave 2 Season 3 (`#14`–`#18`) issues complet
 | **[`#27` (`HM-S4-02`)](https://github.com/xaviercallens/HiveMind/issues/27)** | **Track 2 (Super-Ring WAN)** | Hierarchical 2-Tier Kademlia Super-Ring (`Continental Bridge -> Regional <20ms Geo-Ring`) & BBR Congestion Control | 🔴 Hard | `feat/s4-hierarchical-super-ring` | **`2,500 $HIVE`** |
 | **[`#28` (`HM-S4-03`)](https://github.com/xaviercallens/HiveMind/issues/28)** | **Track 3 (ZK-OPoI v2)** | Cryptographic Activation Spot-Check (`ZK-OPoI v2`) with $O(\log L)$ Merkle Inclusion Proofs & Dual $L_\infty$ Bounds | 🔴 Hard | `feat/s4-zk-opoi-merkle-inclusion` | **`2,000 $HIVE`** |
 | **[`#29` (`HM-S4-04`)](https://github.com/xaviercallens/HiveMind/issues/29)** | **Track 4 (Game & WS HUD)** | Season 4 Hack-Miner Campaign (Missions 13–16: `Triton`, `ZK`, `Quantum QASM`, `Agent Swarm`) & Live `/ws/swarm-telemetry` | 🟢 Starter | `game/s4-missions-13-16-websocket-hud` | **`1,800 $HIVE`** |
-| **[`#30` (`HM-S4-05`)](https://github.com/xaviercallens/HiveMind/issues/30)** | **Track 5 (SVD 32-MoE)** | Dynamic SVD Rank-Adaptive LoRA Merging (`r=8..64 -> r=16`) & 32-Expert Sparse MoE Scaling in `< 2.0 GB` VRAM | 🟡 Medium | `feat/s4-svd-rank-adaptive-moe` | **`1,500 $HIVE`** |
+| **[`#30` (`HM-S4-05`)](https://github.com/xaviercallens/HiveMind/issues/30)** | **Track 5 (SVD 32-MoE)** | Dynamic SVD Rank-Adaptive LoRA Merging (`r=8..64 -> r=16`) & 32-Expert Sparse MoE Scaling in `< 2.0 GB` VRAM | 🟡 Medium | `feat/s4-svd-rank-adaptive-moe` — ✅ **[`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32)** (`@clark719664`) | **`1,500 $HIVE`** |
 | **[`#31` (`HM-S4-06`)](https://github.com/xaviercallens/HiveMind/issues/31)** | **Track 6 (Formal Lean 4)** | Formal Lean 4 Proofs (`Theorem 28`–`32`) for Quadratic DAO Sybil Bounds, SVD Rank Savings & Super-Ring Latency | 🟢 Starter | `formal/s4-dao-superring-lean4` | **`1,800 $HIVE`** |
 
 ---
@@ -81,5 +81,5 @@ With all Wave 1 (`#1`–`#5`) and Wave 2 Season 3 (`#14`–`#18`) issues complet
 
 1. **Pick an Open Issue (`#26`–`#31`):** Comment `/claim` on any open issue in **[GitHub Issues](https://github.com/xaviercallens/HiveMind/issues)** or open a new proposal using our [Swarm Fabric Milestone](https://github.com/xaviercallens/HiveMind/issues/new?template=01_swarm_fabric_milestone.yml) or [Domain Expert Bounty](https://github.com/xaviercallens/HiveMind/issues/new?template=02_domain_expert_lora_bounty.yml) template.
 2. **Branch from `main`:** Create an isolated topic branch matching the track prefix (e.g., `git checkout -b feat/s4-rocm-mps-backend`).
-3. **Verify Locally:** Run `.\.venv\Scripts\python.exe -m pytest tests/ -v --tb=short` to ensure all `25/25+` tests pass and `verify_lean4_specification()` reports `0 sorry` and `0` user axioms.
+3. **Verify Locally:** Run `.\.venv\Scripts\python.exe -m pytest tests/ -v --tb=short` to ensure all `26/26+` tests pass and `verify_lean4_specification()` reports `0 sorry` and `0` user axioms.
 4. **Submit Your PR:** Open a Pull Request referencing `Closes #<issue_number>` using our [PR Template](../.github/PULL_REQUEST_TEMPLATE.md).
