@@ -400,11 +400,22 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     )
 
     # M1: Sub-20ms Kademlia Geo-Ring
+    from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport
+
     ring = RegionalGeoRingTransport(region="EU-West-Paris", max_rtt_ms=20.0)
     assert ring.register_peer(GeoRingPeer("peer-paris-01", "EU-West-Paris", 11.2)) is True
     assert ring.register_peer(GeoRingPeer("peer-slow-99", "EU-West-Paris", 42.0)) is False
     closest = ring.find_closest_peers("Python_Systems_Code", k=1)
     assert len(closest) == 1 and closest[0].peer_id == "peer-paris-01"
+
+    quic_ring = AsyncQUICGeoRingTransport(region="EU-West-Paris", max_rtt_ms=20.0)
+    udp_bench = quic_ring.benchmark_loopback_0rtt(torch.randn(1, 8, 32, dtype=torch.float16), num_frames=120)
+    assert udp_bench["frames_per_sec"] >= 100.0
+    assert udp_bench["serialization_overhead_ms"] < 1.5
+    ws_bench = quic_ring.benchmark_loopback_0rtt(
+        torch.randn(1, 8, 32, dtype=torch.float16), num_frames=20, simulate_udp_blocked=True
+    )
+    assert ws_bench["protocol"] == "libp2p_websocket_tls"
 
     # M2: 2-Level Macro/Micro Router & Pinned Host RAM Async DMA Streamer
     router = TwoLevelMacroMicroRouter(
