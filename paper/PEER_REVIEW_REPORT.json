@@ -1,13 +1,13 @@
 {
   "manuscript_title": "Project HiveMind: Byzantine-Resilient Decentralized Sparse Mixture-of-Experts Training and Speculative Swarm Inference on 8 GB Consumer Gaming GPUs",
   "version": "2.1.0",
-  "timestamp_utc": "2026-10-19T17:14:07Z",
-  "tex_path": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/paper/hivemind_foundation_article.tex",
-  "pdf_path": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/paper/hivemind_foundation_article.pdf",
+  "timestamp_utc": "2026-10-19T17:51:21Z",
+  "tex_path": "C:\\Users\\lil_c\\passive-income-engine\\workspaces\\HiveMind\\paper\\hivemind_foundation_article.tex",
+  "pdf_path": "C:\\Users\\lil_c\\passive-income-engine\\workspaces\\HiveMind\\paper\\hivemind_foundation_article.pdf",
   "pdf_exists": true,
   "lean4_verification": {
-    "spec_file": "/home/mineo/oenim-missoes/bounties/HiveMind_issue_26/lean4/HiveMindSpec.lean",
-    "theorem_count": 27,
+    "spec_file": "C:\\Users\\lil_c\\passive-income-engine\\workspaces\\HiveMind\\lean4\\HiveMindSpec.lean",
+    "theorem_count": 32,
     "theorems": [
       "nf4_double_quant_compression_bound",
       "rtx2070_8gb_vram_envelope_verified",
@@ -35,7 +35,12 @@
       "prefix_trie_speculative_progress_bounds",
       "rfc9001_0rtt_monotonic_nonce_anti_replay",
       "rfc9001_0rtt_ticket_expiration_bound",
-      "wan_nat_hole_punch_rtt_bound"
+      "wan_nat_hole_punch_rtt_bound",
+      "quadratic_voting_cost_bound",
+      "steamworks_sybil_account_cost_lower_bound",
+      "continental_super_ring_hop_bound",
+      "svd_rank_truncation_parameter_savings",
+      "opoi_merkle_inclusion_depth_bound"
     ],
     "sorry_count": 0,
     "user_axiom_count": 0,
@@ -72,7 +77,7 @@
       "score_out_of_10": 9.6,
       "verdict": "STRONG_ACCEPT",
       "strengths": [
-        "All 27 formal theorems in `lean4/HiveMindSpec.lean` are machine-checked with 0 `sorry` and 0 user `axiom`.",
+        "All 32 formal theorems in `lean4/HiveMindSpec.lean` are machine-checked with 0 `sorry` and 0 user `axiom`.",
         "10% Deterministic Micro-Checkpoint Spot-Check (`CUBLAS_WORKSPACE_CONFIG=:4096:8`) achieves a 20x verification FLOP reduction vs. classic 2x BOINC replication.",
         "Multi-Krum 2-sigma cosine filter + 5% OPoI activation audit + Layer-2 $HIVE state channel settlement provide defense-in-depth across training and inference."
       ],

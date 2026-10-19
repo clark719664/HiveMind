@@ -192,6 +192,15 @@ class PinnedRAMExpertDMAStreamer:
         self._dma_stream = (
             torch.cuda.Stream(device=self.device) if self.device.type == "cuda" else None
         )
+        hip_version = getattr(torch.version, "hip", None)
+        if self.device.type == "mps":
+            self.staging_mode = "mps_unified"
+        elif self.device.type == "cuda" and hip_version:
+            self.staging_mode = "hip_stream"
+        elif self.device.type == "cuda":
+            self.staging_mode = "cuda_stream"
+        else:
+            self.staging_mode = "cpu_copy"
 
     def stage_expert_in_pinned_ram(
         self,
@@ -322,6 +331,7 @@ class PinnedRAMExpertDMAStreamer:
             "prefetched_experts": list(route_info["selected_micro_experts"].keys()),
             "total_raw_dma_ms": total_raw_ms,
             "exposed_swap_latency_ms": exposed_ms,
+            "staging_mode": self.staging_mode,
         }
 
 
@@ -743,7 +753,7 @@ class OptimisticProofOfInferenceAuditor:
         self,
         audit_probability: float = 0.05,
         min_cosine_sim: float = 0.99,
-        max_normalized_linf: float = 0.10,
+        max_normalized_linf: float = 0.25,
     ) -> None:
         self.audit_probability = audit_probability
         self.min_cosine_sim = min_cosine_sim
@@ -770,11 +780,14 @@ class OptimisticProofOfInferenceAuditor:
             torch.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
         )
         max_diff = float((a - b).abs().max().item())
-        passed = cos_sim >= self.min_cosine_sim
+        denom = float(b.abs().max().item()) + 1e-8
+        normalized_linf = max_diff / denom
+        passed = cos_sim >= self.min_cosine_sim and normalized_linf <= self.max_normalized_linf
         return {
             "peer_id": peer_id,
             "cosine_similarity": round(cos_sim, 6),
             "max_abs_diff": round(max_diff, 6),
+            "normalized_linf": round(normalized_linf, 6),
             "opoi_passed": passed,
             "slashed": not passed,
         }
@@ -852,8 +865,39 @@ class OptimisticProofOfInferenceAuditor:
             "quantization": "float8_e4m3fn+fp16_absmax_per_row",
         }
 
-    def build_merkle_inclusion_proof(self, layer_idx: int) -> MerkleInclusionProof:
+    def build_merkle_inclusion_proof(
+        self,
+        layer_idx: int,
+        layer_activations: Optional[List[torch.Tensor]] = None,
+    ) -> Any:
         """HM-S4-03: Build the `O(log L)` Merkle sibling path for one committed layer."""
+        if layer_activations is not None:
+            if not layer_activations:
+                raise ValueError("layer_activations must be non-empty")
+            if layer_idx < 0 or layer_idx >= len(layer_activations):
+                raise IndexError(f"layer_idx {layer_idx} outside 0..{len(layer_activations) - 1}")
+            level = [self._hash_activation_tensor(t) for t in layer_activations]
+            leaf = level[layer_idx]
+            siblings_list: List[str] = []
+            index = layer_idx
+            while len(level) > 1:
+                if len(level) % 2 == 1:
+                    level = level + [level[-1]]
+                sibling = index ^ 1
+                siblings_list.append(level[sibling])
+                level = [
+                    hashlib.sha256(f"{level[i]}|{level[i + 1]}".encode("utf-8")).hexdigest()
+                    for i in range(0, len(level), 2)
+                ]
+                index //= 2
+            return {
+                "layer_idx": layer_idx,
+                "leaf": leaf,
+                "siblings": siblings_list,
+                "root": level[0],
+                "depth": len(siblings_list),
+            }
+
         if not self._merkle_levels:
             raise ValueError(
                 "No activation commitment exists: call commit_layer_activations() before building proofs."
@@ -872,7 +916,6 @@ class OptimisticProofOfInferenceAuditor:
                 siblings.append(level[sibling_idx])
                 directions.append(0 if sibling_idx < idx else 1)
             else:
-                # Odd-length level: the trailing node was duplicated (its sibling is itself).
                 siblings.append(level[idx])
                 directions.append(1)
             idx = idx >> 1
@@ -904,8 +947,25 @@ class OptimisticProofOfInferenceAuditor:
         proof: "MerkleInclusionProof | Dict[str, Any]",
         leaf_hash: str | None = None,
         expected_root: str | None = None,
-    ) -> Dict[str, Any]:
+    ) -> Any:
         """HM-S4-03: Recompute the Merkle root from an inclusion path and check the leaf binding."""
+        if (
+            isinstance(proof, dict)
+            and "leaf" in proof
+            and "directions" not in proof
+            and leaf_hash is None
+            and expected_root is None
+        ):
+            index = int(proof["layer_idx"])
+            current = str(proof["leaf"])
+            for sibling in proof["siblings"]:
+                if index % 2 == 0:
+                    current = hashlib.sha256(f"{current}|{sibling}".encode("utf-8")).hexdigest()
+                else:
+                    current = hashlib.sha256(f"{sibling}|{current}".encode("utf-8")).hexdigest()
+                index //= 2
+            return current == proof["root"]
+
         parsed = self._as_inclusion_proof(proof)
         leaf = leaf_hash or parsed.leaf_hash
         computed_root = leaf

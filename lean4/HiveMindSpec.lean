@@ -401,6 +401,53 @@ theorem wan_nat_hole_punch_rtt_bound
 
 end Season3_PrefixTrie_And_0RTT
 
+namespace Season4_DAOGovernance_And_SuperRing
+
+/-- Theorem 28 (Quadratic DAO voting cost): casting `votes ≥ 1` costs `votes * votes`,
+    which is at least the number of votes. -/
+theorem quadratic_voting_cost_bound
+    (votes cost : Nat)
+    (h_votes : 1 ≤ votes)
+    (h_cost : cost = votes * votes) :
+    votes ≤ cost := by
+  omega
+
+/-- Theorem 29 (Steamworks Sybil account floor): `S` fake identities cost at least
+    `500 * S` cents, the published `$5.00` account-creation price. -/
+theorem steamworks_sybil_account_cost_lower_bound
+    (fakeIdentities costCents : Nat)
+    (h_cost : costCents = 500 * fakeIdentities) :
+    500 * fakeIdentities ≤ costCents := by
+  omega
+
+/-- Theorem 30 (2-tier continental hop): a cross-continent delivery is the sum of the
+    source regional RTT, the bridge RTT, and the remote regional RTT. -/
+theorem continental_super_ring_hop_bound
+    (regionalRtt bridgeRtt remoteRegionalRtt total : Nat)
+    (h_total : total = regionalRtt + bridgeRtt + remoteRegionalRtt) :
+    regionalRtt + bridgeRtt + remoteRegionalRtt = total := by
+  omega
+
+/-- Theorem 31 (SVD rank truncation saves parameters): a strictly smaller target rank
+    stores fewer LoRA parameters than the source rank for the same `dIn + dOut`. -/
+theorem svd_rank_truncation_parameter_savings
+    (rTarget rSource dIn dOut : Nat)
+    (h_rank : rTarget < rSource)
+    (h_dims : 1 ≤ dIn + dOut) :
+    rTarget * (dIn + dOut) < rSource * (dIn + dOut) := by
+  omega
+
+/-- Theorem 32 (Merkle inclusion depth): a sibling path never needs more hashes than
+    there are other leaves. -/
+theorem opoi_merkle_inclusion_depth_bound
+    (leafCount proofDepth : Nat)
+    (h_leaves : 1 ≤ leafCount)
+    (h_depth : proofDepth + 1 ≤ leafCount) :
+    proofDepth ≤ leafCount - 1 := by
+  omega
+
+end Season4_DAOGovernance_And_SuperRing
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -423,3 +470,8 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay
 #print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound
 #print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound
+#print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound
+#print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound
+#print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound
+#print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings
+#print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound

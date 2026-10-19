@@ -908,7 +908,10 @@ pause
 def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> Any:
     """Create a FastAPI server serving the Interactive Cyberpunk Hack-Miner HUD and Live REST API."""
     import torch
-    from fastapi import Body, FastAPI
+    from fastapi import Body, FastAPI, WebSocket
+    import hivemind.game.steam_edition as _steam_mod
+
+    _steam_mod.WebSocket = WebSocket
     from fastapi.responses import HTMLResponse, JSONResponse
     from hivemind.client.daemon import ZeroIntrusionDaemon
     from hivemind.config import HiveMindConfig, detect_local_hardware
@@ -982,10 +985,12 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     def _build_telemetry_frame(seq: int) -> Dict[str, Any]:
         """Build a live `/ws/swarm-telemetry` frame enriched with the current leaderboard state."""
         frame = build_swarm_telemetry_frame(seq)
+        hw = detect_local_hardware()
         try:
             data = json.loads(state_path.read_text(encoding="utf-8"))
         except Exception:
             data = {}
+        frame["compute_backend"] = hw.get("compute_backend", "cpu")
         frame["leaderboard"] = data.get("leaderboard", [])
         frame["best_miner_champion"] = data.get("best_miner_champion", {})
         frame["steam_app_id"] = STEAM_APP_ID

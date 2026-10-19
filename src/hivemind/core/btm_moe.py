@@ -88,53 +88,118 @@ class RegisteredDomainExpert:
     lora_state_dict: Dict[str, torch.Tensor] = field(repr=False)
 
 
+class ProjectedLoRAStateDict(dict):
+    """Dict of projected LoRA tensors that also exposes metadata keys (`state_dict`, `factors`, `target_rank`, `parameter_bytes`)."""
+
+    def __init__(self, tensors: Dict[str, torch.Tensor], meta: Dict[str, Any]) -> None:
+        super().__init__(tensors)
+        self._meta = meta
+
+    def __getitem__(self, key: str) -> Any:
+        if super().__contains__(key):
+            return super().__getitem__(key)
+        if key == "state_dict":
+            return dict(self)
+        if key in self._meta:
+            return self._meta[key]
+        raise KeyError(key)
+
+
 def project_lora_rank_svd(
     lora_state_dict: Dict[str, torch.Tensor],
     target_rank_r: int = 16,
     source_lora_alpha: float | None = None,
     target_lora_alpha: float | None = None,
-) -> Dict[str, torch.Tensor]:
+) -> Dict[str, Any]:
     """Season 4 (`HM-S4-05`): truncated-SVD rank-adaptive LoRA projection.
 
-    Community miners train LoRA adapters with heterogeneous ranks (`r=8`, `r=16`,
-    `r=32`, `r=64`). This projects any of them onto a single canonical rank
-    (`target_rank_r`, default `16`) so that they can be hot-plugged into one
-    unified `UpcycledSparseMoEModel` without VRAM bloat:
-
-    - **Compression** (`r=32`, `r=64`): the effective weight delta `D = B @ A` is
-      expanded in its singular basis and truncated to the `target_rank_r` largest
-      singular values (Eckart-Young optimal), then refactored back into a LoRA pair.
-    - **Padding** (`r=8`): the adapter is zero-padded up to `target_rank_r`, so the
-      effective delta is preserved *exactly* while the nominal rank becomes canonical.
-
-    The `alpha / r` scaling convention is preserved across ranks, i.e. the returned
-    adapter satisfies
-
-        (target_lora_alpha / target_rank_r) * B' @ A'
-            ~= (source_lora_alpha / source_rank_r) * B @ A
-
-    so the merged weights of the caller stay identical (up to the truncation error
-    of the discarded spectral tail).
-
-    Args:
-        lora_state_dict: LoRA state dict with `lora_A` / `lora_B` tensor pairs
-            (PEFT naming: `...lora_A.default.weight` / `...lora_B.default.weight`).
-        target_rank_r: Canonical rank to project onto.
-        source_lora_alpha: `alpha` of the source adapter (defaults to the
-            community-standard `2 * r` convention).
-        target_lora_alpha: `alpha` the projected adapter will be used with
-            (defaults to the community-standard `2 * target_rank_r` convention).
-
-    Returns:
-        A new LoRA state dict with the same keys and canonical rank.
+    Supports both paired `(lora_A, lora_B)` PEFT state dicts (PR #34) and standalone
+    2D LoRA factor dictionaries (PR #33), returning a `ProjectedLoRAStateDict` that behaves
+    as a tensor `state_dict` while also exposing `["state_dict"]`, `["factors"]`,
+    `["target_rank"]`, and `["parameter_bytes"]`.
     """
-    projected, _ = project_lora_state_dict_to_rank(
-        lora_state_dict,
-        target_rank_r=target_rank_r,
-        source_lora_alpha=source_lora_alpha,
-        target_lora_alpha=target_lora_alpha,
+    if target_rank_r < 1:
+        raise ValueError("target_rank_r must be positive")
+
+    pairs = pair_lora_ab_keys(lora_state_dict)
+    if pairs:
+        projected, report = project_lora_state_dict_to_rank(
+            lora_state_dict,
+            target_rank_r=target_rank_r,
+            source_lora_alpha=source_lora_alpha,
+            target_lora_alpha=target_lora_alpha,
+        )
+        factors: List[Dict[str, Any]] = [
+            {
+                "name": name,
+                "source_rank": report.source_rank_r,
+                "kept_rank": min(report.source_rank_r, target_rank_r),
+                "target_rank": target_rank_r,
+                "output_shape": list(t.shape),
+                "spectral_energy_kept": report.mean_spectral_energy_retained,
+            }
+            for name, t in projected.items()
+            if isinstance(t, torch.Tensor)
+        ]
+        param_bytes = sum(
+            t.numel() * t.element_size() for t in projected.values() if isinstance(t, torch.Tensor)
+        )
+        return ProjectedLoRAStateDict(
+            projected,
+            {
+                "target_rank": target_rank_r,
+                "factors": factors,
+                "parameter_bytes": param_bytes,
+                "report": report,
+            },
+        )
+
+    projected_single: Dict[str, torch.Tensor] = {}
+    reports: List[Dict[str, Any]] = []
+    for name, weight in lora_state_dict.items():
+        if not isinstance(weight, torch.Tensor) or weight.ndim != 2:
+            projected_single[name] = weight.detach().clone() if isinstance(weight, torch.Tensor) else weight
+            continue
+        matrix = weight.detach().to(torch.float32)
+        rank_on_rows = matrix.shape[0] <= matrix.shape[1]
+        current_rank = int(matrix.shape[0] if rank_on_rows else matrix.shape[1])
+        u, singular, vh = torch.linalg.svd(matrix, full_matrices=False)
+        keep = min(target_rank_r, int(singular.shape[0]), current_rank)
+        core = (u[:, :keep] * singular[:keep].unsqueeze(0)) @ vh[:keep, :]
+        if rank_on_rows:
+            if keep < target_rank_r:
+                core = torch.nn.functional.pad(core, (0, 0, 0, target_rank_r - keep))
+            else:
+                core = core[:target_rank_r, :]
+        else:
+            if keep < target_rank_r:
+                core = torch.nn.functional.pad(core, (0, target_rank_r - keep, 0, 0))
+            else:
+                core = core[:, :target_rank_r]
+        projected_single[name] = core.to(dtype=weight.dtype)
+        kept_energy = float(torch.linalg.vector_norm(singular[:keep]).item())
+        full_energy = float(torch.linalg.vector_norm(singular).item())
+        reports.append(
+            {
+                "name": name,
+                "source_rank": current_rank,
+                "kept_rank": keep,
+                "target_rank": target_rank_r,
+                "output_shape": list(core.shape),
+                "spectral_energy_kept": round(kept_energy / max(full_energy, 1e-8), 6),
+            }
+        )
+    parameter_bytes = sum(
+        t.numel() * t.element_size() for t in projected_single.values() if isinstance(t, torch.Tensor)
     )
-    return projected
+    return ProjectedLoRAStateDict(
+        projected_single,
+        {
+            "target_rank": target_rank_r,
+            "factors": reports,
+            "parameter_bytes": parameter_bytes,
+        },
+    )
 
 
 def project_lora_rank_svd_with_report(
@@ -220,6 +285,7 @@ class Season3DomainExpertRegistry:
 __all__ = [
     "ExpertBranchState",
     "MoEUpcycleReport",
+    "ProjectedLoRAStateDict",
     "RegisteredDomainExpert",
     "SEASON_3_DOMAIN_EXPERT_SPECS",
     "SVDLoARankProjectionReport",

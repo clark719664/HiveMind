@@ -130,6 +130,16 @@ class SuperRingPeerNode:
         return bool(self.stun_verified) and self.rtt_ms > 0.0
 
 
+@dataclass
+class RegionalBridgePeer:
+    """A STUN-verified peer that can be elected as a continental bridge (`HM-S4-02`)."""
+
+    peer_id: str
+    continent: str
+    rtt_ms: float
+    stun_verified: bool = True
+
+
 class ContinentalSuperRingRouter:
     """HM-S4-02: 2-Tier Kademlia Super-Ring (`Continental Bridge -> Regional <20 ms Geo-Ring`).
 
@@ -141,13 +151,20 @@ class ContinentalSuperRingRouter:
     -> WAN link -> Continental Bridge (dst) -> target`.
     """
 
+    CONTINENTS = ("EU", "US", "APAC")
+
     def __init__(
         self,
-        max_regional_rtt_ms: float = 20.0,
+        max_regional_rtt_ms: Any = 20.0,
         inter_continent_rtt_ms: Optional[Dict[str, Dict[str, float]]] = None,
         max_bridge_jitter_ms: float = 5.0,
     ) -> None:
-        self.max_regional_rtt_ms = float(max_regional_rtt_ms)
+        self.bridge_peers: List[RegionalBridgePeer] = []
+        if isinstance(max_regional_rtt_ms, (list, tuple)):
+            self.bridge_peers = list(max_regional_rtt_ms)
+            self.max_regional_rtt_ms = 20.0
+        else:
+            self.max_regional_rtt_ms = float(max_regional_rtt_ms)
         self.max_bridge_jitter_ms = float(max_bridge_jitter_ms)
         self.inter_continent_rtt_table: Dict[str, Dict[str, float]] = (
             dict(inter_continent_rtt_ms)
@@ -159,6 +176,50 @@ class ContinentalSuperRingRouter:
         self.regional_bridges: Dict[str, str] = {}
         self.continental_bridges: Dict[str, str] = {}
         self.routing_log: List[Dict[str, Any]] = []
+        for bp in self.bridge_peers:
+            self.register_peer(
+                SuperRingPeerNode(
+                    peer_id=bp.peer_id,
+                    region=bp.continent,
+                    rtt_ms=float(bp.rtt_ms),
+                    stun_verified=bool(bp.stun_verified),
+                )
+            )
+
+    def elect_bridges(self) -> Dict[str, RegionalBridgePeer]:
+        """Elect one lowest-RTT STUN-verified bridge per continent (`HM-S4-02`)."""
+        bridges: Dict[str, RegionalBridgePeer] = {}
+        source_pool = self.bridge_peers or [
+            RegionalBridgePeer(
+                peer_id=p.peer_id,
+                continent=p.continent,
+                rtt_ms=p.rtt_ms,
+                stun_verified=p.stun_verified,
+            )
+            for p in self.peers.values()
+        ]
+        for continent in self.CONTINENTS:
+            verified = [
+                peer for peer in source_pool if peer.continent == continent and peer.stun_verified
+            ]
+            if verified:
+                bridges[continent] = min(verified, key=lambda peer: peer.rtt_ms)
+        return bridges
+
+    @staticmethod
+    def bbr_window(base_window: int, jitter_ms: float, loss: float) -> int:
+        """Shrink the burst window when RTT jitter or loss rises. Floor is 1 packet (`HM-S4-02`)."""
+        if base_window < 1:
+            raise ValueError("base_window must be positive")
+        if loss < 0.0 or loss > 1.0:
+            raise ValueError("loss must be in [0, 1]")
+        scale = 1.0
+        if jitter_ms > 5.0:
+            scale *= 0.5
+        elif jitter_ms > 1.0:
+            scale *= 0.75
+        scale *= max(0.25, 1.0 - loss)
+        return max(1, int(base_window * scale))
 
     # ------------------------------------------------------------------
     # Tier 1: Regional Geo-Ring membership
@@ -264,11 +325,36 @@ class ContinentalSuperRingRouter:
     # 2-Tier routing
     # ------------------------------------------------------------------
     def route(self, source_peer_id: str, target_peer_id: str) -> Dict[str, Any]:
-        """Resolve the 2-Tier path between two peers of the Super-Ring.
+        """Resolve the 2-Tier path between two peers (or two continents) of the Super-Ring.
 
         Same-region peers stay inside the Tier-1 Regional Geo-Ring (`< 20 ms`), while
         cross-continent peers are routed through the elected Continental Bridges.
         """
+        if source_peer_id not in self.peers and target_peer_id not in self.peers:
+            bridges = self.elect_bridges()
+            if source_peer_id == target_peer_id:
+                local = bridges.get(source_peer_id)
+                rtt = 0.0 if local is None else local.rtt_ms
+                return {
+                    "hops": ["regional"],
+                    "hop_count": 1,
+                    "rtt_ms": round(rtt, 3),
+                    "bridge_peer_id": None,
+                }
+            if source_peer_id not in bridges or target_peer_id not in bridges:
+                raise KeyError(f"no STUN-verified bridge for {source_peer_id} -> {target_peer_id}")
+            src = bridges[source_peer_id]
+            dst = bridges[target_peer_id]
+            bridge_rtt = max(src.rtt_ms, dst.rtt_ms)
+            total = src.rtt_ms + bridge_rtt + dst.rtt_ms
+            return {
+                "hops": ["regional", "continental_bridge", "remote_regional"],
+                "hop_count": 3,
+                "rtt_ms": round(total, 3),
+                "bridge_peer_id": src.peer_id if src.rtt_ms <= dst.rtt_ms else dst.peer_id,
+                "bound_rtt_ms": round(src.rtt_ms + bridge_rtt + dst.rtt_ms, 3),
+            }
+
         source = self.peers.get(source_peer_id)
         target = self.peers.get(target_peer_id)
         if source is None:

@@ -609,4 +609,5 @@ def detect_local_hardware() -> dict[str, Any]:
         except Exception:
             pass
 
+    info["compute_backend"] = info["gpu_backend"]
     return info
