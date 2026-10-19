@@ -348,55 +348,190 @@ theorem prefix_trie_dedup_node_bound
     omega
   omega
 
+/-! ### Speculative rejection sampling (Leviathan et al. 2023, Chen et al. 2023)
+
+Target masses `p` and draft masses `q` are integers over a common denominator. A drafted token
+`i` is kept with probability `min(1, pᵢ/qᵢ)`, so it contributes `min(pᵢ, qᵢ)`. On rejection the
+target resamples from the residual `(p - q)⁺` normalised by its total. -/
+
+/-- Draft mass the target keeps for each token: `min(pᵢ, qᵢ)`. -/
+def acceptedMass (p q : List Nat) : List Nat := List.zipWith min p q
+
+/-- Residual mass `(pᵢ - qᵢ)⁺` resampled after a rejection. -/
+def residualMass (p q : List Nat) : List Nat := List.zipWith (· - ·) p q
+
+/-- Mass speculative decoding emits for each token: kept draft mass plus the total rejected draft
+    mass `Σq - Σmin(p, q)` redistributed in proportion to the residual. -/
+def speculativeOutputMass (p q : List Nat) : List Nat :=
+  List.zipWith
+    (fun a r =>
+      a + (if (residualMass p q).sum = 0 then 0
+           else (q.sum - (acceptedMass p q).sum) * r / (residualMass p q).sum))
+    (acceptedMass p q) (residualMass p q)
+
+theorem mem_le_sum : ∀ {xs : List Nat} {r : Nat}, r ∈ xs → r ≤ xs.sum
+  | [], _, h => by simp at h
+  | x :: xs, r, h => by
+    rcases List.mem_cons.mp h with rfl | h
+    · simp only [List.sum_cons]
+      omega
+    · have := mem_le_sum h
+      simp only [List.sum_cons]
+      omega
+
+/-- Kept mass plus residual mass recovers the target mass, summed over all tokens. -/
+theorem accepted_add_residual_sum : ∀ (p q : List Nat), p.length = q.length →
+    (acceptedMass p q).sum + (residualMass p q).sum = p.sum
+  | [], [], _ => by simp [acceptedMass, residualMass]
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | a :: p, b :: q, h => by
+    have ih := accepted_add_residual_sum p q (by simpa using h)
+    simp only [acceptedMass, residualMass, List.zipWith_cons_cons, List.sum_cons] at ih ⊢
+    omega
+
+theorem redistribute_eq (s : Nat) : ∀ (p q : List Nat), p.length = q.length →
+    (∀ r ∈ residualMass p q, s = 0 → r = 0) →
+    List.zipWith (fun a r => a + (if s = 0 then 0 else s * r / s))
+      (acceptedMass p q) (residualMass p q) = p
+  | [], [], _, _ => by simp [acceptedMass, residualMass]
+  | [], _ :: _, h, _ => by simp at h
+  | _ :: _, [], h, _ => by simp at h
+  | a :: p, b :: q, h, hz => by
+    have hz_tail : ∀ r ∈ residualMass p q, s = 0 → r = 0 := fun r hr hs =>
+      hz r (show r ∈ (a - b) :: residualMass p q from List.mem_cons_of_mem _ hr) hs
+    have tail := redistribute_eq s p q (by simpa using h) hz_tail
+    have head_zero : s = 0 → a - b = 0 :=
+      hz (a - b) (show a - b ∈ (a - b) :: residualMass p q from List.mem_cons_self)
+    show (min a b + (if s = 0 then 0 else s * (a - b) / s)) ::
+        List.zipWith (fun a r => a + (if s = 0 then 0 else s * r / s))
+          (acceptedMass p q) (residualMass p q) = a :: p
+    rw [tail]
+    by_cases hs : s = 0
+    · rw [if_pos hs]
+      have := head_zero hs
+      congr 1
+      omega
+    · rw [if_neg hs, Nat.mul_div_cancel_left _ (Nat.pos_of_ne_zero hs)]
+      congr 1
+      omega
+
 /-- Theorem 23 (Lossless Speculative Rejection Sampling Target Distribution Invariance):
-    Given accepted probability mass `acceptedMass = min(targetMass, draftMass)` and
-    residual adjustment mass `residualMass = targetMass - acceptedMass`, the total
-    probability mass of sampling token `x` equals the exact target model mass `targetMass`. -/
-theorem speculative_rejection_sampling_target_invariance
-    (targetMass acceptedMass residualMass : Nat)
-    (h_acc_le : acceptedMass ≤ targetMass)
-    (h_residual : residualMass = targetMass - acceptedMass) :
-    acceptedMass + residualMass = targetMass := by
-  omega
+    for any target masses `p` and draft masses `q` with equal totals, speculative rejection
+    sampling emits every token with exactly its target mass, so the output distribution is the
+    target model's distribution. -/
+theorem speculative_rejection_sampling_target_invariance (p q : List Nat)
+    (h_len : p.length = q.length) (h_mass : p.sum = q.sum) :
+    speculativeOutputMass p q = p := by
+  have h_sum := accepted_add_residual_sum p q h_len
+  have h_rejected : q.sum - (acceptedMass p q).sum = (residualMass p q).sum := by omega
+  unfold speculativeOutputMass
+  rw [h_rejected]
+  exact redistribute_eq _ p q h_len (fun r hr hs => by have := mem_le_sum hr; omega)
+
+/-! ### Prefix-trie verification progress -/
+
+/-- Draft tokens the target confirms in one verification pass: the leading run of matches. -/
+def acceptedPrefix : List Bool → Nat
+  | [] => 0
+  | true :: rest => acceptedPrefix rest + 1
+  | false :: _ => 0
+
+theorem acceptedPrefix_le : ∀ checks : List Bool, acceptedPrefix checks ≤ checks.length
+  | [] => by simp [acceptedPrefix]
+  | true :: rest => by
+    have := acceptedPrefix_le rest
+    simp only [acceptedPrefix, List.length_cons]
+    omega
+  | false :: rest => by simp [acceptedPrefix]
 
 /-- Theorem 24 (Prefix-Trie Speculative Tree Multi-Token Progress & Upper Bound):
-    Every single-pass target forward verification over a prefix-trie of depth `gamma`
-    with `accepted ≤ gamma` matched draft tokens produces `totalEmitted = accepted + 1`
-    verified tokens satisfying `1 ≤ totalEmitted` and `totalEmitted ≤ gamma + 1`. -/
-theorem prefix_trie_speculative_progress_bounds
-    (gamma accepted totalEmitted : Nat)
-    (h_acc : accepted ≤ gamma)
-    (h_emit : totalEmitted = accepted + 1) :
-    1 ≤ totalEmitted ∧ totalEmitted ≤ gamma + 1 := by
+    one verification pass over `gamma` drafted tokens emits the accepted prefix plus the
+    target's own next token, so whatever the accept/reject pattern it emits at least one and at
+    most `gamma + 1` tokens. -/
+theorem prefix_trie_speculative_progress_bounds (checks : List Bool) :
+    1 ≤ acceptedPrefix checks + 1 ∧ acceptedPrefix checks + 1 ≤ checks.length + 1 := by
+  have := acceptedPrefix_le checks
   omega
+
+/-- Over a run of verification passes of `gamma` drafted tokens each, the decoder emits at
+    least one token per pass and at most `gamma + 1` per pass. -/
+theorem speculative_run_progress_bounds (gamma : Nat) :
+    ∀ passes : List (List Bool), (∀ c ∈ passes, c.length = gamma) →
+      passes.length ≤ (passes.map (fun c => acceptedPrefix c + 1)).sum ∧
+        (passes.map (fun c => acceptedPrefix c + 1)).sum ≤ passes.length * (gamma + 1)
+  | [], _ => by simp
+  | c :: cs, h => by
+    have hc := h c List.mem_cons_self
+    have ih := speculative_run_progress_bounds gamma cs (fun d hd => h d (List.mem_cons_of_mem _ hd))
+    have hle := acceptedPrefix_le c
+    simp only [List.map_cons, List.sum_cons, List.length_cons, Nat.add_mul, Nat.one_mul]
+    omega
+
+/-! ### RFC 9001 0-RTT anti-replay
+
+`AsyncQUICGeoRingTransport.verify_and_advance_0rtt_nonce` keeps the last accepted nonce, accepts
+an incoming nonce only if it is larger, and then advances to it. -/
+
+/-- Nonces the strike register accepts, in order, from a stream of incoming nonces. -/
+def strikeRegister : Nat → List Nat → List Nat
+  | _, [] => []
+  | last, n :: rest => if last < n then n :: strikeRegister n rest else strikeRegister last rest
+
+theorem strikeRegister_gt : ∀ (last : Nat) (xs : List Nat) (m : Nat),
+    m ∈ strikeRegister last xs → last < m
+  | _, [], _, h => by simp [strikeRegister] at h
+  | last, n :: rest, m, h => by
+    unfold strikeRegister at h
+    by_cases hn : last < n
+    · rw [if_pos hn] at h
+      rcases List.mem_cons.mp h with rfl | h
+      · exact hn
+      · exact Nat.lt_trans hn (strikeRegister_gt n rest m h)
+    · rw [if_neg hn] at h
+      exact strikeRegister_gt last rest m h
 
 /-- Theorem 25 (RFC 9001 0-RTT Monotonic Nonce Anti-Replay Rejection):
-    In the QUIC 0-RTT strike-register protocol, any replayed packet carrying
-    `replayedNonce ≤ lastAcceptedNonce` violates `lastAcceptedNonce < replayedNonce`. -/
-theorem rfc9001_0rtt_monotonic_nonce_anti_replay
-    (lastAcceptedNonce replayedNonce : Nat)
-    (h_replay : replayedNonce ≤ lastAcceptedNonce) :
-    ¬ (lastAcceptedNonce < replayedNonce) := by
+    for any sequence of incoming nonces, including replays and reordering, the nonces the strike
+    register accepts are strictly increasing. -/
+theorem rfc9001_0rtt_monotonic_nonce_anti_replay : ∀ (last : Nat) (xs : List Nat),
+    (strikeRegister last xs).Pairwise (· < ·)
+  | _, [] => by simp [strikeRegister]
+  | last, n :: rest => by
+    unfold strikeRegister
+    by_cases hn : last < n
+    · rw [if_pos hn]
+      exact List.Pairwise.cons (fun m hm => strikeRegister_gt n rest m hm)
+        (rfc9001_0rtt_monotonic_nonce_anti_replay n rest)
+    · rw [if_neg hn]
+      exact rfc9001_0rtt_monotonic_nonce_anti_replay last rest
+
+/-- No nonce is ever accepted twice: a replayed 0-RTT packet is always rejected. -/
+theorem rfc9001_0rtt_no_nonce_accepted_twice (last : Nat) (xs : List Nat) :
+    (strikeRegister last xs).Nodup :=
+  (rfc9001_0rtt_monotonic_nonce_anti_replay last xs).imp (fun h => Nat.ne_of_lt h)
+
+/-- `verify_0rtt_ticket_anti_replay` accepts a ticket at `now` only while `now - issuedAt ≤ maxAge`. -/
+def ticketFresh (issuedAt maxAge now : Nat) : Bool := decide (now - issuedAt ≤ maxAge)
+
+/-- Theorem 26 (RFC 9001 0-RTT Ticket Expiration):
+    expiry is permanent. A ticket rejected as expired at `now` is rejected at every later time,
+    so a stale ticket can never be used for 0-RTT data again. -/
+theorem rfc9001_0rtt_ticket_expiration_bound (issuedAt maxAge now later : Nat)
+    (h_expired : ticketFresh issuedAt maxAge now = false) (h_later : now ≤ later) :
+    ticketFresh issuedAt maxAge later = false := by
+  simp only [ticketFresh, decide_eq_false_iff_not] at h_expired ⊢
   omega
 
-/-- Theorem 26 (RFC 9001 0-RTT Ticket Expiration & Strike-Register Window Bound):
-    Any expired 0-RTT session ticket (`nowMs - issuedAtMs > maxTicketAgeMs`) is
-    deterministically rejected from 0-RTT early data. -/
-theorem rfc9001_0rtt_ticket_expiration_bound
-    (issuedAtMs nowMs maxTicketAgeMs : Nat)
-    (h_expired : maxTicketAgeMs < nowMs - issuedAtMs) :
-    ¬ (nowMs - issuedAtMs ≤ maxTicketAgeMs) := by
-  omega
-
-/-- Theorem 27 (WAN STUN/ICE Direct UDP Hole-Punching Latency Advantage over TURN Relay):
-    When simultaneous UDP hole-punching establishes a direct peer-to-peer path with
-    `directRttMs ≤ turnIngressMs` and positive TURN egress delay (`0 < turnEgressMs`),
-    direct NAT traversal achieves strictly lower RTT than double-hop TURN relay forwarding. -/
-theorem wan_nat_hole_punch_rtt_bound
-    (directRttMs turnIngressMs turnEgressMs : Nat)
-    (h_direct_le : directRttMs ≤ turnIngressMs)
-    (h_egress_pos : 0 < turnEgressMs) :
-    directRttMs < turnIngressMs + turnEgressMs := by
+/-- Theorem 27 (Direct UDP Hole-Punching Beats TURN Relaying):
+    if one-way latency obeys the triangle inequality and a TURN relay adds a positive
+    forwarding delay, the direct path found by hole punching is strictly faster than relaying
+    through any TURN server `r`. -/
+theorem wan_nat_hole_punch_rtt_bound {Node : Type} (latency : Node → Node → Nat) (relayDelay : Nat)
+    (h_triangle : ∀ x y z, latency x z ≤ latency x y + latency y z) (h_delay : 0 < relayDelay)
+    (a b r : Node) :
+    latency a b < latency a r + relayDelay + latency r b := by
+  have := h_triangle a r b
   omega
 
 end Season3_PrefixTrie_And_0RTT
@@ -471,6 +606,8 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay
 #print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound
 #print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice
 #print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound
 #print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound
 #print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound
