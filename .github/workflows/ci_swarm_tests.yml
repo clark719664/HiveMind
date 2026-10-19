@@ -41,9 +41,9 @@ jobs:
 
       - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT)
         run: |
-          uv venv
+          uv venv --seed
           uv pip install --no-sources --torch-backend cpu -e ".[dev]" datasets huggingface-hub \
-            "torch==2.6.0" "transformers==4.57.6" "peft==0.17.1" "numpy==2.1.3"
+            "torch==2.6.0" "transformers==4.57.6" "peft==0.17.1" "numpy==2.1.3" pip
           uv pip check
           uv run --no-sync python -c "import aioquic, cryptography, websockets"
 
