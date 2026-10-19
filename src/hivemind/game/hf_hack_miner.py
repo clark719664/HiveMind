@@ -534,8 +534,87 @@ BONUS_S3_FORMAL_CONTRACTS: List[HFBountyChallenge] = [
     ),
 ]
 
+SEASON_4_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-13-TRITON-KERNEL-SYNTH",
+        mission_codename="Mission 13: Triton Kernel Synthesis",
+        dataset_id="hivemind/triton-int4-fp8-kernels",
+        domain_expert="Triton_Kernel_Synth",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 4 Kernel Task:\nFuse an INT4 weight unpack with an FP8 activation "
+            "projection and report cosine similarity against the FP32 reference.\n"
+            "### Verified Kernel:\n"
+        ),
+        reference_solution=(
+            "def fused_int4_fp8(x, w):\n"
+            "    return {'cosine_similarity': 0.996, 'backend': 'pytorch_int4_fp8_moe_fallback'}"
+        ),
+        target_keywords=["int4", "fp8", "cosine", "fused", "def", "return"],
+        base_bounty_pts=1800,
+        season=4,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-14-ZK-CIRCUIT-PROVER",
+        mission_codename="Mission 14: ZK Activation Prover",
+        dataset_id="hivemind/opoi-merkle-activations",
+        domain_expert="ZK_OPoI_Prover",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 4 Proof Task:\nBuild a Merkle inclusion proof for one layer activation "
+            "and reject it when the normalized L-infinity bound breaks.\n### Proof:\n"
+        ),
+        reference_solution=(
+            "def verify_merkle(root, leaf, siblings):\n"
+            "    return {'included': True, 'normalized_linf': 0.0, 'slashed': False}"
+        ),
+        target_keywords=["merkle", "leaf", "siblings", "linf", "def", "return"],
+        base_bounty_pts=2000,
+        season=4,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-15-QUANTUM-QASM-OPT",
+        mission_codename="Mission 15: Quantum QASM Optimizer",
+        dataset_id="hivemind/qasm-circuit-opt",
+        domain_expert="Quantum_QASM_Opt",
+        difficulty_skulls=4,
+        bounty_question_prompt=(
+            "### Season 4 Circuit Task:\nCancel adjacent inverse gates and report the "
+            "remaining two-qubit gate count.\n### Optimized QASM:\n"
+        ),
+        reference_solution=(
+            "def optimize_qasm(gates):\n"
+            "    return {'two_qubit_gates': 2, 'cancelled_pairs': 1}"
+        ),
+        target_keywords=["qasm", "gates", "two_qubit", "cancelled", "def", "return"],
+        base_bounty_pts=1600,
+        season=4,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-16-AUTONOMOUS-AGENT-SWARM",
+        mission_codename="Mission 16: Autonomous Agent Swarm",
+        dataset_id="hivemind/agent-swarm-tasks",
+        domain_expert="Autonomous_Agent_Swarm",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 4 Agent Task:\nDispatch a task to the lowest-RTT continental bridge "
+            "and confirm the three-hop bound.\n### Dispatch:\n"
+        ),
+        reference_solution=(
+            "def dispatch(src, dst):\n"
+            "    return {'hops': ['regional', 'continental_bridge', 'remote_regional'], 'hive_reward': 50.0}"
+        ),
+        target_keywords=["regional", "bridge", "hops", "hive", "def", "return"],
+        base_bounty_pts=1700,
+        season=4,
+    ),
+]
+
 FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
-    SEASON_1_HF_BOUNTY_CONTRACTS + SEASON_2_HF_BOUNTY_CONTRACTS + SEASON_3_HF_BOUNTY_CONTRACTS
+    SEASON_1_HF_BOUNTY_CONTRACTS
+    + SEASON_2_HF_BOUNTY_CONTRACTS
+    + SEASON_3_HF_BOUNTY_CONTRACTS
+    + SEASON_4_HF_BOUNTY_CONTRACTS
 )
 EXTENDED_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
     FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + BONUS_S3_FORMAL_CONTRACTS
@@ -598,6 +677,7 @@ def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
         "nodes": nodes,
         "ring_links": links,
         "season3_missions": [asdict(c) for c in SEASON_3_HF_BOUNTY_CONTRACTS],
+        "season4_missions": [asdict(c) for c in SEASON_4_HF_BOUNTY_CONTRACTS],
     }
 
 

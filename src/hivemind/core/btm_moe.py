@@ -122,6 +122,62 @@ class Season3DomainExpertRegistry:
         return [dom for dom, _ in selected], weights
 
 
+def project_lora_rank_svd(
+    lora_state_dict: Dict[str, torch.Tensor],
+    target_rank_r: int = 16,
+) -> Dict[str, Any]:
+    """HM-S4-05: truncated-SVD projection of heterogeneous LoRA factors onto one rank.
+
+    The smaller matrix dimension is treated as the adapter rank. Higher ranks
+    are truncated to `target_rank_r`. Lower ranks are zero-padded up to it.
+    The reconstructed factor keeps the non-rank dimension unchanged.
+    """
+    if target_rank_r < 1:
+        raise ValueError("target_rank_r must be positive")
+    projected: Dict[str, torch.Tensor] = {}
+    reports: List[Dict[str, Any]] = []
+    for name, weight in lora_state_dict.items():
+        if weight.ndim != 2:
+            projected[name] = weight.detach().clone()
+            continue
+        matrix = weight.detach().to(torch.float32)
+        rank_on_rows = matrix.shape[0] <= matrix.shape[1]
+        current_rank = int(matrix.shape[0] if rank_on_rows else matrix.shape[1])
+        u, singular, vh = torch.linalg.svd(matrix, full_matrices=False)
+        keep = min(target_rank_r, int(singular.shape[0]), current_rank)
+        core = (u[:, :keep] * singular[:keep].unsqueeze(0)) @ vh[:keep, :]
+        if rank_on_rows:
+            if keep < target_rank_r:
+                core = torch.nn.functional.pad(core, (0, 0, 0, target_rank_r - keep))
+            else:
+                core = core[:target_rank_r, :]
+        else:
+            if keep < target_rank_r:
+                core = torch.nn.functional.pad(core, (0, target_rank_r - keep, 0, 0))
+            else:
+                core = core[:, :target_rank_r]
+        projected[name] = core.to(dtype=weight.dtype)
+        kept_energy = float(torch.linalg.vector_norm(singular[:keep]).item())
+        full_energy = float(torch.linalg.vector_norm(singular).item())
+        reports.append(
+            {
+                "name": name,
+                "source_rank": current_rank,
+                "kept_rank": keep,
+                "target_rank": target_rank_r,
+                "output_shape": list(core.shape),
+                "spectral_energy_kept": round(kept_energy / max(full_energy, 1e-8), 6),
+            }
+        )
+    parameter_bytes = sum(t.numel() * t.element_size() for t in projected.values())
+    return {
+        "state_dict": projected,
+        "target_rank": target_rank_r,
+        "factors": reports,
+        "parameter_bytes": parameter_bytes,
+    }
+
+
 __all__ = [
     "ExpertBranchState",
     "MoEUpcycleReport",
@@ -134,6 +190,7 @@ __all__ = [
     "UpcycledSparseMoEModel",
     "UpcycledSwiGLUExpert",
     "initialize_domain_branches",
+    "project_lora_rank_svd",
     "train_moe_router_gating",
     "upcycle_branches_to_sparse_moe",
 ]

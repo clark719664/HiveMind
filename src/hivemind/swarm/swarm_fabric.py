@@ -188,6 +188,15 @@ class PinnedRAMExpertDMAStreamer:
         self._dma_stream = (
             torch.cuda.Stream(device=self.device) if self.device.type == "cuda" else None
         )
+        hip_version = getattr(torch.version, "hip", None)
+        if self.device.type == "mps":
+            self.staging_mode = "mps_unified"
+        elif self.device.type == "cuda" and hip_version:
+            self.staging_mode = "hip_stream"
+        elif self.device.type == "cuda":
+            self.staging_mode = "cuda_stream"
+        else:
+            self.staging_mode = "cpu_copy"
 
     def stage_expert_in_pinned_ram(
         self,
@@ -318,6 +327,7 @@ class PinnedRAMExpertDMAStreamer:
             "prefetched_experts": list(route_info["selected_micro_experts"].keys()),
             "total_raw_dma_ms": total_raw_ms,
             "exposed_swap_latency_ms": exposed_ms,
+            "staging_mode": self.staging_mode,
         }
 
 
@@ -699,9 +709,15 @@ class TokenTreeSpeculativeVerifier:
 class OptimisticProofOfInferenceAuditor:
     """M4: Probabilistic 5% Optimistic Proof-of-Inference (OPoI) Activation Auditor & Merkle Dispute Game (`HM-M4-02`)."""
 
-    def __init__(self, audit_probability: float = 0.05, min_cosine_sim: float = 0.99) -> None:
+    def __init__(
+        self,
+        audit_probability: float = 0.05,
+        min_cosine_sim: float = 0.99,
+        max_normalized_linf: float = 1.0,
+    ) -> None:
         self.audit_probability = audit_probability
         self.min_cosine_sim = min_cosine_sim
+        self.max_normalized_linf = max_normalized_linf
 
     def should_spot_audit_token(self, rng_seed: int | None = None) -> bool:
         rng = random.Random(rng_seed)
@@ -720,14 +736,61 @@ class OptimisticProofOfInferenceAuditor:
             torch.nn.functional.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
         )
         max_diff = float((a - b).abs().max().item())
-        passed = cos_sim >= self.min_cosine_sim
+        denom = float(b.abs().max().item()) + 1e-8
+        normalized_linf = max_diff / denom
+        passed = cos_sim >= self.min_cosine_sim and normalized_linf <= self.max_normalized_linf
         return {
             "peer_id": peer_id,
             "cosine_similarity": round(cos_sim, 6),
             "max_abs_diff": round(max_diff, 6),
+            "normalized_linf": round(normalized_linf, 6),
             "opoi_passed": passed,
             "slashed": not passed,
         }
+
+    def build_merkle_inclusion_proof(
+        self,
+        layer_idx: int,
+        layer_activations: List[torch.Tensor],
+    ) -> Dict[str, Any]:
+        """HM-S4-03: sibling path from one layer leaf up to the activation Merkle root."""
+        if not layer_activations:
+            raise ValueError("layer_activations must be non-empty")
+        if layer_idx < 0 or layer_idx >= len(layer_activations):
+            raise IndexError(f"layer_idx {layer_idx} outside 0..{len(layer_activations) - 1}")
+        level = [self._hash_activation_tensor(t) for t in layer_activations]
+        leaf = level[layer_idx]
+        siblings: List[str] = []
+        index = layer_idx
+        while len(level) > 1:
+            if len(level) % 2 == 1:
+                level = level + [level[-1]]
+            sibling = index ^ 1
+            siblings.append(level[sibling])
+            level = [
+                hashlib.sha256(f"{level[i]}|{level[i + 1]}".encode("utf-8")).hexdigest()
+                for i in range(0, len(level), 2)
+            ]
+            index //= 2
+        return {
+            "layer_idx": layer_idx,
+            "leaf": leaf,
+            "siblings": siblings,
+            "root": level[0],
+            "depth": len(siblings),
+        }
+
+    def verify_merkle_inclusion_proof(self, proof: Dict[str, Any]) -> bool:
+        """Recompute the root from the leaf and sibling path. O(depth) hashes."""
+        index = int(proof["layer_idx"])
+        current = str(proof["leaf"])
+        for sibling in proof["siblings"]:
+            if index % 2 == 0:
+                current = hashlib.sha256(f"{current}|{sibling}".encode("utf-8")).hexdigest()
+            else:
+                current = hashlib.sha256(f"{sibling}|{current}".encode("utf-8")).hexdigest()
+            index //= 2
+        return current == proof["root"]
 
     @staticmethod
     def _hash_activation_tensor(t: torch.Tensor) -> str:

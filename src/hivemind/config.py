@@ -401,4 +401,24 @@ def detect_local_hardware() -> dict[str, Any]:
         except Exception:
             pass
 
+    mps_mod = getattr(torch.backends, "mps", None)
+    mps_available = bool(mps_mod is not None and mps_mod.is_available())
+    hip_version = getattr(torch.version, "hip", None)
+    rocm_available = hip_version is not None
+    if info["cuda_available"] and rocm_available:
+        backend = "rocm"
+    elif info["cuda_available"]:
+        backend = "cuda"
+    elif mps_available:
+        backend = "mps"
+    else:
+        backend = "cpu"
+    info.update(
+        {
+            "mps_available": mps_available,
+            "rocm_available": rocm_available,
+            "hip_version": hip_version,
+            "compute_backend": backend,
+        }
+    )
     return info

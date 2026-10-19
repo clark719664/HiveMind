@@ -757,7 +757,10 @@ pause
 def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> Any:
     """Create a FastAPI server serving the Interactive Cyberpunk Hack-Miner HUD and Live REST API."""
     import torch
-    from fastapi import Body, FastAPI
+    from fastapi import Body, FastAPI, WebSocket
+    import hivemind.game.steam_edition as _steam_mod
+
+    _steam_mod.WebSocket = WebSocket
     from fastapi.responses import HTMLResponse, JSONResponse
     from hivemind.client.daemon import ZeroIntrusionDaemon
     from hivemind.config import HiveMindConfig, detect_local_hardware
@@ -802,8 +805,37 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
             "steam_app_id": STEAM_APP_ID,
             "missions": data.get("missions", []),
             "season3_missions": topo["season3_missions"],
+            "season4_missions": topo["season4_missions"],
             "moe_boss_fusion": data.get("moe_boss_fusion", {}),
         }
+
+    @app.get("/api/season4-missions", response_class=JSONResponse)
+    def get_season4_missions() -> Dict[str, Any]:
+        from hivemind.game.hf_hack_miner import SEASON_4_HF_BOUNTY_CONTRACTS
+
+        return {
+            "steam_app_id": STEAM_APP_ID,
+            "season": 4,
+            "missions": [c.contract_id for c in SEASON_4_HF_BOUNTY_CONTRACTS],
+            "contracts": [
+                {"contract_id": c.contract_id, "mission_codename": c.mission_codename, "base_bounty_pts": c.base_bounty_pts}
+                for c in SEASON_4_HF_BOUNTY_CONTRACTS
+            ],
+        }
+
+    @app.websocket("/ws/swarm-telemetry")
+    async def swarm_telemetry(websocket: WebSocket) -> None:
+        await websocket.accept()
+        hw = detect_local_hardware()
+        topo = build_georing_3d_topology_snapshot()
+        await websocket.send_json(
+            {
+                "stream": "swarm-telemetry",
+                "compute_backend": hw.get("compute_backend", "cpu"),
+                "num_nodes": topo["num_nodes"],
+                "season4_missions": len(topo["season4_missions"]),
+            }
+        )
 
     @app.get("/api/georing-topology", response_class=JSONResponse)
     def get_georing_topology() -> Dict[str, Any]:

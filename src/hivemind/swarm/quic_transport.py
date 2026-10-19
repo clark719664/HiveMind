@@ -448,3 +448,72 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             "endpoint_b": ep_b,
         }
 
+
+@dataclass
+class RegionalBridgePeer:
+    """A STUN-verified peer that can be elected as a continental bridge."""
+
+    peer_id: str
+    continent: str
+    rtt_ms: float
+    stun_verified: bool = True
+
+
+class ContinentalSuperRingRouter:
+    """HM-S4-02: elect one lowest-RTT bridge per continent and price a 2-tier hop."""
+
+    CONTINENTS = ("EU", "US", "APAC")
+
+    def __init__(self, peers: list[RegionalBridgePeer]) -> None:
+        self.peers = list(peers)
+
+    def elect_bridges(self) -> Dict[str, RegionalBridgePeer]:
+        bridges: Dict[str, RegionalBridgePeer] = {}
+        for continent in self.CONTINENTS:
+            verified = [
+                peer for peer in self.peers if peer.continent == continent and peer.stun_verified
+            ]
+            if verified:
+                bridges[continent] = min(verified, key=lambda peer: peer.rtt_ms)
+        return bridges
+
+    def route(self, source: str, destination: str) -> Dict[str, Any]:
+        bridges = self.elect_bridges()
+        if source == destination:
+            local = bridges.get(source)
+            rtt = 0.0 if local is None else local.rtt_ms
+            return {
+                "hops": ["regional"],
+                "hop_count": 1,
+                "rtt_ms": round(rtt, 3),
+                "bridge_peer_id": None,
+            }
+        if source not in bridges or destination not in bridges:
+            raise KeyError(f"no STUN-verified bridge for {source} -> {destination}")
+        src = bridges[source]
+        dst = bridges[destination]
+        bridge_rtt = max(src.rtt_ms, dst.rtt_ms)
+        total = src.rtt_ms + bridge_rtt + dst.rtt_ms
+        return {
+            "hops": ["regional", "continental_bridge", "remote_regional"],
+            "hop_count": 3,
+            "rtt_ms": round(total, 3),
+            "bridge_peer_id": src.peer_id if src.rtt_ms <= dst.rtt_ms else dst.peer_id,
+            "bound_rtt_ms": round(src.rtt_ms + bridge_rtt + dst.rtt_ms, 3),
+        }
+
+    @staticmethod
+    def bbr_window(base_window: int, jitter_ms: float, loss: float) -> int:
+        """Shrink the burst window when RTT jitter or loss rises. Floor is 1 packet."""
+        if base_window < 1:
+            raise ValueError("base_window must be positive")
+        if loss < 0.0 or loss > 1.0:
+            raise ValueError("loss must be in [0, 1]")
+        scale = 1.0
+        if jitter_ms > 5.0:
+            scale *= 0.5
+        elif jitter_ms > 1.0:
+            scale *= 0.75
+        scale *= max(0.25, 1.0 - loss)
+        return max(1, int(base_window * scale))
+

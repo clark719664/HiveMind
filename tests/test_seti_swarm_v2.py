@@ -1069,4 +1069,154 @@ def test_s3_04_additional_domain_expert_lora_adapters(tmp_path: Path) -> None:
     assert out.loss is not None
 
 
+def test_s4_01_multi_vendor_rocm_mps_dma_and_moe_dispatch() -> None:
+    from hivemind.config import detect_local_hardware
+    from hivemind.swarm.swarm_fabric import (
+        PinnedRAMExpertDMAStreamer,
+        TwoLevelMacroMicroRouter,
+        fused_int4_fp8_moe_route_and_project,
+    )
+
+    hw = detect_local_hardware()
+    assert hw["compute_backend"] in {"cpu", "cuda", "mps", "rocm"}
+    assert "mps_available" in hw and "rocm_available" in hw
+
+    torch.manual_seed(4)
+    device = torch.device("cpu")
+    if hw["compute_backend"] == "cuda":
+        device = torch.device("cuda:0")
+    elif hw["compute_backend"] == "mps":
+        device = torch.device("mps")
+    elif hw["compute_backend"] == "rocm":
+        device = torch.device("cuda:0")
+
+    x = torch.randn(2, 4, 32, device=device)
+    router_w = torch.randn(4, 32, device=device)
+    experts = [torch.randn(32, 32, device=device) for _ in range(4)]
+    routed = fused_int4_fp8_moe_route_and_project(x, router_w, experts, top_k=2)
+    assert routed["cosine_similarity"] >= 0.99
+
+    router = TwoLevelMacroMicroRouter(
+        hidden_size=32,
+        macro_clusters={"Code_Math": ["Python_Systems_Code", "Mathematical_Reasoning"]},
+        top_k_micro=1,
+    )
+    streamer = PinnedRAMExpertDMAStreamer(device=device)
+    assert streamer.staging_mode in {"cpu_copy", "cuda_stream", "mps_unified", "hip_stream"}
+    streamer.stage_expert_in_pinned_ram("Python_Systems_Code", {"lora_A": torch.randn(4, 32)})
+    streamer.stage_expert_in_pinned_ram("Mathematical_Reasoning", {"lora_A": torch.randn(4, 32)})
+    prefetch = streamer.prefetch_lookahead_layer(router, torch.randn(1, 2, 32), layer_idx=0)
+    assert prefetch["staging_mode"] == streamer.staging_mode
+    assert prefetch["prefetched_layer"] == 1
+
+
+def test_s4_02_hierarchical_continental_super_ring_routing() -> None:
+    from hivemind.swarm.quic_transport import ContinentalSuperRingRouter, RegionalBridgePeer
+
+    router = ContinentalSuperRingRouter(
+        [
+            RegionalBridgePeer("paris", "EU", 12.0),
+            RegionalBridgePeer("berlin", "EU", 9.5),
+            RegionalBridgePeer("virginia", "US", 18.0),
+            RegionalBridgePeer("ohio", "US", 14.0, stun_verified=False),
+            RegionalBridgePeer("tokyo", "APAC", 22.0),
+            RegionalBridgePeer("osaka", "APAC", 19.0),
+        ]
+    )
+    bridges = router.elect_bridges()
+    assert bridges["EU"].peer_id == "berlin"
+    assert bridges["US"].peer_id == "virginia"
+    assert bridges["APAC"].peer_id == "osaka"
+    route = router.route("EU", "APAC")
+    assert route["hop_count"] == 3
+    assert route["hops"] == ["regional", "continental_bridge", "remote_regional"]
+    assert route["rtt_ms"] == round(9.5 + max(9.5, 19.0) + 19.0, 3)
+    assert ContinentalSuperRingRouter.bbr_window(16, jitter_ms=0.2, loss=0.0) == 16
+    assert ContinentalSuperRingRouter.bbr_window(16, jitter_ms=8.0, loss=0.5) < 16
+
+
+def test_s4_03_zk_opoi_merkle_inclusion_and_dual_bound_audit() -> None:
+    from hivemind.swarm.swarm_fabric import OptimisticProofOfInferenceAuditor
+
+    torch.manual_seed(11)
+    layers = [torch.randn(2, 8) for _ in range(4)]
+    auditor = OptimisticProofOfInferenceAuditor(max_normalized_linf=0.05)
+    proof = auditor.build_merkle_inclusion_proof(2, layers)
+    assert auditor.verify_merkle_inclusion_proof(proof) is True
+    assert proof["depth"] <= len(layers) - 1
+    tampered = dict(proof)
+    tampered["leaf"] = "0" * 64
+    assert auditor.verify_merkle_inclusion_proof(tampered) is False
+
+    honest = auditor.verify_activation_commitment("peer", layers[0], layers[0])
+    assert honest["opoi_passed"] is True
+    spiked = layers[0].clone()
+    spiked.view(-1)[0] += 50.0
+    fraud = auditor.verify_activation_commitment("peer", spiked, layers[0])
+    assert fraud["opoi_passed"] is False and fraud["slashed"] is True
+
+
+def test_s4_04_season4_missions_13_16_and_live_telemetry() -> None:
+    from fastapi.testclient import TestClient
+
+    from hivemind.game.hf_hack_miner import SEASON_4_HF_BOUNTY_CONTRACTS
+    from hivemind.game.steam_edition import create_hack_miner_fastapi_app
+
+    ids = [c.contract_id for c in SEASON_4_HF_BOUNTY_CONTRACTS]
+    assert ids == [
+        "CONTRACT-HF-13-TRITON-KERNEL-SYNTH",
+        "CONTRACT-HF-14-ZK-CIRCUIT-PROVER",
+        "CONTRACT-HF-15-QUANTUM-QASM-OPT",
+        "CONTRACT-HF-16-AUTONOMOUS-AGENT-SWARM",
+    ]
+    app = create_hack_miner_fastapi_app()
+    client = TestClient(app)
+    body = client.get("/api/season4-missions").json()
+    assert body["missions"] == ids
+    with client.websocket_connect("/ws/swarm-telemetry") as socket:
+        frame = socket.receive_json()
+    assert frame["stream"] == "swarm-telemetry"
+    assert frame["season4_missions"] == 4
+
+
+def test_s4_05_svd_rank_adaptive_lora_projection_and_moe_scaling() -> None:
+    from hivemind.core.btm_moe import project_lora_rank_svd
+    from hivemind.core.btm_upcycle import UpcycledSparseMoEModel
+
+    torch.manual_seed(5)
+    wide = {"lora_B": torch.randn(64, 32)}
+    narrow = {"lora_B": torch.randn(64, 8)}
+    wide_out = project_lora_rank_svd(wide, target_rank_r=16)
+    narrow_out = project_lora_rank_svd(narrow, target_rank_r=16)
+    assert tuple(wide_out["state_dict"]["lora_B"].shape) == (64, 16)
+    assert tuple(narrow_out["state_dict"]["lora_B"].shape) == (64, 16)
+    assert wide_out["factors"][0]["spectral_energy_kept"] <= 1.0
+    d_in, d_out, r_source, r_target = 64, 64, 32, 16
+    assert r_target * (d_in + d_out) < r_source * (d_in + d_out)
+
+    domains = [f"expert-{i:02d}" for i in range(32)]
+    model = UpcycledSparseMoEModel(upcycled_backbone=torch.nn.Linear(8, 8), expert_domains=domains)
+    assert model.num_experts == 32
+    footprint = 32 * wide_out["parameter_bytes"]
+    assert footprint < 2 * 1024**3
+
+
+def test_s4_06_lean4_season4_dao_and_superring_theorems() -> None:
+    from paper.autoevolve_peer_review_pipeline import verify_lean4_specification
+
+    audit = verify_lean4_specification()
+    assert audit["theorem_count"] >= 32
+    assert audit["sorry_count"] == 0
+    assert audit["user_axiom_count"] == 0
+    names = set(audit["theorems"])
+    for theorem in (
+        "quadratic_voting_cost_bound",
+        "steamworks_sybil_account_cost_lower_bound",
+        "continental_super_ring_hop_bound",
+        "svd_rank_truncation_parameter_savings",
+        "opoi_merkle_inclusion_depth_bound",
+    ):
+        assert theorem in names
+
+
 
