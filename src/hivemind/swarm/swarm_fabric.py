@@ -149,6 +149,11 @@ class PinnedRAMExpertDMAStreamer:
         self.device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.pinned_host_cache: Dict[str, Dict[str, torch.Tensor]] = {}
         self.active_vram_cache: Dict[str, Dict[str, torch.Tensor]] = {}
+        self.double_buffer_slots: Dict[str, Dict[str, Dict[str, torch.Tensor]]] = {
+            "slot_A": {},
+            "slot_B": {},
+        }
+        self._active_slot = "slot_A"
         self._dma_stream = (
             torch.cuda.Stream(device=self.device) if self.device.type == "cuda" else None
         )
@@ -177,35 +182,82 @@ class PinnedRAMExpertDMAStreamer:
         self,
         expert_name: str,
         simulated_attention_compute_ms: float = 2.5,
+        target_slot: str | None = None,
     ) -> Dict[str, Any]:
         """Stream an expert from Pinned Host RAM to VRAM asynchronously overlapped with attention."""
         if expert_name not in self.pinned_host_cache:
             raise KeyError(f"Expert '{expert_name}' not staged in Pinned Host RAM.")
 
-        t0 = time.perf_counter()
+        slot_name = target_slot if target_slot in self.double_buffer_slots else self._active_slot
         src_dict = self.pinned_host_cache[expert_name]
         vram_dict: Dict[str, torch.Tensor] = {}
 
         if self.device.type == "cuda" and self._dma_stream is not None:
+            start_ev = torch.cuda.Event(enable_timing=True)
+            end_ev = torch.cuda.Event(enable_timing=True)
             with torch.cuda.stream(self._dma_stream):
+                start_ev.record(self._dma_stream)
                 for k, v in src_dict.items():
                     vram_dict[k] = v.to(device=self.device, non_blocking=True)
+                end_ev.record(self._dma_stream)
+            end_ev.synchronize()
             torch.cuda.current_stream(self.device).wait_stream(self._dma_stream)
+            raw_transfer_ms = round(float(start_ev.elapsed_time(end_ev)), 3)
         else:
+            t0 = time.perf_counter()
             for k, v in src_dict.items():
                 vram_dict[k] = v.to(device=self.device)
+            raw_transfer_ms = round((time.perf_counter() - t0) * 1000.0, 3)
 
-        raw_transfer_ms = round((time.perf_counter() - t0) * 1000.0, 3)
         exposed_swap_latency_ms = round(
             max(0.0, raw_transfer_ms - simulated_attention_compute_ms), 3
         )
+        self.double_buffer_slots[slot_name][expert_name] = vram_dict
         self.active_vram_cache[expert_name] = vram_dict
+        self._active_slot = "slot_B" if slot_name == "slot_A" else "slot_A"
         return {
             "expert_name": expert_name,
+            "slot": slot_name,
             "tensors_streamed": len(vram_dict),
             "raw_dma_transfer_ms": raw_transfer_ms,
             "overlapped_attention_ms": simulated_attention_compute_ms,
             "exposed_swap_latency_ms": exposed_swap_latency_ms,
+        }
+
+    def prefetch_lookahead_layer(
+        self,
+        router: TwoLevelMacroMicroRouter,
+        hidden_states: torch.Tensor,
+        layer_idx: int = 0,
+        simulated_attention_compute_ms: float = 5.0,
+    ) -> Dict[str, Any]:
+        route_info = router(hidden_states)
+        active_slot = "slot_A" if layer_idx % 2 == 0 else "slot_B"
+        lookahead_slot = "slot_B" if active_slot == "slot_A" else "slot_A"
+        self.double_buffer_slots[lookahead_slot].clear()
+
+        transfers = []
+        for expert_name in route_info["selected_micro_experts"]:
+            if expert_name in self.pinned_host_cache:
+                transfers.append(
+                    self.async_dma_prefetch_to_vram(
+                        expert_name,
+                        simulated_attention_compute_ms=simulated_attention_compute_ms,
+                        target_slot=lookahead_slot,
+                    )
+                )
+
+        total_raw_ms = round(sum(t["raw_dma_transfer_ms"] for t in transfers), 3)
+        exposed_ms = round(max(0.0, total_raw_ms - simulated_attention_compute_ms), 3)
+        return {
+            "current_layer": layer_idx,
+            "prefetched_layer": layer_idx + 1,
+            "active_compute_slot": active_slot,
+            "lookahead_dma_slot": lookahead_slot,
+            "selected_macro_cluster": route_info["selected_macro_cluster"],
+            "prefetched_experts": list(route_info["selected_micro_experts"].keys()),
+            "total_raw_dma_ms": total_raw_ms,
+            "exposed_swap_latency_ms": exposed_ms,
         }
 
 

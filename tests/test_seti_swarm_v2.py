@@ -421,15 +421,22 @@ def test_phase2_swarm_fabric_m1_to_m4_and_openai_gateway(tmp_path: Path) -> None
     assert len(route_out["selected_micro_experts"]) == 2
 
     streamer = PinnedRAMExpertDMAStreamer(device=torch.device("cpu"))
-    nbytes = streamer.stage_expert_in_pinned_ram(
-        "Python_Systems_Code",
-        {"lora_A": torch.randn(8, 32), "lora_B": torch.randn(32, 8)},
-    )
-    assert nbytes > 0
+    for exp_name in ["Python_Systems_Code", "Mathematical_Reasoning", "Biomedical_Clinical_QA", "Legal_Medical"]:
+        nbytes = streamer.stage_expert_in_pinned_ram(
+            exp_name,
+            {"lora_A": torch.randn(8, 32), "lora_B": torch.randn(32, 8)},
+        )
+        assert nbytes > 0
     dma_info = streamer.async_dma_prefetch_to_vram(
         "Python_Systems_Code", simulated_attention_compute_ms=5.0
     )
     assert dma_info["exposed_swap_latency_ms"] == 0.0
+    lookahead_l0 = streamer.prefetch_lookahead_layer(router, hidden, layer_idx=0, simulated_attention_compute_ms=5.0)
+    lookahead_l1 = streamer.prefetch_lookahead_layer(router, hidden, layer_idx=1, simulated_attention_compute_ms=5.0)
+    assert lookahead_l0["lookahead_dma_slot"] == "slot_B"
+    assert lookahead_l1["lookahead_dma_slot"] == "slot_A"
+    assert lookahead_l0["exposed_swap_latency_ms"] == 0.0
+    assert len(lookahead_l0["prefetched_experts"]) == 2
 
     # M3: FP8 Hidden-State Wire Compression & Token Tree Speculation (gamma = 6)
     pkt = compress_hidden_states_fp8(hidden.to(torch.float16))
