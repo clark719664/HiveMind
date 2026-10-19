@@ -13,6 +13,8 @@ from __future__ import annotations
 import ctypes
 import hashlib
 import hmac
+import math
+import threading
 import platform
 import time
 from dataclasses import dataclass, field
@@ -120,6 +122,8 @@ class SteamworksSDKBridge:
         sdk_search_dir: Path | None = None,
     ) -> None:
         self.signing_secret = signing_secret
+        self._credit_lock = threading.Lock()
+        self._credited_workunits: dict[str, tuple[str, float, float]] = {}
         self.leaderboard: dict[str, SteamUserTelemetry] = {}
         self.sybil_rejection_log: list[dict[str, str]] = []
         self.rich_presence_store: dict[str, SteamRichPresenceState] = {}
@@ -167,6 +171,7 @@ class SteamworksSDKBridge:
                         self.native_dll_path = str(cand)
                         if hasattr(handle, "SteamAPI_Init"):
                             init_fn = handle.SteamAPI_Init
+                            init_fn.argtypes = []
                             init_fn.restype = ctypes.c_bool
                             self.native_steam_api_initialized = bool(init_fn())
                         return self.get_native_bridge_status()
@@ -230,14 +235,20 @@ class SteamworksSDKBridge:
             else f"Hack-Mining {active_mission} on {gpu_name} | {rank_title} | +{hive_balance:.2f} $HIVE ({total_points:,} PTS)"
         )
         native_ok = False
-        if self.native_dll_loaded and self.native_dll_handle is not None:
+        if self.native_steam_api_initialized and self.native_dll_handle is not None:
             try:
-                if hasattr(self.native_dll_handle, "SteamAPI_ISteamFriends_SetRichPresence"):
-                    self.native_dll_handle.SteamAPI_ISteamFriends_SetRichPresence(
-                        b"status", status_str.encode("utf-8")
-                    )
-                    native_ok = True
-            except Exception:
+                # The flat ABI requires an ISteamFriends* receiver, not just
+                # the two strings of the C++ instance method.
+                get_friends = self.native_dll_handle.SteamAPI_SteamFriends_v017
+                get_friends.argtypes = []
+                get_friends.restype = ctypes.c_void_p
+                friends = get_friends()
+                set_presence = self.native_dll_handle.SteamAPI_ISteamFriends_SetRichPresence
+                set_presence.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p]
+                set_presence.restype = ctypes.c_bool
+                if friends:
+                    native_ok = bool(set_presence(friends, b"status", status_str.encode("utf-8")))
+            except (AttributeError, TypeError, ValueError, OSError):
                 native_ok = False
 
         payload = f"RICH_PRESENCE:{STEAMWORKS_APP_ID}:{steam_id64}:{status_str}"
@@ -364,26 +375,38 @@ class SteamworksSDKBridge:
         credits_minted: float = 10.0,
     ) -> SteamUserTelemetry:
         """Update ISteamLeaderboards FLOPs, unlock Steam Achievements, and mint API credits."""
-        entry = self.leaderboard.setdefault(
-            steam_id64,
-            SteamUserTelemetry(steam_id64=steam_id64, persona_name=persona_name),
-        )
-        entry.verified_tflops = round(entry.verified_tflops + tflops_contributed, 3)
-        entry.workunits_completed += 1
-        entry.api_credits_balance = round(entry.api_credits_balance + credits_minted, 2)
+        if not wu_id or not steam_id64:
+            raise ValueError("workunit and Steam user IDs must be nonempty")
+        if not all(math.isfinite(value) and value >= 0 for value in (tflops_contributed, credits_minted)):
+            raise ValueError("contribution and credits must be finite and nonnegative")
+        record = (steam_id64, float(tflops_contributed), float(credits_minted))
+        with self._credit_lock:
+            previous = self._credited_workunits.get(wu_id)
+            if previous is not None:
+                if previous != record:
+                    raise ValueError("workunit already credited with different recipient or amounts")
+                return self.leaderboard[steam_id64]
+            entry = self.leaderboard.setdefault(
+                steam_id64,
+                SteamUserTelemetry(steam_id64=steam_id64, persona_name=persona_name),
+            )
+            entry.verified_tflops = round(entry.verified_tflops + tflops_contributed, 3)
+            entry.workunits_completed += 1
+            entry.api_credits_balance = round(entry.api_credits_balance + credits_minted, 2)
 
-        receipt = hmac.new(
-            self.signing_secret,
-            f"CREDIT:{steam_id64}:{wu_id}:{credits_minted:.2f}".encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()[:24]
-        entry.credit_receipts.append(receipt)
+            receipt = hmac.new(
+                self.signing_secret,
+                f"CREDIT:{steam_id64}:{wu_id}:{credits_minted:.2f}".encode("utf-8"),
+                hashlib.sha256,
+            ).hexdigest()[:24]
+            entry.credit_receipts.append(receipt)
 
-        if entry.workunits_completed >= 1 and "ACH_FIRST_SYNAPSE" not in entry.unlocked_achievements:
-            entry.unlocked_achievements.append("ACH_FIRST_SYNAPSE")
-        if entry.verified_tflops >= 10.0 and "ACH_10_TFLOPS_SWARM" not in entry.unlocked_achievements:
-            entry.unlocked_achievements.append("ACH_10_TFLOPS_SWARM")
-        return entry
+            if entry.workunits_completed >= 1 and "ACH_FIRST_SYNAPSE" not in entry.unlocked_achievements:
+                entry.unlocked_achievements.append("ACH_FIRST_SYNAPSE")
+            if entry.verified_tflops >= 10.0 and "ACH_10_TFLOPS_SWARM" not in entry.unlocked_achievements:
+                entry.unlocked_achievements.append("ACH_10_TFLOPS_SWARM")
+            self._credited_workunits[wu_id] = record
+            return entry
 
     def upload_hack_miner_score(
         self,
