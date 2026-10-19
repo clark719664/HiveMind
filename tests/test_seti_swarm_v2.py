@@ -14,7 +14,7 @@ from pathlib import Path
 import torch
 
 from hivemind.client.daemon import SETIAgentState, ZeroIntrusionDaemon
-from hivemind.core.btm_upcycle import upcycle_branches_to_sparse_moe
+from hivemind.core.btm_upcycle import UpcycledSparseMoEModel, upcycle_branches_to_sparse_moe
 from hivemind.core.quantization import (
     attach_qlora_adapters,
     build_local_qwen2_backbone,
@@ -1123,7 +1123,7 @@ def _s4_05_build_moe(
     intermediate_size: int,
     num_layers: int,
     vocab_size: int,
-) -> "object":
+) -> UpcycledSparseMoEModel:
     """Build a 2-expert upcycled Sparse MoE with a shared (VRAM-efficient) base FFN."""
     base_model, _, _ = build_local_qwen2_backbone(
         seed=seed,
