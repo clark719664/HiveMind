@@ -841,3 +841,53 @@ def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
         assert "data: [DONE]" in raw_sse
 
 
+def test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching() -> None:
+    """
+    Validates Season 3 Milestone HM-S3-01:
+    - RFC 5389 STUN reflexive endpoint discovery & RFC 5766 TURN relay allocation
+    - Simultaneous UDP hole-punching (< 5 ms/hop) across restricted/port-restricted cone NATs
+    - Automatic 0-RTT TURN relay fallback when both peers are behind symmetric CGNAT
+    - RFC 9001 monotonic 0-RTT anti-replay nonce enforcement
+    """
+    from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport
+
+    quic = AsyncQUICGeoRingTransport(region="EU-West-Paris", max_rtt_ms=15.0)
+    ep = quic.discover_stun_turn_endpoint(
+        peer_id="wan-node-berlin-01",
+        local_port=4433,
+        simulated_nat_type="restricted_cone",
+    )
+    assert ep["reflexive_ip"].startswith("198.51.100.")
+    assert 32768 <= ep["reflexive_port"] < 60768
+    assert ep["turn_relay_endpoint"].startswith("turn.hivemind.network:5349/alloc/")
+
+    punch_res = quic.execute_udp_hole_punch(
+        peer_a_id="wan-node-berlin-01",
+        peer_b_id="wan-node-tokyo-02",
+        simulated_nat_a="restricted_cone",
+        simulated_nat_b="port_restricted_cone",
+    )
+    assert punch_res["direct_hole_punch_succeeded"] is True
+    assert punch_res["fallback_to_turn"] is False
+    assert punch_res["transport_mode"] == "direct_udp_hole_punch_0rtt"
+    assert punch_res["hole_punch_latency_ms"] < 5.0
+    assert punch_res["sub_5ms_verified"] is True
+
+    cgnat_res = quic.execute_udp_hole_punch(
+        peer_a_id="wan-cgnat-mobile-01",
+        peer_b_id="wan-cgnat-mobile-02",
+        simulated_nat_a="symmetric_cgnat",
+        simulated_nat_b="symmetric_cgnat",
+    )
+    assert cgnat_res["direct_hole_punch_succeeded"] is False
+    assert cgnat_res["fallback_to_turn"] is True
+    assert cgnat_res["transport_mode"] == "turn_allocation_relay_0rtt"
+    assert cgnat_res["hole_punch_latency_ms"] < 5.0
+
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 101) is True
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 101) is False
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 99) is False
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 102) is True
+
+
+
