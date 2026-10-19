@@ -1069,4 +1069,260 @@ def test_s3_04_additional_domain_expert_lora_adapters(tmp_path: Path) -> None:
     assert out.loss is not None
 
 
+def _s4_05_synthetic_lora_pair(
+    rank_r: int,
+    in_features: int,
+    out_features: int,
+    decay: float = 0.85,
+    seed: int = 0,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Build a LoRA `(A, B)` pair whose effective delta `B @ A` has a controlled singular spectrum."""
+    gen = torch.Generator().manual_seed(seed)
+    u, _ = torch.linalg.qr(torch.randn(out_features, rank_r, generator=gen))
+    v, _ = torch.linalg.qr(torch.randn(in_features, rank_r, generator=gen))
+    singular = decay ** torch.arange(rank_r, dtype=torch.float32)
+    sqrt_s = torch.sqrt(singular)
+    lora_b = u * sqrt_s.unsqueeze(0)  # [out_features, r]
+    lora_a = sqrt_s.unsqueeze(1) * v.t()  # [r, in_features]
+    return lora_a, lora_b
+
+
+def _s4_05_synthetic_adapter(
+    rank_r: int,
+    num_layers: int,
+    hidden_size: int,
+    intermediate_size: int,
+    seed: int = 0,
+) -> dict[str, torch.Tensor]:
+    """Build a PEFT-style LoRA state dict of rank `rank_r` for every MLP projection.
+
+    The singular spectrum decays geometrically, mimicking the energy compaction of
+    a genuinely trained LoRA adapter (as opposed to a flat random spectrum).
+    """
+    state: dict[str, torch.Tensor] = {}
+    proj_idx = 0
+    for layer_idx in range(num_layers):
+        for proj, (in_f, out_f) in {
+            "gate_proj": (hidden_size, intermediate_size),
+            "up_proj": (hidden_size, intermediate_size),
+            "down_proj": (intermediate_size, hidden_size),
+        }.items():
+            lora_a, lora_b = _s4_05_synthetic_lora_pair(
+                rank_r, in_f, out_f, seed=seed + 17 * layer_idx + proj_idx
+            )
+            prefix = f"base_model.model.model.layers.{layer_idx}.mlp.{proj}"
+            state[f"{prefix}.lora_A.default.weight"] = lora_a
+            state[f"{prefix}.lora_B.default.weight"] = lora_b
+            proj_idx += 1
+    return state
+
+
+def _s4_05_build_moe(
+    seed: int,
+    hidden_size: int,
+    intermediate_size: int,
+    num_layers: int,
+    vocab_size: int,
+) -> "object":
+    """Build a 2-expert upcycled Sparse MoE with a shared (VRAM-efficient) base FFN."""
+    base_model, _, _ = build_local_qwen2_backbone(
+        seed=seed,
+        vocab_size=vocab_size,
+        hidden_size=hidden_size,
+        intermediate_size=intermediate_size,
+        num_hidden_layers=num_layers,
+        num_attention_heads=4,
+        num_key_value_heads=2,
+        device=torch.device("cpu"),
+        use_4bit_nf4_if_cuda=False,
+    )
+    bundle = attach_qlora_adapters(
+        base_model, rank_r=16, lora_alpha=32, gradient_checkpointing=False
+    )
+    ref_lora = extract_lora_state_dict(bundle.model)
+    moe_model, _ = upcycle_branches_to_sparse_moe(
+        peft_or_base_model=bundle.model,
+        branch_lora_states={
+            "Code": {k: v.clone() for k, v in ref_lora.items()},
+            "Mathematics": {k: v.clone() + 0.01 for k, v in ref_lora.items()},
+        },
+        lora_rank_r=16,
+        lora_alpha=32,
+        top_k=2,
+        in_place=True,
+    )
+    return moe_model
+
+
+def test_s4_05_svd_rank_adaptive_lora_projection_and_moe_scaling() -> None:
+    """
+    Validates Season 4 Milestone HM-S4-05:
+    - `project_lora_rank_svd` truncated-SVD rank-adaptive projection (`r=8, 16, 32, 64 -> r=16`)
+    - Eckart-Young optimality of the compressed delta, exact padding of low-rank adapters
+      and preservation of the `alpha / r` scaling convention across ranks
+    - Hot-plugging 32 heterogeneous-rank community experts into `UpcycledSparseMoEModel`
+      while staying inside the `< 2.0 GB` VRAM budget (no rank-induced VRAM bloat)
+    """
+    from hivemind.core.btm_moe import project_lora_rank_svd, project_lora_rank_svd_with_report
+    from hivemind.core.btm_upcycle import (
+        detect_lora_rank,
+        hotplug_rank_adaptive_experts,
+        measure_moe_vram_footprint_gb,
+    )
+
+    target_r = 16
+    in_f, out_f = 64, 96
+    a_key = "base_model.model.model.layers.0.mlp.gate_proj.lora_A.default.weight"
+    b_key = "base_model.model.model.layers.0.mlp.gate_proj.lora_B.default.weight"
+
+    # --- 1. r=8 adapters are zero-padded to the canonical r=16 with an exact delta ---
+    a8, b8 = _s4_05_synthetic_lora_pair(8, in_f, out_f, seed=8)
+    state8 = {a_key: a8, b_key: b8}
+    projected8, report8 = project_lora_rank_svd_with_report(state8, target_rank_r=target_r)
+    assert set(projected8.keys()) == set(state8.keys())
+    assert projected8[a_key].shape == (target_r, in_f)
+    assert projected8[b_key].shape == (out_f, target_r)
+    assert report8.source_rank_r == 8
+    assert report8.target_rank_r == target_r
+    assert report8.num_padded_pairs == 1
+    assert report8.num_identity_pairs == 0
+    assert report8.mean_spectral_energy_retained == 1.0
+    assert report8.max_relative_delta_error < 1e-4
+    assert torch.allclose(projected8[b_key] @ projected8[a_key], b8 @ a8, atol=1e-4)
+
+    # --- 2. r=64 adapters are compressed onto the Eckart-Young optimal rank-16 delta ---
+    a64, b64 = _s4_05_synthetic_lora_pair(64, in_f, out_f, seed=64)
+    state64 = {a_key: a64, b_key: b64}
+    projected64, report64 = project_lora_rank_svd_with_report(state64, target_rank_r=target_r)
+    assert projected64[a_key].shape == (target_r, in_f)
+    assert projected64[b_key].shape == (out_f, target_r)
+    assert report64.source_rank_r == 64
+    assert report64.num_projected_pairs == 1
+    assert report64.num_padded_pairs == 0
+    assert report64.compression_ratio == 4.0
+
+    delta64 = b64 @ a64
+    u, s, vh = torch.linalg.svd(delta64, full_matrices=False)
+    optimal_delta = (u[:, :target_r] * s[:target_r]) @ vh[:target_r, :]
+    assert torch.allclose(projected64[b_key] @ projected64[a_key], optimal_delta, atol=1e-4)
+    expected_energy = float((s[:target_r] ** 2).sum() / (s**2).sum())
+    assert abs(report64.mean_spectral_energy_retained - expected_energy) < 1e-4
+    assert report64.mean_spectral_energy_retained > 0.99
+
+    # --- 3. r=32 adapters are compressed and r=16 adapters stay at the canonical rank ---
+    a32, b32 = _s4_05_synthetic_lora_pair(32, in_f, out_f, seed=32)
+    projected32, report32 = project_lora_rank_svd_with_report(
+        {a_key: a32, b_key: b32}, target_rank_r=target_r
+    )
+    assert report32.source_rank_r == 32
+    assert projected32[a_key].shape == (target_r, in_f)
+    assert report32.mean_spectral_energy_retained > 0.99
+
+    a16, b16 = _s4_05_synthetic_lora_pair(16, in_f, out_f, seed=16)
+    projected16, report16 = project_lora_rank_svd_with_report(
+        {a_key: a16, b_key: b16}, target_rank_r=target_r
+    )
+    assert report16.num_identity_pairs == 1
+    assert report16.mean_spectral_energy_retained == 1.0
+    assert torch.allclose(projected16[b_key] @ projected16[a_key], b16 @ a16, atol=1e-4)
+
+    # --- 4. The `alpha / r` scaling convention is preserved across ranks ---
+    # source scaling = 16 / 16 = 1.0, target scaling = 32 / 16 = 2.0 -> B' @ A' = 0.5 * B @ A
+    rescaled = project_lora_rank_svd(
+        {a_key: a16, b_key: b16}, target_rank_r=target_r, source_lora_alpha=16, target_lora_alpha=32
+    )
+    assert torch.allclose(rescaled[b_key] @ rescaled[a_key], 0.5 * (b16 @ a16), atol=1e-4)
+
+    # The projection is pure: the incoming community adapter is never mutated.
+    source_snapshot = {k: v.clone() for k, v in state64.items()}
+    project_lora_rank_svd(state64, target_rank_r=target_r)
+    for key, tensor in state64.items():
+        assert torch.equal(tensor, source_snapshot[key])
+
+    # --- 5. Hot-plug 32 heterogeneous-rank community experts inside a < 2.0 GB VRAM budget ---
+    hidden_size, intermediate_size, num_layers, vocab_size = 512, 1024, 6, 512
+    moe_model = _s4_05_build_moe(
+        seed=42,
+        hidden_size=hidden_size,
+        intermediate_size=intermediate_size,
+        num_layers=num_layers,
+        vocab_size=vocab_size,
+    )
+    assert moe_model.num_experts == 2
+
+    ranks = [8, 16, 32, 64]
+    community_adapters = {
+        f"Community_Domain_{idx:02d}": _s4_05_synthetic_adapter(
+            rank_r=ranks[idx % len(ranks)],
+            num_layers=num_layers,
+            hidden_size=hidden_size,
+            intermediate_size=intermediate_size,
+            seed=1_000 + idx,
+        )
+        for idx in range(30)
+    }
+
+    hotplug_result = hotplug_rank_adaptive_experts(
+        moe_model,
+        community_adapters,
+        target_rank_r=target_r,
+        vram_budget_gb=2.0,
+    )
+    assert hotplug_result["initial_num_experts"] == 2
+    assert hotplug_result["final_num_experts"] == 32
+    assert hotplug_result["num_plugged_experts"] == 30
+    assert hotplug_result["within_vram_budget"] is True
+    assert hotplug_result["vram_footprint_after_gb"] < 2.0
+
+    # Every hot-plugged expert is stored at the canonical rank (no rank-induced bloat).
+    for blk in moe_model.get_moe_blocks():
+        assert blk.router.wg.out_features == 32
+        for expert in blk.experts:
+            assert expert.gate_A.shape[0] == target_r
+            assert expert.up_A.shape[0] == target_r
+            assert expert.down_A.shape[0] == target_r
+
+    # The heterogeneous source ranks are reported and the spectral energy is preserved.
+    for idx, domain in enumerate(sorted(community_adapters.keys())):
+        report = hotplug_result["projection_reports"][domain]
+        assert report["source_rank_r"] == ranks[idx % len(ranks)]
+        assert report["target_rank_r"] == target_r
+        assert report["mean_spectral_energy_retained"] > 0.95
+        assert report["max_relative_delta_error"] < 0.5
+
+    projected_footprint = measure_moe_vram_footprint_gb(moe_model)
+    assert projected_footprint["total_gb"] < 2.0
+    assert projected_footprint["num_experts"] == 32
+
+    # Hot-plugging the very same adapters *without* rank adaptation costs strictly
+    # more VRAM, proving the canonical-rank projection removes the rank-induced bloat.
+    raw_moe_model = _s4_05_build_moe(
+        seed=42,
+        hidden_size=hidden_size,
+        intermediate_size=intermediate_size,
+        num_layers=num_layers,
+        vocab_size=vocab_size,
+    )
+    for domain, adapter in community_adapters.items():
+        raw_moe_model.hotplug_domain_expert(
+            domain_name=domain,
+            lora_state_dict=adapter,
+            lora_rank_r=detect_lora_rank(adapter),
+            lora_alpha=2 * detect_lora_rank(adapter),
+        )
+    raw_footprint = measure_moe_vram_footprint_gb(raw_moe_model)
+    assert raw_moe_model.num_experts == 32
+    assert raw_footprint["total_gb"] > projected_footprint["total_gb"]
+    assert raw_footprint["total_gb"] < 2.0
+
+    # --- 6. The 32-expert MoE still routes and trains end-to-end ---
+    x = torch.randint(0, vocab_size, (2, 8), dtype=torch.long)
+    out = moe_model(input_ids=x, labels=x)
+    assert out.loss is not None
+    assert torch.isfinite(out.loss)
+    util = moe_model.get_expert_utilization()
+    assert abs(sum(util.values()) - 1.0) < 1e-2
+    assert len(util) == 32
+
+
 

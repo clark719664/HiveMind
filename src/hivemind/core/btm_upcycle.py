@@ -183,7 +183,12 @@ def pair_lora_ab_keys(lora_state_dict: dict[str, torch.Tensor]) -> list[tuple[st
 
 
 def detect_lora_rank(lora_state_dict: dict[str, torch.Tensor]) -> int | None:
-    """Detect the rank `r` of a LoRA state dict (`None` when it holds no LoRA pair)."""
+    """Detect the rank `r` of a LoRA state dict (`None` when it holds no LoRA pair).
+
+    Adapters mixing several ranks across layers report the **maximum** rank; every
+    factor pair is nonetheless projected independently by
+    `project_lora_state_dict_to_rank`.
+    """
     ranks: set[int] = set()
     for a_key, b_key in pair_lora_ab_keys(lora_state_dict):
         a_t = lora_state_dict[a_key]
@@ -194,9 +199,7 @@ def detect_lora_rank(lora_state_dict: dict[str, torch.Tensor]) -> int | None:
             ranks.add(int(a_t.shape[1]))
     if not ranks:
         return None
-    if len(ranks) > 1:
-        raise ValueError(f"Heterogeneous LoRA ranks detected in a single adapter: {sorted(ranks)}.")
-    return ranks.pop()
+    return max(ranks)
 
 
 def svd_project_lora_pair(
@@ -321,9 +324,7 @@ def project_lora_state_dict_to_rank(
 
     src_alpha = float(source_lora_alpha) if source_lora_alpha is not None else 2.0 * src_r
     dst_alpha = float(target_lora_alpha) if target_lora_alpha is not None else 2.0 * float(target_rank_r)
-    source_scaling = src_alpha / float(src_r)
     target_scaling = dst_alpha / float(target_rank_r)
-    scale_b = source_scaling / target_scaling if target_scaling != 0.0 else 1.0
 
     projected: dict[str, torch.Tensor] = {}
     retentions: list[float] = []
@@ -341,6 +342,11 @@ def project_lora_state_dict_to_rank(
         raw_b = lora_state_dict[b_key]
         a_t, b_t, transposed = _orient_lora_pair(raw_a, raw_b)
         pair_rank = int(a_t.shape[0])
+
+        # The `alpha / r` convention is applied per factor pair so that adapters
+        # mixing several ranks across layers keep their exact effective delta.
+        pair_src_alpha = float(source_lora_alpha) if source_lora_alpha is not None else 2.0 * pair_rank
+        scale_b = (pair_src_alpha / float(pair_rank)) / target_scaling if target_scaling != 0.0 else 1.0
 
         a_new, b_new, retained = svd_project_lora_pair(
             a_t, b_t, target_rank_r=target_rank_r, scale_b=scale_b
@@ -803,18 +809,16 @@ def hotplug_rank_adaptive_experts(
     projection_reports: dict[str, dict[str, Any]] = {}
     plugged_domains: list[str] = []
     for domain_name, lora_state in expert_lora_states.items():
-        src_r = detect_lora_rank(lora_state) or target_rank_r
         src_alpha = (
             float(expert_lora_alphas[domain_name])
             if expert_lora_alphas is not None and domain_name in expert_lora_alphas
-            else 2.0 * float(src_r)
+            else None  # fall back to the per-pair community-standard `alpha = 2 * r`
         )
         projected, report = project_lora_state_dict_to_rank(
             lora_state,
             target_rank_r=target_rank_r,
             source_lora_alpha=src_alpha,
             target_lora_alpha=dst_alpha,
-            source_rank_r=src_r,
         )
         projection_reports[domain_name] = {
             "source_rank_r": report.source_rank_r,

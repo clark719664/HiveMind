@@ -5,7 +5,7 @@
 <br/>
 
 [![Release](https://img.shields.io/badge/Release-v1.3.0%20(Immutable%20SHA256)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.3.0)
-[![Test Suite](https://img.shields.io/badge/Tests-25%2F25%20Passing-brightgreen?style=for-the-badge)](tests/)
+[![Test Suite](https://img.shields.io/badge/Tests-26%2F26%20Passing-brightgreen?style=for-the-badge)](tests/)
 [![Lean 4 Verified](https://img.shields.io/badge/Lean%204-27%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20(10--Stage%20Certified)-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
@@ -320,7 +320,7 @@ Project HiveMind is structured for **conflict-free parallel engineering across i
 
 ### 6.2 Merged Community Pull Requests — Waves 1 & 2 Hall of Fame (`15/15` PRs Merged)
 
-All **15 Pull Requests** (`11` community feature/formal PRs `#6`–`#11`, `#21`–`#25` closing Issues `#1`–`#5` and `#14`–`#18` + `4` Dependabot security PRs `#12`, `#13`, `#19`, `#20`) have been reviewed, improved, verified (`25/25` tests), and merged into `main`:
+All **15 Pull Requests** (`11` community feature/formal PRs `#6`–`#11`, `#21`–`#25` closing Issues `#1`–`#5` and `#14`–`#18` + `4` Dependabot security PRs `#12`, `#13`, `#19`, `#20`) have been reviewed, improved, verified (`26/26` tests), and merged into `main`:
 - **[`PR #9`](https://github.com/xaviercallens/HiveMind/pull/9) (`@clark719664` — Closes `#1` / `HM-M1-01`):** `AsyncQUICGeoRingTransport` with binary 0-RTT session tickets (`MAGIC_QUIC_0RTT`) and `libp2p` WebSocket fallback (`src/hivemind/swarm/quic_transport.py`).
 - **[`PR #7`](https://github.com/xaviercallens/HiveMind/pull/7) (`@clark719664` — Closes `#2` / `HM-M2-01`):** 2-slot double-buffered CUDA Event DMA streamer and `prefetch_lookahead_layer` with `0.0 ms` exposed swap stall (`src/hivemind/swarm/swarm_fabric.py`).
 - **[`PR #8`](https://github.com/xaviercallens/HiveMind/pull/8) (`@clark719664` — Closes `#3` / `HM-M3-01`):** Triton `float8_e4m3fn` quantization kernel (`_triton_fp8_quant_kernel`) and deduplicated prefix-trie causal tree-attention mask ($\gamma=6..8$).
@@ -332,6 +332,13 @@ All **15 Pull Requests** (`11` community feature/formal PRs `#6`–`#11`, `#21`�
 - **[`PR #24`](https://github.com/xaviercallens/HiveMind/pull/24) (`@clark719664` — Closes `#16` / `HM-S3-03`):** Season 3 Hack-Miner Campaign Missions 9–12 (`CONTRACT-HF-09`..`12`) & Interactive WebGL 3D Geo-Ring Topology Map (`#webgl-georing-map` + `/api/georing-topology`).
 - **[`PR #25`](https://github.com/xaviercallens/HiveMind/pull/25) (`@clark719664` — Closes `#17` / `HM-S3-04`):** Season 3 Domain Expert LoRA Registry (`Season3DomainExpertRegistry`), Top-$k$ FP8 Trainer (`train_and_publish_season3_domain_experts`), and CAS checkpoint loader (`src/hivemind/core/btm_moe.py`, `src/hivemind/data/hf_real_trainer.py`).
 - **[`PR #21`](https://github.com/xaviercallens/HiveMind/pull/21) (`@clark719664` — Closes `#18` / `HM-S3-05`):** Formal Lean 4 Proofs for Prefix-Trie Speculative Acceptance & RFC 9001 0-RTT Anti-Replay Bounds (`Season3_PrefixTrie_And_0RTT`, bringing `lean4/HiveMindSpec.lean` to **27 machine-checked theorems**).
+
+#### 6.2.1 Season 4 / Wave 3 Hall of Fame (`HM-S4-05` — SVD Rank-Adaptive MoE Upcycling)
+
+- **[`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32) (`@clark719664` — Closes `#30` / `HM-S4-05` — `+1,500 $HIVE`):** Dynamic **SVD Rank-Adaptive LoRA Projection** (`project_lora_rank_svd`, `r=8..64 → r=16`) & **32-Expert Sparse MoE Scaling in `< 2.0 GB` VRAM** (`src/hivemind/core/btm_moe.py`, `src/hivemind/core/btm_upcycle.py`).
+  - `project_lora_rank_svd(lora_state_dict, target_rank_r=16)` uses `torch.linalg.svd` (via a QR-decomposed `B` core, so the dense `B @ A` delta is never materialized) to **compress** `r=32`/`r=64` adapters onto the Eckart–Young optimal rank-16 delta and to **zero-pad** `r=8` adapters, preserving the `alpha / r` scaling convention and `>= 99.4%` of the spectral energy.
+  - `hotplug_rank_adaptive_experts()` hot-plugs **32 heterogeneous community experts** (`r=8/16/32/64`) into one `UpcycledSparseMoEModel`; `measure_moe_vram_footprint_gb()` reports the resident footprint (**`0.107 GB` projected vs `0.146 GB` unprojected**, i.e. `-27%` VRAM bloat removed) and asserts the **`< 2.0 GB`** budget.
+  - Verified by `tests/test_seti_swarm_v2.py::test_s4_05_svd_rank_adaptive_lora_projection_and_moe_scaling` (**`26/26`** tests passing).
 
 ### 6.3 Call for Contributors — Open Season 4 / Wave 3 GitHub Issues (`#26`–`#31` | `11,600 $HIVE` Bounty Pool)
 
@@ -347,6 +354,9 @@ We have opened **6 new Wave 3 / Season 4 Community Bounties** on GitHub Issues! 
 | **[Issue `#31`](https://github.com/xaviercallens/HiveMind/issues/31)** | **`HM-S4-06`** | **Formal Lean 4 Proofs (`Theorem 28`–`32`) for Quadratic DAO Sybil Bounds, SVD Rank Savings & Super-Ring Latency** (`lean4/HiveMindSpec.lean`) | `formal/s4-dao-superring-lean4` | **`+1,800 $HIVE`** |
 
 See **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)** and **[`CONTRIBUTING.md`](CONTRIBUTING.md)** for full acceptance criteria and PR guidelines.
+
+> [!NOTE]
+> **Issue `#30` (`HM-S4-05`) has been delivered** by [`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32) (see §6.2.1): the SVD rank-adaptive LoRA projection (`r=8..64 → r=16`) and the 32-expert Sparse MoE hot-plug inside the `< 2.0 GB` VRAM budget are implemented and verified (`26/26` tests passing).
 
 ---
 
@@ -388,5 +398,5 @@ HiveMind/
 ├── steam_dist/
 │   └── HiveMind_Steam_FreeEdition/ # Packaged Free Steam RTX Tool & Hack-Miner v1.0.0 + Web HUD (:8090)
 ├── artifacts/                      # Verified RTX 2070 Stress Suite, Season 3 Collaboration & Hack-Miner JSON Reports
-└── tests/                          # 25/25 Automated Unit & Integration Test Suite (`pytest tests/ -v`)
+└── tests/                          # 26/26 Automated Unit & Integration Test Suite (`pytest tests/ -v`)
 ```
