@@ -247,6 +247,12 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       <button class="btn" onclick="runInteractiveBounty()">Route Top-2 Experts &amp; Crack Bounty (+PTS)</button>
       <div class="terminal" id="bounty-terminal">[READY] Submit any Coding, Biomedical, Math, Rust, CyberSecurity, or French prompt to route across the 6-Expert Sparse MoE and earn live Bounty + Swarm Points.</div>
     </div>
+
+    <div class="card" id="webgl-georing-map" style="grid-column: 1 / -1;">
+      <h2>SEASON 3 INTERACTIVE WEBGL 3D GEO-RING TOPOLOGY MAP &amp; MISSIONS (9-12)</h2>
+      <canvas id="webgl-georing-canvas" width="920" height="220" style="width:100%; height:220px; background:#050811; border:1px solid #00f0ff; border-radius:6px;"></canvas>
+      <div class="terminal" id="georing-terminal">[WEBGL 3D GEO-RING ACTIVE] Nodes: EU-West-Paris &rarr; EU-Central-Berlin &rarr; US-East-Virginia &rarr; APAC-East-Tokyo | Season 3 Missions 9-12 Loaded.</div>
+    </div>
   </div>
 
   <script>
@@ -757,6 +763,7 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     from hivemind.config import HiveMindConfig, detect_local_hardware
     from hivemind.core.quantization import measure_vram_footprint
     from hivemind.game.hf_hack_miner import (
+        build_georing_3d_topology_snapshot,
         execute_interactive_bounty_probe,
         execute_interactive_hf_shard_scan,
         execute_interactive_lora_micro_forge,
@@ -790,11 +797,19 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     @app.get("/api/missions", response_class=JSONResponse)
     def get_missions() -> Dict[str, Any]:
         data = json.loads(state_path.read_text(encoding="utf-8"))
+        topo = build_georing_3d_topology_snapshot()
         return {
             "steam_app_id": STEAM_APP_ID,
             "missions": data.get("missions", []),
+            "season3_missions": topo["season3_missions"],
             "moe_boss_fusion": data.get("moe_boss_fusion", {}),
         }
+
+    @app.get("/api/georing-topology", response_class=JSONResponse)
+    def get_georing_topology() -> Dict[str, Any]:
+        topo = build_georing_3d_topology_snapshot()
+        topo["steam_app_id"] = STEAM_APP_ID
+        return topo
 
     @app.get("/api/rich-presence", response_class=JSONResponse)
     def get_rich_presence() -> Dict[str, Any]:

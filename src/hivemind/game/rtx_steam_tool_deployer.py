@@ -655,6 +655,8 @@ def run_intense_rtx_stress_suite(
         gemm_elapsed = max(1e-6, time.perf_counter() - t_gemm0)
         gemm_gflops = round((2.0 * (gemm_n**3) * gemm_iters) / gemm_elapsed / 1e9, 2)
 
+        from hivemind.swarm.swarm_fabric import fused_int4_fp8_moe_route_and_project
+
         hs_16 = torch.randn(2, 32, 128, device=device, dtype=torch.float16)
         router_w16 = torch.randn(16, 128, device=device, dtype=torch.float32) * 0.05
         experts_w16 = [torch.randn(128, 128, device=device, dtype=torch.float16) * 0.02 for _ in range(16)]
@@ -662,6 +664,12 @@ def run_intense_rtx_stress_suite(
             hidden_states=hs_16,
             router_weight=router_w16,
             expert_down_weights=experts_w16,
+            top_k=2,
+        )
+        fused_int4_res = fused_int4_fp8_moe_route_and_project(
+            hidden_states=hs_16,
+            router_weight=router_w16,
+            expert_weights=experts_w16,
             top_k=2,
         )
         del mat_a, mat_b, hs_16, router_w16, experts_w16
@@ -673,10 +681,12 @@ def run_intense_rtx_stress_suite(
             "top_k": 2,
             "router_dtype": fused_res["router_dtype"],
             "fp8_compression_ratio": fused_res["fp8_compression_ratio"],
+            "int4_vram_compression_ratio": fused_int4_res["vram_compression_ratio"],
+            "int4_fp8_cosine_similarity": fused_int4_res["cosine_similarity"],
             "sqnr_db": fused_res["sqnr_db"],
             "fused_kernel_latency_ms": fused_res["kernel_latency_ms"],
             "fp16_gemm_gflops": gemm_gflops,
-            "sqnr_above_20db": fused_res["sqnr_db"] >= 20.0,
+            "sqnr_above_20db": fused_res["sqnr_db"] >= 20.0 and fused_int4_res["cosine_similarity"] >= 0.99,
         }
 
         # =====================================================================
@@ -693,6 +703,12 @@ def run_intense_rtx_stress_suite(
             remote_peer_id="rtx-node-tokyo-03",
             nat_type="symmetric_nat",
         )
+        wan_punch = quic_transport.execute_udp_hole_punch(
+            peer_a_id="rtx-node-paris-01",
+            peer_b_id="rtx-node-berlin-02",
+            simulated_nat_a="restricted_cone",
+            simulated_nat_b="port_restricted_cone",
+        )
         ok_n1, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=1)
         ok_n2, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=2)
         replay_dup, _ = quic_transport.verify_0rtt_ticket_anti_replay("rtx-node-paris-01", nonce=2)
@@ -702,8 +718,13 @@ def run_intense_rtx_stress_suite(
         )
 
         stage8_summary = {
-            "restricted_cone_direct_udp_verified": hp_cone["hole_punch_succeeded"] and hp_cone["handshake_verified"],
+            "restricted_cone_direct_udp_verified": (
+                hp_cone["hole_punch_succeeded"]
+                and hp_cone["handshake_verified"]
+                and wan_punch["direct_hole_punch_succeeded"]
+            ),
             "restricted_cone_rtt_ms": hp_cone["effective_rtt_ms"],
+            "wan_hole_punch_latency_ms": wan_punch["hole_punch_latency_ms"],
             "symmetric_nat_turn_fallback_verified": (
                 not hp_sym["hole_punch_succeeded"]
                 and hp_sym["transport_mode"] == "turn_relay_websocket_fallback"
@@ -722,7 +743,10 @@ def run_intense_rtx_stress_suite(
         # STAGE 9: Season 3 Hack-Miner Contracts (`HM-S3-03` & `HM-S3-04`) +
         #          Content-Addressed Swarm Store (CAS) Expert Delta Verification
         # =====================================================================
-        from hivemind.game.hf_hack_miner import execute_interactive_lora_micro_forge
+        from hivemind.game.hf_hack_miner import (
+            build_georing_3d_topology_snapshot,
+            execute_interactive_lora_micro_forge,
+        )
 
         s3_lean_forge = execute_interactive_lora_micro_forge(
             gamer_tag="CyberValkyrie_FR",
@@ -732,6 +756,11 @@ def run_intense_rtx_stress_suite(
             gamer_tag="NeuralGhost_DE",
             contract_id="CONTRACT-HF-08-SOLIDITY-ESCROW",
         )
+        s3_m9_forge = execute_interactive_lora_micro_forge(
+            gamer_tag="CyberValkyrie_FR",
+            contract_id="CONTRACT-HF-09-CROSS-CONTINENT-RELAY",
+        )
+        topo_3d = build_georing_3d_topology_snapshot()
         cas_store = ContentAddressedSwarmStore(tmp_dir / "s3_cas_vault")
         dummy_lora_a = {"layers.0.lora_A": torch.zeros(8, 64), "layers.0.lora_B": torch.zeros(64, 8)}
         dummy_lora_b = {"layers.0.lora_A": torch.ones(8, 64) * 0.02, "layers.0.lora_B": torch.ones(64, 8) * 0.02}
@@ -751,19 +780,30 @@ def run_intense_rtx_stress_suite(
         _, _, loaded_lora = cas_store.load_lora_expert_checkpoint(expert_cid)
 
         stage9_summary = {
-            "season3_contracts_forged": [s3_lean_forge["contract_id"], s3_sol_forge["contract_id"]],
-            "season3_domains": [s3_lean_forge["domain_expert"], s3_sol_forge["domain_expert"]],
+            "season3_contracts_forged": [
+                s3_lean_forge["contract_id"],
+                s3_sol_forge["contract_id"],
+                s3_m9_forge["contract_id"],
+            ],
+            "season3_domains": [
+                s3_lean_forge["domain_expert"],
+                s3_sol_forge["domain_expert"],
+                s3_m9_forge["domain_expert"],
+            ],
             "season3_all_spotchecks_passed": (
-                s3_lean_forge["spot_check_passed"] and s3_sol_forge["spot_check_passed"]
+                s3_lean_forge["spot_check_passed"]
+                and s3_sol_forge["spot_check_passed"]
+                and s3_m9_forge["spot_check_passed"]
             ),
+            "webgl_3d_georing_nodes": topo_3d["num_nodes"],
             "cas_expert_cid": expert_cid,
             "cas_roundtrip_verified": "layers.0.lora_A" in loaded_lora,
             "lora_top5pct_fp8_compression_ratio": comp_pkg.compression_ratio,
         }
 
         # =====================================================================
-        # STAGE 10: Lean 4 Machine-Checked 21-Theorem Specification Audit
-        #           (`HM-S3-05`: 0 `sorry`, 0 `axiom`, 21 Theorems Verified)
+        # STAGE 10: Lean 4 Machine-Checked 27-Theorem Specification Audit
+        #           (`HM-S3-05`: 0 `sorry`, 0 `axiom`, 27 Theorems Verified)
         # =====================================================================
         from paper.autoevolve_peer_review_pipeline import verify_lean4_specification
 
@@ -778,9 +818,11 @@ def run_intense_rtx_stress_suite(
                 and "quic_0rtt_anti_replay_rejects_duplicate_nonce" in lean_audit["theorems"]
                 and "fused_moe_fp8_vram_fits_16_experts_in_8gb" in lean_audit["theorems"]
                 and "nat_hole_punch_direct_p2p_avoids_turn_relay_latency" in lean_audit["theorems"]
+                and "prefix_trie_dedup_node_bound" in lean_audit["theorems"]
+                and "rfc9001_0rtt_monotonic_nonce_anti_replay" in lean_audit["theorems"]
             ),
             "formal_spec_verified": (
-                lean_audit["theorem_count"] >= 21
+                lean_audit["theorem_count"] >= 27
                 and lean_audit["sorry_count"] == 0
                 and lean_audit["user_axiom_count"] == 0
             ),

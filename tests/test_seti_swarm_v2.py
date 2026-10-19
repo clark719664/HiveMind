@@ -563,7 +563,13 @@ def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> Non
     lean_res = verify_lean4_specification()
     assert lean_res["sorry_count"] == 0
     assert lean_res["user_axiom_count"] == 0
-    assert lean_res["theorem_count"] >= 14
+    assert lean_res["theorem_count"] >= 20
+    assert "prefix_trie_dedup_node_bound" in lean_res["theorems"]
+    assert "speculative_rejection_sampling_target_invariance" in lean_res["theorems"]
+    assert "prefix_trie_speculative_progress_bounds" in lean_res["theorems"]
+    assert "rfc9001_0rtt_monotonic_nonce_anti_replay" in lean_res["theorems"]
+    assert "rfc9001_0rtt_ticket_expiration_bound" in lean_res["theorems"]
+    assert "wan_nat_hole_punch_rtt_bound" in lean_res["theorems"]
     assert lean_res["tier_a_machine_checked"] is True
 
     assert TEX_PATH.exists() and TEX_PATH.stat().st_size > 10_000
@@ -839,5 +845,228 @@ def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
         raw_sse = "".join(sse_resp.iter_text())
         assert "chat.completion.chunk" in raw_sse
         assert "data: [DONE]" in raw_sse
+
+
+def test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching() -> None:
+    """
+    Validates Season 3 Milestone HM-S3-01:
+    - RFC 5389 STUN reflexive endpoint discovery & RFC 5766 TURN relay allocation
+    - Simultaneous UDP hole-punching (< 5 ms/hop) across restricted/port-restricted cone NATs
+    - Automatic 0-RTT TURN relay fallback when both peers are behind symmetric CGNAT
+    - RFC 9001 monotonic 0-RTT anti-replay nonce enforcement
+    """
+    from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport
+
+    quic = AsyncQUICGeoRingTransport(region="EU-West-Paris", max_rtt_ms=15.0)
+    ep = quic.discover_stun_turn_endpoint(
+        peer_id="wan-node-berlin-01",
+        local_port=4433,
+        simulated_nat_type="restricted_cone",
+    )
+    assert ep["reflexive_ip"].startswith("198.51.100.")
+    assert 32768 <= ep["reflexive_port"] < 60768
+    assert ep["turn_relay_endpoint"].startswith("turn.hivemind.network:5349/alloc/")
+
+    punch_res = quic.execute_udp_hole_punch(
+        peer_a_id="wan-node-berlin-01",
+        peer_b_id="wan-node-tokyo-02",
+        simulated_nat_a="restricted_cone",
+        simulated_nat_b="port_restricted_cone",
+    )
+    assert punch_res["direct_hole_punch_succeeded"] is True
+    assert punch_res["fallback_to_turn"] is False
+    assert punch_res["transport_mode"] == "direct_udp_hole_punch_0rtt"
+    assert punch_res["hole_punch_latency_ms"] < 5.0
+    assert punch_res["sub_5ms_verified"] is True
+
+    cgnat_res = quic.execute_udp_hole_punch(
+        peer_a_id="wan-cgnat-mobile-01",
+        peer_b_id="wan-cgnat-mobile-02",
+        simulated_nat_a="symmetric_cgnat",
+        simulated_nat_b="symmetric_cgnat",
+    )
+    assert cgnat_res["direct_hole_punch_succeeded"] is False
+    assert cgnat_res["fallback_to_turn"] is True
+    assert cgnat_res["transport_mode"] == "turn_allocation_relay_0rtt"
+    assert cgnat_res["hole_punch_latency_ms"] < 5.0
+
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 101) is True
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 101) is False
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 99) is False
+    assert quic.verify_and_advance_0rtt_nonce("wan-node-berlin-01", 102) is True
+
+
+def test_s3_02_triton_int4_fp8_fused_moe_router_kernel() -> None:
+    """
+    Validates Season 3 Milestone HM-S3-02:
+    - 4-bit INT4/NF4 weight packing (2 nibbles per uint8 byte + FP16 scale) and on-the-fly dequantization
+    - Fused Top-2 Sparse MoE routing + FP8 (`float8_e4m3fn`) hidden-state activation projection
+    - Numerical parity (`cosine_similarity >= 0.99`) and >= 3.2x VRAM weight compression
+    """
+    from hivemind.swarm.swarm_fabric import (
+        benchmark_fused_int4_fp8_moe_kernel,
+        fused_int4_fp8_moe_route_and_project,
+        pack_int4_nf4_weights,
+        unpack_int4_nf4_weights,
+    )
+
+    torch.manual_seed(7)
+    w = torch.randn(32, 64, dtype=torch.float32)
+    packed_u8, scale_fp16 = pack_int4_nf4_weights(w)
+    assert packed_u8.dtype == torch.uint8
+    assert packed_u8.shape == (32, 32)
+    w_restored = unpack_int4_nf4_weights(packed_u8, scale_fp16, original_in_dim=64)
+    w_cos = torch.nn.functional.cosine_similarity(
+        w.flatten().unsqueeze(0), w_restored.flatten().unsqueeze(0)
+    ).item()
+    assert w_cos >= 0.99
+
+    x = torch.randn(2, 8, 64, dtype=torch.float32)
+    router_w = torch.randn(8, 64, dtype=torch.float32)
+    experts = [torch.randn(64, 64, dtype=torch.float32) for _ in range(8)]
+    res = fused_int4_fp8_moe_route_and_project(x, router_w, experts, top_k=2)
+    assert res["output"].shape == (2, 8, 64)
+    assert res["top_k_indices"].shape == (16, 2)
+    assert res["cosine_similarity"] >= 0.99
+    assert res["vram_compression_ratio"] >= 3.2
+
+    bench = benchmark_fused_int4_fp8_moe_kernel(batch_tokens=32, hidden_dim=64, num_experts=8, top_k=2)
+    assert bench["parity_verified"] is True
+    assert bench["cosine_similarity"] >= 0.99
+    assert bench["throughput_tokens_per_sec"] > 0
+
+
+def test_s3_03_season3_missions_9_12_and_webgl_georing_hud() -> None:
+    """
+    Validates Season 3 Milestone HM-S3-03:
+    - Season 3 Hack-Miner Campaign Missions 9-12 (`SEASON_3_HF_BOUNTY_CONTRACTS`)
+    - Interactive QLoRA Micro-Forge on Season 3 Mission 9-12 contracts
+    - WebGL 3D Geo-Ring Topology Map in Cyberpunk HUD (`#webgl-georing-map`) and `/api/georing-topology`
+    """
+    from fastapi.testclient import TestClient
+    from hivemind.game.hf_hack_miner import (
+        ALL_HF_BOUNTY_CONTRACTS,
+        FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS,
+        SEASON_3_HF_BOUNTY_CONTRACTS,
+        build_georing_3d_topology_snapshot,
+        execute_interactive_lora_micro_forge,
+    )
+    from hivemind.game.steam_edition import create_hack_miner_fastapi_app
+
+    assert len(ALL_HF_BOUNTY_CONTRACTS) == 6
+    assert len(SEASON_3_HF_BOUNTY_CONTRACTS) == 4
+    assert len(FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS) == 10
+    s3_ids = [c.contract_id for c in SEASON_3_HF_BOUNTY_CONTRACTS]
+    assert s3_ids == [
+        "CONTRACT-HF-09-CROSS-CONTINENT-RELAY",
+        "CONTRACT-HF-10-ZK-SPOTCHECK-AUDIT",
+        "CONTRACT-HF-11-DYNAMIC-16EXPERT-FUSION",
+        "CONTRACT-HF-12-SWARM-DAO-GOVERNANCE",
+    ]
+
+    forge_res = execute_interactive_lora_micro_forge(
+        gamer_tag="CyberValkyrie_FR",
+        contract_id="CONTRACT-HF-09-CROSS-CONTINENT-RELAY",
+    )
+    assert forge_res["contract_id"] == "CONTRACT-HF-09-CROSS-CONTINENT-RELAY"
+    assert forge_res["season"] == 3
+    assert forge_res["total_pts_awarded"] > 1200
+
+    topo = build_georing_3d_topology_snapshot()
+    assert topo["renderer"] == "webgl_3d_georing_globe_v3"
+    assert topo["num_nodes"] == 4
+    assert len(topo["season3_missions"]) == 4
+
+    app = create_hack_miner_fastapi_app()
+    client = TestClient(app)
+    html_resp = client.get("/")
+    assert html_resp.status_code == 200
+    assert "webgl-georing-map" in html_resp.text
+    assert "webgl-georing-canvas" in html_resp.text
+
+    topo_resp = client.get("/api/georing-topology")
+    assert topo_resp.status_code == 200
+    topo_json = topo_resp.json()
+    assert topo_json["num_nodes"] == 4
+    assert len(topo_json["season3_missions"]) == 4
+
+
+def test_s3_04_additional_domain_expert_lora_adapters(tmp_path: Path) -> None:
+    """
+    Validates Season 3 Milestone HM-S3-04:
+    - Training & Top-k (`k=0.05`) + FP8 (`float8_e4m3fn`) compression of the 4 Season 3
+      domain LoRA adapters (`Rust_Systems_Security`, `Solidity_Smart_Contracts`,
+      `Biomedical_Clinical_QA`, `Lean4_Theorem_Prover`)
+    - Content-Addressed Swarm Store (`cid://sha256/expert-...`) publication & reload
+    - Dynamic hot-plugging into `UpcycledSparseMoEModel` and Top-2 domain routing
+    """
+    from hivemind.core.btm_moe import (
+        SEASON_3_DOMAIN_EXPERT_SPECS,
+        upcycle_branches_to_sparse_moe,
+    )
+    from hivemind.data.hf_real_trainer import train_and_publish_season3_domain_experts
+    from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
+
+    base_model, _, _ = build_local_qwen2_backbone(
+        vocab_size=256,
+        hidden_size=64,
+        intermediate_size=128,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        num_key_value_heads=2,
+        device=torch.device("cpu"),
+        use_4bit_nf4_if_cuda=False,
+    )
+    bundle = attach_qlora_adapters(base_model, rank_r=8, lora_alpha=16, gradient_checkpointing=False)
+    ref_lora = extract_lora_state_dict(bundle.model)
+
+    moe_model, _ = upcycle_branches_to_sparse_moe(
+        peft_or_base_model=bundle.model,
+        branch_lora_states={
+            "Python_Systems_Code": {k: v.clone() for k, v in ref_lora.items()},
+            "Mathematical_Reasoning": {k: v.clone() + 0.01 for k, v in ref_lora.items()},
+        },
+        lora_rank_r=8,
+        lora_alpha=16,
+        top_k=2,
+        in_place=True,
+    )
+    assert moe_model.num_experts == 2
+
+    store = ContentAddressedSwarmStore(tmp_path / "s3_cas_store")
+    registry, summary = train_and_publish_season3_domain_experts(
+        store=store,
+        reference_lora_state=ref_lora,
+        moe_model=moe_model,
+        topk_ratio=0.05,
+        inner_steps=10,
+    )
+    assert summary["num_domains_trained"] == 4
+    assert set(registry.list_domains()) == set(SEASON_3_DOMAIN_EXPERT_SPECS.keys())
+    assert moe_model.num_experts == 6
+
+    for dom, rec in summary["receipts"].items():
+        assert rec["expert_cid"].startswith(f"cid://sha256/expert-{dom.lower()}-")
+        assert rec["loss_decreased"] is True
+        assert rec["compression_ratio"] > 1.0
+        loaded_cid, loaded_meta, loaded_state = store.load_lora_expert_checkpoint(rec["expert_cid"])
+        assert loaded_cid == rec["expert_cid"]
+        assert set(loaded_state.keys()) == set(ref_lora.keys())
+        assert loaded_meta["domain_name"] == dom
+
+    top2_solidity, _ = registry.route_domain_query(
+        "Audit this Solidity ERC20 smart contract for reentrancy in msg.sender", top_k=2
+    )
+    assert top2_solidity[0] == "Solidity_Smart_Contracts"
+
+    top2_lean, _ = registry.route_domain_query(
+        "Prove this Lean 4 theorem by induction and omega tactic", top_k=2
+    )
+    assert top2_lean[0] == "Lean4_Theorem_Prover"
+
+    x = torch.randint(0, 256, (2, 8), dtype=torch.long)
+    out = moe_model(input_ids=x, labels=x)
+    assert out.loss is not None
+
 
 

@@ -4,9 +4,9 @@
 
 <br/>
 
-[![Release](https://img.shields.io/badge/Release-v1.1.0%20(Immutable%20SHA256)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.1.0)
-[![Test Suite](https://img.shields.io/badge/Tests-21%2F21%20Passing-brightgreen?style=for-the-badge)](tests/)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-21%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Release](https://img.shields.io/badge/Release-v1.2.0%20(Immutable%20SHA256)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.2.0)
+[![Test Suite](https://img.shields.io/badge/Tests-25%2F25%20Passing-brightgreen?style=for-the-badge)](tests/)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-27%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20(10--Stage%20Certified)-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
 [![Swarm Fabric](https://img.shields.io/badge/Swarm%20Fabric-M1--M5%20%2B%20Season%203%20Complete-a855f7?style=for-the-badge)](src/hivemind/swarm/swarm_fabric.py)
@@ -138,10 +138,10 @@ Executed on a real **NVIDIA GeForce RTX 2070 (8.0 GB VRAM, Turing SM 7.5)** via 
 | **Stage 4: 100-Packet UDP 0-RTT Burst, $\gamma=6$ Tree & OPoI Dispute** | 100 `float8_e4m3fn` hidden-state packets over localhost UDP 0-RTT (`AsyncQUICGeoRingTransport`), GossipSub game failover, $\gamma=6$ prefix-trie tree mask, 50 L2 vouchers, and 12-layer Merkle dispute | **`2,526.2 fps`** UDP 0-RTT (`2.0x` FP8) \| Failover: **`2.695 ms`** \| Layer `#7` Fraud Slashed & Refunded | **PASS** |
 | **Stage 5: Steamworks 50-Account Anti-Sybil Concurrency** | 50 concurrent Steam authentications (`35` Non-Limited `$25+`, `10` `$0.00` Limited Sybil bots, `5` VAC-banned) + live Rich Presence & UserStats | **`35/35` Verified** \| **`10/10` Sybil Blocked** \| **`5/5` VAC Blocked** \| `35` Live Rich Presence | **PASS** |
 | **Stage 6: OpenAI SSE Gateway & Free Steam Tool HUD Load** | Synchronous + SSE streaming (`stream=True`) `POST /v1/chat/completions` + all 8 Free Steam Tool Web HUD endpoints | `/v1/chat/completions` Sync + SSE `[DONE]` = **`200 OK`** \| All 8 HUD Routes = **`200 OK`** | **PASS** |
-| **Stage 7: RTX TensorCore FP16 GEMM + 16-Expert Fused FP8 MoE** | FP16 TensorCore GEMM throughput + `fused_top2_moe_fp8_dispatch` across 16 experts (`E=16`, `top_k=2`) with FP32 router gating and FP8 (`E4M3`) activation quantization | **`52.1 GFLOPS`** \| SQNR: **`31.79 dB`** (`>20 dB`) \| CUDA Event Kernel: **`19.76 ms`** | **PASS** |
-| **Stage 8: WAN STUN UDP Hole-Punching & RFC 9001 Anti-Replay** | Bidirectional STUN/ICE UDP hole-punching (`restricted_cone`) + TURN fallback (`symmetric_nat`) + monotonic 0-RTT anti-replay nonce window | Direct UDP RTT: **`0.485 ms`** \| TURN Fallback: **Verified** \| Replay Blocked: **`100%`** | **PASS** |
-| **Stage 9: Season 3 Hack-Miner Forge & CAS Expert Vault** | Interactive QLoRA Micro-Forge on `CONTRACT-HF-07-LEAN4-FORMAL` & `CONTRACT-HF-08-SOLIDITY-ESCROW` + Top-5% FP8 compression + CAS CID roundtrip | **`2/2` S3 Contracts Forged** \| Spot-Check: **Verified** \| CID Pin & Load: **`100%`** | **PASS** |
-| **Stage 10: Lean 4 Machine-Checked 21-Theorem Audit** | Automated AST & soundness verification of `lean4/HiveMindSpec.lean` across all 4 Pillars, Phase 2 Swarm Fabric, and Season 3 proofs | **`21/21` Theorems Verified** \| **`0 sorry`** \| **`0` User Axioms** | **PASS** |
+| **Stage 7: RTX TensorCore FP16 GEMM + 16-Expert Fused INT4+FP8 MoE** | FP16 TensorCore GEMM throughput + `fused_top2_moe_fp8_dispatch` & `fused_int4_fp8_moe_route_and_project` across 16 experts (`E=16`, `top_k=2`) with `3.88x` INT4 VRAM compression | **`51.24 GFLOPS`** \| SQNR: **`31.79 dB`** \| Cosine Sim: **`0.9963`** \| Kernel: **`12.54 ms`** | **PASS** |
+| **Stage 8: WAN STUN UDP Hole-Punching & RFC 9001 Anti-Replay** | Bidirectional STUN/ICE UDP hole-punching (`restricted_cone` & `port_restricted_cone`) + TURN fallback (`symmetric_cgnat`) + monotonic 0-RTT anti-replay nonce window | Direct UDP RTT: **`0.440 ms`** \| TURN Fallback: **Verified** \| Replay Blocked: **`100%`** | **PASS** |
+| **Stage 9: Season 3 Hack-Miner Forge & CAS Expert Vault** | Interactive QLoRA Micro-Forge on `CONTRACT-HF-07`..`09` + WebGL 3D Geo-Ring Topology (`4` nodes) + Top-5% FP8 compression + CAS CID roundtrip | **`3/3` S3 Contracts Forged** \| Spot-Check: **Verified** \| CID Pin & Load: **`100%`** | **PASS** |
+| **Stage 10: Lean 4 Machine-Checked 27-Theorem Audit** | Automated AST & soundness verification of `lean4/HiveMindSpec.lean` across all 4 Pillars, Phase 2 Swarm Fabric, and Season 3 proofs (`Season3_AdvancedProofs` + `Season3_PrefixTrie_And_0RTT`) | **`27/27` Theorems Verified** \| **`0 sorry`** \| **`0` User Axioms** | **PASS** |
 
 ### 2.2 Multi-Domain `Qwen/Qwen2.5-0.5B` DiLoCo-QLoRA & 96-Expert Sparse MoE Benchmarks ([`artifacts/poc_qwen25_rtx2070_report.json`](artifacts/poc_qwen25_rtx2070_report.json))
 
@@ -159,7 +159,7 @@ Executed on a real **NVIDIA GeForce RTX 2070 (8.0 GB VRAM, Turing SM 7.5)** via 
 
 ## 🎮 3. Hugging Face Hack-Miner & Free Steam RTX Tool (`v1.0.0`)
 
-To make decentralized AI training engaging for the gaming community, Project HiveMind includes the **`HiveMind: Neural Breach // Free Steam RTX Tool & Hack-Miner`** prototype ([`steam_dist/HiveMind_Steam_FreeEdition/`](steam_dist/HiveMind_Steam_FreeEdition/)) where players scan **6 real Hugging Face datasets across Season 1 & Season 2**, train 4-bit NF4 QLoRA experts on their GPU, broadcast **Steam Friends Rich Presence**, and fuse a **6-Expert Sparse MoE Omega Boss** (`E=2 -> E=6` hot-plug):
+To make decentralized AI training engaging for the gaming community, Project HiveMind includes the **`HiveMind: Neural Breach // Free Steam RTX Tool & Hack-Miner`** prototype ([`steam_dist/HiveMind_Steam_FreeEdition/`](steam_dist/HiveMind_Steam_FreeEdition/)) where players scan **real Hugging Face datasets across Season 1, Season 2, and Season 3 (Missions 1–12)**, train 4-bit NF4 QLoRA experts on their GPU, broadcast **Steam Friends Rich Presence**, explore the **Interactive WebGL 3D Geo-Ring Topology Map (`#webgl-georing-map`)**, and fuse a **Sparse MoE Omega Boss**:
 
 | Season & Mission Contract | Live Hugging Face Dataset | Pre-LoRA $\rightarrow$ Post-LoRA Solution Perplexity | Top Mission Miner | Expert CID Minted in Swarm Vault |
 | :--- | :--- | :---: | :---: | :--- |
@@ -197,13 +197,13 @@ uv pip install -e ".[dev]"
 # 1. Inspect your GPU, VRAM budget & Win32 Zero-Intrusion Daemon status
 .\.venv\Scripts\python.exe -m hivemind.cli.main hardware-check
 
-# 2. Run the 6-Stage Intense RTX GPU Stress Suite & deploy the Free Steam RTX Tool v1.0.0
+# 2. Run the 10-Stage Intense RTX GPU Stress Suite & deploy the Free Steam RTX Tool v1.0.0
 .\.venv\Scripts\python.exe -m hivemind.cli.main deploy-steam-tool
 
-# 3. Play the Full 6-Mission (Season 1 + Season 2) Hugging Face Hack-Miner Campaign
-.\.venv\Scripts\python.exe -m hivemind.cli.main play-hack-game --season all --inner-steps 8
+# 3. Play the Full Campaign (Season 1 + Season 2 + Season 3) Hugging Face Hack-Miner Game
+.\.venv\Scripts\python.exe -m hivemind.cli.main play-hack-game --season s1-s3 --inner-steps 8
 
-# 4. Launch the Interactive Cyberpunk RTX Control Center & Web HUD (http://127.0.0.1:8090)
+# 4. Launch the Interactive Cyberpunk RTX Control Center & WebGL 3D Geo-Ring HUD (http://127.0.0.1:8090)
 .\.venv\Scripts\python.exe -m hivemind.cli.main serve-hack-hud --host 127.0.0.1 --port 8090
 
 # 5. Or launch the BOINC Coordinator & OpenAI-Compatible Proxy Server (http://127.0.0.1:8000)
@@ -254,7 +254,7 @@ with httpx.stream(
 
 ## 📐 5. Machine-Checked Lean 4 Specification & Foundational Research Paper
 
-All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`21` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
+All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`27` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
 
 | Formal Namespace | Machine-Checked Lean 4 Theorem | Proved Guarantee |
 | :--- | :--- | :--- |
@@ -268,6 +268,8 @@ All core mathematical invariants of Project HiveMind are machine-checked in **Le
 | `Phase2_SwarmFabric` | `dma_double_buffer_zero_exposed_stall` & `l2_state_channel_settlement_conservation` | $t_{\text{DMA}} \le t_{\text{Attn}} \implies 0\text{ ms}$ swap stall & exact L2 voucher settlement |
 | `Season3_AdvancedProofs` | `prefix_trie_shared_nodes_reduce_attention_flops` & `quic_0rtt_anti_replay_rejects_duplicate_nonce` | Prefix-Trie merges shared prefixes (`19 < 25` nodes) & RFC 9001 0-RTT window rejects replayed nonces |
 | `Season3_AdvancedProofs` | `fused_moe_fp8_vram_fits_16_experts_in_8gb` & `nat_hole_punch_direct_p2p_avoids_turn_relay_latency` | 16-Expert Fused MoE (`1,680 MiB <= 6,656 MiB`) fits in 8 GB VRAM & STUN UDP hole-punch beats TURN relay |
+| `Season3_PrefixTrie_And_0RTT` | `prefix_trie_dedup_node_bound` & `speculative_rejection_sampling_target_invariance` | General Prefix-Trie node upper bound ($1 + p + B(\gamma-p) < 1 + B\gamma$) & lossless target distribution |
+| `Season3_PrefixTrie_And_0RTT` | `rfc9001_0rtt_monotonic_nonce_anti_replay` & `rfc9001_0rtt_ticket_expiration_bound` | Monotonic strike-register nonce guard & 0-RTT ticket age expiration (`PR #21` / `HM-S3-05`) |
 
 ---
 
@@ -289,19 +291,20 @@ Project HiveMind is structured for **conflict-free parallel engineering across 5
 | **Track 4: OpenAI Gateway & OPoI** | `src/hivemind/boinc/` | `feat/m4-*` | `/v1/chat/completions` SSE proxy, 5% OPoI Merkle dispute game, L2 channels |
 | **Track 5: Steam Game & HF Experts** | `src/hivemind/game/`, `src/hivemind/client/` | `expert/*`, `game/*`, `docs/*` | New Hugging Face QLoRA domain missions, Cyberpunk Web HUD (`:8090`), Steamworks SDK |
 
-### 6.2 Merged Community Pull Requests (Wave 1 Hall of Fame)
+### 6.2 Merged Community Pull Requests (Waves 1 & 2 Hall of Fame)
 
-All 6 Wave 1 community Pull Requests have been reviewed, verified (`20/20` tests), and merged into `main`:
+All **11 community Pull Requests** (Wave 1 `PR #6`–`#11` and Wave 2 Season 3 `PR #21`–`#25`) have been reviewed, improved, verified (`25/25` tests), and merged into `main`:
 - **`PR #9` (`@clark719664` — Closes `#1` / `HM-M1-01`):** `AsyncQUICGeoRingTransport` with binary 0-RTT session tickets (`MAGIC_QUIC_0RTT`) and `libp2p` WebSocket fallback (`src/hivemind/swarm/quic_transport.py`).
 - **`PR #7` (`@clark719664` — Closes `#2` / `HM-M2-01`):** 2-slot double-buffered CUDA Event DMA streamer and `prefetch_lookahead_layer` with `0.0 ms` exposed swap stall (`src/hivemind/swarm/swarm_fabric.py`).
 - **`PR #8` (`@clark719664` — Closes `#3` / `HM-M3-01`):** Triton `float8_e4m3fn` quantization kernel (`_triton_fp8_quant_kernel`) and deduplicated prefix-trie causal tree-attention mask ($\gamma=6..8$).
 - **`PR #6` (`@clark719664` — Closes `#4` / `HM-M4-01`):** Streaming SSE (`stream=True`) `/v1/chat/completions` OpenAI gateway with per-chunk speculative tree verification and L2 micro-vouchers (`src/hivemind/boinc/coordinator_api.py`).
 - **`PR #10` (`@clark719664` — Closes `#5` / `HM-M5-01/02`):** Native `steam_api64.dll` dynamic bridge, `SteamRichPresenceState`, and Season 2 Hugging Face domain missions (`src/hivemind/client/steamworks.py`, `src/hivemind/game/hf_hack_miner.py`).
 - **`PR #11` (`@radialmonster` — `HM-DOC-01`):** Public Steam Store App ID audit and local Hack-Miner prototype status documentation ([`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md)).
-
-### 6.3 Open Season 3 / Phase 3 Contributor Bounties (`HM-S3-01` – `HM-S3-05`)
-
-Ready to contribute? Check out the open **Season 3 Global WAN Scale-Out Bounties** in **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)** and follow **[`CONTRIBUTING.md`](CONTRIBUTING.md)** to submit your PR!
+- **`PR #22` (`@clark719664` — Closes `#14` / `HM-S3-01`):** Multi-Node WAN NAT Traversal with STUN/TURN endpoint discovery (`discover_stun_turn_endpoint`) & simultaneous UDP hole-punching (`execute_udp_hole_punch` `< 5 ms`).
+- **`PR #23` (`@clark719664` — Closes `#15` / `HM-S3-02`):** Triton INT4 + FP8 Fused MoE Router Kernel (`_triton_fused_int4_fp8_moe_router_kernel`, `pack_int4_nf4_weights`, `fused_int4_fp8_moe_route_and_project`, `3.88x` compression, `cosine_similarity >= 0.99`).
+- **`PR #24` (`@clark719664` — Closes `#16` / `HM-S3-03`):** Season 3 Hack-Miner Campaign Missions 9–12 (`CONTRACT-HF-09`..`12`) & Interactive WebGL 3D Geo-Ring Topology Map (`#webgl-georing-map` + `/api/georing-topology`).
+- **`PR #25` (`@clark719664` — Closes `#17` / `HM-S3-04`):** Season 3 Domain Expert LoRA Registry (`Season3DomainExpertRegistry`), Top-$k$ FP8 Trainer (`train_and_publish_season3_domain_experts`), and CAS checkpoint loader (`src/hivemind/core/btm_moe.py`, `src/hivemind/data/hf_real_trainer.py`).
+- **`PR #21` (`@clark719664` — Closes `#18` / `HM-S3-05`):** Formal Lean 4 Proofs for Prefix-Trie Speculative Acceptance & RFC 9001 0-RTT Anti-Replay Bounds (`Season3_PrefixTrie_And_0RTT`, bringing `lean4/HiveMindSpec.lean` to **27 machine-checked theorems**).
 
 ---
 
@@ -319,11 +322,11 @@ HiveMind/
 │   └── rtx2070_dual_profile.yaml   # 8 GB RTX 2070 & 12 GB RTX 4070 Hardware Profiles
 ├── docs/
 │   ├── assets/                     # High-Contrast SVG Architecture, Hero & Contributor Workflow Diagrams
-│   ├── CONTRIBUTOR_TASKS_AND_BOUNTIES.md  # Merged Wave 1 PRs (#6-#11) & Open Season 3 Bounties (HM-S3-01..05)
+│   ├── CONTRIBUTOR_TASKS_AND_BOUNTIES.md  # Merged Wave 1 & Wave 2 PRs (#6-#11, #21-#25) & Contributor Bounties
 │   ├── STEAM_STATUS.md             # Steam AppID Clarification & Local Prototype Guide (PR #11)
 │   └── SOCIAL_MEDIA_KIT.md         # Ready-to-Post Reddit, HN, X/Twitter & LinkedIn Templates
 ├── lean4/
-│   ├── HiveMindSpec.lean           # Machine-Checked Lean 4 Specification (17 Theorems, 0 sorry, 0 axiom)
+│   ├── HiveMindSpec.lean           # Machine-Checked Lean 4 Specification (27 Theorems, 0 sorry, 0 axiom)
 │   ├── lakefile.lean               # Lean 4 Lake Build Configuration
 │   └── lean-toolchain              # Pinned Lean 4 Compiler Version
 ├── paper/
@@ -334,6 +337,7 @@ HiveMind/
 │   └── AUTOEVOLVE_SESSION_MANIFEST.json   # Cross-Session AutoevolveAI Handoff Manifest
 ├── src/hivemind/
 │   ├── core/                       # Pillars 1-3: NF4 Stream Loader, DiLoCo, Top-k/FP8, Multi-Krum, BTM Sparse MoE
+│   ├── data/                       # Season 3 Domain Expert QLoRA Trainer & CAS Publisher (PR #25)
 │   ├── boinc/                      # Deterministic CUDA Spot-Check Validator, Coordinator & OpenAI SSE Gateway
 │   ├── client/                     # Win32 Zero-Intrusion Daemon (<150ms Yield) & Steamworks SDK Bridge
 │   ├── swarm/                      # CAS Disk Vault, $HIVE Ledger, QUIC 0-RTT Transport & Swarm Fabric (M1-M4)
@@ -342,5 +346,5 @@ HiveMind/
 ├── steam_dist/
 │   └── HiveMind_Steam_FreeEdition/ # Packaged Free Steam RTX Tool & Hack-Miner v1.0.0 + Web HUD (:8090)
 ├── artifacts/                      # Verified RTX 2070 Stress Suite, PoC & Hack-Miner Telemetry JSON Reports
-└── tests/                          # 20/20 Automated Unit & Integration Test Suite (`pytest tests/ -v`)
+└── tests/                          # 25/25 Automated Unit & Integration Test Suite (`pytest tests/ -v`)
 ```

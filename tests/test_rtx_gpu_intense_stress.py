@@ -77,13 +77,13 @@ def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Pa
 
     # Stage 9 assertions (Season 3 Hack-Miner Forge & CAS Expert Vault)
     s9 = report["stage9_season3_hack_miner_and_16_expert_cas"]
-    assert len(s9["season3_contracts_forged"]) == 2
+    assert len(s9["season3_contracts_forged"]) == 3
     assert s9["season3_all_spotchecks_passed"] is True
     assert s9["cas_roundtrip_verified"] is True
 
-    # Stage 10 assertions (Lean 4 21-Theorem Machine-Checked Audit)
+    # Stage 10 assertions (Lean 4 27-Theorem Machine-Checked Audit)
     s10 = report["stage10_lean4_21_theorems_formal_audit"]
-    assert s10["theorem_count"] >= 21
+    assert s10["theorem_count"] == 27
     assert s10["sorry_count"] == 0
     assert s10["user_axiom_count"] == 0
     assert s10["season3_theorems_present"] is True
@@ -106,17 +106,24 @@ def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Pa
 
 
 def test_season3_rtx_fused_moe_fp8_nat_hole_punch_and_21_lean4_theorems() -> None:
-    """Verify Season 3 (`HM-S3-01`..`HM-S3-05`) RTX Fused MoE FP8, STUN UDP Hole-Punching, and 21 Lean 4 theorems."""
+    """Verify Season 3 (`HM-S3-01`..`HM-S3-05`) RTX Fused MoE INT4+FP8, STUN UDP Hole-Punching, and 27 Lean 4 theorems."""
     import torch
-    from hivemind.game.hf_hack_miner import EXTENDED_HF_BOUNTY_CONTRACTS, SEASON_3_HF_BOUNTY_CONTRACTS
+    from hivemind.game.hf_hack_miner import (
+        EXTENDED_HF_BOUNTY_CONTRACTS,
+        FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS,
+        SEASON_3_HF_BOUNTY_CONTRACTS,
+    )
     from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport
-    from hivemind.swarm.swarm_fabric import fused_top2_moe_fp8_dispatch
+    from hivemind.swarm.swarm_fabric import (
+        fused_int4_fp8_moe_route_and_project,
+        fused_top2_moe_fp8_dispatch,
+    )
     from paper.autoevolve_peer_review_pipeline import verify_lean4_specification
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch.manual_seed(42)
 
-    # 1. HM-S3-02: 16-Expert Fused Top-2 Sparse MoE FP8 Dispatch on RTX GPU
+    # 1. HM-S3-02: 16-Expert Fused Top-2 Sparse MoE FP8 & INT4+FP8 Dispatch on RTX GPU
     hs = torch.randn(2, 16, 64, device=device, dtype=torch.float16)
     wg = torch.randn(16, 64, device=device, dtype=torch.float32) * 0.05
     experts = [torch.randn(64, 64, device=device, dtype=torch.float16) * 0.02 for _ in range(16)]
@@ -126,24 +133,34 @@ def test_season3_rtx_fused_moe_fp8_nat_hole_punch_and_21_lean4_theorems() -> Non
     assert fused["sqnr_db"] >= 20.0
     assert fused["router_dtype"] == "float32"
 
+    fused_int4 = fused_int4_fp8_moe_route_and_project(hs, wg, experts, top_k=2)
+    assert fused_int4["output"].shape == (2, 16, 64)
+    assert fused_int4["cosine_similarity"] >= 0.99
+    assert fused_int4["vram_compression_ratio"] >= 3.2
+
     # 2. HM-S3-01: STUN UDP Hole-Punching & RFC 9001 0-RTT Anti-Replay
     transport = AsyncQUICGeoRingTransport(bind_host="127.0.0.1")
     punch = transport.perform_udp_hole_punch("node-a", "node-b", nat_type="restricted_cone")
     assert punch["hole_punch_succeeded"] is True
     assert punch["handshake_verified"] is True
+    wan_punch = transport.execute_udp_hole_punch("node-a", "node-b")
+    assert wan_punch["direct_hole_punch_succeeded"] is True
+    assert wan_punch["sub_5ms_verified"] is True
     ok1, _ = transport.verify_0rtt_ticket_anti_replay("node-a", nonce=10)
     dup1, reason = transport.verify_0rtt_ticket_anti_replay("node-a", nonce=10)
     assert ok1 is True
     assert dup1 is False
     assert "replay_nonce_detected" in reason
 
-    # 3. HM-S3-03 & HM-S3-04: Season 3 Bounty Contracts
-    assert len(SEASON_3_HF_BOUNTY_CONTRACTS) == 2
-    assert len(EXTENDED_HF_BOUNTY_CONTRACTS) == 8
+    # 3. HM-S3-03 & HM-S3-04: Season 3 Bounty Contracts (Missions 9-12 + Bonus Formal Contracts)
+    assert len(SEASON_3_HF_BOUNTY_CONTRACTS) == 4
+    assert len(FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS) == 10
+    assert len(EXTENDED_HF_BOUNTY_CONTRACTS) == 12
 
-    # 4. HM-S3-05: 21 Machine-Checked Lean 4 Theorems (0 sorry, 0 user axioms)
+    # 4. HM-S3-05: 27 Machine-Checked Lean 4 Theorems (0 sorry, 0 user axioms)
     lean_res = verify_lean4_specification()
-    assert lean_res["theorem_count"] == 21
+    assert lean_res["theorem_count"] == 27
     assert lean_res["sorry_count"] == 0
     assert lean_res["user_axiom_count"] == 0
+
 
