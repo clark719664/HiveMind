@@ -446,7 +446,7 @@ def pack_int4_nf4_weights(weight: torch.Tensor) -> Tuple[torch.Tensor, torch.Ten
     w_fp32 = weight.detach().to(torch.float32)
     out_dim, in_dim = w_fp32.shape
     if in_dim % 2 != 0:
-        w_fp32 = F.pad(w_fp32, (0, 1))
+        w_fp32 = torch.nn.functional.pad(w_fp32, (0, 1))
         in_dim += 1
     row_absmax = w_fp32.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
     scale = row_absmax / 7.0
@@ -534,7 +534,9 @@ def fused_int4_fp8_moe_route_and_project(
             ref_out[mask] += gate * (flat_x[mask] @ w_ref.T)
 
     cos_sim = float(
-        F.cosine_similarity(fused_out.flatten().unsqueeze(0), ref_out.flatten().unsqueeze(0)).item()
+        torch.nn.functional.cosine_similarity(
+            fused_out.flatten().unsqueeze(0), ref_out.flatten().unsqueeze(0)
+        ).item()
     )
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
     backend = (
