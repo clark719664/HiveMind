@@ -39,7 +39,7 @@ class HiveMindWorkerNode:
         self.persona_name = persona_name
         self.model = model
         self.steamworks = steamworks or SteamworksSDKBridge()
-        self.daemon = daemon or ZeroIntrusionDaemon(enforce_os_idle_hook=False)
+        self.daemon = daemon or ZeroIntrusionDaemon()
         self.auth_ticket: SteamAuthSessionTicket = self.steamworks.get_auth_session_ticket(
             steam_id64=steam_id64,
             account_spend_usd=account_spend_usd,

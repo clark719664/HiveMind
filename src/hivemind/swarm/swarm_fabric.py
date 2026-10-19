@@ -1145,7 +1145,12 @@ class StateChannelVoucher:
 
 
 class HiveLayer2StateChannel:
-    """M4: Layer-2 `$HIVE` off-chain state channel with batch settlement to L1 `HiveSwarmLedger`."""
+    """Process-local L2 channel with incremental settlement to ``HiveSwarmLedger``.
+
+    Nonces, vouchers and settlement watermarks are not persisted. A channel
+    cannot be resumed after restart; construct a new channel and do not replay
+    old cumulative vouchers. Durable L1 balances do not restore L2 state.
+    """
 
     def __init__(
         self,

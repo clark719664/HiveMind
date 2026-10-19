@@ -137,14 +137,14 @@ def test_peer_review_does_not_publish_acceptance_without_proofs(lean_spec, monke
     assert not manifest_path.exists()
 
 
-@pytest.mark.parametrize("failure", ["stress_false", "stress_integer", "stress_string", "missing_stage", "unchecked", "formal_integer", "stale", "compiler_missing"])
+@pytest.mark.parametrize("failure", ["stress_false", "stress_integer", "stress_string", "missing_stage", "unchecked", "formal_integer", "stale", "compiler_missing", "gpu_unverified"])
 def test_steam_deployment_rejects_unchecked_reports_before_writes(lean_spec, monkeypatch, tmp_path, failure) -> None:
     from hivemind.game import rtx_steam_tool_deployer as deployer
 
     mock_compiler(monkeypatch, compiler_output(lean_spec))
     audit = proof.verify_lean4_specification()
     audit["formal_spec_verified"] = True
-    report = {"all_stages_passed": True, "stage10_lean4_21_theorems_formal_audit": copy.deepcopy(audit)}
+    report = {"all_stages_passed": True, "gpu_certified": True, "stage10_lean4_21_theorems_formal_audit": copy.deepcopy(audit)}
     if failure.startswith("stress_"):
         report["all_stages_passed"] = {"stress_false": False, "stress_integer": 1, "stress_string": "true"}[failure]
     elif failure == "missing_stage":
@@ -155,6 +155,8 @@ def test_steam_deployment_rejects_unchecked_reports_before_writes(lean_spec, mon
         report["stage10_lean4_21_theorems_formal_audit"]["formal_spec_verified"] = 1
     elif failure == "stale":
         report["stage10_lean4_21_theorems_formal_audit"]["spec_sha256"] = "outdated"
+    elif failure == "gpu_unverified":
+        report["gpu_certified"] = False
     elif failure == "compiler_missing":
         monkeypatch.setattr(proof, "_find_lean_compiler", lambda: None)
 

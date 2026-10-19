@@ -57,7 +57,12 @@ class WorkunitRequestPayload(BaseModel):
 
 
 class BOINCCoordinatorService:
-    """Central Coordinator managing E=8 BTM branches, Workunits, Validation, and Multi-Krum."""
+    """Process-local coordinator for BTM branches, workunits, validation and Multi-Krum.
+
+    Assignments, consumed-workunit protection, pending deltas and reputation are
+    in memory only. After restart, old workunits are unknown and rejected; workers
+    must obtain new assignments. This service does not restore a training campaign.
+    """
 
     def __init__(
         self,

@@ -1,6 +1,6 @@
 """Hardware & Algorithmic Configuration for Project HiveMind.
 
-Automatically configures local disk caches on D:\\xdev\\DecentralizedAI\\.cache to protect C: drive,
+Automatically configures writable per-user caches while preserving explicit environment overrides,
 enforces deterministic CUDA execution (CUBLAS_WORKSPACE_CONFIG=:4096:8), and manages dual hardware
 profiles for the local NVIDIA GeForce RTX 2070 (8 GB VRAM, Turing SM 7.5) and 12 GB reference nodes.
 
@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import os
 import random
+import tempfile
 from dataclasses import dataclass, field
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -25,13 +27,45 @@ os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 import numpy as np
 import yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CACHE_ROOT = PROJECT_ROOT / ".cache"
-ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
+_SOURCE_ROOT = Path(__file__).resolve().parents[2]
+if not (_SOURCE_ROOT / "pyproject.toml").is_file():
+    _SOURCE_ROOT = None
+
+
+def _writable_cache_root() -> Path:
+    """Use a user-owned cache, never a directory next to installed package code."""
+    explicit = os.environ.get("HIVEMIND_CACHE_DIR")
+    if explicit:
+        root = Path(explicit).expanduser()
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+    user_cache = os.environ.get("XDG_CACHE_HOME")
+    if not user_cache and os.name == "nt":
+        user_cache = os.environ.get("LOCALAPPDATA")
+    preferred = Path(user_cache).expanduser() if user_cache else Path.home() / ".cache"
+    root = preferred / "hivemind"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        # An existing read-only cache also needs the temporary-directory fallback.
+        with tempfile.TemporaryFile(dir=root):
+            pass
+        return root
+    except OSError:
+        user_id = str(os.getuid()) if hasattr(os, "getuid") else os.environ.get("USERNAME", "user")
+        # mkdtemp is private and avoids following a pre-created predictable
+        # symlink in a shared system temporary directory.
+        return Path(tempfile.mkdtemp(prefix=f"hivemind-{user_id}-"))
+
+
+CACHE_ROOT = _writable_cache_root()
+# Preserve source-checkout artifact locations, while wheel installations use
+# their writable application cache for generated files and Steam packages.
+PROJECT_ROOT = _SOURCE_ROOT or CACHE_ROOT
+ARTIFACTS_ROOT = Path(os.environ.get("HIVEMIND_ARTIFACTS_DIR", str(PROJECT_ROOT / "artifacts"))).expanduser()
 
 
 def ensure_local_drive_caches() -> dict[str, str]:
-    """Redirect all heavy caches (HuggingFace, PyTorch, TMP, uv) to D:\\xdev\\DecentralizedAI\\.cache."""
+    """Set writable cache defaults without overriding the caller's environment."""
     try:
         from dotenv import load_dotenv
 
@@ -40,10 +74,12 @@ def ensure_local_drive_caches() -> dict[str, str]:
     except Exception:
         pass
 
+    hf_home = Path(os.environ.get("HF_HOME", str(CACHE_ROOT / "huggingface"))).expanduser()
+    hub_cache = os.environ.get("HF_HUB_CACHE") or os.environ.get("HUGGINGFACE_HUB_CACHE") or str(hf_home / "hub")
     cache_dirs = {
-        "HF_HOME": str(CACHE_ROOT / "huggingface"),
-        "HF_HUB_CACHE": str(CACHE_ROOT / "huggingface" / "hub"),
-        "HUGGINGFACE_HUB_CACHE": str(CACHE_ROOT / "huggingface" / "hub"),
+        "HF_HOME": str(hf_home),
+        "HF_HUB_CACHE": hub_cache,
+        "HUGGINGFACE_HUB_CACHE": hub_cache,
         "TORCH_HOME": str(CACHE_ROOT / "torch"),
         "UV_CACHE_DIR": str(CACHE_ROOT / "uv"),
         "TMP": str(CACHE_ROOT / "tmp"),
@@ -52,7 +88,9 @@ def ensure_local_drive_caches() -> dict[str, str]:
         "HF_HUB_DISABLE_SYMLINKS_WARNING": "1",
     }
     for env_key, dir_path in cache_dirs.items():
-        if env_key not in ("CUBLAS_WORKSPACE_CONFIG", "HF_HUB_DISABLE_SYMLINKS_WARNING"):
+        if env_key in os.environ:
+            cache_dirs[env_key] = os.environ[env_key]
+        elif env_key not in ("CUBLAS_WORKSPACE_CONFIG", "HF_HUB_DISABLE_SYMLINKS_WARNING"):
             Path(dir_path).mkdir(parents=True, exist_ok=True)
             os.environ[env_key] = dir_path
         else:
@@ -215,13 +253,16 @@ class HiveMindConfig:
     @classmethod
     def from_yaml(cls, yaml_path: Path | str | None = None) -> HiveMindConfig:
         if yaml_path is None:
-            yaml_path = PROJECT_ROOT / "configs" / "rtx2070_dual_profile.yaml"
-        path = Path(yaml_path)
-        if not path.exists():
-            return cls()
-
-        with path.open("r", encoding="utf-8") as f:
-            raw: dict[str, Any] = yaml.safe_load(f) or {}
+            source_path = PROJECT_ROOT / "configs" / "rtx2070_dual_profile.yaml"
+            if _SOURCE_ROOT is not None and source_path.is_file():
+                config_text = source_path.read_text(encoding="utf-8")
+            else:
+                config_text = resources.files("hivemind").joinpath(
+                    "resources", "rtx2070_dual_profile.yaml"
+                ).read_text(encoding="utf-8")
+        else:
+            config_text = Path(yaml_path).read_text(encoding="utf-8")
+        raw: dict[str, Any] = yaml.safe_load(config_text) or {}
 
         sys_cfg = raw.get("system", {})
         diloco_cfg = raw.get("diloco", {})

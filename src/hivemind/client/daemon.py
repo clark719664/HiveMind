@@ -2,14 +2,15 @@
 
 Monitors OS input hooks (GetLastInputInfo on Windows via ctypes) and active process tables.
 If another Steam game launches or mouse/keyboard activity occurs within the 30-second idle
-window, signals the DiLoCo inner loop to dump its optimizer state to NVMe SSD (<1.5s) and
-yield 100% of GPU VRAM.
+window, requests a training pause and CPU offload. Disk latency and GPU memory
+release must be measured on the target hardware; neither is guaranteed here.
 """
 
 from __future__ import annotations
 
 import ctypes
 import ctypes.wintypes
+import math
 import sys
 from dataclasses import dataclass
 import psutil
@@ -55,12 +56,13 @@ class DaemonTelemetry:
     should_yield_vram: bool
     reason: str
     seti_agent_state: str = SETIAgentState.STATE_2_IDLE_SETI_MINER.value
+    os_idle_available: bool = True
 
 
-def get_windows_idle_seconds() -> float:
-    """Query Win32 user32.GetLastInputInfo to return seconds since last mouse/keyboard event."""
+def _query_windows_idle_seconds() -> float | None:
+    """Return None when a reliable Win32 idle reading is unavailable."""
     if sys.platform != "win32":
-        return 999.0
+        return None
     try:
         lii = LASTINPUTINFO()
         lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
@@ -70,11 +72,21 @@ def get_windows_idle_seconds() -> float:
             return round(elapsed_ms / 1000.0, 3)
     except Exception:
         pass
-    return 999.0
+    return None
+
+
+def get_windows_idle_seconds() -> float:
+    """Return measured idle seconds, or a conservative zero when unavailable.
+
+    The daemon keeps a separate availability flag; unavailable telemetry never
+    grants permission for unattended background training.
+    """
+    idle = _query_windows_idle_seconds()
+    return idle if idle is not None else 0.0
 
 
 def detect_running_game_process(extra_watchlist: set[str] | None = None) -> str | None:
-    """Scan process table for active Steam games that require 100% of GPU VRAM."""
+    """Scan the process table for known games that should preempt training."""
     watchlist = set(KNOWN_GAME_EXECUTABLES)
     if extra_watchlist:
         watchlist.update(n.lower() for n in extra_watchlist)
@@ -95,11 +107,15 @@ class ZeroIntrusionDaemon:
     def __init__(
         self,
         idle_threshold_seconds: float = 30.0,
-        enforce_os_idle_hook: bool = False,
+        enforce_os_idle_hook: bool = True,
         simulated_idle_seconds: float | None = None,
         simulated_active_game: str | None = None,
         consumer_query_active: bool = False,
     ) -> None:
+        if not math.isfinite(idle_threshold_seconds) or idle_threshold_seconds < 0:
+            raise ValueError("Idle threshold must be finite and nonnegative.")
+        if simulated_idle_seconds is not None and (not math.isfinite(simulated_idle_seconds) or simulated_idle_seconds < 0):
+            raise ValueError("Simulated idle time must be finite and nonnegative.")
         self.idle_threshold_seconds = idle_threshold_seconds
         self.enforce_os_idle_hook = enforce_os_idle_hook
         self.simulated_idle_seconds = simulated_idle_seconds
@@ -110,8 +126,14 @@ class ZeroIntrusionDaemon:
         idle_sec = (
             self.simulated_idle_seconds
             if self.simulated_idle_seconds is not None
-            else get_windows_idle_seconds()
+            else _query_windows_idle_seconds()
         )
+        idle_available = (
+            isinstance(idle_sec, (int, float)) and not isinstance(idle_sec, bool)
+            and math.isfinite(idle_sec) and idle_sec >= 0
+        )
+        if not idle_available:
+            idle_sec = 0.0
         active_game = (
             self.simulated_active_game
             if self.simulated_active_game is not None
@@ -121,16 +143,18 @@ class ZeroIntrusionDaemon:
         if active_game is not None:
             return DaemonTelemetry(
                 os_idle_seconds=idle_sec,
+                os_idle_available=idle_available,
                 idle_threshold_seconds=self.idle_threshold_seconds,
                 active_game_detected=active_game,
                 should_yield_vram=True,
-                reason=f"Steam game launched ({active_game}) — yielding 100% VRAM (background CAS seeding only).",
+                reason=f"Steam game launched ({active_game}); requesting training pause and CPU offload.",
                 seti_agent_state=SETIAgentState.STATE_1_GAMING_SEED_ONLY.value,
             )
 
         if self.consumer_query_active:
             return DaemonTelemetry(
                 os_idle_seconds=idle_sec,
+                os_idle_available=idle_available,
                 idle_threshold_seconds=self.idle_threshold_seconds,
                 active_game_detected=None,
                 should_yield_vram=False,
@@ -138,9 +162,21 @@ class ZeroIntrusionDaemon:
                 seti_agent_state=SETIAgentState.STATE_3_SWARM_CONSUMER.value,
             )
 
+        if self.enforce_os_idle_hook and not idle_available:
+            return DaemonTelemetry(
+                os_idle_seconds=idle_sec,
+                os_idle_available=idle_available,
+                idle_threshold_seconds=self.idle_threshold_seconds,
+                active_game_detected=None,
+                should_yield_vram=True,
+                reason="OS idle telemetry unavailable; pausing background training conservatively.",
+                seti_agent_state=SETIAgentState.STATE_1_GAMING_SEED_ONLY.value,
+            )
+
         if self.enforce_os_idle_hook and idle_sec < self.idle_threshold_seconds:
             return DaemonTelemetry(
                 os_idle_seconds=idle_sec,
+                os_idle_available=idle_available,
                 idle_threshold_seconds=self.idle_threshold_seconds,
                 active_game_detected=None,
                 should_yield_vram=True,
@@ -152,6 +188,7 @@ class ZeroIntrusionDaemon:
 
         return DaemonTelemetry(
             os_idle_seconds=idle_sec,
+            os_idle_available=idle_available,
             idle_threshold_seconds=self.idle_threshold_seconds,
             active_game_detected=None,
             should_yield_vram=False,

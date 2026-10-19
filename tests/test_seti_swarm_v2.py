@@ -717,6 +717,10 @@ def test_season2_hf_hack_miner_missions_and_steamworks_rich_presence(tmp_path: P
         contract_id="CONTRACT-HF-04-RUST-SYSTEMS",
     )
     assert forge_res["domain_expert"] == "Rust_Systems_Security"
+    assert forge_res["source"] == "demo_fixture"
+    assert forge_res["training_executed"] is False
+    assert forge_res["spot_check_passed"] is None
+    assert forge_res["runtime_verified"] is False
     assert forge_res["loss_reduction_pct"] > 0.0
     assert forge_res["rich_presence_hmac"].startswith("steam_rp_hmac_")
 

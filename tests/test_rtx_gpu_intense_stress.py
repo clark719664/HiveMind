@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+import pytest
 from pathlib import Path
 
 from hivemind.game.rtx_steam_tool_deployer import (
@@ -12,14 +12,16 @@ from hivemind.game.rtx_steam_tool_deployer import (
 
 
 def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Path) -> None:
-    """Execute the 6-Stage Intense RTX GPU Stress Suite and verify v1.0.0 Free Steam Tool packaging."""
+    """Exercise local stress checks; simulated forge results must block certification and packaging."""
     report = run_intense_rtx_stress_suite(
         vram_cycles=3,
         udp_burst_packets=100,
         num_hotplug_experts=12,
         steam_concurrent_accounts=50,
     )
-    assert report["all_stages_passed"] is True
+    assert report["all_stages_passed"] is False
+    assert report["certification_status"] == "blocked"
+    assert report["gpu_certified"] is False
     assert report["release_version"] == "1.0.0"
     assert report["certification_hmac"].startswith("rtx_steam_cert_")
 
@@ -27,7 +29,14 @@ def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Pa
     s1 = report["stage1_vram_and_preemption_torture"]
     assert s1["cycles_executed"] == 3
     assert s1["all_preemptions_under_1500ms"] is True
-    assert s1["zero_vram_leak_verified"] is True
+    assert s1["all_preemptions_succeeded"] is True
+    if report["execution_device"].startswith("cuda"):
+        assert s1["all_gpu_preemptions_verified"] is True
+        assert s1["zero_vram_leak_verified"] is True
+    else:
+        assert s1["all_gpu_preemptions_verified"] is False
+        assert s1["zero_vram_leak_verified"] is False
+        assert s1["gpu_validation_status"] == "unverified"
 
     # Stage 2 assertions
     s2 = report["stage2_moe12_hotplug_and_dma"]
@@ -78,7 +87,9 @@ def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Pa
     # Stage 9 assertions (Season 3 Hack-Miner Forge & CAS Expert Vault)
     s9 = report["stage9_season3_hack_miner_and_16_expert_cas"]
     assert len(s9["season3_contracts_forged"]) == 3
-    assert s9["season3_all_spotchecks_passed"] is True
+    assert s9["season3_all_spotchecks_passed"] is False
+    assert s9["season3_training_verified"] is False
+    assert s9["season3_forge_source"] == "demo_fixture"
     assert s9["cas_roundtrip_verified"] is True
 
     # Stage 10 assertions (Lean 4 Formal Audit)
@@ -89,20 +100,14 @@ def test_intense_rtx_gpu_stress_suite_and_free_steam_tool_v1_deploy(tmp_path: Pa
     assert s10["season3_theorems_present"] is True
     assert s10["formal_spec_verified"] is True
 
-    # Verify v1.0.0 Free Steam Tool deployment package
-    deploy_pkg = deploy_free_steam_rtx_tool_v1(
-        stress_report=report,
-        output_root=tmp_path / "HiveMind_Steam_FreeEdition",
-    )
-    assert deploy_pkg["release_version"] == "1.0.0"
-    assert deploy_pkg["all_stress_stages_passed"] is True
-    assert Path(deploy_pkg["steam_tool_vdf"]).exists()
-    assert Path(deploy_pkg["windows_rtx_tool_launcher_bat"]).exists()
-    assert Path(deploy_pkg["rtx_deployment_cert_json"]).exists()
+    # Real lower-level checks may pass, but simulated forge results cannot
+    # certify a deployment. Package creation must remain blocked.
+    from paper.autoevolve_peer_review_pipeline import FormalVerificationError
 
-    manifest = json.loads(Path(deploy_pkg["steam_store_manifest"]).read_text(encoding="utf-8"))
-    assert manifest["release_version"] == "1.0.0"
-    assert manifest["app_type"] == "Free Steam Tool & Game"
+    destination = tmp_path / "HiveMind_Steam_FreeEdition"
+    with pytest.raises(FormalVerificationError, match="stress certification did not pass"):
+        deploy_free_steam_rtx_tool_v1(stress_report=report, output_root=destination)
+    assert not destination.exists()
 
 
 def test_season3_rtx_fused_moe_fp8_nat_hole_punch_and_21_lean4_theorems() -> None:

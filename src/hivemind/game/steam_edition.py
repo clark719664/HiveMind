@@ -30,9 +30,264 @@ STEAM_DEPOT_ID = 3133701
 SWARM_TELEMETRY_INTERVAL_SECONDS = 1.0
 
 
+_GEORING_WEBGL_SCRIPT = r"""
+(() => {
+  'use strict';
+  const canvas = document.getElementById('webgl-georing-canvas');
+  const terminal = document.getElementById('georing-terminal');
+  if (!canvas || !terminal) return;
+  const refresh = document.getElementById('georing-refresh');
+  const reset = document.getElementById('georing-reset');
+  let gl, program, position, angles, aspect, pointSize, color, roundPoints;
+  let buffers = [], nodes = [], links = [], selected = -1, frame = 0;
+  let yaw = -0.4, pitch = -0.35, drag = null, controller = null;
+  let ready = false, disposed = false, dataReady = false;
+  const message = text => { terminal.textContent = text; };
+  const describe = () => {
+    let text = `[DEMO FIXTURE] ${nodes.length} nodes / ${links.length} links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.`;
+    if (selected >= 0 && nodes[selected]) {
+      const node = nodes[selected];
+      text += `\n${node.region || node.node_id} | ${node.node_id}\nExample RTT: ${node.rtt_ms ?? 'unknown'} ms | ${node.nat_mode || 'unknown'}\nExperts: ${(node.hosted_experts || []).join(', ') || 'none listed'}`;
+    }
+    message(text);
+  };
+  function shader(type, source) {
+    const result = gl.createShader(type);
+    gl.shaderSource(result, source);
+    gl.compileShader(result);
+    if (!gl.getShaderParameter(result, gl.COMPILE_STATUS)) {
+      const error = gl.getShaderInfoLog(result);
+      gl.deleteShader(result);
+      throw new Error('Shader compilation failed: ' + error);
+    }
+    return result;
+  }
+  function release() {
+    if (!gl || gl.isContextLost()) return;
+    buffers.forEach(item => gl.deleteBuffer(item.buffer));
+    buffers = [];
+    if (program) gl.deleteProgram(program);
+    program = null;
+  }
+  function initialize() {
+    ready = false;
+    try {
+      gl = canvas.getContext('webgl', { alpha: false, antialias: true });
+      if (!gl) throw new Error('WebGL is unavailable in this browser');
+      release();
+      const vertex = shader(gl.VERTEX_SHADER, `
+        attribute vec3 position;
+        uniform vec2 angles;
+        uniform float aspect, pointSize;
+        void main() {
+          float cy = cos(angles.x), sy = sin(angles.x);
+          float cp = cos(angles.y), sp = sin(angles.y);
+          vec3 p = vec3(cy * position.x + sy * position.z, position.y, -sy * position.x + cy * position.z);
+          p = vec3(p.x, cp * p.y - sp * p.z, sp * p.y + cp * p.z);
+          float zoom = 1.25 / (1.7 - p.z * 0.3);
+          gl_Position = vec4(p.x * zoom / aspect, p.y * zoom, -p.z * 0.1, 1.0);
+          gl_PointSize = pointSize;
+        }`);
+      const fragment = shader(gl.FRAGMENT_SHADER, `
+        precision mediump float;
+        uniform vec4 color;
+        uniform bool roundPoints;
+        void main() {
+          if (roundPoints && distance(gl_PointCoord, vec2(0.5)) > 0.5) discard;
+          gl_FragColor = color;
+        }`);
+      program = gl.createProgram();
+      gl.attachShader(program, vertex); gl.attachShader(program, fragment);
+      gl.linkProgram(program);
+      gl.deleteShader(vertex); gl.deleteShader(fragment);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error('Shader link failed');
+      position = gl.getAttribLocation(program, 'position');
+      angles = gl.getUniformLocation(program, 'angles');
+      aspect = gl.getUniformLocation(program, 'aspect');
+      pointSize = gl.getUniformLocation(program, 'pointSize');
+      color = gl.getUniformLocation(program, 'color');
+      roundPoints = gl.getUniformLocation(program, 'roundPoints');
+      ready = true;
+      upload(); schedule();
+      if (dataReady) describe();
+      return true;
+    } catch (error) {
+      release();
+      message('[WEBGL UNAVAILABLE] ' + error.message + '. Topology drawing is disabled.');
+      return false;
+    }
+  }
+  function addBuffer(vertices, mode, rgba, points = false) {
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    buffers.push({ buffer, count: vertices.length / 3, mode, rgba, points });
+  }
+  function upload() {
+    if (!ready) return;
+    buffers.forEach(item => gl.deleteBuffer(item.buffer));
+    buffers = [];
+    const grid = [], lines = [];
+    for (let ring = 0; ring < 9; ring++) {
+      for (let step = 0; step < 64; step++) {
+        for (const t of [step, step + 1]) {
+          const angle = t * Math.PI / 32;
+          const longitude = ring * Math.PI / 9;
+          grid.push(Math.cos(angle) * Math.cos(longitude), Math.sin(angle), Math.cos(angle) * Math.sin(longitude));
+        }
+      }
+    }
+    links.forEach(link => {
+      const a = nodes.find(node => node.node_id === link.source).xyz;
+      const b = nodes.find(node => node.node_id === link.target).xyz;
+      for (let step = 0; step < 32; step++) {
+        for (const t of [step / 32, (step + 1) / 32]) {
+          const p = a.map((v, i) => (1 - t) * v + t * b[i]);
+          const norm = Math.hypot(...p) || 1;
+          lines.push(...p.map(v => v / norm * 1.015));
+        }
+      }
+    });
+    addBuffer(grid, gl.LINES, [0.05, 0.30, 0.38, 1]);
+    addBuffer(lines, gl.LINES, [1.0, 0.20, 0.58, 1]);
+    addBuffer(nodes.flatMap(node => node.xyz), gl.POINTS, [0.1, 1.0, 0.7, 1], true);
+  }
+  function draw() {
+    frame = 0;
+    if (!ready || disposed || gl.isContextLost()) return;
+    const rect = canvas.getBoundingClientRect();
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, Math.round(rect.width * ratio));
+    const height = Math.max(1, Math.round(rect.height * ratio));
+    if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0.02, 0.03, 0.07, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(program); gl.enable(gl.DEPTH_TEST);
+    gl.uniform2f(angles, yaw, pitch); gl.uniform1f(aspect, width / height);
+    gl.uniform1f(pointSize, 11 * ratio);
+    gl.enableVertexAttribArray(position);
+    buffers.forEach(item => {
+      gl.bindBuffer(gl.ARRAY_BUFFER, item.buffer);
+      gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
+      gl.uniform4fv(color, item.rgba); gl.uniform1i(roundPoints, item.points ? 1 : 0);
+      gl.drawArrays(item.mode, 0, item.count);
+    });
+    canvas.dataset.rendered = 'true';
+  }
+  function schedule() {
+    if (ready && !disposed && !frame) frame = requestAnimationFrame(draw);
+  }
+  function pick(event) {
+    const rect = canvas.getBoundingClientRect();
+    let closest = 22, found = -1;
+    nodes.forEach((node, index) => {
+      const [x, y, z] = node.xyz;
+      const rx = Math.cos(yaw) * x + Math.sin(yaw) * z;
+      const rz = -Math.sin(yaw) * x + Math.cos(yaw) * z;
+      const ry = Math.cos(pitch) * y - Math.sin(pitch) * rz;
+      const depth = Math.sin(pitch) * y + Math.cos(pitch) * rz;
+      const zoom = 1.25 / (1.7 - depth * 0.3);
+      const px = rect.left + rect.width / 2 + rx * zoom * rect.height / 2;
+      const py = rect.top + rect.height / 2 - ry * zoom * rect.height / 2;
+      const distance = Math.hypot(event.clientX - px, event.clientY - py);
+      if (distance < closest) { closest = distance; found = index; }
+    });
+    selected = found;
+    document.getElementById('georing-node').value = String(found);
+    if (dataReady && ready) describe();
+  }
+  async function load() {
+    if (!ready || disposed) return;
+    if (controller) controller.abort();
+    const request = new AbortController(); controller = request;
+    const timer = setTimeout(() => request.abort(), 10000);
+    message('[LOADING DEMO FIXTURE] /api/georing-topology');
+    refresh.disabled = true;
+    try {
+      const response = await fetch('/api/georing-topology', { signal: request.signal });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (!Array.isArray(data.nodes) || !Array.isArray(data.ring_links) || data.nodes.length > 2000 || data.ring_links.length > 8000) throw new Error('Invalid topology data');
+      const ids = new Set();
+      data.nodes.forEach(node => {
+        if (typeof node.node_id !== 'string' || ids.has(node.node_id) || !Array.isArray(node.xyz) || node.xyz.length !== 3 || !node.xyz.every(v => Number.isFinite(v) && Math.abs(v) <= 2) || Math.hypot(...node.xyz) < 0.01) throw new Error('Invalid node coordinates or ID');
+        if (node.hosted_experts !== undefined && !Array.isArray(node.hosted_experts)) throw new Error('Invalid node experts');
+        ids.add(node.node_id);
+      });
+      if (data.ring_links.some(link => !ids.has(link.source) || !ids.has(link.target))) throw new Error('Unknown link endpoint');
+      if (controller !== request || disposed) return;
+      nodes = data.nodes; links = data.ring_links; selected = -1; dataReady = true;
+      const select = document.getElementById('georing-node');
+      select.replaceChildren(new Option('Select an example node', '-1'));
+      nodes.forEach((node, index) => select.add(new Option(node.region || node.node_id, String(index))));
+      upload(); schedule();
+      if (ready) describe();
+    } catch (error) {
+      if (controller === request && !disposed && ready) {
+        nodes = []; links = []; selected = -1; dataReady = false;
+        document.getElementById('georing-node').replaceChildren(new Option('Select an example node', '-1'));
+        upload(); schedule();
+        message('[TOPOLOGY UNAVAILABLE] ' + error.message + '. No live topology is inferred. Start the HUD server and retry.');
+      }
+    } finally {
+      clearTimeout(timer);
+      if (controller === request) { controller = null; refresh.disabled = false; }
+    }
+  }
+  canvas.addEventListener('pointerdown', event => {
+    if (!ready) return;
+    drag = { x: event.clientX, y: event.clientY, moved: false };
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointermove', event => {
+    if (!drag) return;
+    const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+    yaw += dx * 0.008; pitch = Math.max(-1.5, Math.min(1.5, pitch + dy * 0.008));
+    drag.x = event.clientX; drag.y = event.clientY; schedule();
+  });
+  canvas.addEventListener('pointerup', event => {
+    if (drag && !drag.moved) pick(event);
+    drag = null;
+  });
+  canvas.addEventListener('pointercancel', () => { drag = null; });
+  canvas.addEventListener('lostpointercapture', () => { drag = null; });
+  canvas.addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    yaw += event.key === 'ArrowLeft' ? -0.12 : event.key === 'ArrowRight' ? 0.12 : 0;
+    pitch = Math.max(-1.5, Math.min(1.5, pitch + (event.key === 'ArrowUp' ? -0.12 : event.key === 'ArrowDown' ? 0.12 : 0)));
+    schedule();
+  });
+  canvas.addEventListener('webglcontextlost', event => {
+    event.preventDefault(); ready = false; drag = null;
+    if (frame) cancelAnimationFrame(frame); frame = 0;
+    canvas.dataset.rendered = 'false';
+    message('[WEBGL CONTEXT LOST] Drawing paused; waiting for browser recovery.');
+  });
+  canvas.addEventListener('webglcontextrestored', () => { if (initialize() && !dataReady) load(); });
+  refresh.addEventListener('click', () => { if (ready || initialize()) load(); });
+  reset.addEventListener('click', () => { yaw = -0.4; pitch = -0.35; schedule(); });
+  document.getElementById('georing-node').addEventListener('change', event => {
+    selected = Number(event.target.value); if (dataReady && ready) describe();
+  });
+  const observer = window.ResizeObserver ? new ResizeObserver(schedule) : null;
+  if (observer) observer.observe(canvas);
+  window.addEventListener('resize', schedule);
+  window.addEventListener('pagehide', event => {
+    if (event.persisted) return;
+    disposed = true; if (controller) controller.abort();
+    if (frame) cancelAnimationFrame(frame);
+    if (observer) observer.disconnect(); release();
+  });
+  if (initialize()) load();
+})();
+"""
+
+
 def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     """Generate a self-contained interactive Cyberpunk HTML5 HUD v2 preloaded with live RTX 2070 game data."""
-    embedded_json = json.dumps(game_report, indent=2)
+    embedded_json = json.dumps(game_report, indent=2).replace("<", "\\u003c")
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -229,7 +484,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     </div>
 
     <div class="card">
-      <h2>LIVE HUGGING FACE SHARD SCANNER, MERKLE PoS &amp; QLoRA MICRO-FORGE</h2>
+      <h2>HUGGING FACE SHARD SCANNER &amp; DEMO QLoRA MICRO-FORGE</h2>
       <label style="font-size:0.8rem; color:#94a3b8;">Select Steam Miner Profile &amp; HF Dataset Node (Season 1 &amp; 2):</label>
       <select id="scan-gamer">
         <option value="CyberValkyrie_FR">CyberValkyrie_FR (EU-West-Paris)</option>
@@ -245,7 +500,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         <option value="CohereForAI/aya_collection">[S2] CohereForAI/aya_collection (Multilingual FR Synthesis)</option>
       </select>
       <button class="btn btn-cyan" onclick="runInteractiveScan()">Scan HF Node &amp; Pin 16KB CAS Shard (+PTS)</button>
-      <button class="btn" onclick="runInteractiveForge()">Forge Season 2 QLoRA Adapter (+PTS &amp; +$HIVE)</button>
+      <button class="btn" onclick="runInteractiveForge()">Simulate Season 2 QLoRA Forge (Game Points)</button>
       <button class="btn btn-cyan" onclick="runRtxToolDiagnostic()">RTX Steam Tool v1.0.0 Live Diagnostic</button>
       <div class="terminal" id="scan-terminal">[READY] Click 'Scan HF Node & Pin 16KB CAS Shard', 'Forge Season 2 QLoRA Adapter', or 'RTX Steam Tool v1.0.0 Live Diagnostic' to test your RTX GPU and mine Hugging Face datasets.</div>
     </div>
@@ -259,27 +514,31 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     </div>
 
     <div class="card" id="webgl-georing-map" style="grid-column: 1 / -1;">
-      <h2>SEASON 3 INTERACTIVE WEBGL 3D GEO-RING TOPOLOGY MAP &amp; MISSIONS (9-12)</h2>
-      <canvas id="webgl-georing-canvas" width="920" height="220" style="width:100%; height:220px; background:#050811; border:1px solid #00f0ff; border-radius:6px;"></canvas>
-      <div class="terminal" id="georing-terminal">[WEBGL 3D GEO-RING ACTIVE] Nodes: EU-West-Paris &rarr; EU-Central-Berlin &rarr; US-East-Virginia &rarr; APAC-East-Tokyo | Season 3 Missions 9-12 Loaded.</div>
+      <h2>INTERACTIVE WEBGL GEO-RING // DEMO FIXTURE</h2>
+      <p>Static example nodes and links. This view does not discover live peers or measure network latency.</p>
+      <canvas id="webgl-georing-canvas" width="920" height="320" tabindex="0" aria-label="Demo Geo-Ring topology. Drag or use arrow keys to rotate." style="display:block; width:100%; height:320px; touch-action:none; background:#050811; border:1px solid #00f0ff; border-radius:6px;">Your browser does not support this canvas. Topology drawing is unavailable.</canvas>
+      <button class="btn btn-cyan" id="georing-refresh" type="button">Reload example topology</button>
+      <button class="btn" id="georing-reset" type="button">Reset view</button>
+      <label for="georing-node">Example node details</label>
+      <select id="georing-node"><option value="-1">Select an example node</option></select>
+      <div class="terminal" id="georing-terminal" role="status" aria-live="polite">[DEMO FIXTURE] Initializing WebGL renderer...</div>
     </div>
 
-<<<<<<< HEAD
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
       <h2>SCIENTIFIC SWARM KNOWLEDGE TRANSFER, JOINED CO-OP CAMPAIGNS &amp; DUAL LEADERBOARD (BEST MINER + BEST CONTRIBUTOR)</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
-        Verify that when one agent retrains a domain QLoRA adapter, all other swarm agents immediately hot-swap and leverage the training effort (`&eta;_transfer = 100%`) with 0 redundant GPU steps, or launch a Joined Co-Op Campaign to mine faster &amp; better:
+        Explore synthetic benchmark examples. Compute, loss, and transfer figures in these campaigns are modeled demo values; parallel speedup is not measured.
       </p>
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-        <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-01-DILOCO-BLITZ')">Launch Co-Op 01: Hyper-DiLoCo Shard Blitz (3.85x Speedup)</button>
-        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-02-POLYMATH-FUSION')">Launch Co-Op 02: 4-Domain Cross-Pollination (4.0x Leverage)</button>
+        <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-01-DILOCO-BLITZ')">Launch Co-Op 01: Hyper-DiLoCo Shard Blitz (Demo)</button>
+        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-02-POLYMATH-FUSION')">Launch Co-Op 02: 4-Domain Cross-Pollination (Demo)</button>
         <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-03-BYZANTINE-CITADEL')">Launch Co-Op 03: Zero-Day Byzantine Citadel</button>
-        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (5.4x RTT)</button>
+        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (Demo)</button>
       </div>
-      <div class="terminal" id="joined-campaign-terminal">[SCIENTIFIC SWARM READY] Click any Joined Co-Op Campaign above to execute live peer knowledge transfer across CyberValkyrie_FR, NeuralGhost_DE, ZeroCool_UK &amp; SakuraNode_JP and update the Best Miner + Best Contributor Dual Leaderboard.</div>
-=======
+      <div class="terminal" id="joined-campaign-terminal">[DEMO BENCHMARK READY] Explore a synthetic local campaign. Results are examples, not verified distributed training or measured parallel performance.</div>
+    </div>
     <div class="card" id="season4-missions-panel" style="grid-column: 1 / -1;">
-      <h2>SEASON 4 HACK-MINER CAMPAIGN (MISSIONS 13-16) &amp; LIVE <code>/ws/swarm-telemetry</code> WEBSOCKET</h2>
+      <h2>SEASON 4 HACK-MINER CAMPAIGN (MISSIONS 13-16) &amp; DEMO <code>/ws/swarm-telemetry</code> WEBSOCKET</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
         Season 4 bounty contracts (<code>Triton Kernel Synthesis</code>, <code>ZK Activation Prover</code>,
         <code>Quantum QASM Optimizer</code>, <code>Autonomous Agent Swarm</code>) with a real-time WebSocket
@@ -293,13 +552,18 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       </div>
       <div class="terminal" id="season4-terminal">[SEASON 4] Loading bounty contracts 13-16 from /api/season4-missions...</div>
       <div class="terminal" id="swarm-telemetry-terminal">[WS] Connecting to /ws/swarm-telemetry ...</div>
->>>>>>> pr-36
     </div>
   </div>
 
 
   <script>
     let GAME_DATA = {embedded_json};
+
+    function escapeHtml(value) {{
+      return String(value ?? '').replace(/[&<>"']/g, character => ({{
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }})[character]);
+    }}
 
     function renderLeaderboard() {{
       if (GAME_DATA.hardware) {{
@@ -316,18 +580,18 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       tbody.innerHTML = '';
       (GAME_DATA.leaderboard || []).forEach((g, idx) => {{
         const tr = document.createElement('tr');
-        const achHtml = (g.achievements_unlocked || []).map(a => `<span class="pill">${{a}}</span>`).join(' ');
-        const rpHtml = g.rich_presence_status ? `<div style="color:#00ff9d;font-size:0.74rem;margin-top:4px;">RP: ${{g.rich_presence_status}}</div>` : '';
-        const receipt = g.steam_leaderboard_receipt ? `<div style="color:#64748b;font-size:0.72rem;margin-top:2px;">HMAC: ${{g.steam_leaderboard_receipt}}</div>` : '';
+        const achHtml = (g.achievements_unlocked || []).map(a => `<span class="pill">${{escapeHtml(a)}}</span>`).join(' ');
+        const rpHtml = g.rich_presence_status ? `<div style="color:#00ff9d;font-size:0.74rem;margin-top:4px;">RP: ${{escapeHtml(g.rich_presence_status)}}</div>` : '';
+        const receipt = g.steam_leaderboard_receipt ? `<div style="color:#64748b;font-size:0.72rem;margin-top:2px;">HMAC: ${{escapeHtml(g.steam_leaderboard_receipt)}}</div>` : '';
         const bossPts = g.boss_raid_points || 0;
         tr.innerHTML = `
           <td class="${{idx === 0 ? 'crown' : ''}}">${{idx === 0 ? '#1 CHAMPION' : '#' + (idx + 1)}}</td>
-          <td><strong>${{g.gamer_tag}}</strong><br/><span style="color:#38bdf8;font-size:0.8rem;">${{g.rank_title}}</span></td>
-          <td>${{g.data_discovery_points.toLocaleString()}} PTS<br/><span style="color:#94a3b8;font-size:0.76rem;">${{g.shards_mined}} Shards</span></td>
-          <td>${{g.lora_training_points.toLocaleString()}} PTS<br/><span style="color:#00ff9d;font-size:0.78rem;">-${{g.best_loss_reduction_pct}}% Loss</span></td>
-          <td>${{g.solution_bounty_points.toLocaleString()}} PTS<br/><span style="color:#fcee09;font-size:0.78rem;">${{g.bounties_solved}} Solved</span></td>
-          <td>${{g.swarm_contribution_points.toLocaleString()}} PTS<br/><span style="color:#c084fc;font-size:0.78rem;">${{g.swarm_tokens_served}} Toks (+${{bossPts}} Boss)</span></td>
-          <td class="crown">${{g.total_points.toLocaleString()}} PTS</td>
+          <td><strong>${{escapeHtml(g.gamer_tag)}}</strong><br/><span style="color:#38bdf8;font-size:0.8rem;">${{escapeHtml(g.rank_title)}}</span></td>
+          <td>${{escapeHtml(g.data_discovery_points.toLocaleString())}} PTS<br/><span style="color:#94a3b8;font-size:0.76rem;">${{escapeHtml(g.shards_mined)}} Shards</span></td>
+          <td>${{escapeHtml(g.lora_training_points.toLocaleString())}} PTS<br/><span style="color:#00ff9d;font-size:0.78rem;">-${{escapeHtml(g.best_loss_reduction_pct)}}% Loss</span></td>
+          <td>${{escapeHtml(g.solution_bounty_points.toLocaleString())}} PTS<br/><span style="color:#fcee09;font-size:0.78rem;">${{escapeHtml(g.bounties_solved)}} Solved</span></td>
+          <td>${{escapeHtml(g.swarm_contribution_points.toLocaleString())}} PTS<br/><span style="color:#c084fc;font-size:0.78rem;">${{escapeHtml(g.swarm_tokens_served)}} Toks (+${{escapeHtml(bossPts)}} Boss)</span></td>
+          <td class="crown">${{escapeHtml(g.total_points.toLocaleString())}} PTS</td>
           <td style="color:#00ff9d;font-weight:bold;">${{Number(g.hive_balance).toFixed(4)}} $HIVE</td>
           <td>${{achHtml}}${{rpHtml}}${{receipt}}</td>
         `;
@@ -373,16 +637,16 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       const el = document.getElementById('moe-panel');
       const util = moe.expert_utilization || {{}};
       el.innerHTML = `
-        <p><strong>Active Hot-Plugged Experts:</strong> ${{moe.num_experts || 6}} (${{(moe.expert_domains || []).join(', ')}})</p>
+        <p><strong>Active Hot-Plugged Experts:</strong> ${{escapeHtml(moe.num_experts || 6)}} (${{escapeHtml((moe.expert_domains || []).join(', '))}})</p>
         <p><strong>Top-2 Router Calibration Loss:</strong> ${{Number(moe.router_initial_loss || 0).toFixed(4)}} &rarr; <span style="color:#00ff9d;font-weight:bold;">${{Number(moe.router_final_loss || 0).toFixed(4)}}</span></p>
         <p><strong>Swarm Expert Routing Utilization:</strong></p>
         <ul>
-          ${{Object.entries(util).map(([k, v]) => `<li>${{k}}: <strong>${{(v * 100).toFixed(1)}}%</strong></li>`).join('')}}
+          ${{Object.entries(util).map(([k, v]) => `<li>${{escapeHtml(k)}}: <strong>${{(v * 100).toFixed(1)}}%</strong></li>`).join('')}}
         </ul>
-        <p><strong>2-Slot Double-Buffered Pinned RAM DMA (HM-M2-01):</strong> <span style="color:#00ff9d;">${{dma.length || 6}} Experts Staged (0.0 ms Exposed Swap Latency)</span></p>
-        <p><strong>Speculative Swarm Ring (&gamma;=${{raid.draft_gamma || 5}} / Tree &gamma;=6):</strong> <span style="color:#00f0ff;">${{raid.latency_reduction_factor || 5.6}}x RTT Speedup</span> (${{raid.effective_tokens_per_sec || 28.5}} tok/s)</p>
+        <p><strong>2-Slot Double-Buffered Pinned RAM DMA (HM-M2-01):</strong> <span style="color:#00ff9d;">${{escapeHtml(dma.length || 6)}} Experts Staged (0.0 ms Exposed Swap Latency)</span></p>
+        <p><strong>Speculative Swarm Ring (&gamma;=${{escapeHtml(raid.draft_gamma || 5)}} / Tree &gamma;=6):</strong> <span style="color:#00f0ff;">${{escapeHtml(raid.latency_reduction_factor || 5.6)}}x RTT Speedup</span> (${{escapeHtml(raid.effective_tokens_per_sec || 28.5)}} tok/s)</p>
         <p><strong>Steamworks Anti-Cheat Firewall:</strong> <span style="color:#ff007f;">Sybil_Bot_Limited_00 Blocked ($0 &lt; $5)</span> | <span style="color:#ff007f;">DarkNet_Spoofer_99 Slashed (Multi-Krum 2&sigma;)</span></p>
-        <p><strong>Peak RTX 2070 VRAM:</strong> ${{vram.peak_allocated_mb || 1192.6}} MiB (${{vram.free_vram_gb || 5.62}} GiB Free)</p>
+        <p><strong>Peak RTX 2070 VRAM:</strong> ${{escapeHtml(vram.peak_allocated_mb || 1192.6)}} MiB (${{escapeHtml(vram.free_vram_gb || 5.62)}} GiB Free)</p>
       `;
     }}
 
@@ -440,7 +704,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       }};
       const cid = dsToContract[ds] || 'CONTRACT-HF-04-RUST-SYSTEMS';
       const term = document.getElementById('scan-terminal');
-      term.textContent = `[FORGING QLoRA ADAPTER] ${{cid}} on ${{ds}} for ${{gamer}}...`;
+      term.textContent = `[SIMULATING QLoRA FORGE] ${{cid}} on ${{ds}} for ${{gamer}}...`;
       try {{
         const resp = await fetch('/api/forge-lora-mission', {{
           method: 'POST',
@@ -450,8 +714,8 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         if (!resp.ok) throw new Error('Offline mode');
         const res = await resp.json();
         term.textContent =
-          `[QLoRA FORGE COMPLETE] ${{res.contract_id}} (${{res.domain_expert}})\\n` +
-          `[LOSS CONVERGENCE] ${{res.initial_loss}} -> ${{res.final_loss}} (-${{res.loss_reduction_pct}}%) | Spot-Check: PASS\\n` +
+          `[DEMO QLoRA FORGE RESULT] ${{res.contract_id}} (${{res.domain_expert}})\\n` +
+          `[SIMULATED LOSS] ${{res.initial_loss}} -> ${{res.final_loss}} (-${{res.loss_reduction_pct}}%) | Spot-Check: NOT RUN (demo fixture)\\n` +
           `[STEAM RICH PRESENCE] ${{res.steam_rich_presence}}\\n` +
           `[REWARD] +${{res.total_pts_awarded}} PTS & +${{res.hive_minted}} $HIVE awarded to ${{res.gamer_tag}}!`;
         document.getElementById('rp-text').textContent = res.gamer_tag + ' -> "' + res.steam_rich_presence + '"';
@@ -465,7 +729,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         const pts = 1850;
         term.textContent =
           `[LOCAL SIMULATION FORGE] ${{cid}} (${{ds}})\\n` +
-          `[LOSS CONVERGENCE] 3.12 -> 0.74 (-76.3%) | Spot-Check: PASS\\n` +
+          `[SIMULATED LOSS] 3.12 -> 0.74 (-76.3%) | Spot-Check: NOT RUN (demo fixture)\\n` +
           `[REWARD] +${{pts}} PTS & +15.0 $HIVE awarded to ${{gamer}}!`;
       }}
     }}
@@ -533,11 +797,9 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
           `[FREE STEAM RTX TOOL v${{st.release_version}}] AppID: ${{st.steam_app_id}} | Mode: ${{st.tool_mode}}\\n` +
           `[GPU DETECTED] ${{st.hardware.gpu_name}} (${{st.hardware.vram_total_gb}} GB VRAM | CUDA: ${{diag.cuda_available}})\\n` +
           `[ZERO-INTRUSION DAEMON] State: ${{st.daemon_status.seti_agent_state}} | Idle: ${{st.daemon_status.os_idle_seconds}}s | Game: ${{st.daemon_status.active_game_detected || 'None'}}\\n` +
-          `[LIVE VRAM TELEMETRY] Allocated: ${{diag.live_vram_telemetry.allocated_mb}} MB | Free: ${{diag.live_vram_telemetry.free_vram_gb}} GB | 8GB Worker Budget: ${{diag.vram_budget_gb.total_peak_vram_gb}} GB -> PASS`;
+          `[LIVE VRAM TELEMETRY] Allocated: ${{diag.live_vram_telemetry.allocated_mb}} MB | Free: ${{diag.live_vram_telemetry.free_vram_gb}} GB | 8GB Worker Budget: ${{diag.vram_budget_gb.total_peak_vram_gb}} GB (configured estimate; workload test not run)`;
       }} catch (e) {{
-        term.textContent =
-          `[FREE STEAM RTX TOOL v1.0.0] AppID: 3133700 | GPU: NVIDIA GeForce RTX 2070 (8.0 GB VRAM)\\n` +
-          `[ZERO-INTRUSION DAEMON] State: STATE_2_IDLE_SETI_MINER (<1.5s Preemption Ready) -> PASS`;
+        term.textContent = '[DIAGNOSTIC UNAVAILABLE] Could not read current hardware telemetry. No GPU verification was performed.';
       }}
     }}
 
@@ -558,14 +820,14 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         const topMiner = dual.best_miner_champion || {{}};
         const topContrib = dual.best_contributor_champion || {{}};
         term.textContent =
-          `[JOINED CAMPAIGN EXECUTED] ${{campaignId}} | Parallel Speedup: ${{blitz.effective_parallel_speedup}}x | Co-Op Beats Solo: ${{blitz.coop_beats_solo_miner}}\\n` +
-          `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents mastered 4/4 Domains (4.0x Compute Leverage | 100% Transfer Efficiency)\\n` +
+          `[DEMO JOINED CAMPAIGN] ${{campaignId}} | Modeled Speedup (not measured): ${{blitz.effective_parallel_speedup}}x | Co-Op Beats Solo: ${{blitz.coop_beats_solo_miner}}\\n` +
+          `[DEMO TRANSFER SUMMARY] Synthetic benchmark output; no measured production throughput or parallel speedup\\n` +
           `[#1 BEST SWARM MINER] ${{topMiner.gamer_tag}} (${{topMiner.total_miner_pts}} PTS | ${{topMiner.total_hive_earned}} $HIVE | ${{topMiner.peers_leveraged_count}} Peer Reuses)\\n` +
           `[#1 BEST CONTRIBUTOR] ${{topContrib.contributor_handle}} (${{topContrib.merged_prs_count}} Merged PRs | ${{topContrib.lean4_theorems_authored}} Lean 4 Theorems | ${{topContrib.bounty_hive_awarded}} $HIVE)`;
       }} catch (e) {{
         term.textContent =
           `[LOCAL SIMULATION JOINED CAMPAIGN] ${{campaignId}} led by ${{gamer}}\\n` +
-          `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents inherited >= 84% Holdout Loss Reduction (4.0x Compute Leverage, 0 Redundant GPU Steps)\\n` +
+          `[SIMULATED TRANSFER] Offline example only; no training or performance measurement was performed\\n` +
           `[#1 BEST SWARM MINER] CyberValkyrie_FR (19,450 PTS | +15.0 $HIVE Reuse Royalties) | [#1 BEST CONTRIBUTOR] @xaviercallens, @clark719664 & @pedromineo`;
       }}
     }}
@@ -611,7 +873,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       const m = f.active_mission || {{}};
       const lb = (f.leaderboard || [])[0] || {{}};
       term.textContent =
-        `[LIVE TELEMETRY] seq ${{f.seq}} | ${{f.timestamp_iso}} | stream=${{f.stream}}\\n` +
+        `[SIMULATED TELEMETRY] seq ${{f.seq}} | ${{f.timestamp_iso}} | stream=${{f.stream}}\\n` +
         `[SEASON 4] ${{f.season4_missions}} contracts | active: ${{m.contract_id}} (${{m.domain_expert}})\\n` +
         `[SWARM RING] ${{f.num_nodes}} nodes | ${{f.active_ring_peers}} peers | mean RTT ${{f.mean_ring_rtt_ms}} ms\\n` +
         `[THROUGHPUT] ${{f.swarm_tokens_per_sec}} tok/s | mined ${{f.hive_minted_total}} $HIVE\\n` +
@@ -634,7 +896,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         return;
       }}
       telemetrySocket.onopen = () => {{
-        term.textContent = '[WS OPEN] ' + url + ' - streaming live swarm telemetry...';
+        term.textContent = '[WS OPEN] ' + url + ' - streaming demo fixture telemetry...';
       }};
       telemetrySocket.onmessage = (ev) => {{
         try {{ renderTelemetryFrame(JSON.parse(ev.data)); }} catch (e) {{ /* ignore malformed frames */ }}
@@ -653,6 +915,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     loadSeason4Missions();
     connectSwarmTelemetry();
   </script>
+  <script id="georing-webgl-renderer">{_GEORING_WEBGL_SCRIPT}</script>
 </body>
 </html>
 """
@@ -1035,6 +1298,8 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     def get_georing_topology() -> Dict[str, Any]:
         topo = build_georing_3d_topology_snapshot()
         topo["steam_app_id"] = STEAM_APP_ID
+        topo["source"] = "demo_fixture"
+        topo["live_peer_discovery"] = False
         return topo
 
     @app.get("/api/rich-presence", response_class=JSONResponse)
@@ -1076,7 +1341,8 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         vram = measure_vram_footprint(device)
         return {
             "steam_app_id": STEAM_APP_ID,
-            "profile_tested": prof.name,
+            "profile_selected": prof.name,
+            "profile_tested": None,
             "device": str(device),
             "cuda_available": torch.cuda.is_available(),
             "live_vram_telemetry": vram,
@@ -1086,7 +1352,10 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
                 "paged_adamw_8bit_gb": prof.vram_budget.paged_adamw_8bit_gb,
                 "total_peak_vram_gb": prof.vram_budget.total_peak_vram_gb,
             },
-            "diagnostic_passed": True,
+            "diagnostic_passed": None,
+            "diagnostic_status": "telemetry_only",
+            "gpu_workload_tested": False,
+            "budget_source": "configured_estimate",
         }
 
     @app.get("/api/steam-manifest", response_class=JSONResponse)

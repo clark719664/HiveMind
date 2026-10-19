@@ -725,7 +725,7 @@ def build_season4_mission_catalog() -> Dict[str, Any]:
 
 
 def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
-    """Build one live swarm telemetry frame streamed by the `/ws/swarm-telemetry` HUD socket."""
+    """Build a synthetic demo frame for the `/ws/swarm-telemetry` HUD socket."""
     topo = build_georing_3d_topology_snapshot()
     contracts = SEASON_4_HF_BOUNTY_CONTRACTS
     active = contracts[seq % len(contracts)]
@@ -733,6 +733,8 @@ def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
     return {
         "stream": "swarm-telemetry",
         "type": "swarm_telemetry_frame",
+        "source": "demo_fixture",
+        "runtime_verified": False,
         "seq": int(seq),
         "timestamp": now,
         "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
@@ -811,6 +813,8 @@ def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
     ]
     return {
         "renderer": "webgl_3d_georing_globe_v3",
+        "source": "demo_fixture",
+        "live_peer_discovery": False,
         "num_nodes": len(nodes),
         "nodes": nodes,
         "ring_links": links,
@@ -1947,7 +1951,7 @@ def execute_interactive_lora_micro_forge(
     gamer_tag: str = "CyberValkyrie_FR",
     contract_id: str = "CONTRACT-HF-04-RUST-SYSTEMS",
 ) -> Dict[str, Any]:
-    """Execute a fast interactive QLoRA Micro-Forge burst & Steam Rich Presence broadcast from the Web HUD."""
+    """Simulate a game micro-forge; no model training or spot-check is executed."""
     ensure_local_drive_caches()
     contract_map = {c.contract_id: c for c in SEASON_4_EXTENDED_HF_BOUNTY_CONTRACTS}
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
@@ -2016,7 +2020,12 @@ def execute_interactive_lora_micro_forge(
         "initial_loss": init_loss,
         "final_loss": final_loss,
         "loss_reduction_pct": loss_drop_pct,
-        "spot_check_passed": True,
+        "spot_check_passed": None,
+        "source": "demo_fixture",
+        "training_executed": False,
+        "runtime_verified": False,
+        "loss_is_simulated": True,
+        "rewards_simulated": True,
         "lora_pts_awarded": lora_pts,
         "bounty_pts_awarded": bounty_pts,
         "total_pts_awarded": total_pts,
@@ -2032,10 +2041,8 @@ def execute_interactive_joined_campaign(
     inner_steps: int = 16,
 ) -> Dict[str, Any]:
     """
-    Executes a live Joined Swarm Co-Op Campaign & Scientific Knowledge Transfer test across
-    4 peer agents (`CyberValkyrie_FR`, `NeuralGhost_DE`, `ZeroCool_UK`, `SakuraNode_JP`),
-    verifying that every peer agent immediately inherits the retraining effort on unseen
-    holdout benchmarks (`knowledge_transfer_efficiency >= 0.95`).
+    Run a synthetic local benchmark campaign across four example agents.
+    Reported scaling factors are modeled, not measured parallel speedups.
     """
     from hivemind.swarm.scientific_swarm_eval import (
         JoinedSwarmCampaignEngine,
@@ -2058,6 +2065,8 @@ def execute_interactive_joined_campaign(
     )
     report["lead_gamer_tag"] = lead_gamer_tag
     report["selected_campaign_id"] = campaign_id
+    report["source"] = "synthetic_benchmark"
+    report["parallel_speedup_measured"] = False
     return report
 
 

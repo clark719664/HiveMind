@@ -11,7 +11,9 @@ import gc
 import hashlib
 import hmac
 import json
+import math
 import os
+import secrets
 import tempfile
 import time
 from pathlib import Path
@@ -29,7 +31,7 @@ from hivemind.client.steamworks import STEAMWORKS_APP_ID, SteamworksSDKBridge
 from hivemind.config import HiveMindConfig, detect_local_hardware
 from hivemind.core.btm_upcycle import upcycle_branches_to_sparse_moe
 from hivemind.core.compression import compress_lora_delta, compute_pseudo_gradient_delta, decompress_lora_delta
-from hivemind.core.diloco_inner import build_inner_optimizer, run_diloco_inner_loop
+from hivemind.core.diloco_inner import InnerLoopResult, build_inner_optimizer, run_diloco_inner_loop
 from hivemind.core.diloco_outer import DiLoCoOuterOptimizer
 from hivemind.core.quantization import (
     attach_qlora_adapters,
@@ -65,6 +67,71 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 ARTIFACTS_ROOT = PROJECT_ROOT / "artifacts"
 
 
+def _preemption_report(result: InnerLoopResult, device: torch.device) -> Dict[str, Any]:
+    """Require successful offload and checkpointing before accepting a fast response."""
+    latency_seconds = float(result.emergency_dump_latency_sec)
+    latency_valid = math.isfinite(latency_seconds) and latency_seconds >= 0
+    checkpoint_saved = result.emergency_dump_path is not None and result.emergency_dump_path.is_file()
+    succeeded = (
+        result.preempted_by_daemon is True
+        and result.model_offloaded_to_cpu is True
+        and result.model_offload_error is None
+        and result.emergency_checkpoint_error is None
+        and checkpoint_saved
+    )
+    before = result.cuda_allocated_before_bytes
+    after = result.cuda_allocated_after_bytes
+    gpu_reduction = (
+        succeeded and device.type == "cuda" and result.preemption_original_device == str(device)
+        and type(before) is int and type(after) is int and 0 <= after < before
+    )
+    return {
+        "preemption_succeeded": succeeded,
+        "model_offloaded_to_cpu": result.model_offloaded_to_cpu,
+        "model_offload_error": result.model_offload_error,
+        "emergency_checkpoint_error": result.emergency_checkpoint_error,
+        "checkpoint_saved": checkpoint_saved,
+        "preempt_eviction_ms": round(latency_seconds * 1000.0, 2) if latency_valid else None,
+        "preempt_within_1500ms_sla": succeeded and latency_valid and latency_seconds < 1.5,
+        "cuda_allocated_before_bytes": before,
+        "cuda_allocated_after_bytes": after,
+        "gpu_memory_reduction_observed": gpu_reduction,
+        "gpu_validation_status": "measured_cuda" if gpu_reduction else "unverified",
+    }
+
+
+def _summarize_preemption_cycles(cycles: List[Dict[str, Any]], device: torch.device) -> Dict[str, Any]:
+    if not cycles:
+        raise ValueError("At least one preemption cycle is required.")
+    drift = round(abs(cycles[-1]["allocated_after_preempt_mb"] - cycles[0]["allocated_after_preempt_mb"]), 2)
+    all_succeeded = all(c["preemption_succeeded"] is True for c in cycles)
+    gpu_verified = device.type == "cuda" and all(c["gpu_memory_reduction_observed"] is True for c in cycles)
+    latencies = [c["preempt_eviction_ms"] for c in cycles if c["preempt_eviction_ms"] is not None]
+    return {
+        "cycles_executed": len(cycles),
+        "all_preemptions_succeeded": all_succeeded,
+        "all_preemptions_under_1500ms": all(c["preempt_within_1500ms_sla"] is True for c in cycles),
+        "all_gpu_preemptions_verified": gpu_verified,
+        "max_preempt_eviction_ms": max(latencies) if latencies else None,
+        "vram_drift_across_cycles_mb": drift,
+        # This legacy field concerns measured allocator drift over multiple GPU
+        # cycles, not total physical VRAM release. CPU readings cannot verify it.
+        "zero_vram_leak_verified": all_succeeded and gpu_verified and len(cycles) >= 2 and drift <= 16.0,
+        "vram_measurement_scope": "PyTorch allocator before deleting model owners; 16 MiB drift tolerance",
+        "gpu_validation_status": "measured_cuda" if gpu_verified else "unverified",
+        "cycles": cycles,
+    }
+
+
+def _ephemeral_report_hmac(payload: str) -> str:
+    """Label one local report with a fresh key; this is not deployment authentication.
+
+    The key is neither retained nor exported, so the tag is not a persistent
+    verification credential and must not authorize a release.
+    """
+    return hmac.new(secrets.token_bytes(32), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
 def run_intense_rtx_stress_suite(
     vram_cycles: int = 3,
     udp_burst_packets: int = 100,
@@ -72,6 +139,8 @@ def run_intense_rtx_stress_suite(
     steam_concurrent_accounts: int = 50,
 ) -> Dict[str, Any]:
     """Execute the 6-Stage Intense RTX GPU & Steam Tool Torture Test Suite."""
+    if type(vram_cycles) is not int or vram_cycles <= 0:
+        raise ValueError("vram_cycles must be a positive integer.")
     t_start = time.perf_counter()
     hw = detect_local_hardware()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -132,6 +201,10 @@ def run_intense_rtx_stress_suite(
                 losses.append(float(out.loss.item()))
 
             vram_during = measure_vram_footprint(device)
+            # End the separate warm-up optimizer/graph before testing the loop's
+            # offload, while deliberately keeping both model owners alive.
+            opt.zero_grad(set_to_none=True)
+            del out, x, opt, trainable
 
             # Trigger emergency game launch preemption (<1.5s SLA) via run_diloco_inner_loop
             game_exe = games_to_simulate[cycle_idx % len(games_to_simulate)]
@@ -153,11 +226,14 @@ def run_intense_rtx_stress_suite(
                 should_preempt_fn=daemon.should_preempt,
                 emergency_checkpoint_dir=tmp_dir / f"preempt_cycle_{cycle_idx}",
             )
-            evict_ms = round(float(preempt_res.emergency_dump_latency_sec) * 1000.0, 2)
+            preemption = _preemption_report(preempt_res, device)
+            # Observe offload before deleting the model, rather than crediting
+            # teardown cleanup to the preemption implementation.
+            vram_after_preempt = measure_vram_footprint(device)
 
             is_4bit_nf4 = bundle.is_4bit_nf4
             nf4_storage_mode = bundle.nf4_storage_mode
-            del out, x, opt, trainable, preempt_res, bundle, base_model
+            del preempt_res, bundle, base_model
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -172,25 +248,14 @@ def run_intense_rtx_stress_suite(
                     "initial_loss": round(losses[0], 4),
                     "final_loss": round(losses[-1], 4),
                     "peak_allocated_mb": vram_during["peak_allocated_mb"],
-                    "allocated_after_preempt_mb": vram_after["allocated_mb"],
-                    "preempt_eviction_ms": evict_ms,
-                    "preempt_within_1500ms_sla": evict_ms < 1500.0,
+                    "allocated_after_preempt_mb": vram_after_preempt["allocated_mb"],
+                    "allocated_after_teardown_mb": vram_after["allocated_mb"],
+                    **preemption,
                     "cycle_elapsed_s": round(time.perf_counter() - c_t0, 3),
                 }
             )
 
-        vram_drift_mb = round(
-            abs(stage1_cycles[-1]["allocated_after_preempt_mb"] - stage1_cycles[0]["allocated_after_preempt_mb"]),
-            2,
-        )
-        stage1_summary = {
-            "cycles_executed": vram_cycles,
-            "all_preemptions_under_1500ms": all(c["preempt_within_1500ms_sla"] for c in stage1_cycles),
-            "max_preempt_eviction_ms": max(c["preempt_eviction_ms"] for c in stage1_cycles),
-            "vram_drift_across_cycles_mb": vram_drift_mb,
-            "zero_vram_leak_verified": vram_drift_mb <= 16.0,
-            "cycles": stage1_cycles,
-        }
+        stage1_summary = _summarize_preemption_cycles(stage1_cycles, device)
 
         # =====================================================================
         # STAGE 2: 12-Expert Dynamic Sparse MoE Hot-Plug (E=2 -> E=12) on RTX GPU
@@ -790,11 +855,12 @@ def run_intense_rtx_stress_suite(
                 s3_sol_forge["domain_expert"],
                 s3_m9_forge["domain_expert"],
             ],
-            "season3_all_spotchecks_passed": (
-                s3_lean_forge["spot_check_passed"]
-                and s3_sol_forge["spot_check_passed"]
-                and s3_m9_forge["spot_check_passed"]
+            "season3_all_spotchecks_passed": all(
+                forge["spot_check_passed"] is True and forge.get("runtime_verified") is True
+                for forge in (s3_lean_forge, s3_sol_forge, s3_m9_forge)
             ),
+            "season3_forge_source": "demo_fixture",
+            "season3_training_verified": False,
             "webgl_3d_georing_nodes": topo_3d["num_nodes"],
             "cas_expert_cid": expert_cid,
             "cas_roundtrip_verified": "layers.0.lora_A" in loaded_lora,
@@ -830,7 +896,9 @@ def run_intense_rtx_stress_suite(
     total_elapsed_s = round(time.perf_counter() - t_start, 2)
 
     all_stages_passed = (
-        stage1_summary["all_preemptions_under_1500ms"]
+        stage1_summary["all_preemptions_succeeded"]
+        and stage1_summary["all_preemptions_under_1500ms"]
+        and stage1_summary["all_gpu_preemptions_verified"]
         and stage1_summary["zero_vram_leak_verified"]
         and stage2_summary["final_hotplugged_experts"] == num_hotplug_experts
         and stage2_summary["lru_eviction_verified"]
@@ -851,9 +919,7 @@ def run_intense_rtx_stress_suite(
     )
 
     cert_payload = f"RTX_CERT:{STEAM_APP_ID}:{hw.get('gpu_name')}:{all_stages_passed}:{vram_final['peak_allocated_mb']}"
-    cert_hmac = hmac.new(
-        b"HiveMind-Steamworks-RTX-Deploy-Key", cert_payload.encode("utf-8"), hashlib.sha256
-    ).hexdigest()[:32]
+    cert_hmac = _ephemeral_report_hmac(cert_payload)
 
     report: Dict[str, Any] = {
         "certification_title": "HiveMind Free Steam RTX Tool & Game v1.1.0 — 10-Stage Intense GPU Stress Certification",
@@ -863,6 +929,13 @@ def run_intense_rtx_stress_suite(
         "extended_validation_version": "1.1.0",
         "stages_executed": 10,
         "all_stages_passed": all_stages_passed,
+        "execution_device": str(device),
+        "gpu_certified": all_stages_passed is True and device.type == "cuda",
+        "certification_status": "passed" if all_stages_passed is True else "blocked",
+        "verification_limitations": [
+            "Interactive forge uses simulated losses and has no runtime spot-check",
+            *(["GPU preemption and VRAM release are unverified on CPU"] if device.type != "cuda" else []),
+        ],
         "certification_hmac": f"rtx_steam_cert_{cert_hmac}",
         "hardware": hw,
         "vram_telemetry": vram_final,
@@ -887,7 +960,8 @@ def run_intense_rtx_stress_suite(
     t_table.add_row(
         "Stage 1: 4-Bit NF4 + QLoRA r=64 + Game Preemption",
         f"{vram_cycles} Cycles | Max Evict: {stage1_summary['max_preempt_eviction_ms']} ms | Drift: {stage1_summary['vram_drift_across_cycles_mb']} MB",
-        "PASS" if stage1_summary["all_preemptions_under_1500ms"] else "FAIL",
+        "PASS" if stage1_summary["all_preemptions_succeeded"] and stage1_summary["all_gpu_preemptions_verified"]
+        and stage1_summary["all_preemptions_under_1500ms"] else "UNVERIFIED / FAIL",
     )
     t_table.add_row(
         "Stage 2: 12-Expert Sparse MoE Hot-Plug & 2-Slot DMA",
@@ -928,7 +1002,7 @@ def run_intense_rtx_stress_suite(
     t_table.add_row(
         "Stage 9: Season 3 Hack-Miner Forge + CAS Expert Vault",
         f"Forged {len(stage9_summary['season3_contracts_forged'])} S3 Contracts | CID={stage9_summary['cas_expert_cid'][:18]}...",
-        "PASS" if stage9_summary["cas_roundtrip_verified"] else "FAIL",
+        "UNVERIFIED DEMO" if not stage9_summary["season3_all_spotchecks_passed"] else "PASS",
     )
     t_table.add_row(
         "Stage 10: Lean 4 Machine-Checked 21-Theorem Audit",
@@ -955,6 +1029,8 @@ def deploy_free_steam_rtx_tool_v1(
 
     if stress_report.get("all_stages_passed") is not True:
         raise FormalVerificationError("Steam package blocked: stress certification did not pass")
+    if stress_report.get("gpu_certified") is not True:
+        raise FormalVerificationError("Steam package blocked: no verified GPU workload certification")
     formal_audit = stress_report.get("stage10_lean4_21_theorems_formal_audit", {})
     require_machine_checked(formal_audit)
     if formal_audit.get("formal_spec_verified") is not True:

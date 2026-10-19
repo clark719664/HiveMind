@@ -550,3 +550,116 @@ def test_dma_lookahead_groups_experts_and_releases_reused_slots():
 def test_dma_rejects_invalid_budget(budget):
     with pytest.raises(ValueError, match="nonnegative integer"):
         streamer(budget)
+
+
+def hidden_state_packet():
+    from hivemind.swarm.swarm_fabric import compress_hidden_states_fp8
+
+    return compress_hidden_states_fp8(torch.arange(8, dtype=torch.float16).reshape(1, 2, 4))
+
+
+def test_packet_serialization_does_not_claim_a_session_resumption():
+    transport = quic.AsyncQUICGeoRingTransport()
+    transport.serialize_packet_0rtt("peer", hidden_state_packet())
+    assert transport.zero_rtt_tickets["peer"].resumed_count == 0
+
+
+def test_remote_send_requires_explicit_endpoint_and_never_uses_loopback(monkeypatch):
+    transport = quic.AsyncQUICGeoRingTransport()
+    monkeypatch.setattr(quic, "run_local_link", lambda *args, **kwargs: pytest.fail("must not start loopback"))
+    with pytest.raises(ValueError, match="explicit trusted LinkEndpoint"):
+        transport.transmit_compressed_hidden_state("peer", hidden_state_packet())
+    assert transport._remote_links == {}
+
+
+def test_remote_transport_caches_endpoint_clients_and_reports_acknowledgments(monkeypatch):
+    from hivemind.swarm import quic_link
+
+    identity = quic_link.LinkIdentity.generate()
+    first = quic_link.LinkEndpoint("127.0.0.1", 4433, identity.ca_pem)
+    second = quic_link.LinkEndpoint("127.0.0.1", 4434, identity.ca_pem)
+    clients = []
+
+    class FakeRemoteLink:
+        def __init__(self, endpoint):
+            self.endpoint = endpoint
+            self.calls = []
+            clients.append(self)
+
+        async def send_frames(self, frames):
+            self.calls.append(list(frames))
+            resumed = len(self.calls) > 1
+            return quic_link.LinkRun("quic_0rtt" if resumed else "quic", len(frames), len(frames),
+                                     elapsed_s=0.012, session_resumed=resumed, early_data_accepted=resumed)
+
+    monkeypatch.setattr(quic_link, "RemoteHiddenStateLink", FakeRemoteLink)
+    monkeypatch.setattr(quic, "run_local_link", lambda *args, **kwargs: pytest.fail("must not start loopback"))
+    transport = quic.AsyncQUICGeoRingTransport(remote_endpoint=first)
+    packet = hidden_state_packet()
+    one = transport.transmit_compressed_hidden_state("peer", packet)
+    two = transport.transmit_compressed_hidden_state("peer", packet)
+    alternate = transport.transmit_compressed_hidden_state("other-peer", packet, endpoint=second)
+    assert len(clients) == 2
+    assert [len(client.calls) for client in clients] == [2, 1]
+    assert clients[0].endpoint == first and clients[1].endpoint == second
+    assert transport.remote_endpoint == first
+    assert one["transport_used"] == "quic_stream" and not one["session_resumed"]
+    assert two["transport_used"] == "quic_0rtt_stream" and two["session_resumed"]
+    assert two["frame_acknowledged"] and two["transport_latency_ms"] == 12.0
+    assert alternate["endpoint_port"] == 4434 and not alternate["session_resumed"]
+    assert "frame_verified" not in two  # A frame count is not a tensor/model execution proof.
+    assert transport.zero_rtt_tickets["peer"].resumed_count == 1
+    restored, _ = transport.deserialize_packet_0rtt(clients[0].calls[0][0])
+    assert restored.original_shape == packet.original_shape
+    assert len(clients[0].calls[0]) == 1  # No hidden warmup payload.
+
+
+def test_remote_transport_propagates_delivery_failure_without_retry(monkeypatch):
+    from hivemind.swarm import quic_link
+
+    identity = quic_link.LinkIdentity.generate()
+    endpoint = quic_link.LinkEndpoint("127.0.0.1", 4433, identity.ca_pem)
+    calls = []
+
+    class FailingRemoteLink:
+        def __init__(self, endpoint):
+            pass
+
+        async def send_frames(self, frames):
+            calls.append(list(frames))
+            raise ConnectionError("delivery is uncertain")
+
+    monkeypatch.setattr(quic_link, "RemoteHiddenStateLink", FailingRemoteLink)
+    transport = quic.AsyncQUICGeoRingTransport(remote_endpoint=endpoint)
+    with pytest.raises(ConnectionError, match="delivery is uncertain"):
+        transport.transmit_compressed_hidden_state("peer", hidden_state_packet())
+    assert len(calls) == 1
+    assert transport.zero_rtt_tickets["peer"].resumed_count == 0
+
+
+@pytest.mark.asyncio
+async def test_remote_transport_sends_to_existing_receiver_and_reuses_tls_ticket():
+    from hivemind.swarm import quic_link
+
+    identity = quic_link.LinkIdentity.generate()
+    received = []
+    transport = quic.AsyncQUICGeoRingTransport()
+
+    def receive(frame):
+        packet, _ = transport.deserialize_packet_0rtt(frame)
+        received.append(packet)
+
+    server = await quic_link.QuicHiddenStateServer(identity, on_frame=receive).start()
+    try:
+        endpoint = quic_link.LinkEndpoint("127.0.0.1", server.port, identity.ca_pem)
+        packet = hidden_state_packet()
+        first = await transport.send_compressed_hidden_states("peer", [packet, packet], endpoint=endpoint)
+        second = await transport.send_compressed_hidden_states("peer", [packet], endpoint=endpoint)
+        assert first.frames_delivered == 2 and not first.session_resumed
+        assert second.frames_delivered == 1 and second.session_resumed
+        assert second.early_data_accepted
+        assert server.frames_received == 3 and len(received) == 3
+        assert all(item.original_shape == packet.original_shape for item in received)
+        assert len(transport._remote_links) == 1
+    finally:
+        server.close()

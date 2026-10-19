@@ -30,7 +30,7 @@ import time
 from contextlib import ExitStack
 from dataclasses import dataclass, field
 from numbers import Integral
-from typing import Any, Coroutine, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import torch
 
@@ -49,6 +49,9 @@ from hivemind.swarm.nat_traversal import (
     udp_socket,
 )
 from hivemind.swarm.quic_link import LinkRun, run_local_link
+
+if TYPE_CHECKING:
+    from hivemind.swarm.quic_link import LinkEndpoint, RemoteHiddenStateLink
 
 from hivemind.swarm.swarm_fabric import (
     CompressedHiddenStatePacket,
@@ -764,6 +767,10 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
     fall back to a libp2p-negotiated WebSocket when UDP is unusable. Peers learn reflexive
     addresses with RFC 5389 STUN, punch UDP holes directly when their NATs allow it, and relay
     through an RFC 5766 TURN allocation when they do not (`hivemind.swarm.nat_traversal`).
+
+    Remote hidden-state sends require an explicit trusted `LinkEndpoint`; the NAT
+    probe/relay APIs do not automatically configure that link. Methods ending in
+    `_loopback` and `benchmark_loopback_0rtt` remain explicit local demonstrations.
     """
 
     def __init__(
@@ -772,10 +779,15 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         max_rtt_ms: float = 20.0,
         bind_host: str = "127.0.0.1",
         signing_secret: bytes = b"HiveMind-QUIC-0RTT-Secret",
+        *,
+        remote_endpoint: "LinkEndpoint | None" = None,
     ) -> None:
         super().__init__(region=region, max_rtt_ms=max_rtt_ms)
         self.bind_host = bind_host
         self.signing_secret = signing_secret
+        self.remote_endpoint = remote_endpoint
+        self._remote_links: Dict["LinkEndpoint", "RemoteHiddenStateLink"] = {}
+        self._remote_links_lock = threading.Lock()
         self.zero_rtt_tickets: Dict[str, ZeroRTTSessionTicket] = {}
         self.session_tickets_0rtt: Dict[str, str] = {}
         self.anti_replay_max_nonce: Dict[str, int] = {}
@@ -1000,7 +1012,6 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
     ) -> bytes:
         """Pack an FP8 `CompressedHiddenStatePacket` into the binary frame carried by QUIC or WebSocket."""
         ticket = self.zero_rtt_tickets.get(peer_id) or self.issue_0rtt_ticket(peer_id)
-        ticket.resumed_count += 1
         magic = MAGIC_WS_FALLBACK if use_websocket_fallback else MAGIC_QUIC_0RTT
         shape = packet.original_shape
         ndim = len(shape)
@@ -1060,6 +1071,89 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             compressed_bytes=fp8_len + scale_len,
         )
         return pkt, protocol
+
+    async def _send_remote_frames(
+        self,
+        peer_id: str,
+        frames: Sequence[bytes],
+        endpoint: "LinkEndpoint | None",
+    ) -> LinkRun:
+        from hivemind.swarm.quic_link import LinkEndpoint, RemoteHiddenStateLink
+
+        selected = endpoint if endpoint is not None else self.remote_endpoint
+        if selected is None:
+            raise ValueError("configure remote_endpoint or supply an explicit trusted LinkEndpoint")
+        if not isinstance(selected, LinkEndpoint):
+            raise TypeError("remote endpoint must be a LinkEndpoint")
+        if not frames:
+            raise ValueError("at least one hidden-state packet is required")
+        with self._remote_links_lock:
+            link = self._remote_links.get(selected)
+            if link is None:
+                link = RemoteHiddenStateLink(selected)
+                self._remote_links[selected] = link
+        run = await link.send_frames(frames)
+        if run.session_resumed:
+            with self._nonce_lock:
+                ticket = self.zero_rtt_tickets.get(peer_id)
+                if ticket is not None:
+                    ticket.resumed_count += 1
+        return run
+
+    async def send_compressed_hidden_states(
+        self,
+        peer_id: str,
+        packets: Sequence[CompressedHiddenStatePacket],
+        *,
+        endpoint: "LinkEndpoint | None" = None,
+    ) -> LinkRun:
+        """Send packets to an explicitly configured, independently running receiver.
+
+        The endpoint supplies the trusted CA and server name. Its client caches
+        single-use TLS session tickets between calls on this transport instance;
+        no local receiver or warmup frame is created. A receiver acknowledgment
+        confirms its delivered-frame count, not model execution or tensor quality.
+        STUN discovery and TURN allocation are separate APIs and do not wire a NAT
+        path into this link. Application nonce checks also remain separate.
+        """
+        frames = [self.serialize_packet_0rtt(peer_id, packet) for packet in packets]
+        return await self._send_remote_frames(peer_id, frames, endpoint)
+
+    def transmit_compressed_hidden_state(
+        self,
+        peer_id: str,
+        packet: CompressedHiddenStatePacket,
+        *,
+        endpoint: "LinkEndpoint | None" = None,
+    ) -> Dict[str, Any]:
+        """Synchronous remote send; use send_compressed_hidden_states in async code.
+
+        Unlike the explicitly named loopback demonstration, this requires a
+        configured receiver. Certificate and uncertain-delivery failures propagate.
+        """
+        selected = endpoint if endpoint is not None else self.remote_endpoint
+        if selected is None:
+            raise ValueError("configure remote_endpoint or supply an explicit trusted LinkEndpoint")
+        frame = self.serialize_packet_0rtt(peer_id, packet)
+        run = _run_coroutine(self._send_remote_frames(peer_id, [frame], selected))
+        return {
+            "transport_used": {
+                "quic_0rtt": "quic_0rtt_stream",
+                "quic": "quic_stream",
+                "libp2p_websocket": "libp2p_websocket_fallback",
+            }[run.protocol],
+            "endpoint_host": selected.host,
+            "endpoint_port": selected.port,
+            "tls_server_name": selected.server_name,
+            "frame_bytes": len(frame),
+            "frames_sent": run.frames_sent,
+            "frames_delivered": run.frames_delivered,
+            "frame_acknowledged": run.frames_delivered == 1,
+            "transport_latency_ms": round(run.elapsed_s * 1000.0, 3),
+            "session_resumed": run.session_resumed,
+            "early_data_accepted": run.early_data_accepted,
+            "fallback_reason": run.fallback_reason,
+        }
 
     def _send_over_link(
         self, frames: List[bytes], expected_shape: Tuple[int, ...], udp_blocked: bool
@@ -1129,6 +1223,8 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             "peer-paris-01", packet, use_websocket_fallback=simulate_udp_blocked
         )
         run, intact = self._send_over_link([wire_frame], packet.original_shape, simulate_udp_blocked)
+        if run.session_resumed:
+            self.zero_rtt_tickets["peer-paris-01"].resumed_count += 1
         transport_used = {
             "quic_0rtt": "quic_0rtt_stream",
             "quic": "quic_stream",

@@ -100,6 +100,9 @@ class HiveSwarmLedger:
     """Bitcoin-inspired Proof-of-Useful-Work (PoUW) Ledger for Project HiveMind.
 
     Rewards verified DiLoCo-QLoRA training, Merkle dataset storage, and MoE inference.
+    A configured ledger file is loaded and validated on restart; corrupt files
+    are rejected, never silently replaced with an empty ledger. This local
+    snapshot is not an authenticated distributed consensus database.
     """
 
     MAX_SUPPLY_HIVE = 21_000_000.0
@@ -107,15 +110,18 @@ class HiveSwarmLedger:
     HALVING_INTERVAL_BLOCKS = 10_000
 
     def __init__(self, ledger_path: Optional[Path] = None) -> None:
-        self.ledger_path = ledger_path
+        self.ledger_path = Path(ledger_path) if ledger_path is not None else None
         self.chain: List[HivePoUWBlock] = []
         self.balances: Dict[str, float] = {}
         self.reputation_scores: Dict[str, int] = {}
         self.slashed_registry: List[str] = []
         self.settlement_history: List[InferenceSettlementReceipt] = []
         self._init_genesis_block()
+        if self.ledger_path is not None and (self.ledger_path.exists() or self.ledger_path.is_symlink()):
+            self._load_persisted_state()
 
-    def _init_genesis_block(self) -> None:
+    @staticmethod
+    def _make_genesis_block() -> HivePoUWBlock:
         genesis = HivePoUWBlock(
             block_height=0,
             prev_block_hash="0" * 64,
@@ -128,7 +134,120 @@ class HiveSwarmLedger:
             slashed_nodes=[],
         )
         genesis.block_hash = genesis.compute_hash()
-        self.chain.append(genesis)
+        return genesis
+
+    def _init_genesis_block(self) -> None:
+        self.chain.append(self._make_genesis_block())
+
+    @staticmethod
+    def _snapshot_digest(data: dict) -> str:
+        encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def _load_persisted_state(self) -> None:
+        """Read current snapshots and the original unversioned schema without rewriting either."""
+        def unique_object(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError(f"Duplicate JSON key: {key}")
+                result[key] = value
+            return result
+
+        def reject_constant(value):
+            raise ValueError(f"Non-finite JSON constant: {value}")
+
+        def text(value, label):
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"Invalid {label}.")
+
+        def number(value, label):
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"Invalid {label}.")
+
+        def names(values, label, *, unique=True):
+            if not isinstance(values, list):
+                raise ValueError(f"Invalid {label}.")
+            for value in values:
+                text(value, label)
+            if unique and len(set(values)) != len(values):
+                raise ValueError(f"Duplicate {label}.")
+
+        try:
+            raw = json.loads(self.ledger_path.read_text(encoding="utf-8"),
+                             object_pairs_hook=unique_object, parse_constant=reject_constant)
+            if not isinstance(raw, dict):
+                raise ValueError("Ledger snapshot must be an object.")
+            required = {"chain", "balances", "reputation_scores", "slashed_registry", "settlement_history"}
+            version = raw.get("schema_version", 0)
+            if type(version) is not int or version not in (0, 1):
+                raise ValueError("Unsupported ledger schema version.")
+            if version == 0:
+                # Legacy files contained precisely these five fields and no checksum.
+                if set(raw) != required:
+                    raise ValueError("Malformed legacy ledger snapshot.")
+            else:
+                if set(raw) != required | {"schema_version", "snapshot_sha256"}:
+                    raise ValueError("Malformed versioned ledger snapshot.")
+                unsigned = {key: value for key, value in raw.items() if key != "snapshot_sha256"}
+                if raw["snapshot_sha256"] != self._snapshot_digest(unsigned):
+                    raise ValueError("Ledger snapshot checksum mismatch.")
+            for field in ("balances", "reputation_scores"):
+                if not isinstance(raw[field], dict):
+                    raise ValueError(f"Invalid {field} map.")
+                for node_id, value in raw[field].items():
+                    text(node_id, "node ID")
+                    if field == "balances":
+                        number(value, "balance")
+                    elif type(value) is not int:
+                        raise ValueError("Reputation scores must be integers.")
+            names(raw["slashed_registry"], "slashed node ID")
+            if not isinstance(raw["chain"], list) or not raw["chain"]:
+                raise ValueError("Ledger chain must be nonempty.")
+            chain = [HivePoUWBlock(**entry) for entry in raw["chain"]]
+            for index, block in enumerate(chain):
+                if type(block.block_height) is not int or block.block_height != index:
+                    raise ValueError("Non-contiguous block heights.")
+                if type(block.outer_step) is not int or block.outer_step < 0:
+                    raise ValueError("Invalid block outer step.")
+                number(block.timestamp, "block timestamp")
+                number(block.total_block_reward, "block reward")
+                text(block.expert_cid, "expert CID")
+                for label in ("prev_block_hash", "merkle_root", "block_hash"):
+                    digest = getattr(block, label)
+                    if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                        raise ValueError(f"Invalid {label}.")
+                if not isinstance(block.reward_allocations, dict):
+                    raise ValueError("Invalid reward allocations.")
+                for node_id, amount in block.reward_allocations.items():
+                    text(node_id, "reward node ID")
+                    number(amount, "reward allocation")
+                names(block.slashed_nodes, "block slashed node ID", unique=False)
+                if block.compute_hash() != block.block_hash:
+                    raise ValueError("Invalid block hash.")
+                if index and block.prev_block_hash != chain[index - 1].block_hash:
+                    raise ValueError("Broken block hash link.")
+            if chain[0] != self._make_genesis_block():
+                raise ValueError("Unexpected genesis block.")
+            if not isinstance(raw["settlement_history"], list):
+                raise ValueError("Invalid settlement history.")
+            settlements = [InferenceSettlementReceipt(**entry) for entry in raw["settlement_history"]]
+            for receipt in settlements:
+                text(receipt.consumer_node_id, "settlement consumer")
+                text(receipt.domain_expert, "settlement domain")
+                names(receipt.expert_provider_nodes, "settlement provider")
+                if not receipt.expert_provider_nodes or type(receipt.verified_tokens) is not int or receipt.verified_tokens <= 0:
+                    raise ValueError("Invalid settlement provider/token count.")
+                number(receipt.rtt_speedup, "settlement RTT speedup")
+                number(receipt.fee_paid_hive, "settlement fee")
+        except (ValueError, TypeError, KeyError, OverflowError, UnicodeError) as exc:
+            raise ValueError(f"Invalid persisted ledger: {exc}") from exc
+        # Publish only after every field has passed validation.
+        self.chain = chain
+        self.balances = raw["balances"]
+        self.reputation_scores = raw["reputation_scores"]
+        self.slashed_registry = raw["slashed_registry"]
+        self.settlement_history = settlements
 
     def block_reward_at_height(self, height: int) -> float:
         halvings = height // self.HALVING_INTERVAL_BLOCKS
@@ -318,10 +437,10 @@ class HiveSwarmLedger:
 
     def verify_chain_integrity(self) -> bool:
         """Cryptographically verify every block hash and prev_block_hash link from genesis."""
-        if not self.chain:
+        if not self.chain or self.chain[0] != self._make_genesis_block():
             return False
         for i, block in enumerate(self.chain):
-            if block.compute_hash() != block.block_hash:
+            if block.block_height != i or block.compute_hash() != block.block_hash:
                 return False
             if i > 0 and block.prev_block_hash != self.chain[i - 1].block_hash:
                 return False
@@ -331,12 +450,14 @@ class HiveSwarmLedger:
         if self.ledger_path is not None:
             self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
             data = {
+                "schema_version": 1,
                 "chain": [asdict(b) for b in self.chain],
                 "balances": self.balances,
                 "reputation_scores": self.reputation_scores,
                 "slashed_registry": self.slashed_registry,
                 "settlement_history": [asdict(s) for s in self.settlement_history],
             }
+            data["snapshot_sha256"] = self._snapshot_digest(data)
             # Commit atomically so a failed write cannot truncate the previous ledger.
             fd, temporary_path = tempfile.mkstemp(prefix=f".{self.ledger_path.name}.", dir=self.ledger_path.parent)
             try:

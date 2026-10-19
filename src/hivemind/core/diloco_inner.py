@@ -8,6 +8,9 @@ every s steps for BOINC spot-check verification.
 from __future__ import annotations
 
 import gc
+import hashlib
+import os
+import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -58,6 +61,25 @@ class InnerLoopResult:
     preempted_by_daemon: bool = False
     emergency_dump_path: Path | None = None
     emergency_dump_latency_sec: float = 0.0
+    emergency_checkpoint_error: str | None = None
+    preemption_original_device: str | None = None
+    model_offloaded_to_cpu: bool = False
+    model_offload_error: str | None = None
+    cuda_allocated_before_bytes: int | None = None
+    cuda_allocated_after_bytes: int | None = None
+
+
+def _checkpoint_to_cpu(value):
+    """Detach checkpoint tensors from live optimizer/model GPU storage."""
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu().clone()
+    if isinstance(value, dict):
+        return {key: _checkpoint_to_cpu(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_checkpoint_to_cpu(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_checkpoint_to_cpu(item) for item in value)
+    return value
 
 
 def build_inner_optimizer(
@@ -110,7 +132,12 @@ def run_diloco_inner_loop(
     should_preempt_fn: Callable[[], bool] | None = None,
     emergency_checkpoint_dir: Path | None = None,
 ) -> InnerLoopResult:
-    """Execute H local AdamW steps on LoRA parameters with micro-checkpointing every s steps."""
+    """Execute local AdamW steps, stopping and offloading the model on preemption.
+
+    A preempted model stays on CPU; callers must explicitly move it back only
+    after their idle policy permits. Re-entering this function starts a fresh
+    optimizer and RNG sequence, not an exact continuation of an emergency dump.
+    """
     if inner_steps_H <= 0 or checkpoint_interval_s <= 0 or micro_batch_size <= 0:
         raise ValueError("Inner steps, checkpoint interval and batch size must be positive.")
     configure_deterministic_runtime(rng_seed)
@@ -144,31 +171,83 @@ def run_diloco_inner_loop(
     preempted = False
     dump_path: Path | None = None
     dump_latency = 0.0
+    checkpoint_error = None
+    offload_error = None
+    offloaded = False
+    cuda_before = None
+    cuda_after = None
 
     for step in range(1, inner_steps_H + 1):
         # Zero-Intrusion Daemon preemption check
         if should_preempt_fn is not None and should_preempt_fn():
             preempted = True
             t_dump = time.perf_counter()
+            checkpoint_payload = None
+            if device.type == "cuda":
+                try:
+                    cuda_before = int(torch.cuda.memory_allocated(device))
+                except (RuntimeError, AssertionError):
+                    pass  # None means unavailable, never zero/free VRAM.
             if emergency_checkpoint_dir is not None:
-                emergency_checkpoint_dir.mkdir(parents=True, exist_ok=True)
-                dump_path = emergency_checkpoint_dir / f"emergency_{worker_id}_step{step - 1}.pt"
-                torch.save(
-                    {
+                try:
+                    checkpoint_payload = {
                         "worker_id": worker_id,
                         "branch_name": branch_name,
                         "outer_step": outer_step,
                         "step": step - 1,
                         "lora_state": extract_lora_state_dict(model),
-                        "optimizer_state": optimizer.state_dict(),
-                    },
-                    dump_path,
-                )
-            # Yield VRAM immediately
+                        "initial_lora_state": theta_init,
+                        "optimizer_state": _checkpoint_to_cpu(optimizer.state_dict()),
+                        "torch_rng_state": torch.get_rng_state().cpu(),
+                        "cuda_rng_states": torch.cuda.get_rng_state_all() if device.type == "cuda" else [],
+                        "original_device": str(device),
+                        "automatic_resume_supported": False,
+                    }
+                except Exception as exc:
+                    checkpoint_error = f"Could not prepare emergency checkpoint: {exc}"
+            # empty_cache cannot release live parameter/optimizer tensors. Drop
+            # optimizer references and move registered model storage to CPU first.
             optimizer.zero_grad(set_to_none=True)
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            optimizer.state.clear()
+            optimizer.param_groups.clear()
+            optimizer = None
+            trainable_params.clear()
+            try:
+                model.to(torch.device("cpu"))
+                offloaded = all(t.device.type == "cpu" for t in model.parameters()) and all(
+                    t.device.type == "cpu" for t in model.buffers()
+                )
+                if not offloaded:
+                    offload_error = "Model still has registered non-CPU tensors after offload."
+            except Exception as exc:
+                offload_error = f"Model CPU offload failed: {exc}"
             gc.collect()
+            if device.type == "cuda":
+                try:
+                    torch.cuda.empty_cache()
+                    cuda_after = int(torch.cuda.memory_allocated(device))
+                except (RuntimeError, AssertionError):
+                    pass
+            if checkpoint_payload is not None:
+                temporary_path = None
+                try:
+                    emergency_checkpoint_dir.mkdir(parents=True, exist_ok=True)
+                    safe_worker = hashlib.sha256(worker_id.encode("utf-8")).hexdigest()[:16]
+                    target = emergency_checkpoint_dir / f"emergency_{safe_worker}_step{step - 1}.pt"
+                    fd, temporary_path = tempfile.mkstemp(prefix=".emergency-", suffix=".pt", dir=emergency_checkpoint_dir)
+                    os.close(fd)
+                    torch.save(checkpoint_payload, temporary_path)
+                    os.replace(temporary_path, target)
+                    dump_path = target
+                except Exception as exc:
+                    checkpoint_error = f"Could not save emergency checkpoint: {exc}"
+                finally:
+                    if temporary_path is not None:
+                        try:
+                            os.unlink(temporary_path)
+                        except OSError:
+                            pass
+                del checkpoint_payload
             dump_latency = round(time.perf_counter() - t_dump, 4)
             break
 
@@ -203,9 +282,10 @@ def run_diloco_inner_loop(
                 state_snapshot=snap,
             )
 
-    optimizer.zero_grad(set_to_none=True)
+    if optimizer is not None:
+        optimizer.zero_grad(set_to_none=True)
     del optimizer
-    if torch.cuda.is_available():
+    if device.type == "cuda" and not preempted:
         torch.cuda.empty_cache()
 
     elapsed = round(time.perf_counter() - start_time, 4)
@@ -247,6 +327,12 @@ def run_diloco_inner_loop(
         preempted_by_daemon=preempted,
         emergency_dump_path=dump_path,
         emergency_dump_latency_sec=dump_latency,
+        emergency_checkpoint_error=checkpoint_error,
+        preemption_original_device=str(device) if preempted else None,
+        model_offloaded_to_cpu=offloaded,
+        model_offload_error=offload_error,
+        cuda_allocated_before_bytes=cuda_before,
+        cuda_allocated_after_bytes=cuda_after,
     )
 
 

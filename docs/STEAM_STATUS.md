@@ -30,6 +30,6 @@ hivemind deploy-steam-tool
 hivemind serve-hack-hud --port 8090
 ```
 
-Opening `web_ui/index.html` directly without the FastAPI server inspects the offline HUD snapshot; use `hivemind serve-hack-hud` or `Launch_HiveMind_SteamTool_RTX.bat` to run live GPU QLoRA micro-forging and RTX diagnostics.
+Opening `web_ui/index.html` directly without the FastAPI server inspects the offline HUD snapshot; use `hivemind serve-hack-hud` or `Launch_HiveMind_SteamTool_RTX.bat` for the local interface and diagnostics. The game micro-forge is a synthetic fixture, explicitly labeled unverified; it does not establish live GPU QLoRA training. Hardware certification rejects this unverified stage.
 
 The legacy `3133700` App ID and `3133701` Depot ID constants remain in runtime code and test fixtures as local development defaults so all unit and integration tests pass deterministically. Do not use `3133700` to publish to SteamPipe; replace it with your own partner-assigned Valve App ID before uploading to Steamworks.
