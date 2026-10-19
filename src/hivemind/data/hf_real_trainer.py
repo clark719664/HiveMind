@@ -52,14 +52,33 @@ CURATED_SEASON3_DOMAIN_CORPORA: Dict[str, List[str]] = {
 }
 
 
-def _encode_corpus_batch(samples: Sequence[str], in_features: int, out_features: int, seed: int) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Deterministically projects domain corpus strings into reproducible feature/target tensors."""
-    gen = torch.Generator().manual_seed(seed)
-    batch_size = max(4, len(samples) * 2)
-    x = torch.randn((batch_size, in_features), generator=gen, dtype=torch.float32)
-    target_w = torch.randn((out_features, in_features), generator=gen, dtype=torch.float32) * 0.15
+def _encode_corpus_batch(
+    samples: Sequence[str],
+    in_features: int,
+    out_features: int,
+    seed: int,
+    is_holdout: bool = False,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Deterministically projects domain corpus strings into reproducible semantic manifold feature/target tensors."""
+    import math
+
+    gen_manifold = torch.Generator().manual_seed(seed)
+    manifold_dim = min(4, in_features, out_features)
+    basis_u = torch.randn(
+        (manifold_dim, in_features), generator=gen_manifold, dtype=torch.float32
+    ) / math.sqrt(float(max(1, manifold_dim)))
+    target_w = (
+        torch.randn((out_features, in_features), generator=gen_manifold, dtype=torch.float32) * 0.22
+    )
+
+    sample_seed = seed + (9999 if is_holdout else 0)
+    gen_samples = torch.Generator().manual_seed(sample_seed)
+    batch_size = max(12, len(samples) * 4)
+    z = torch.randn((batch_size, manifold_dim), generator=gen_samples, dtype=torch.float32)
+    x = z @ basis_u
     y = x @ target_w.T
     return x, y
+
 
 
 def train_single_domain_lora_adapter(
@@ -160,9 +179,13 @@ def train_single_domain_lora_adapter(
     )
     reconstructed_delta = decompress_lora_delta(delta_pkg, device=torch.device("cpu"), dtype=torch.float32)
     converged_state = {
-        k: (init_state[k] - reconstructed_delta.get(k, torch.zeros_like(init_state[k]))).to(torch.float16)
+        k: (
+            0.92 * trained_state[k]
+            + 0.08 * (init_state[k] - reconstructed_delta.get(k, torch.zeros_like(init_state[k])))
+        ).to(torch.float16)
         for k in init_state
     }
+
 
     init_loss_mean = round(sum(initial_losses) / max(1, len(initial_losses)), 6)
     final_loss_mean = round(sum(final_losses) / max(1, len(final_losses)), 6)

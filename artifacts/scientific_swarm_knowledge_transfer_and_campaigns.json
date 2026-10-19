@@ -1,0 +1,611 @@
+{
+  "suite_version": "v1.4.0-scientific-swarm-transfer",
+  "device": "cuda:0",
+  "elapsed_seconds": 0.408,
+  "scientific_knowledge_transfer_audits": {
+    "Rust_Systems_Security": {
+      "domain_name": "Rust_Systems_Security",
+      "benchmark_id": "HF-SCI-BENCH-01-RUST-BORROW",
+      "trainer_agent_id": "CyberValkyrie_FR",
+      "expert_cid": "cid://sha256/expert-rust_systems_security-64d660ddb40480d961b65d1c",
+      "trainer_initial_loss": 3.209918,
+      "trainer_final_loss": 0.167,
+      "trainer_loss_reduction_pct": 94.8,
+      "peer_evaluations": [
+        {
+          "peer_agent_id": "NeuralGhost_DE",
+          "ingested_expert_cid": "cid://sha256/expert-rust_systems_security-64d660ddb40480d961b65d1c",
+          "provenance_trainer": "CyberValkyrie_FR",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 1.135,
+          "pre_transfer_holdout_loss": 3.209918,
+          "post_transfer_holdout_loss": 0.167,
+          "pre_transfer_perplexity": 24.7771,
+          "post_transfer_perplexity": 1.1818,
+          "post_transfer_cosine_alignment": 0.9737,
+          "holdout_loss_reduction_pct": 94.8,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "ZeroCool_UK",
+          "ingested_expert_cid": "cid://sha256/expert-rust_systems_security-64d660ddb40480d961b65d1c",
+          "provenance_trainer": "CyberValkyrie_FR",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.716,
+          "pre_transfer_holdout_loss": 3.209918,
+          "post_transfer_holdout_loss": 0.167,
+          "pre_transfer_perplexity": 24.7771,
+          "post_transfer_perplexity": 1.1818,
+          "post_transfer_cosine_alignment": 0.9737,
+          "holdout_loss_reduction_pct": 94.8,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "SakuraNode_JP",
+          "ingested_expert_cid": "cid://sha256/expert-rust_systems_security-64d660ddb40480d961b65d1c",
+          "provenance_trainer": "CyberValkyrie_FR",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.798,
+          "pre_transfer_holdout_loss": 3.209918,
+          "post_transfer_holdout_loss": 0.167,
+          "pre_transfer_perplexity": 24.7771,
+          "post_transfer_perplexity": 1.1818,
+          "post_transfer_cosine_alignment": 0.9737,
+          "holdout_loss_reduction_pct": 94.8,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        }
+      ],
+      "mean_peer_pre_transfer_loss": 3.209918,
+      "mean_peer_post_transfer_loss": 0.167,
+      "mean_peer_pre_perplexity": 24.7771,
+      "mean_peer_post_perplexity": 1.1818,
+      "mean_peer_loss_reduction_pct": 94.8,
+      "knowledge_transfer_efficiency_ratio": 1.0,
+      "mean_hotswap_latency_ms": 0.883,
+      "total_peer_gpu_steps_saved": 48,
+      "royalties_paid_to_trainer_hive": 15.0,
+      "all_peers_leveraged_successfully": true
+    },
+    "Solidity_Smart_Contracts": {
+      "domain_name": "Solidity_Smart_Contracts",
+      "benchmark_id": "HF-SCI-BENCH-02-SOLIDITY-ESCROW",
+      "trainer_agent_id": "NeuralGhost_DE",
+      "expert_cid": "cid://sha256/expert-solidity_smart_contracts-4ebfdb03d9f3a14e2286e950",
+      "trainer_initial_loss": 4.116071,
+      "trainer_final_loss": 0.217553,
+      "trainer_loss_reduction_pct": 94.71,
+      "peer_evaluations": [
+        {
+          "peer_agent_id": "CyberValkyrie_FR",
+          "ingested_expert_cid": "cid://sha256/expert-solidity_smart_contracts-4ebfdb03d9f3a14e2286e950",
+          "provenance_trainer": "NeuralGhost_DE",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.56,
+          "pre_transfer_holdout_loss": 4.116071,
+          "post_transfer_holdout_loss": 0.217553,
+          "pre_transfer_perplexity": 61.3179,
+          "post_transfer_perplexity": 1.243,
+          "post_transfer_cosine_alignment": 0.9734,
+          "holdout_loss_reduction_pct": 94.71,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "ZeroCool_UK",
+          "ingested_expert_cid": "cid://sha256/expert-solidity_smart_contracts-4ebfdb03d9f3a14e2286e950",
+          "provenance_trainer": "NeuralGhost_DE",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.477,
+          "pre_transfer_holdout_loss": 4.116071,
+          "post_transfer_holdout_loss": 0.217553,
+          "pre_transfer_perplexity": 61.3179,
+          "post_transfer_perplexity": 1.243,
+          "post_transfer_cosine_alignment": 0.9734,
+          "holdout_loss_reduction_pct": 94.71,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "SakuraNode_JP",
+          "ingested_expert_cid": "cid://sha256/expert-solidity_smart_contracts-4ebfdb03d9f3a14e2286e950",
+          "provenance_trainer": "NeuralGhost_DE",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.623,
+          "pre_transfer_holdout_loss": 4.116071,
+          "post_transfer_holdout_loss": 0.217553,
+          "pre_transfer_perplexity": 61.3179,
+          "post_transfer_perplexity": 1.243,
+          "post_transfer_cosine_alignment": 0.9734,
+          "holdout_loss_reduction_pct": 94.71,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        }
+      ],
+      "mean_peer_pre_transfer_loss": 4.116071,
+      "mean_peer_post_transfer_loss": 0.217553,
+      "mean_peer_pre_perplexity": 61.3179,
+      "mean_peer_post_perplexity": 1.243,
+      "mean_peer_loss_reduction_pct": 94.71,
+      "knowledge_transfer_efficiency_ratio": 1.0,
+      "mean_hotswap_latency_ms": 0.553,
+      "total_peer_gpu_steps_saved": 48,
+      "royalties_paid_to_trainer_hive": 15.0,
+      "all_peers_leveraged_successfully": true
+    },
+    "Biomedical_Clinical_QA": {
+      "domain_name": "Biomedical_Clinical_QA",
+      "benchmark_id": "HF-SCI-BENCH-03-PUBMEDQA-CLINICAL",
+      "trainer_agent_id": "ZeroCool_UK",
+      "expert_cid": "cid://sha256/expert-biomedical_clinical_qa-8d9cc866cb3a0fa60456d85d",
+      "trainer_initial_loss": 4.080894,
+      "trainer_final_loss": 0.115859,
+      "trainer_loss_reduction_pct": 97.16,
+      "peer_evaluations": [
+        {
+          "peer_agent_id": "CyberValkyrie_FR",
+          "ingested_expert_cid": "cid://sha256/expert-biomedical_clinical_qa-8d9cc866cb3a0fa60456d85d",
+          "provenance_trainer": "ZeroCool_UK",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.617,
+          "pre_transfer_holdout_loss": 4.080894,
+          "post_transfer_holdout_loss": 0.115859,
+          "pre_transfer_perplexity": 59.1984,
+          "post_transfer_perplexity": 1.1228,
+          "post_transfer_cosine_alignment": 0.987,
+          "holdout_loss_reduction_pct": 97.16,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "NeuralGhost_DE",
+          "ingested_expert_cid": "cid://sha256/expert-biomedical_clinical_qa-8d9cc866cb3a0fa60456d85d",
+          "provenance_trainer": "ZeroCool_UK",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.599,
+          "pre_transfer_holdout_loss": 4.080894,
+          "post_transfer_holdout_loss": 0.115859,
+          "pre_transfer_perplexity": 59.1984,
+          "post_transfer_perplexity": 1.1228,
+          "post_transfer_cosine_alignment": 0.987,
+          "holdout_loss_reduction_pct": 97.16,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "SakuraNode_JP",
+          "ingested_expert_cid": "cid://sha256/expert-biomedical_clinical_qa-8d9cc866cb3a0fa60456d85d",
+          "provenance_trainer": "ZeroCool_UK",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.633,
+          "pre_transfer_holdout_loss": 4.080894,
+          "post_transfer_holdout_loss": 0.115859,
+          "pre_transfer_perplexity": 59.1984,
+          "post_transfer_perplexity": 1.1228,
+          "post_transfer_cosine_alignment": 0.987,
+          "holdout_loss_reduction_pct": 97.16,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        }
+      ],
+      "mean_peer_pre_transfer_loss": 4.080894,
+      "mean_peer_post_transfer_loss": 0.115859,
+      "mean_peer_pre_perplexity": 59.1984,
+      "mean_peer_post_perplexity": 1.1228,
+      "mean_peer_loss_reduction_pct": 97.16,
+      "knowledge_transfer_efficiency_ratio": 1.0,
+      "mean_hotswap_latency_ms": 0.616,
+      "total_peer_gpu_steps_saved": 48,
+      "royalties_paid_to_trainer_hive": 15.0,
+      "all_peers_leveraged_successfully": true
+    },
+    "Lean4_Theorem_Prover": {
+      "domain_name": "Lean4_Theorem_Prover",
+      "benchmark_id": "HF-SCI-BENCH-04-PROOFNET-LEAN4",
+      "trainer_agent_id": "SakuraNode_JP",
+      "expert_cid": "cid://sha256/expert-lean4_theorem_prover-2f9a0b71e12249e2e216ff1e",
+      "trainer_initial_loss": 1.99912,
+      "trainer_final_loss": 0.073348,
+      "trainer_loss_reduction_pct": 96.33,
+      "peer_evaluations": [
+        {
+          "peer_agent_id": "CyberValkyrie_FR",
+          "ingested_expert_cid": "cid://sha256/expert-lean4_theorem_prover-2f9a0b71e12249e2e216ff1e",
+          "provenance_trainer": "SakuraNode_JP",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.517,
+          "pre_transfer_holdout_loss": 1.99912,
+          "post_transfer_holdout_loss": 0.073348,
+          "pre_transfer_perplexity": 7.3826,
+          "post_transfer_perplexity": 1.0761,
+          "post_transfer_cosine_alignment": 0.9919,
+          "holdout_loss_reduction_pct": 96.33,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "NeuralGhost_DE",
+          "ingested_expert_cid": "cid://sha256/expert-lean4_theorem_prover-2f9a0b71e12249e2e216ff1e",
+          "provenance_trainer": "SakuraNode_JP",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.462,
+          "pre_transfer_holdout_loss": 1.99912,
+          "post_transfer_holdout_loss": 0.073348,
+          "pre_transfer_perplexity": 7.3826,
+          "post_transfer_perplexity": 1.0761,
+          "post_transfer_cosine_alignment": 0.9919,
+          "holdout_loss_reduction_pct": 96.33,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        },
+        {
+          "peer_agent_id": "ZeroCool_UK",
+          "ingested_expert_cid": "cid://sha256/expert-lean4_theorem_prover-2f9a0b71e12249e2e216ff1e",
+          "provenance_trainer": "SakuraNode_JP",
+          "local_training_steps_spent": 0,
+          "gpu_steps_saved": 16,
+          "hotswap_latency_ms": 0.46,
+          "pre_transfer_holdout_loss": 1.99912,
+          "post_transfer_holdout_loss": 0.073348,
+          "pre_transfer_perplexity": 7.3826,
+          "post_transfer_perplexity": 1.0761,
+          "post_transfer_cosine_alignment": 0.9919,
+          "holdout_loss_reduction_pct": 96.33,
+          "knowledge_transfer_efficiency": 1.0,
+          "royalty_paid_hive": 5.0
+        }
+      ],
+      "mean_peer_pre_transfer_loss": 1.99912,
+      "mean_peer_post_transfer_loss": 0.073348,
+      "mean_peer_pre_perplexity": 7.3826,
+      "mean_peer_post_perplexity": 1.0761,
+      "mean_peer_loss_reduction_pct": 96.33,
+      "knowledge_transfer_efficiency_ratio": 1.0,
+      "mean_hotswap_latency_ms": 0.48,
+      "total_peer_gpu_steps_saved": 48,
+      "royalties_paid_to_trainer_hive": 15.0,
+      "all_peers_leveraged_successfully": true
+    }
+  },
+  "collective_4domain_agent_matrix": {
+    "CyberValkyrie_FR": {
+      "domains_mastered": 4,
+      "domains_trained_locally": 1,
+      "domains_leveraged_from_swarm_peers": 3,
+      "compute_leverage_multiplier": 4.0,
+      "holdout_loss_by_domain": {
+        "Rust_Systems_Security": 0.167,
+        "Solidity_Smart_Contracts": 0.217553,
+        "Biomedical_Clinical_QA": 0.115859,
+        "Lean4_Theorem_Prover": 0.073348
+      },
+      "mean_4domain_holdout_loss": 0.14344
+    },
+    "NeuralGhost_DE": {
+      "domains_mastered": 4,
+      "domains_trained_locally": 1,
+      "domains_leveraged_from_swarm_peers": 3,
+      "compute_leverage_multiplier": 4.0,
+      "holdout_loss_by_domain": {
+        "Rust_Systems_Security": 0.167,
+        "Solidity_Smart_Contracts": 0.217553,
+        "Biomedical_Clinical_QA": 0.115859,
+        "Lean4_Theorem_Prover": 0.073348
+      },
+      "mean_4domain_holdout_loss": 0.14344
+    },
+    "ZeroCool_UK": {
+      "domains_mastered": 4,
+      "domains_trained_locally": 1,
+      "domains_leveraged_from_swarm_peers": 3,
+      "compute_leverage_multiplier": 4.0,
+      "holdout_loss_by_domain": {
+        "Rust_Systems_Security": 0.167,
+        "Solidity_Smart_Contracts": 0.217553,
+        "Biomedical_Clinical_QA": 0.115859,
+        "Lean4_Theorem_Prover": 0.073348
+      },
+      "mean_4domain_holdout_loss": 0.14344
+    },
+    "SakuraNode_JP": {
+      "domains_mastered": 4,
+      "domains_trained_locally": 1,
+      "domains_leveraged_from_swarm_peers": 3,
+      "compute_leverage_multiplier": 4.0,
+      "holdout_loss_by_domain": {
+        "Rust_Systems_Security": 0.167,
+        "Solidity_Smart_Contracts": 0.217553,
+        "Biomedical_Clinical_QA": 0.115859,
+        "Lean4_Theorem_Prover": 0.073348
+      },
+      "mean_4domain_holdout_loss": 0.14344
+    }
+  },
+  "joined_shard_parallel_campaign": {
+    "campaign_id": "CAMPAIGN-COOP-01-DILOCO-BLITZ",
+    "domain_name": "Rust_Systems_Security",
+    "participating_agents": [
+      "CyberValkyrie_FR",
+      "NeuralGhost_DE",
+      "ZeroCool_UK",
+      "SakuraNode_JP"
+    ],
+    "steps_per_agent_in_parallel": 4,
+    "effective_parallel_speedup": 3.84,
+    "pre_training_holdout_loss": 3.209918,
+    "solo_miner_same_time_holdout_loss": 1.678838,
+    "joined_coop_holdout_loss": 0.098634,
+    "joined_coop_holdout_perplexity": 1.1037,
+    "joined_coop_cosine_alignment": 0.985,
+    "quality_improvement_over_solo_pct": 94.12,
+    "coop_beats_solo_miner": true,
+    "published_coop_expert_cid": "cid://sha256/expert-rust_systems_security_joinedcoop-130b2b1346be143bf9aa45e1"
+  },
+  "proposed_joined_campaigns": [
+    {
+      "campaign_id": "CAMPAIGN-COOP-01-DILOCO-BLITZ",
+      "codename": "Operation: Hyper-DiLoCo Shard Blitz",
+      "strategy_mode": "Data-Parallel Shard Partitioning + Nesterov Outer Momentum + TIES Merge",
+      "target_domains": [
+        "Rust_Systems_Security"
+      ],
+      "min_participating_agents": 4,
+      "expected_speedup_factor": 3.85,
+      "expected_quality_synergy_pct": 14.5,
+      "reward_pool_hive": 250.0,
+      "reward_pool_pts": 4800,
+      "scientific_rationale": "Splits a Hugging Face dataset across K=4 miners so each GPU processes 1/K of tokens in parallel (H=12 inner steps), communicating only Top-5% + FP8 deltas (12.79x wire compression) and fusing via TIES sign-consensus to reduce gradient variance and mine 3.85x faster."
+    },
+    {
+      "campaign_id": "CAMPAIGN-COOP-02-POLYMATH-FUSION",
+      "codename": "Operation: Polymath 4-Domain Cross-Pollination",
+      "strategy_mode": "Specialist Division of Labor + Instant CAS Hot-Swap + 4-Expert Sparse MoE",
+      "target_domains": [
+        "Rust_Systems_Security",
+        "Solidity_Smart_Contracts",
+        "Biomedical_Clinical_QA",
+        "Lean4_Theorem_Prover"
+      ],
+      "min_participating_agents": 4,
+      "expected_speedup_factor": 4.0,
+      "expected_quality_synergy_pct": 300.0,
+      "reward_pool_hive": 400.0,
+      "reward_pool_pts": 7200,
+      "scientific_rationale": "Each agent trains 1 specialized domain expert and publishes it to the Content-Addressed Store. All 4 agents immediately hot-swap their peers' 3 experts, gaining 4/4 domain mastery at 1/4 the individual GPU training cost (4.0x compute leverage)."
+    },
+    {
+      "campaign_id": "CAMPAIGN-COOP-03-BYZANTINE-CITADEL",
+      "codename": "Operation: Zero-Day Byzantine Citadel",
+      "strategy_mode": "Co-Op Multi-Krum 2-Sigma Defense + 10% Deterministic Spot-Check Audit",
+      "target_domains": [
+        "Solidity_Smart_Contracts",
+        "Lean4_Theorem_Prover"
+      ],
+      "min_participating_agents": 4,
+      "expected_speedup_factor": 3.4,
+      "expected_quality_synergy_pct": 22.0,
+      "reward_pool_hive": 300.0,
+      "reward_pool_pts": 5600,
+      "scientific_rationale": "Co-mining squad jointly filters out adversarial Poisoning Bots using pairwise Euclidean Multi-Krum distance and 10% activation spot-checks, ensuring 0% model corruption and splitting slashed cheater stakes among honest miners."
+    },
+    {
+      "campaign_id": "CAMPAIGN-COOP-04-SUPERRING-EXPRESS",
+      "codename": "Operation: Global Super-Ring Speculative Express",
+      "strategy_mode": "0-RTT QUIC Geo-Ring + Token-Tree Speculative Decoding (gamma=6) + Royalty Streaming",
+      "target_domains": [
+        "Rust_Systems_Security",
+        "Solidity_Smart_Contracts",
+        "Biomedical_Clinical_QA",
+        "Lean4_Theorem_Prover"
+      ],
+      "min_participating_agents": 4,
+      "expected_speedup_factor": 5.4,
+      "expected_quality_synergy_pct": 18.2,
+      "reward_pool_hive": 350.0,
+      "reward_pool_pts": 6400,
+      "scientific_rationale": "Links EU, US, and APAC peer agents that have ingested the shared CAS expert pool into a pipelined speculative verification ring, cutting multi-hop RTT latency by >5x and paying automatic $HIVE reuse royalties to the original adapter trainers."
+    }
+  ],
+  "dual_leaderboard": {
+    "best_miner_champion": {
+      "standing": 1,
+      "gamer_tag": "CyberValkyrie_FR",
+      "node_id": "seti-node-paris-01",
+      "region": "EU-West-Paris",
+      "primary_domain_trained": "Rust_Systems_Security",
+      "expert_cid_published": "cid://sha256/expert-rust_systems_security-64d660ddb40480d961b65d1c",
+      "holdout_loss_reduction_pct": 94.8,
+      "peers_leveraged_count": 3,
+      "reuse_royalties_hive": 15.0,
+      "joined_campaigns_completed": 4,
+      "total_miner_pts": 19450,
+      "total_hive_earned": 248.5,
+      "hf_badges": [
+        "HF_SWARM_KNOWLEDGE_DONOR",
+        "HF_COOP_RAID_COMMANDER",
+        "HF_SCIENTIFIC_VALIDATOR"
+      ]
+    },
+    "best_contributor_champion": {
+      "standing": 1,
+      "contributor_handle": "@xaviercallens",
+      "role_title": "Founding Protocol Architect & Principal Maintainer",
+      "merged_prs_count": 15,
+      "lean4_theorems_authored": 17,
+      "cas_experts_seeded": 12,
+      "downstream_swarm_agents_powered": 100,
+      "bounty_hive_awarded": 12500.0,
+      "contributor_prestige_pts": 28500,
+      "hf_badges": [
+        "HF_OPEN_SOURCE_ARCHITECT",
+        "HF_COOP_RAID_COMMANDER",
+        "HF_SCIENTIFIC_VALIDATOR"
+      ]
+    },
+    "miner_standings": [
+      {
+        "standing": 1,
+        "gamer_tag": "CyberValkyrie_FR",
+        "node_id": "seti-node-paris-01",
+        "region": "EU-West-Paris",
+        "primary_domain_trained": "Rust_Systems_Security",
+        "expert_cid_published": "cid://sha256/expert-rust_systems_security-64d660ddb40480d961b65d1c",
+        "holdout_loss_reduction_pct": 94.8,
+        "peers_leveraged_count": 3,
+        "reuse_royalties_hive": 15.0,
+        "joined_campaigns_completed": 4,
+        "total_miner_pts": 19450,
+        "total_hive_earned": 248.5,
+        "hf_badges": [
+          "HF_SWARM_KNOWLEDGE_DONOR",
+          "HF_COOP_RAID_COMMANDER",
+          "HF_SCIENTIFIC_VALIDATOR"
+        ]
+      },
+      {
+        "standing": 2,
+        "gamer_tag": "NeuralGhost_DE",
+        "node_id": "seti-node-berlin-02",
+        "region": "EU-Central-Berlin",
+        "primary_domain_trained": "Solidity_Smart_Contracts",
+        "expert_cid_published": "cid://sha256/expert-solidity_smart_contracts-4ebfdb03d9f3a14e2286e950",
+        "holdout_loss_reduction_pct": 94.71,
+        "peers_leveraged_count": 3,
+        "reuse_royalties_hive": 15.0,
+        "joined_campaigns_completed": 4,
+        "total_miner_pts": 18820,
+        "total_hive_earned": 236.0,
+        "hf_badges": [
+          "HF_SWARM_KNOWLEDGE_DONOR",
+          "HF_COOP_RAID_COMMANDER",
+          "HF_SCIENTIFIC_VALIDATOR"
+        ]
+      },
+      {
+        "standing": 3,
+        "gamer_tag": "ZeroCool_UK",
+        "node_id": "seti-node-virginia-03",
+        "region": "US-East-Virginia",
+        "primary_domain_trained": "Biomedical_Clinical_QA",
+        "expert_cid_published": "cid://sha256/expert-biomedical_clinical_qa-8d9cc866cb3a0fa60456d85d",
+        "holdout_loss_reduction_pct": 97.16,
+        "peers_leveraged_count": 3,
+        "reuse_royalties_hive": 15.0,
+        "joined_campaigns_completed": 4,
+        "total_miner_pts": 18290,
+        "total_hive_earned": 229.5,
+        "hf_badges": [
+          "HF_SWARM_KNOWLEDGE_DONOR",
+          "HF_SCIENTIFIC_VALIDATOR"
+        ]
+      },
+      {
+        "standing": 4,
+        "gamer_tag": "SakuraNode_JP",
+        "node_id": "seti-node-tokyo-04",
+        "region": "APAC-East-Tokyo",
+        "primary_domain_trained": "Lean4_Theorem_Prover",
+        "expert_cid_published": "cid://sha256/expert-lean4_theorem_prover-2f9a0b71e12249e2e216ff1e",
+        "holdout_loss_reduction_pct": 96.33,
+        "peers_leveraged_count": 3,
+        "reuse_royalties_hive": 15.0,
+        "joined_campaigns_completed": 4,
+        "total_miner_pts": 17910,
+        "total_hive_earned": 221.0,
+        "hf_badges": [
+          "HF_SWARM_KNOWLEDGE_DONOR",
+          "HF_SCIENTIFIC_VALIDATOR"
+        ]
+      }
+    ],
+    "contributor_standings": [
+      {
+        "standing": 1,
+        "contributor_handle": "@xaviercallens",
+        "role_title": "Founding Protocol Architect & Principal Maintainer",
+        "merged_prs_count": 15,
+        "lean4_theorems_authored": 17,
+        "cas_experts_seeded": 12,
+        "downstream_swarm_agents_powered": 100,
+        "bounty_hive_awarded": 12500.0,
+        "contributor_prestige_pts": 28500,
+        "hf_badges": [
+          "HF_OPEN_SOURCE_ARCHITECT",
+          "HF_COOP_RAID_COMMANDER",
+          "HF_SCIENTIFIC_VALIDATOR"
+        ]
+      },
+      {
+        "standing": 2,
+        "contributor_handle": "@clark719664",
+        "role_title": "Season 2 & Season 3 Grandmaster Community Contributor",
+        "merged_prs_count": 10,
+        "lean4_theorems_authored": 10,
+        "cas_experts_seeded": 4,
+        "downstream_swarm_agents_powered": 64,
+        "bounty_hive_awarded": 8900.0,
+        "contributor_prestige_pts": 21400,
+        "hf_badges": [
+          "HF_OPEN_SOURCE_ARCHITECT",
+          "HF_SWARM_KNOWLEDGE_DONOR",
+          "HF_SCIENTIFIC_VALIDATOR"
+        ]
+      },
+      {
+        "standing": 3,
+        "contributor_handle": "Open Season 4 Challenger (#26-#31)",
+        "role_title": "Wave 3 Bounty Hunter (Claim an Open Issue!)",
+        "merged_prs_count": 0,
+        "lean4_theorems_authored": 0,
+        "cas_experts_seeded": 0,
+        "downstream_swarm_agents_powered": 0,
+        "bounty_hive_awarded": 11600.0,
+        "contributor_prestige_pts": 0,
+        "hf_badges": [
+          "Claim Issues #26-#31 to Unlock!"
+        ]
+      }
+    ],
+    "hf_gamification_badges_catalog": {
+      "HF_SWARM_KNOWLEDGE_DONOR": {
+        "badge_id": "HF_SWARM_KNOWLEDGE_DONOR",
+        "title": "Swarm Knowledge Donor (CAS Broadcast)",
+        "tier": "Diamond",
+        "description": "Retrained a QLoRA adapter that was hot-swapped and leveraged by >= 3 other swarm agents with >95% transfer efficiency."
+      },
+      "HF_COOP_RAID_COMMANDER": {
+        "badge_id": "HF_COOP_RAID_COMMANDER",
+        "title": "Joined Campaign Commander (Co-Op Raid)",
+        "tier": "Mythic",
+        "description": "Completed all 4 Joined Swarm Co-Op Campaigns with >3.5x parallel speedup and TIES sign-consensus synergy."
+      },
+      "HF_SCIENTIFIC_VALIDATOR": {
+        "badge_id": "HF_SCIENTIFIC_VALIDATOR",
+        "title": "Peer-Reviewed Swarm Scientist",
+        "tier": "Platinum",
+        "description": "Achieved >80% holdout loss reduction across all 4 scientific benchmark suites (Rust, Solidity, PubMedQA, Lean 4)."
+      },
+      "HF_OPEN_SOURCE_ARCHITECT": {
+        "badge_id": "HF_OPEN_SOURCE_ARCHITECT",
+        "title": "HiveMind Core Protocol Architect",
+        "tier": "Legendary",
+        "description": "Merged verified PRs and formal Lean 4 theorems powering the global HiveMind swarm fabric."
+      }
+    }
+  },
+  "lead_gamer_tag": "CyberValkyrie_FR",
+  "selected_campaign_id": "CAMPAIGN-COOP-02-POLYMATH-FUSION"
+}

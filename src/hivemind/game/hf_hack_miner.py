@@ -1428,6 +1428,29 @@ def run_hf_hack_mining_game(
         "elapsed_seconds": elapsed_sec,
     }
 
+    # Execute Scientific Swarm Knowledge Transfer & Joined Co-Op Campaign Audit
+    from hivemind.swarm.scientific_swarm_eval import (
+        JoinedSwarmCampaignEngine,
+        SwarmKnowledgeTransferEngine,
+    )
+
+    ref_lora_for_sci = {
+        "layer0.lora_A": torch.zeros((lora_rank, 64), dtype=torch.float32),
+        "layer0.lora_B": torch.zeros((64, lora_rank), dtype=torch.float32),
+    }
+    sci_transfer_engine = SwarmKnowledgeTransferEngine(store=engine.store, device=device)
+    sci_campaign_engine = JoinedSwarmCampaignEngine(
+        transfer_engine=sci_transfer_engine, device=device
+    )
+    sci_eval_report = sci_campaign_engine.execute_full_scientific_swarm_campaign(
+        reference_lora_state=ref_lora_for_sci,
+        moe_model=None,
+        inner_steps=16,
+    )
+    game_report["scientific_swarm_evaluation"] = sci_eval_report
+    game_report["proposed_joined_campaigns"] = sci_eval_report["proposed_joined_campaigns"]
+    game_report["dual_leaderboard"] = sci_eval_report["dual_leaderboard"]
+
     report_path = ARTIFACTS_ROOT / "hf_hack_miner_game_report.json"
     report_path.write_text(json.dumps(game_report, indent=2), encoding="utf-8")
 
@@ -1776,5 +1799,40 @@ def execute_interactive_lora_micro_forge(
         "steam_rich_presence": rp.status_string,
         "rich_presence_hmac": rp.rich_presence_hmac,
     }
+
+
+def execute_interactive_joined_campaign(
+    lead_gamer_tag: str = "CyberValkyrie_FR",
+    campaign_id: str = "CAMPAIGN-COOP-02-POLYMATH-FUSION",
+    inner_steps: int = 16,
+) -> Dict[str, Any]:
+    """
+    Executes a live Joined Swarm Co-Op Campaign & Scientific Knowledge Transfer test across
+    4 peer agents (`CyberValkyrie_FR`, `NeuralGhost_DE`, `ZeroCool_UK`, `SakuraNode_JP`),
+    verifying that every peer agent immediately inherits the retraining effort on unseen
+    holdout benchmarks (`knowledge_transfer_efficiency >= 0.95`).
+    """
+    from hivemind.swarm.scientific_swarm_eval import (
+        JoinedSwarmCampaignEngine,
+        SwarmKnowledgeTransferEngine,
+    )
+
+    ensure_local_drive_caches()
+    store = ContentAddressedSwarmStore(CACHE_ROOT / "swarm_store")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    ref_lora = {
+        "layer0.lora_A": torch.zeros((16, 64), dtype=torch.float32),
+        "layer0.lora_B": torch.zeros((64, 16), dtype=torch.float32),
+    }
+    transfer_engine = SwarmKnowledgeTransferEngine(store=store, device=device)
+    campaign_engine = JoinedSwarmCampaignEngine(transfer_engine=transfer_engine, device=device)
+    report = campaign_engine.execute_full_scientific_swarm_campaign(
+        reference_lora_state=ref_lora,
+        moe_model=None,
+        inner_steps=inner_steps,
+    )
+    report["lead_gamer_tag"] = lead_gamer_tag
+    report["selected_campaign_id"] = campaign_id
+    return report
 
 
