@@ -841,3 +841,82 @@ def test_swarm_fabric_advanced_milestones_m1_to_m4(tmp_path: Path) -> None:
         assert "data: [DONE]" in raw_sse
 
 
+def test_s3_04_additional_domain_expert_lora_adapters(tmp_path: Path) -> None:
+    """
+    Validates Season 3 Milestone HM-S3-04:
+    - Training & Top-k (`k=0.05`) + FP8 (`float8_e4m3fn`) compression of the 4 Season 3
+      domain LoRA adapters (`Rust_Systems_Security`, `Solidity_Smart_Contracts`,
+      `Biomedical_Clinical_QA`, `Lean4_Theorem_Prover`)
+    - Content-Addressed Swarm Store (`cid://sha256/expert-...`) publication & reload
+    - Dynamic hot-plugging into `UpcycledSparseMoEModel` and Top-2 domain routing
+    """
+    from hivemind.core.btm_moe import (
+        SEASON_3_DOMAIN_EXPERT_SPECS,
+        upcycle_branches_to_sparse_moe,
+    )
+    from hivemind.data.hf_real_trainer import train_and_publish_season3_domain_experts
+    from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
+
+    base_model, _, _ = build_local_qwen2_backbone(
+        vocab_size=256,
+        hidden_size=64,
+        intermediate_size=128,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        num_key_value_heads=2,
+        device=torch.device("cpu"),
+        use_4bit_nf4_if_cuda=False,
+    )
+    bundle = attach_qlora_adapters(base_model, rank_r=8, lora_alpha=16, gradient_checkpointing=False)
+    ref_lora = extract_lora_state_dict(bundle.model)
+
+    moe_model, _ = upcycle_branches_to_sparse_moe(
+        peft_or_base_model=bundle.model,
+        branch_lora_states={
+            "Python_Systems_Code": {k: v.clone() for k, v in ref_lora.items()},
+            "Mathematical_Reasoning": {k: v.clone() + 0.01 for k, v in ref_lora.items()},
+        },
+        lora_rank_r=8,
+        lora_alpha=16,
+        top_k=2,
+        in_place=True,
+    )
+    assert moe_model.num_experts == 2
+
+    store = ContentAddressedSwarmStore(tmp_path / "s3_cas_store")
+    registry, summary = train_and_publish_season3_domain_experts(
+        store=store,
+        reference_lora_state=ref_lora,
+        moe_model=moe_model,
+        topk_ratio=0.05,
+        inner_steps=10,
+    )
+    assert summary["num_domains_trained"] == 4
+    assert set(registry.list_domains()) == set(SEASON_3_DOMAIN_EXPERT_SPECS.keys())
+    assert moe_model.num_experts == 6
+
+    for dom, rec in summary["receipts"].items():
+        assert rec["expert_cid"].startswith(f"cid://sha256/expert-{dom.lower()}-")
+        assert rec["loss_decreased"] is True
+        assert rec["compression_ratio"] > 1.0
+        loaded_cid, loaded_meta, loaded_state = store.load_lora_expert_checkpoint(rec["expert_cid"])
+        assert loaded_cid == rec["expert_cid"]
+        assert set(loaded_state.keys()) == set(ref_lora.keys())
+        assert loaded_meta["domain_name"] == dom
+
+    top2_solidity, _ = registry.route_domain_query(
+        "Audit this Solidity ERC20 smart contract for reentrancy in msg.sender", top_k=2
+    )
+    assert top2_solidity[0] == "Solidity_Smart_Contracts"
+
+    top2_lean, _ = registry.route_domain_query(
+        "Prove this Lean 4 theorem by induction and omega tactic", top_k=2
+    )
+    assert top2_lean[0] == "Lean4_Theorem_Prover"
+
+    x = torch.randint(0, 256, (2, 8), dtype=torch.long)
+    out = moe_model(input_ids=x, labels=x)
+    assert out.loss is not None
+
+
+
