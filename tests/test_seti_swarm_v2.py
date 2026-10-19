@@ -563,7 +563,13 @@ def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> Non
     lean_res = verify_lean4_specification()
     assert lean_res["sorry_count"] == 0
     assert lean_res["user_axiom_count"] == 0
-    assert lean_res["theorem_count"] >= 14
+    assert lean_res["theorem_count"] >= 20
+    assert "prefix_trie_dedup_node_bound" in lean_res["theorems"]
+    assert "speculative_rejection_sampling_target_invariance" in lean_res["theorems"]
+    assert "prefix_trie_speculative_progress_bounds" in lean_res["theorems"]
+    assert "rfc9001_0rtt_monotonic_nonce_anti_replay" in lean_res["theorems"]
+    assert "rfc9001_0rtt_ticket_expiration_bound" in lean_res["theorems"]
+    assert "wan_nat_hole_punch_rtt_bound" in lean_res["theorems"]
     assert lean_res["tier_a_machine_checked"] is True
 
     assert TEX_PATH.exists() and TEX_PATH.stat().st_size > 10_000
