@@ -371,7 +371,8 @@ def create_coordinator_fastapi_app(coordinator: BOINCCoordinatorService) -> Fast
                 },
             }
 
-        tokens = re.findall(r"\S+\s*", str(probe["generated_solution"])) or [str(probe["generated_solution"])]
+        # Keep leading indentation/newlines and whitespace-only responses intact.
+        tokens = re.findall(r"\s*\S+\s*|\s+", str(probe["generated_solution"])) or [str(probe["generated_solution"])]
         batches = ["".join(tokens[i : i + 5]) for i in range(0, len(tokens), 5)]
         verifier = TokenTreeSpeculativeVerifier(gamma=6, branching_factor=2)
 
