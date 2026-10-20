@@ -1,5 +1,5 @@
 {
-  "phase": "Phase S-2 & S-3: Swarm GPU Training, Content-Addressed Data Store & Federated Learning Hardening",
+  "phase": "Phase S-2, S-3 & S-4: Swarm GPU Training, Data Store, Federated Learning & Hardware Circuit-Breaker Hardening",
   "overall_passed": true,
   "legitimate_checks": {
     "dataset_shard": {
@@ -37,8 +37,8 @@
       "metrics": {
         "num_tensors": 2,
         "total_params": 2048,
-        "max_abs_value": 0.071236,
-        "max_frobenius_norm": 0.663093
+        "max_abs_value": 0.082719,
+        "max_frobenius_norm": 0.652373
       }
     }
   },
@@ -161,6 +161,162 @@
       },
       "trimmed_mean_beta": 0.25,
       "dp_noise_sigma_applied": 0.05
+    }
+  },
+  "gpu_hardware_circuit_breaker": {
+    "phase": "Phase S-4: Federated GPU Execution & Hardware Safety Circuit-Breaker",
+    "overall_passed": true,
+    "envelopes_verified": {
+      "hw01_nominal_execution_clear": true,
+      "hw01_soft_thermal_throttle_active": true,
+      "hw01_hard_thermal_trip_84c": true,
+      "hw01_thermal_hysteresis_deadband_70c_84c": true,
+      "hw02_laptop_battery_preemption": true,
+      "hw02_gpu_tdp_power_spike_trip": true,
+      "hw03_vram_pressure_oom_trip": true,
+      "hw03_wddm_tdr_watchdog_active": true,
+      "hw04_inner_loop_nan_loss_early_abort": true,
+      "hw05_workunit_wall_clock_deadline_active": true
+    },
+    "sample_states": {
+      "nominal_62c": {
+        "safe_to_continue": true,
+        "should_preempt_immediately": false,
+        "tripped_rule_id": "HW-OK",
+        "tripped_category": "GPU_HARDWARE_NOMINAL",
+        "reason": "GPU hardware telemetry nominal \u2014 clear for federated execution.",
+        "recommended_cooling_sleep_ms": 0,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "CPU-Fallback-Device",
+          "temperature_c": 62.0,
+          "power_draw_watts": 110.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.6286,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8192.0,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 59.8
+        }
+      },
+      "soft_throttle_80_5c": {
+        "safe_to_continue": true,
+        "should_preempt_immediately": false,
+        "tripped_rule_id": "HW-01-THROTTLE",
+        "tripped_category": "GPU_THERMAL_SOFT_THROTTLE",
+        "reason": "GPU temperature (80.5 C >= 78.0 C) \u2014 applying 119 ms inter-step duty-cycle cooling pause.",
+        "recommended_cooling_sleep_ms": 119,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "CPU-Fallback-Device",
+          "temperature_c": 80.5,
+          "power_draw_watts": 135.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.7714,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8192.0,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 59.8
+        }
+      },
+      "hard_trip_86c": {
+        "safe_to_continue": false,
+        "should_preempt_immediately": true,
+        "tripped_rule_id": "HW-01",
+        "tripped_category": "GPU_THERMAL_CRITICAL_TRIP",
+        "reason": "GPU temperature (86.0 C) reached hard safety ceiling (84.0 C) \u2014 tripping circuit breaker and dumping checkpoint.",
+        "recommended_cooling_sleep_ms": 500,
+        "thermal_latch_tripped": true,
+        "telemetry": {
+          "gpu_name": "CPU-Fallback-Device",
+          "temperature_c": 86.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8192.0,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 59.8
+        }
+      },
+      "hysteresis_lockout_75c": {
+        "safe_to_continue": false,
+        "should_preempt_immediately": true,
+        "tripped_rule_id": "HW-01",
+        "tripped_category": "THERMAL_HYSTERESIS_COOLDOWN_LOCKOUT",
+        "reason": "GPU in thermal cooldown lockout (75.0 C > resume threshold 70.0 C).",
+        "recommended_cooling_sleep_ms": 500,
+        "thermal_latch_tripped": true,
+        "telemetry": {
+          "gpu_name": "CPU-Fallback-Device",
+          "temperature_c": 75.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8192.0,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 59.8
+        }
+      },
+      "cooled_resume_68c": {
+        "safe_to_continue": true,
+        "should_preempt_immediately": false,
+        "tripped_rule_id": "HW-OK",
+        "tripped_category": "GPU_HARDWARE_NOMINAL",
+        "reason": "GPU hardware telemetry nominal \u2014 clear for federated execution.",
+        "recommended_cooling_sleep_ms": 0,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "CPU-Fallback-Device",
+          "temperature_c": 68.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8192.0,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 59.8
+        }
+      },
+      "battery_preemption": {
+        "safe_to_continue": false,
+        "should_preempt_immediately": true,
+        "tripped_rule_id": "HW-02",
+        "tripped_category": "BATTERY_POWER_PREEMPTION",
+        "reason": "System is running on battery power (64%) \u2014 preempting federated GPU execution to prevent battery drain and cell wear.",
+        "recommended_cooling_sleep_ms": 0,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "CPU-Fallback-Device",
+          "temperature_c": 55.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8192.0,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": true,
+          "battery_percent": 64.0,
+          "system_ram_used_pct": 59.8
+        }
+      }
     }
   }
 }

@@ -121,3 +121,18 @@ To protect the asynchronous **DiLoCo Federated Learning** outer loop ([`diloco_o
 | **`FL-06`** | **Sybil Multi-Worker Collusion Under Single Account** | Enforces **1 pseudo-gradient vote per unique `SteamID64`** per `(branch, outer_step)`, preventing a single account from spawning multiple `worker_id` processes to outvote honest Multi-Krum peers. | `Theorem 54` (`sybil_one_vote_per_steamid_quorum_bound`) |
 | **`FL-07`** | **Gradient Inversion / DLG Membership Inference** | Optional $(\epsilon, \delta)$-Differential Privacy Gaussian mechanism ($\mathcal{N}(0, \sigma^2 C^2 I / K^2)$ after $L_2$ sensitivity clipping to $C$) via `DPGradientSanitizerConfig`. | — |
 
+---
+
+## 5. Phase S-4 — Federated GPU Execution & Hardware Safety Circuit-Breaker ([`gpu_execution_circuit_breaker.py`](../src/hivemind/security/gpu_execution_circuit_breaker.py))
+
+To prevent physical hardware wear, thermal overheating, laptop battery drain, PSU transients, or Windows WDDM TDR driver freezes on volunteer consumer GPUs (`8 GB – 12 GB VRAM`) during the DiLoCo inner loop ([`diloco_inner.py`](../src/hivemind/core/diloco_inner.py)) and background daemon monitoring ([`daemon.py`](../src/hivemind/client/daemon.py)), [`GPUExecutionCircuitBreaker`](../src/hivemind/security/gpu_execution_circuit_breaker.py#L140-L360) enforces **5 Hardware Safety Invariants (`HW-01` .. `HW-05`)** backed by **4 Machine-Checked Lean 4 Theorems (`Theorems 57–60` in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean#L834-L885))**:
+
+| Rule ID | Physical / System Threat | Hardware Protection & Preemption Mechanism | Lean 4 Theorem |
+| :--- | :--- | :--- | :--- |
+| **`HW-01`** | **GPU Thermal Overheating & Fan Wear** | **Soft Duty-Cycle Throttling (`78°C .. 83°C`)** inserts a `20 ms – 120 ms` cooling sleep interval between inner steps (`Theorem 59`); **Hard Thermal Cutoff (`>= 84°C`)** immediately dumps an emergency checkpoint, clears CUDA VRAM, and locks out execution until GPU core temperature cools to the **Hysteresis Resume Threshold (`<= 70°C`, $14^\circ\text{C}$ deadband)** (`Theorem 57`). | `Theorem 57` & `Theorem 59` |
+| **`HW-02`** | **PSU Power Spikes & Laptop Battery Drain** | Preempts federated GPU training when the host switches to **battery power** (`psutil.sensors_battery().power_plugged == False`) or when GPU power draw exceeds **`92%` of board TDP limit**. | — |
+| **`HW-03`** | **VRAM Exhaustion & Windows WDDM TDR Driver Reset** | Enforces active CUDA VRAM $\le 5,950\text{ MB}$ (`5.81 GB` on 8 GB GPUs), host RAM $\le 95\%$, micro-batch token ceiling $B \times L \le 2,048$, and a **Per-Step Latency Watchdog (`<= 1.50s`)** maintaining a `500 ms` safety buffer below the **`2.00s` Windows WDDM TDR timeout** (`Theorem 58`). | `Theorem 58` (`wddm_tdr_watchdog_preempts_before_driver_reset`) |
+| **`HW-04`** | **Inner-Loop Gradient Explosion & `NaN` Loss Energy Waste** | Applies deterministic $L_2$ gradient clipping (`torch.nn.utils.clip_grad_norm_`, `max_norm=1.0`) in both worker [`run_diloco_inner_loop`](../src/hivemind/core/diloco_inner.py#L104-L280) and validator [`replay_inner_segment`](../src/hivemind/core/diloco_inner.py#L283-L333), and aborts immediately on `NaN`/`Inf` or diverged loss ($L > 250.0$) to save remaining GPU steps (`Theorem 60`). | `Theorem 60` (`nan_loss_early_abort_saves_wasted_gpu_steps`) |
+| **`HW-05`** | **Hung CUDA Kernel / Runaway Workunit Loop** | Enforces a hard **Workunit Wall-Clock Deadline (`<= 300.0s`)**, aborting runaway inner loops before they can lock the contributor's GPU. | — |
+
+

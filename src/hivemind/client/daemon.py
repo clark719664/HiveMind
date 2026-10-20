@@ -1,8 +1,10 @@
-"""Windows Zero-Intrusion Daemon (GetLastInputInfo & Active Game Process Monitor).
+"""Windows Zero-Intrusion Daemon (GetLastInputInfo, Active Game Process & GPU Hardware Safety Monitor).
 
-Monitors OS input hooks (GetLastInputInfo on Windows via ctypes) and active process tables.
-If another Steam game launches or mouse/keyboard activity occurs within the 30-second idle
-window, signals the DiLoCo inner loop to dump its optimizer state to NVMe SSD (<1.5s) and
+Monitors OS input hooks (GetLastInputInfo on Windows via ctypes), active process tables,
+and optional Phase S-4 GPU Hardware Safety Circuit-Breaker telemetry.
+If another Steam game launches, mouse/keyboard activity occurs within the 30-second idle
+window, or the GPU hardware safety circuit-breaker trips (thermal/power/VRAM/battery),
+signals the DiLoCo inner loop to dump its optimizer state to NVMe SSD (<1.5s) and
 yield 100% of GPU VRAM.
 """
 
@@ -12,7 +14,13 @@ import ctypes
 import ctypes.wintypes
 import sys
 from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING
+
 import psutil
+
+if TYPE_CHECKING:
+    from hivemind.security.gpu_execution_circuit_breaker import GPUExecutionCircuitBreaker
 
 
 class LASTINPUTINFO(ctypes.Structure):
@@ -34,9 +42,6 @@ KNOWN_GAME_EXECUTABLES = {
 }
 
 
-from enum import Enum
-
-
 class SETIAgentState(str, Enum):
     """Autonomous 3-State SETI-Swarm Agent Lifecycle."""
 
@@ -55,6 +60,7 @@ class DaemonTelemetry:
     should_yield_vram: bool
     reason: str
     seti_agent_state: str = SETIAgentState.STATE_2_IDLE_SETI_MINER.value
+    hardware_circuit_breaker_tripped: bool = False
 
 
 def get_windows_idle_seconds() -> float:
@@ -90,7 +96,7 @@ def detect_running_game_process(extra_watchlist: set[str] | None = None) -> str 
 
 
 class ZeroIntrusionDaemon:
-    """Monitors user input and game launches to protect gaming framerate and yield VRAM."""
+    """Monitors user input, game launches, and GPU hardware safety to protect gaming framerate and hardware."""
 
     def __init__(
         self,
@@ -99,12 +105,14 @@ class ZeroIntrusionDaemon:
         simulated_idle_seconds: float | None = None,
         simulated_active_game: str | None = None,
         consumer_query_active: bool = False,
+        hardware_circuit_breaker: GPUExecutionCircuitBreaker | None = None,
     ) -> None:
         self.idle_threshold_seconds = idle_threshold_seconds
         self.enforce_os_idle_hook = enforce_os_idle_hook
         self.simulated_idle_seconds = simulated_idle_seconds
         self.simulated_active_game = simulated_active_game
         self.consumer_query_active = consumer_query_active
+        self.hardware_circuit_breaker = hardware_circuit_breaker
 
     def poll(self) -> DaemonTelemetry:
         idle_sec = (
@@ -117,6 +125,19 @@ class ZeroIntrusionDaemon:
             if self.simulated_active_game is not None
             else detect_running_game_process()
         )
+
+        if self.hardware_circuit_breaker is not None:
+            cb_status = self.hardware_circuit_breaker.evaluate()
+            if cb_status.should_preempt:
+                return DaemonTelemetry(
+                    os_idle_seconds=idle_sec,
+                    idle_threshold_seconds=self.idle_threshold_seconds,
+                    active_game_detected=active_game,
+                    should_yield_vram=True,
+                    reason=f"Hardware Circuit-Breaker [{cb_status.rule_id}]: {cb_status.reason}",
+                    seti_agent_state=SETIAgentState.STATE_1_GAMING_SEED_ONLY.value,
+                    hardware_circuit_breaker_tripped=True,
+                )
 
         if active_game is not None:
             return DaemonTelemetry(
@@ -168,4 +189,3 @@ class ZeroIntrusionDaemon:
 
     def should_preempt(self) -> bool:
         return self.poll().should_yield_vram
-

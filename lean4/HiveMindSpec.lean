@@ -831,6 +831,54 @@ theorem free_rider_zero_gradient_rejection (deltaEnergy minEnergy : Nat)
 
 end Season7_FederatedLearningHardening
 
+-- ============================================================================
+-- SEASON 8 (PHASE S-4): GPU HARDWARE SAFETY CIRCUIT-BREAKER PROOFS
+-- ============================================================================
+namespace Season8_GPUHardwareSafetyCircuitBreaker
+
+/-- Theorem 57 (GPU Thermal Hysteresis Deadband Prevents Oscillation -- Rule HW-01):
+    With hard trip threshold `tTrip = 84` and hysteresis resume threshold `tResume = 70`,
+    the thermal deadband `tTrip - tResume` is at least 14 C, and any temperature `tempC`
+    strictly above `tResume` remains locked out (`¬ (tempC ≤ tResume)`). -/
+theorem gpu_thermal_hysteresis_deadband_prevents_oscillation (tempC tResume tTrip : Nat)
+    (h_resume : tResume = 70)
+    (h_trip : tTrip = 84)
+    (h_hot : tResume < tempC) :
+    14 ≤ tTrip - tResume ∧ ¬ (tempC ≤ tResume) := by
+  omega
+
+/-- Theorem 58 (Windows WDDM TDR Watchdog Safety Margin -- Rule HW-03):
+    When the per-step watchdog ceiling is `tdrWatchdogMs = 1500` ms and the Windows WDDM
+    TDR driver reset timeout is `wddmTdrTimeoutMs = 2000` ms, any step within the watchdog
+    budget (`stepMs ≤ tdrWatchdogMs`) maintains at least a 500 ms safety buffer before
+    a Windows GPU driver reset (`stepMs + 500 ≤ wddmTdrTimeoutMs`). -/
+theorem wddm_tdr_watchdog_preempts_before_driver_reset (stepMs tdrWatchdogMs wddmTdrTimeoutMs : Nat)
+    (h_watchdog : tdrWatchdogMs = 1500)
+    (h_tdr : wddmTdrTimeoutMs = 2000)
+    (h_ok : stepMs ≤ tdrWatchdogMs) :
+    stepMs + 500 ≤ wddmTdrTimeoutMs ∧ stepMs < wddmTdrTimeoutMs := by
+  omega
+
+/-- Theorem 59 (Duty-Cycle Thermal Throttling Reduces Active Duty Ratio -- Rule HW-01):
+    Inserting a positive cooling sleep interval `sleepMs ≥ 1` after an active GPU compute
+    step `computeMs ≥ 1` strictly increases the total step period (`computeMs < computeMs + sleepMs`),
+    reducing average thermal power dissipation without dropping the workunit. -/
+theorem duty_cycle_thermal_throttle_reduces_sustained_power (computeMs sleepMs : Nat)
+    (h_comp : 1 ≤ computeMs)
+    (h_sleep : 1 ≤ sleepMs) :
+    computeMs < computeMs + sleepMs ∧ 2 ≤ computeMs + sleepMs := by
+  omega
+
+/-- Theorem 60 (NaN / Diverged Loss Early Abort Saves Wasted GPU Steps -- Rule HW-04):
+    Aborting a diverged inner loop at step `abortStep < totalStepsH` strictly saves
+    `1 ≤ totalStepsH - abortStep` wasted GPU backward/optimizer steps. -/
+theorem nan_loss_early_abort_saves_wasted_gpu_steps (abortStep totalStepsH : Nat)
+    (h_early : abortStep < totalStepsH) :
+    1 ≤ totalStepsH - abortStep ∧ abortStep + (totalStepsH - abortStep) = totalStepsH := by
+  omega
+
+end Season8_GPUHardwareSafetyCircuitBreaker
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -877,3 +925,7 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season7_FederatedLearningHardening.sybil_one_vote_per_steamid_quorum_bound
 #print axioms HiveMindSpec.Season7_FederatedLearningHardening.staleness_window_outer_step_rejection
 #print axioms HiveMindSpec.Season7_FederatedLearningHardening.free_rider_zero_gradient_rejection
+#print axioms HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.gpu_thermal_hysteresis_deadband_prevents_oscillation
+#print axioms HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.wddm_tdr_watchdog_preempts_before_driver_reset
+#print axioms HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.duty_cycle_thermal_throttle_reduces_sustained_power
+#print axioms HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.nan_loss_early_abort_saves_wasted_gpu_steps

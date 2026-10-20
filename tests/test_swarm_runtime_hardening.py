@@ -385,3 +385,169 @@ def test_federated_learning_hardening_all_rules_and_edge_cases(tmp_path: Path) -
     fl_rep = run_federated_hardening_self_test(output_json_path=str(fl_out))
     assert fl_rep["overall_passed"] is True
     assert fl_out.exists()
+
+
+def test_gpu_execution_circuit_breaker_and_inner_loop_protection(tmp_path: Path) -> None:
+    from hivemind.client.daemon import ZeroIntrusionDaemon
+    from hivemind.core.diloco_inner import replay_inner_segment, run_diloco_inner_loop
+    from hivemind.core.quantization import attach_qlora_adapters, build_local_qwen2_backbone
+    from hivemind.security import (
+        GPUExecutionCircuitBreaker,
+        GPUHardwareTelemetry,
+        query_live_gpu_hardware_telemetry,
+        run_gpu_circuit_breaker_self_test,
+    )
+
+    # 1. Live telemetry query & self-test report
+    live_tel = query_live_gpu_hardware_telemetry()
+    assert live_tel.total_vram_mb > 0
+    cb_out = tmp_path / "gpu_cb_report.json"
+    cb_rep = run_gpu_circuit_breaker_self_test(output_json_path=str(cb_out))
+    assert cb_rep["overall_passed"] is True
+    assert cb_out.exists()
+
+    # 2. Verify RAM ceiling, TDP ceiling, TDR step watchdog, and wall-clock deadline
+    cb_ram = GPUExecutionCircuitBreaker(
+        simulated_telemetry=GPUHardwareTelemetry(
+            gpu_name="Simulated RTX 2070",
+            temperature_c=60.0,
+            power_draw_watts=110.0,
+            power_limit_watts=175.0,
+            vram_allocated_mb=3200.0,
+            vram_reserved_mb=3500.0,
+            vram_total_mb=8192.0,
+            system_ram_used_pct=97.5,
+            on_battery_power=False,
+        )
+    )
+    st_ram = cb_ram.evaluate()
+    assert st_ram.should_preempt is True and st_ram.rule_id == "HW-03"
+
+    cb_tdr = GPUExecutionCircuitBreaker(
+        simulated_telemetry=GPUHardwareTelemetry(
+            gpu_name="Simulated RTX 2070",
+            temperature_c=62.0,
+            power_draw_watts=120.0,
+            power_limit_watts=175.0,
+            vram_allocated_mb=3500.0,
+            vram_reserved_mb=3800.0,
+            vram_total_mb=8192.0,
+            system_ram_used_pct=50.0,
+            on_battery_power=False,
+        )
+    )
+    st_tdr = cb_tdr.evaluate(last_step_latency_sec=1.85)
+    assert st_tdr.should_preempt is True and st_tdr.rule_id == "HW-03"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_wc:
+        cb_tdr.verify_loss_and_wall_clock(loss_value=2.1, step=5, elapsed_wall_clock_sec=450.0)
+    assert exc_wc.value.rule_id == "HW-05"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_div:
+        cb_tdr.verify_loss_and_wall_clock(loss_value=50000.0, step=5, elapsed_wall_clock_sec=1.0)
+    assert exc_div.value.rule_id == "HW-04"
+
+    # 3. Verify ZeroIntrusionDaemon integration with GPUExecutionCircuitBreaker
+    hot_cb = GPUExecutionCircuitBreaker(
+        simulated_telemetry=GPUHardwareTelemetry(
+            gpu_name="Simulated RTX 2070",
+            temperature_c=86.0,
+            power_draw_watts=160.0,
+            power_limit_watts=175.0,
+            vram_allocated_mb=4500.0,
+            vram_reserved_mb=4800.0,
+            vram_total_mb=8192.0,
+            system_ram_used_pct=55.0,
+            on_battery_power=False,
+        )
+    )
+    daemon = ZeroIntrusionDaemon(
+        simulated_idle_seconds=120.0,
+        simulated_active_game=None,
+        hardware_circuit_breaker=hot_cb,
+    )
+    d_poll = daemon.poll()
+    assert d_poll.should_yield_vram is True
+    assert d_poll.hardware_circuit_breaker_tripped is True
+    assert "HW-01" in d_poll.reason
+
+    # 4. Verify run_diloco_inner_loop thermal preemption + emergency checkpoint dump
+    base_model, _, _ = build_local_qwen2_backbone(
+        seed=42,
+        vocab_size=256,
+        hidden_size=64,
+        intermediate_size=128,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        num_key_value_heads=2,
+        device=torch.device("cpu"),
+        use_4bit_nf4_if_cuda=False,
+    )
+    bundle = attach_qlora_adapters(
+        base_model=base_model,
+        rank_r=8,
+        lora_alpha=16,
+        target_modules=["q_proj", "v_proj"],
+        gradient_checkpointing=False,
+        seed=42,
+    )
+    tokens = torch.randint(0, 256, (8, 32), dtype=torch.long)
+
+    preempt_res = run_diloco_inner_loop(
+        model=bundle.model,
+        token_sequences=tokens,
+        worker_id="worker-hw-hot",
+        branch_name="Astro_Branch",
+        outer_step=1,
+        inner_steps_H=6,
+        checkpoint_interval_s=2,
+        circuit_breaker=hot_cb,
+        emergency_checkpoint_dir=tmp_path / "emergency_hw",
+    )
+    assert preempt_res.preempted_by_daemon is True
+    assert preempt_res.steps_completed == 0
+    assert preempt_res.circuit_breaker_reason is not None and "HW-01" in preempt_res.circuit_breaker_reason
+    assert preempt_res.emergency_dump_path is not None and preempt_res.emergency_dump_path.exists()
+
+    # 5. Verify soft thermal throttling + deterministic gradient clipping matches replay_inner_segment
+    soft_cb = GPUExecutionCircuitBreaker(
+        simulated_telemetry=GPUHardwareTelemetry(
+            gpu_name="Simulated RTX 2070",
+            temperature_c=80.0,
+            power_draw_watts=145.0,
+            power_limit_watts=175.0,
+            vram_allocated_mb=4500.0,
+            vram_reserved_mb=4800.0,
+            vram_total_mb=8192.0,
+            system_ram_used_pct=55.0,
+            on_battery_power=False,
+        )
+    )
+    ok_res = run_diloco_inner_loop(
+        model=bundle.model,
+        token_sequences=tokens,
+        worker_id="worker-hw-soft",
+        branch_name="Astro_Branch",
+        outer_step=1,
+        inner_steps_H=4,
+        checkpoint_interval_s=2,
+        circuit_breaker=soft_cb,
+        enable_thermal_sleep=False,
+    )
+    assert ok_res.preempted_by_daemon is False
+    assert ok_res.steps_completed == 4
+    assert ok_res.thermal_throttled_steps == 4
+
+    replayed_state = replay_inner_segment(
+        model=bundle.model,
+        start_lora_state=ok_res.theta_init,
+        token_sequences=tokens,
+        start_step=0,
+        end_step=4,
+        initial_step_state=ok_res.theta_init,
+    )
+    max_diff = max(
+        float((ok_res.theta_final[k].cpu() - replayed_state[k].cpu()).abs().max().item())
+        for k in ok_res.theta_final
+    )
+    assert max_diff < 1e-6

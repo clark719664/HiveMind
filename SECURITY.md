@@ -90,6 +90,11 @@ In addition to repository/PR protection, Project HiveMind enforces runtime secur
    - **Adaptive Median-$L_2$ & Neurotoxin $L_\infty$ Clipping + Coordinate-Wise Trimmed Mean (`FL-03`, `FL-04`):** Neutralizes collinear norm-scaling attacks (`ALIE`/`Fang`) and single-parameter backdoor spikes by clipping $\|\tilde{\Delta}_k\|_2 \le 2.0 \cdot \text{median}_j \|\Delta_j\|_2$ (`Theorem 53`) and $\|\tilde{\Delta}_k\|_\infty \le 3.5 \cdot \text{median}_j \|\Delta_j\|_\infty$, followed by coordinate-wise $\beta$-trimmed mean aggregation.
    - **Workunit Anti-Replay, Staleness & Sybil 1-Vote-Per-SteamID64 Gate (`FL-05`, `FL-06`):** Blocks replayed `wu_id`s, stale outer steps ($t_{\text{coord}} - t_{\text{worker}} > \tau_{\max}$, `Theorem 55`), and multi-worker Sybil collusion under a single `SteamID64` (`Theorem 54`).
    - **DP-DiLoCo Gradient Privacy Sanitizer (`FL-07`):** Supports $(\epsilon, \delta)$-Differential Privacy Gaussian noise calibration to defend against gradient-inversion membership inference.
+6. **Phase S-4 — Federated GPU Execution & Hardware Safety Circuit-Breaker (`HW-01` .. `HW-05`, [`gpu_execution_circuit_breaker.py`](src/hivemind/security/gpu_execution_circuit_breaker.py)):**
+   - **Thermal Cutoff & $14^\circ\text{C}$ Hysteresis Deadband (`HW-01`):** Soft duty-cycle cooling sleep (`78°C–83°C`, `Theorem 59`) and hard thermal circuit-breaker trip (`>= 84°C`) with a $14^\circ\text{C}$ cooldown lockout (`<= 70°C` resume, `Theorem 57`).
+   - **PSU TDP & Laptop Battery Guard (`HW-02`):** Preempts federated GPU execution when running on battery power or when GPU power draw exceeds `92%` of board TDP.
+   - **VRAM Ceiling & Windows WDDM TDR Watchdog (`HW-03`):** Enforces `5,950 MB` active VRAM ceiling, `95%` system RAM ceiling, $B \times L \le 2,048$ micro-batch token bound, and `1.50s` per-step latency watchdog (`500 ms` below the `2.00s` Windows WDDM TDR driver reset timeout, `Theorem 58`).
+   - **Deterministic Gradient Clipping & `NaN` Early Abort (`HW-04`, `HW-05`):** Enforces `clip_grad_norm_(max_norm=1.0)` across worker and validator inner loops, aborts immediately on `NaN`/`Inf` or diverged loss (`Theorem 60`), and enforces a `300.0s` workunit wall-clock deadline.
 
 ---
 

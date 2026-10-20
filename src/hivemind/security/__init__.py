@@ -1,9 +1,10 @@
-"""Project HiveMind — Repository, Pull Request, Runtime Swarm & Federated Learning Security Package.
+"""Project HiveMind — Repository, Pull Request, Runtime Swarm, Federated Learning & GPU Hardware Security Package.
 
 Provides:
 1. Automated 5-Layer Pull Request & Repository Security Scanner (`pr_security_scanner.py`)
 2. Phase S-2 Swarm GPU Training & Content-Addressed Data Store Runtime Hardening (`swarm_runtime_hardening.py`)
 3. Phase S-3 Federated Learning & Byzantine-Resilient DiLoCo Hardening (`federated_learning_hardening.py`)
+4. Phase S-4 Federated GPU Execution & Hardware Safety Circuit-Breaker (`gpu_execution_circuit_breaker.py`)
 """
 
 from hivemind.security.federated_learning_hardening import (
@@ -11,6 +12,13 @@ from hivemind.security.federated_learning_hardening import (
     FederatedDeltaAuditReport,
     FederatedLearningSecurityGuard,
     run_federated_hardening_self_test,
+)
+from hivemind.security.gpu_execution_circuit_breaker import (
+    CircuitBreakerStatus,
+    GPUExecutionCircuitBreaker,
+    GPUHardwareTelemetry,
+    query_live_gpu_hardware_telemetry,
+    run_gpu_circuit_breaker_self_test,
 )
 from hivemind.security.pr_security_scanner import (
     PRSecurityAuditResult,
@@ -28,9 +36,12 @@ from hivemind.security.swarm_runtime_hardening import (
 )
 
 __all__ = [
+    "CircuitBreakerStatus",
     "DPGradientSanitizerConfig",
     "FederatedDeltaAuditReport",
     "FederatedLearningSecurityGuard",
+    "GPUExecutionCircuitBreaker",
+    "GPUHardwareTelemetry",
     "PRSecurityAuditResult",
     "PRSecurityScanner",
     "SecurityFinding",
@@ -39,7 +50,9 @@ __all__ = [
     "SwarmSecurityViolationError",
     "SwarmTrainingAndStoreGuard",
     "compute_shannon_entropy",
+    "query_live_gpu_hardware_telemetry",
     "run_cli_security_scan",
     "run_federated_hardening_self_test",
+    "run_gpu_circuit_breaker_self_test",
     "run_swarm_hardening_self_test",
 ]
