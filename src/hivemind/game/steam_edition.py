@@ -262,15 +262,15 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
 {GEORING_PANEL_HTML}
 
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
-      <h2>SCIENTIFIC SWARM KNOWLEDGE TRANSFER, JOINED CO-OP CAMPAIGNS &amp; DUAL LEADERBOARD (BEST MINER + BEST CONTRIBUTOR)</h2>
+      <h2>SYNTHETIC ADAPTER REUSE, JOINED CAMPAIGN SIMULATIONS &amp; DEMO LEADERBOARD</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
-        Verify that when one agent retrains a domain QLoRA adapter, all other swarm agents immediately hot-swap and leverage the training effort (`&eta;_transfer = 100%`) with 0 redundant GPU steps, or launch a Joined Co-Op Campaign to mine faster &amp; better:
+        Exercise local adapter reuse and sequential Gaussian-regression game mechanics. These simulations do not measure language capability, parallel speedup, domain mastery or GPU savings:
       </p>
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
-        <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-01-DILOCO-BLITZ')">Launch Co-Op 01: Hyper-DiLoCo Shard Blitz (3.85x Speedup)</button>
-        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-02-POLYMATH-FUSION')">Launch Co-Op 02: 4-Domain Cross-Pollination (4.0x Leverage)</button>
+        <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-01-DILOCO-BLITZ')">Launch Co-Op 01: Hyper-DiLoCo Shard Blitz (Simulation)</button>
+        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-02-POLYMATH-FUSION')">Launch Co-Op 02: 4-Domain Cross-Pollination (Simulation)</button>
         <button class="btn btn-cyan" onclick="runJoinedCampaign('CAMPAIGN-COOP-03-BYZANTINE-CITADEL')">Launch Co-Op 03: Zero-Day Byzantine Citadel</button>
-        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (5.4x RTT)</button>
+        <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (Simulation)</button>
       </div>
       <div class="terminal" id="joined-campaign-terminal">[SCIENTIFIC SWARM READY] Click any Joined Co-Op Campaign above to execute live peer knowledge transfer across CyberValkyrie_FR, NeuralGhost_DE, ZeroCool_UK &amp; SakuraNode_JP and update the Best Miner + Best Contributor Dual Leaderboard.</div>
     </div>
@@ -584,14 +584,14 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         const topMiner = dual.best_miner_champion || {{}};
         const topContrib = dual.best_contributor_champion || {{}};
         term.textContent =
-          `[JOINED CAMPAIGN EXECUTED] ${{campaignId}} | Parallel Speedup: ${{blitz.effective_parallel_speedup}}x | Co-Op Beats Solo: ${{blitz.coop_beats_solo_miner}}\\n` +
-          `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents mastered 4/4 Domains (4.0x Compute Leverage | 100% Transfer Efficiency)\\n` +
+          `[JOINED CAMPAIGN EXECUTED] ${{campaignId}} | Parallel speedup: not measured (sequential simulation) | Synthetic MSE lower: ${{blitz.synthetic_coop_lower_mse}}\\n` +
+          `[SYNTHETIC ADAPTER REUSE] Local regression fixtures only; domain mastery and compute leverage are not measured\\n` +
           `[#1 BEST SWARM MINER] ${{topMiner.gamer_tag}} (${{topMiner.total_miner_pts}} PTS | ${{topMiner.total_hive_earned}} $HIVE | ${{topMiner.peers_leveraged_count}} Peer Reuses)\\n` +
           `[#1 BEST CONTRIBUTOR] ${{topContrib.contributor_handle}} (${{topContrib.merged_prs_count}} Merged PRs | ${{topContrib.lean4_theorems_authored}} Lean 4 Theorems | ${{topContrib.bounty_hive_awarded}} $HIVE)`;
       }} catch (e) {{
         term.textContent =
           `[LOCAL SIMULATION JOINED CAMPAIGN] ${{campaignId}} led by ${{gamer}}\\n` +
-          `[PEER KNOWLEDGE TRANSFER] All 4 Swarm Agents inherited >= 84% Holdout Loss Reduction (4.0x Compute Leverage, 0 Redundant GPU Steps)\\n` +
+          `[SYNTHETIC ADAPTER REUSE] Offline game simulation; no measured language, transfer or GPU result\\n` +
           `[#1 BEST SWARM MINER] CyberValkyrie_FR (19,450 PTS | +15.0 $HIVE Reuse Royalties) | [#1 BEST CONTRIBUTOR] @xaviercallens, @clark719664 & @pedromineo`;
       }}
     }}

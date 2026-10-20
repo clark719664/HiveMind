@@ -1,0 +1,37 @@
+{
+  "dataset_id": "hivemind/rust-text-smoke-v1",
+  "description": "Six repository-authored Rust snippets, not a downloaded Hugging Face dataset or a language-capability benchmark. Fixed document-level split.",
+  "source_revision": "84fa03c06664fbf1fa357894f79b0e6e6a2f48d7",
+  "source_files": [
+    "src/hivemind/data/hf_real_trainer.py",
+    "src/hivemind/swarm/scientific_swarm_eval.py"
+  ],
+  "train": [
+    {
+      "id": "train-00",
+      "text": "pub fn increment_arc_counter(counter: &std::sync::Arc<std::sync::Mutex<u64>>, step: u64) -> Result<u64, &'static str> { let mut guard = counter.lock().map_err(|_| \"poisoned\")?; *guard += step; Ok(*guard) }"
+    },
+    {
+      "id": "train-01",
+      "text": "pub fn zero_copy_frame_slice(buf: &[u8]) -> Result<(u32, &[u8]), &'static str> { if buf.len() < 4 { return Err(\"truncated\"); } let hdr = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]); Ok((hdr, &buf[4..])) }"
+    },
+    {
+      "id": "train-02",
+      "text": "pub struct PinnedDmaSlot<'a> { pub buf: &'a mut [u8] } impl<'a> Drop for PinnedDmaSlot<'a> { fn drop(&mut self) { self.buf.fill(0); } }"
+    }
+  ],
+  "holdout": [
+    {
+      "id": "holdout-00",
+      "text": "pub fn atomic_epoch_tick(cell: &std::sync::atomic::AtomicU64) -> u64 { cell.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }"
+    },
+    {
+      "id": "holdout-01",
+      "text": "pub fn verify_zero_copy_bounds(slice: &[u8], offset: usize, len: usize) -> Option<&[u8]> { slice.get(offset..offset.checked_add(len)?) }"
+    },
+    {
+      "id": "holdout-02",
+      "text": "pub fn lock_free_ring_enqueue<T>(buf: &mut Vec<T>, item: T, cap: usize) -> Result<(), &'static str> { if buf.len() >= cap { return Err(\"full\"); } buf.push(item); Ok(()) }"
+    }
+  ]
+}

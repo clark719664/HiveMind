@@ -1,13 +1,12 @@
-"""Season 3 (`HM-S3-04`), Season 6 Astrophysics & Phase S-2 Hardened Domain Expert LoRA Trainer, Top-k FP8 Compressor & CAS Publisher.
+"""Synthetic regression LoRA/CAS mechanics retained for compatibility.
 
-Trains and publishes specialized QLoRA domain adapters (`Rust_Systems_Security`,
-`Solidity_Smart_Contracts`, `Biomedical_Clinical_QA`, `Lean4_Theorem_Prover`, and
-Astrophysics Planet & Star Classifiers: `Kepler_Exoplanet_Transit_Classifier`,
-`NASA_Exoplanet_Taxonomy_Classifier`, `SDSS_Stellar_MK_Spectral_Classifier`, and
-`JWST_Atmosphere_Biosignature_Classifier`), enforces Phase S-2 Runtime Swarm Hardening
-(`SwarmTrainingAndStoreGuard`), compresses their pseudo-gradient deltas via
-`Top-k (k=0.05) + FP8 (float8_e4m3fn)`, registers their content-addressed
-checkpoints in `ContentAddressedSwarmStore`, and hot-plugs them into `UpcycledSparseMoEModel`.
+Despite this module's historical name, these helpers do not train a language
+model on the supplied text or fetch the named HF datasets. That includes the
+Season 3 domains and the Season 6 astrophysics "classifier" domains: both fit
+seeded Gaussian regression targets, so no classification accuracy is measured.
+Phase S-2 runtime checks (`SwarmTrainingAndStoreGuard`) still validate requests,
+dataset shards and LoRA tensors. Use ``hivemind.data.token_training_eval`` for
+the separate measured token smoke test.
 """
 
 from __future__ import annotations
@@ -99,14 +98,18 @@ ASTROPHYSICS_DOMAIN_EXPERT_SPECS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def _encode_corpus_batch(
+def _encode_synthetic_regression_batch(
     samples: Sequence[str],
     in_features: int,
     out_features: int,
     seed: int,
     is_holdout: bool = False,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Deterministically projects domain corpus strings into reproducible semantic manifold feature/target tensors."""
+    """Generate seeded Gaussian regression tensors; text content is NOT consumed.
+
+    Only the sample count affects the batch size. This is a synthetic fixture,
+    not an encoding, semantic representation or tokenized corpus.
+    """
     import math
 
     gen_manifold = torch.Generator().manual_seed(seed)
@@ -127,6 +130,10 @@ def _encode_corpus_batch(
     return x, y
 
 
+# Historical private alias; retained for callers, never a text encoder.
+_encode_corpus_batch = _encode_synthetic_regression_batch
+
+
 def train_single_domain_lora_adapter(
     domain_name: str,
     reference_lora_state: Dict[str, torch.Tensor],
@@ -138,10 +145,12 @@ def train_single_domain_lora_adapter(
     custom_corpus: Optional[Sequence[str]] = None,
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
     """
-    Trains a domain-specialized LoRA adapter matching the parameter keys/shapes of
-    `reference_lora_state`, enforces Phase S-2 runtime GPU & dataset hardening,
-    compresses the delta with `Top-k (k=0.05) + FP8 (float8_e4m3fn)`,
-    and returns the reconstructed state dict alongside convergence and compression telemetry.
+    Fit a synthetic regression adapter matching the reference parameter shapes.
+
+    Names and signatures are retained for game/demo callers. No domain-language
+    capability is measured. Phase S-2 runtime GPU and dataset checks still run.
+    The returned state blends raw and reconstructed weights; it is NOT a
+    compression-only reconstruction.
     """
     import hashlib
 
@@ -214,7 +223,7 @@ def train_single_domain_lora_adapter(
         r_dim, in_dim = int(a_init.shape[0]), int(a_init.shape[1])
         out_dim = int(b_init.shape[0])
 
-        x, target_y = _encode_corpus_batch(corpus, in_dim, out_dim, seed=domain_seed + idx * 17)
+        x, target_y = _encode_synthetic_regression_batch(corpus, in_dim, out_dim, seed=domain_seed + idx * 17)
         lora_a = nn.Parameter(a_init.clone())
         lora_b = nn.Parameter(b_init.clone())
         if torch.allclose(lora_b.data, torch.zeros_like(lora_b.data)):
@@ -255,7 +264,7 @@ def train_single_domain_lora_adapter(
         worker_id=f"s3-trainer-{domain_name.lower()}",
         branch_name=domain_name,
         outer_step=1,
-        inner_steps_completed=inner_steps,
+        inner_steps_completed=max(2, inner_steps),
         topk_ratio=topk_ratio,
     )
     reconstructed_delta = decompress_lora_delta(delta_pkg, device=torch.device("cpu"), dtype=torch.float32)
@@ -277,10 +286,17 @@ def train_single_domain_lora_adapter(
     final_loss_mean = round(sum(final_losses) / max(1, len(final_losses)), 6)
     metrics = {
         "domain_name": domain_name,
-        "dataset_id": spec["dataset_id"],
+        "measurement_kind": "synthetic_regression",
+        "loss_metric": "mean_squared_error",
+        "text_content_used": False,
+        "dataset_id": "synthetic/seeded-gaussian-regression-v1",
+        "requested_dataset_id_not_loaded": spec["dataset_id"],
+        "returned_state_provenance": "0.92 raw-trained + 0.08 reconstructed; not compression-only",
+        "byte_count_basis": "compression tensor accounting; not serialized wire bytes",
         "lora_rank_r": int(reference_lora_state[next(iter(reference_lora_state))].shape[0]),
         "lora_alpha": int(lora_alpha),
-        "inner_steps": int(inner_steps),
+        "inner_steps": int(max(2, inner_steps)),
+        "requested_inner_steps": int(inner_steps),
         "initial_loss": init_loss_mean,
         "final_loss": final_loss_mean,
         "loss_decreased": final_loss_mean < init_loss_mean,
@@ -301,10 +317,10 @@ def train_and_publish_season3_domain_experts(
     inner_steps: int = 12,
 ) -> Tuple[Season3DomainExpertRegistry, Dict[str, Any]]:
     """
-    Trains all 4 Season 3 specialized domain LoRA adapters (`Rust_Systems_Security`,
-    `Solidity_Smart_Contracts`, `Biomedical_Clinical_QA`, `Lean4_Theorem_Prover`),
-    pins their dataset shards and converged LoRA checkpoints into `ContentAddressedSwarmStore`,
-    and optionally hot-plugs them into `moe_model` (`HM-S3-04`).
+    Run synthetic regression mechanics for named demo domains and store artifacts.
+
+    Text shards are stored but not used to construct training inputs/targets.
+    The optional hot-plug exercises model wiring, not domain capability.
     """
     target_domains = list(domains) if domains is not None else list(SEASON_3_DOMAIN_EXPERT_SPECS.keys())
     registry = Season3DomainExpertRegistry()
@@ -358,6 +374,7 @@ def train_and_publish_season3_domain_experts(
         hotplug_summary = registry.hot_plug_all_into_moe(moe_model)
 
     return registry, {
+        "measurement_kind": "synthetic_regression",
         "num_domains_trained": len(receipts),
         "domains": list(receipts.keys()),
         "receipts": receipts,
@@ -374,11 +391,11 @@ def train_and_publish_astrophysics_domain_experts(
     inner_steps: int = 12,
 ) -> Tuple[Season3DomainExpertRegistry, Dict[str, Any]]:
     """
-    Trains all 4 Astrophysics planet & star classification LoRA adapters
-    (`Kepler_Exoplanet_Transit_Classifier`, `NASA_Exoplanet_Taxonomy_Classifier`,
-    `SDSS_Stellar_MK_Spectral_Classifier`, `JWST_Atmosphere_Biosignature_Classifier`),
-    pins their dataset shards and converged LoRA checkpoints into `ContentAddressedSwarmStore`,
-    and optionally hot-plugs them into `moe_model`.
+    Run the synthetic regression mechanics for the named astrophysics demo domains.
+
+    The domain text shards are stored but not used to build inputs/targets, so no
+    planet or star classification accuracy is measured. The optional hot-plug
+    exercises model wiring, not domain capability.
     """
     target_domains = (
         list(domains) if domains is not None else list(ASTROPHYSICS_DOMAIN_EXPERT_SPECS.keys())

@@ -1,25 +1,15 @@
-"""Scientific Swarm Evaluation, Cross-Agent Knowledge Transfer & Joined Co-Op Campaign Engine.
+"""Synthetic swarm/CAS/game mechanics, not scientific language benchmarks.
 
-Provides:
-1. `SwarmKnowledgeTransferEngine`: Scientifically verifies that after one agent (or a co-op squad)
-   retrains a QLoRA adapter on a domain corpus and publishes the compressed checkpoint (`Top-k + FP8`)
-   to `ContentAddressedSwarmStore`, all other peer agents in the swarm can immediately fetch, verify,
-   and hot-swap/merge the retrained weights—inheriting the full generalization improvement on unseen
-   scientific holdout benchmarks with zero redundant GPU retraining.
-2. `JoinedSwarmCampaignEngine`: Implements cooperative multi-miner Joined Campaigns (Shard-Parallel
-   DiLoCo Blitz, 4-Domain Cross-Pollination Synergy, Adversarial Red/Blue Citadel, and Global
-   Super-Ring Relay) so agents mine faster (parallel data shards + 12.79x wire compression) and
-   better (TIES sign-consensus + Multi-Krum + cross-domain Sparse MoE fusion).
-3. `DualSwarmLeaderboardEngine`: Computes the Unified Dual Leaderboard for both the **Best Swarm Miner**
-   (including Peer Knowledge Reuse Royalties when other swarm agents leverage their training effort)
-   and the **Best Open-Source & Science Contributor**, complete with Hugging Face Hub badges.
+Historical public names are retained for compatibility. MSE values below are
+measured on seeded Gaussian regression tensors, not on the listed text. Game
+rewards, proposed performance figures and leaderboards are simulations. For a
+separate measured token-training experiment, see data.token_training_eval.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import math
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -44,7 +34,7 @@ SCIENTIFIC_BENCHMARK_SUITES: Dict[str, Dict[str, Any]] = {
     "Rust_Systems_Security": {
         "benchmark_id": "HF-SCI-BENCH-01-RUST-BORROW",
         "hf_dataset_id": "anon/rust-code-instructions",
-        "scientific_metric": "Holdout Memory-Safety Cross-Entropy & Perplexity",
+        "scientific_metric": "Synthetic Gaussian regression MSE; not a Rust benchmark",
         "holdout_samples": [
             "pub fn atomic_epoch_tick(cell: &std::sync::atomic::AtomicU64) -> u64 { cell.fetch_add(1, std::sync::atomic::Ordering::SeqCst) }",
             "pub fn verify_zero_copy_bounds(slice: &[u8], offset: usize, len: usize) -> Option<&[u8]> { slice.get(offset..offset.checked_add(len)?) }",
@@ -54,7 +44,7 @@ SCIENTIFIC_BENCHMARK_SUITES: Dict[str, Dict[str, Any]] = {
     "Solidity_Smart_Contracts": {
         "benchmark_id": "HF-SCI-BENCH-02-SOLIDITY-ESCROW",
         "hf_dataset_id": "ASSERT-KTH/DISL-Solidity-Smart-Contracts",
-        "scientific_metric": "Holdout L2 Invariant Conservation Loss & Perplexity",
+        "scientific_metric": "Synthetic Gaussian regression MSE; not an invariant benchmark",
         "holdout_samples": [
             "function withdrawEscrow(uint256 amount) external nonReentrant { require(balances[msg.sender] >= amount, 'UNDERFLOW'); balances[msg.sender] -= amount; payable(msg.sender).transfer(amount); }",
             "function verifyMerkleSpotCheck(bytes32 root, bytes32 leaf, bytes32 idx) external pure returns (bool) { return keccak256(abi.encodePacked(leaf, idx)) == root; }",
@@ -64,7 +54,7 @@ SCIENTIFIC_BENCHMARK_SUITES: Dict[str, Dict[str, Any]] = {
     "Biomedical_Clinical_QA": {
         "benchmark_id": "HF-SCI-BENCH-03-PUBMEDQA-CLINICAL",
         "hf_dataset_id": "qiaojin/PubMedQA",
-        "scientific_metric": "Holdout Clinical Evidence Calibration Loss & Perplexity",
+        "scientific_metric": "Synthetic Gaussian regression MSE; not a clinical benchmark",
         "holdout_samples": [
             "### Clinical Question: Does CRISPR-Cas9 ribonucleoprotein delivery reduce off-target mutagenesis compared to plasmid transfection? ### Evidence Conclusion (yes): Transient RNP complexes degrade rapidly in vivo, minimizing off-target cleavage.",
             "### Clinical Question: Does T-cell PD-1 checkpoint blockade restore anti-tumor cytokine secretion in exhausted TILs? ### Evidence Conclusion (yes): Blocking PD-1/PD-L1 interaction reverses T-cell exhaustion.",
@@ -74,7 +64,7 @@ SCIENTIFIC_BENCHMARK_SUITES: Dict[str, Dict[str, Any]] = {
     "Lean4_Theorem_Prover": {
         "benchmark_id": "HF-SCI-BENCH-04-PROOFNET-LEAN4",
         "hf_dataset_id": "hoskinson-center/proofnet",
-        "scientific_metric": "Holdout Formal Tactic Synthesis Loss & Perplexity",
+        "scientific_metric": "Synthetic Gaussian regression MSE; not a theorem-proving benchmark",
         "holdout_samples": [
             "theorem multikrum_honest_majority_bound (n f : Nat) (h : 2 * f + 3 <= n) : f < n := by omega",
             "theorem fp8_topk_bandwidth_saving (raw compressed : Nat) (h : compressed * 10 <= raw) : compressed <= raw := by omega",
@@ -114,7 +104,7 @@ HF_GAMIFICATION_BADGES: Dict[str, Dict[str, str]] = {
 
 @dataclass
 class PeerKnowledgeTransferAudit:
-    """Scientific telemetry proving peer agents leverage a trainer agent's retraining effort."""
+    """Synthetic regression/CAS transfer telemetry; no language or GPU evidence."""
 
     domain_name: str
     benchmark_id: str
@@ -124,16 +114,23 @@ class PeerKnowledgeTransferAudit:
     trainer_final_loss: float
     trainer_loss_reduction_pct: float
     peer_evaluations: List[Dict[str, Any]]
-    mean_peer_pre_transfer_loss: float
-    mean_peer_post_transfer_loss: float
-    mean_peer_pre_perplexity: float
-    mean_peer_post_perplexity: float
-    mean_peer_loss_reduction_pct: float
-    knowledge_transfer_efficiency_ratio: float
-    mean_hotswap_latency_ms: float
-    total_peer_gpu_steps_saved: int
+    mean_peer_pre_transfer_loss: Optional[float]
+    mean_peer_post_transfer_loss: Optional[float]
+    mean_peer_pre_perplexity: Optional[float]
+    mean_peer_post_perplexity: Optional[float]
+    mean_peer_loss_reduction_pct: Optional[float]
+    knowledge_transfer_efficiency_ratio: Optional[float]
+    mean_hotswap_latency_ms: Optional[float]
+    total_peer_gpu_steps_saved: Optional[int]
     royalties_paid_to_trainer_hive: float
     all_peers_leveraged_successfully: bool
+    measurement_kind: str = "synthetic_regression"
+    loss_metric: str = "mean_squared_error"
+    perplexity_status: str = "not_applicable_to_mse"
+    hardware_validation_status: str = "not_run"
+    transfer_scope: str = "single_process_local_file_load"
+    simulated_peer_steps_avoided: int = 0
+    peer_measurement_status: str = "synthetic_measured"
 
 
 @dataclass
@@ -150,6 +147,7 @@ class JoinedCampaignProposal:
     reward_pool_hive: float
     reward_pool_pts: int
     scientific_rationale: str
+    evidence_status: str = "unvalidated_design_hypothesis_not_measurement"
 
 
 PROPOSED_JOINED_CAMPAIGNS: List[JoinedCampaignProposal] = [
@@ -236,13 +234,15 @@ def _evaluate_lora_on_scientific_holdout(
     lora_rank_r: int = 16,
     lora_alpha: int = 32,
     device: Optional[torch.device] = None,
-) -> Dict[str, float]:
+) -> Dict[str, Any]:
     """
-    Evaluates a LoRA state dict on the unseen scientific holdout benchmark for `domain_name`.
-    Uses `_encode_corpus_batch(..., is_holdout=True)` so unseen holdout inputs are drawn from
-    the same domain semantic manifold using a disjoint random seed (`seed + 9999`).
+    Evaluate synthetic regression MSE on fresh Gaussian samples.
+
+    The named domain's text and benchmark holdout samples are NOT consumed.
+    The historical function name does not make this a scientific text benchmark.
+    Perplexity is undefined here: exponentiating MSE is not token perplexity.
     """
-    from hivemind.data.hf_real_trainer import _encode_corpus_batch
+    from hivemind.data.hf_real_trainer import _encode_synthetic_regression_batch
 
     target_device = device or torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     domain_seed = int(hashlib.sha256(domain_name.encode("utf-8")).hexdigest()[:8], 16) % 10_000 + 101
@@ -275,7 +275,7 @@ def _evaluate_lora_on_scientific_holdout(
             in_dim = int(a_mat.shape[1])
             out_dim = int(b_mat.shape[0])
 
-            x_cpu, y_cpu = _encode_corpus_batch(
+            x_cpu, y_cpu = _encode_synthetic_regression_batch(
                 corpus,
                 in_dim,
                 out_dim,
@@ -302,11 +302,14 @@ def _evaluate_lora_on_scientific_holdout(
             cosine_alignments.append(cos_val)
 
     mean_loss = round(sum(holdout_losses) / max(1, len(holdout_losses)), 6)
-    perplexity = round(math.exp(min(8.0, mean_loss)), 4)
     mean_cosine = round(sum(cosine_alignments) / max(1, len(cosine_alignments)), 4)
     return {
+        "measurement_kind": "synthetic_regression",
+        "loss_metric": "mean_squared_error",
+        "text_content_used": False,
         "holdout_loss": mean_loss,
-        "holdout_perplexity": perplexity,
+        "holdout_perplexity": None,
+        "perplexity_status": "not_applicable_to_mse",
         "holdout_cosine_alignment": mean_cosine,
     }
 
@@ -356,9 +359,9 @@ def ties_merge_lora_adapters(
 
 class SwarmKnowledgeTransferEngine:
     """
-    Scientifically tests and guarantees that when one agent in the swarm retrains a LoRA adapter,
-    all other peer agents in the swarm can immediately fetch, verify, and hot-swap/merge the
-    retrained adapter to inherit its accuracy and loss reduction without redundant GPU training.
+    Exercise synthetic adapter training and local file-based peer-state reuse.
+
+    This does not measure language accuracy, network transfer or saved GPU work.
     """
 
     def __init__(
@@ -398,22 +401,21 @@ class SwarmKnowledgeTransferEngine:
         royalty_per_peer_hive: float = 2.5,
     ) -> PeerKnowledgeTransferAudit:
         """
-        1. Evaluates all swarm agents BEFORE retraining on the unseen scientific holdout benchmark.
-        2. `trainer_agent_id` retrains the adapter on `domain_name` (`inner_steps`), compresses via
-           `Top-5% + FP8`, and publishes the converged checkpoint to `ContentAddressedSwarmStore`.
-        3. Every other agent in `self.peer_agent_ids` fetches the checkpoint by `expert_cid` from the
-           CAS, verifies its SHA-256 digest, hot-swaps it into its local state, and evaluates on the
-           unseen scientific holdout benchmark.
-        4. Credits `trainer_agent_id` with Swarm Reuse Royalties for every peer agent that leveraged
-           the training effort.
+        Train synthetic Gaussian regression, publish locally, then load peer states.
+
+        The legacy checkpoint loader does not verify its CID against loaded bytes.
+        Royalties and avoided-step counts are game accounting, not payments or
+        measured GPU savings. Real safe-byte verification is in token_training_eval.
         """
         bench_meta = SCIENTIFIC_BENCHMARK_SUITES.get(
             domain_name,
             SCIENTIFIC_BENCHMARK_SUITES["Rust_Systems_Security"],
         )
 
-        # Step 1: Pre-transfer baseline across all peer agents on the unseen scientific holdout split
-        pre_eval_by_peer: Dict[str, Dict[str, float]] = {}
+        if trainer_agent_id not in self.peer_agent_ids:
+            raise ValueError("trainer_agent_id must be a participating peer")
+        # Synthetic regression baseline, not a text holdout.
+        pre_eval_by_peer: Dict[str, Dict[str, Any]] = {}
         for agent_id in self.peer_agent_ids:
             current_state = self.peer_local_adapters.get(agent_id, {}).get(
                 domain_name, reference_lora_state
@@ -424,7 +426,7 @@ class SwarmKnowledgeTransferEngine:
                 device=self.device,
             )
 
-        # Step 2: Trainer agent executes local QLoRA training + Top-k FP8 compression + CAS broadcast
+        # Local synthetic matrix fitting and checkpoint publication.
         retrained_state, train_metrics = train_single_domain_lora_adapter(
             domain_name=domain_name,
             reference_lora_state=reference_lora_state,
@@ -449,7 +451,7 @@ class SwarmKnowledgeTransferEngine:
         trainer_pre_loss = pre_eval_by_peer[trainer_agent_id]["holdout_loss"]
         trainer_post_loss = trainer_post_holdout["holdout_loss"]
         trainer_drop_pct = round(
-            100.0 * max(0.0, trainer_pre_loss - trainer_post_loss) / max(1e-8, trainer_pre_loss),
+            100.0 * (trainer_pre_loss - trainer_post_loss) / max(1e-8, trainer_pre_loss),
             2,
         )
 
@@ -475,11 +477,11 @@ class SwarmKnowledgeTransferEngine:
             pre_loss = pre_eval_by_peer[peer_id]["holdout_loss"]
             post_loss = post_eval["holdout_loss"]
             loss_drop_pct = round(
-                100.0 * max(0.0, pre_loss - post_loss) / max(1e-8, pre_loss), 2
+                100.0 * (pre_loss - post_loss) / max(1e-8, pre_loss), 2
             )
-            transfer_ratio = round(
-                max(0.0, pre_loss - post_loss) / max(1e-8, trainer_pre_loss - trainer_post_loss),
-                4,
+            transfer_ratio = (
+                round((pre_loss - post_loss) / (trainer_pre_loss - trainer_post_loss), 4)
+                if trainer_pre_loss > trainer_post_loss else None
             )
 
             self.reuse_royalty_ledger[trainer_agent_id] = round(
@@ -495,7 +497,9 @@ class SwarmKnowledgeTransferEngine:
                     "ingested_expert_cid": expert_cid,
                     "provenance_trainer": loaded_meta.get("trainer_agent_id", trainer_agent_id),
                     "local_training_steps_spent": 0,
-                    "gpu_steps_saved": inner_steps,
+                    "measurement_kind": "synthetic_regression",
+                    "gpu_steps_saved": None,
+                    "simulated_steps_avoided": train_metrics["inner_steps"],
                     "hotswap_latency_ms": hotswap_ms,
                     "pre_transfer_holdout_loss": pre_loss,
                     "post_transfer_holdout_loss": post_loss,
@@ -508,35 +512,25 @@ class SwarmKnowledgeTransferEngine:
                 }
             )
 
-        mean_pre_loss = round(
-            sum(r["pre_transfer_holdout_loss"] for r in peer_eval_records)
-            / max(1, len(peer_eval_records)),
-            6,
+        mean_pre_loss = (
+            round(sum(r["pre_transfer_holdout_loss"] for r in peer_eval_records)
+                  / len(peer_eval_records), 6) if peer_eval_records else None
         )
-        mean_post_loss = round(
-            sum(r["post_transfer_holdout_loss"] for r in peer_eval_records)
-            / max(1, len(peer_eval_records)),
-            6,
+        mean_post_loss = (
+            round(sum(r["post_transfer_holdout_loss"] for r in peer_eval_records)
+                  / len(peer_eval_records), 6) if peer_eval_records else None
         )
-        mean_pre_ppl = round(
-            sum(r["pre_transfer_perplexity"] for r in peer_eval_records)
-            / max(1, len(peer_eval_records)),
-            4,
+        # No token likelihood was evaluated, so perplexity is unavailable.
+        mean_pre_ppl = None
+        mean_post_ppl = None
+        mean_drop_pct = (
+            round(sum(r["holdout_loss_reduction_pct"] for r in peer_eval_records)
+                  / len(peer_eval_records), 2) if peer_eval_records else None
         )
-        mean_post_ppl = round(
-            sum(r["post_transfer_perplexity"] for r in peer_eval_records)
-            / max(1, len(peer_eval_records)),
-            4,
-        )
-        mean_drop_pct = round(
-            sum(r["holdout_loss_reduction_pct"] for r in peer_eval_records)
-            / max(1, len(peer_eval_records)),
-            2,
-        )
-        mean_efficiency = round(
-            sum(r["knowledge_transfer_efficiency"] for r in peer_eval_records)
-            / max(1, len(peer_eval_records)),
-            4,
+        efficiencies = [r["knowledge_transfer_efficiency"] for r in peer_eval_records]
+        mean_efficiency = (
+            round(sum(efficiencies) / len(efficiencies), 4)
+            if efficiencies and all(value is not None for value in efficiencies) else None
         )
 
         return PeerKnowledgeTransferAudit(
@@ -554,13 +548,17 @@ class SwarmKnowledgeTransferEngine:
             mean_peer_post_perplexity=mean_post_ppl,
             mean_peer_loss_reduction_pct=mean_drop_pct,
             knowledge_transfer_efficiency_ratio=mean_efficiency,
-            mean_hotswap_latency_ms=round(
-                sum(hotswap_latencies) / max(1, len(hotswap_latencies)), 3
+            mean_hotswap_latency_ms=(
+                round(sum(hotswap_latencies) / len(hotswap_latencies), 3)
+                if hotswap_latencies else None
             ),
-            total_peer_gpu_steps_saved=len(other_peers) * inner_steps,
+            peer_measurement_status="synthetic_measured" if peer_eval_records else "not_run",
+            total_peer_gpu_steps_saved=None,
+            simulated_peer_steps_avoided=len(other_peers) * int(train_metrics["inner_steps"]),
             royalties_paid_to_trainer_hive=round(len(other_peers) * royalty_per_peer_hive, 4),
-            all_peers_leveraged_successfully=all(
+            all_peers_leveraged_successfully=bool(peer_eval_records) and all(
                 r["post_transfer_holdout_loss"] < r["pre_transfer_holdout_loss"]
+                and r["knowledge_transfer_efficiency"] is not None
                 and r["knowledge_transfer_efficiency"] >= 0.95
                 for r in peer_eval_records
             ),
@@ -569,9 +567,7 @@ class SwarmKnowledgeTransferEngine:
 
 class JoinedSwarmCampaignEngine:
     """
-    Executes Joined Co-Op Swarm Mining Campaigns where multiple agents collaborate to mine
-    faster (shard parallelism + 12.79x Top-k FP8 compression) and better (TIES-Merging +
-    cross-domain Sparse MoE collective intelligence).
+    Execute sequential synthetic campaign/game mechanics, not parallel benchmarks.
     """
 
     def __init__(
@@ -592,10 +588,11 @@ class JoinedSwarmCampaignEngine:
         topk_ratio: float = 0.05,
     ) -> Dict[str, Any]:
         """
-        Executes `CAMPAIGN-COOP-01`: K agents split the training workload into parallel shards,
-        each running `steps_per_agent` inner steps on GPU with independent stochastic exploration,
-        and fuse their compressed deltas via TIES Sign-Consensus Merging + Nesterov Outer Momentum.
-        Proves both wall-clock speedup and superior holdout generalization vs a single solo step budget.
+        Execute a sequential synthetic adapter-fitting and TIES-merging simulation.
+
+        The sequential squad does more steps and uses a different learning rate
+        than the solo baseline. Neither equal-time quality nor parallel speedup
+        can be inferred from this comparison.
         """
         num_agents = max(1, len(participating_agents))
         steps_per_agent = max(4, total_inner_steps // num_agents)
@@ -606,7 +603,7 @@ class JoinedSwarmCampaignEngine:
             device=self.device,
         )
 
-        # Solo Miner Baseline (running only `steps_per_agent` steps alone in the same wall-clock window)
+        # Unequal-work synthetic baseline; no same-time comparison is performed.
         solo_state, _ = train_single_domain_lora_adapter(
             domain_name=domain_name,
             reference_lora_state=reference_lora_state,
@@ -665,22 +662,29 @@ class JoinedSwarmCampaignEngine:
         solo_loss = solo_holdout["holdout_loss"]
         coop_loss = coop_holdout["holdout_loss"]
         quality_gain_vs_solo_pct = round(
-            100.0 * max(0.0, solo_loss - coop_loss) / max(1e-8, solo_loss), 2
+            100.0 * (solo_loss - coop_loss) / max(1e-8, solo_loss), 2
         )
 
         return {
             "campaign_id": "CAMPAIGN-COOP-01-DILOCO-BLITZ",
             "domain_name": domain_name,
             "participating_agents": list(participating_agents),
-            "steps_per_agent_in_parallel": steps_per_agent,
-            "effective_parallel_speedup": round(float(num_agents) * 0.96, 2),
+            "measurement_kind": "synthetic_regression",
+            "execution_mode": "sequential_single_process",
+            "steps_per_agent": steps_per_agent,
+            "steps_per_agent_in_parallel": None,
+            "effective_parallel_speedup": None,
+            "parallel_speedup_status": "unavailable_no_concurrent_equal_work_measurement",
             "pre_training_holdout_loss": pre_holdout["holdout_loss"],
-            "solo_miner_same_time_holdout_loss": solo_loss,
+            "solo_miner_same_time_holdout_loss": None,
+            "synthetic_solo_holdout_mse": solo_loss,
             "joined_coop_holdout_loss": coop_loss,
             "joined_coop_holdout_perplexity": coop_holdout["holdout_perplexity"],
             "joined_coop_cosine_alignment": coop_holdout["holdout_cosine_alignment"],
-            "quality_improvement_over_solo_pct": quality_gain_vs_solo_pct,
-            "coop_beats_solo_miner": coop_loss < solo_loss,
+            "quality_improvement_over_solo_pct": None,
+            "coop_beats_solo_miner": None,
+            "synthetic_mse_difference_pct_unequal_work": quality_gain_vs_solo_pct,
+            "synthetic_coop_lower_mse": coop_loss < solo_loss,
             "published_coop_expert_cid": coop_cid,
         }
 
@@ -737,10 +741,13 @@ class JoinedSwarmCampaignEngine:
                 )
                 domain_scores[domain_name] = ev["holdout_loss"]
             agent_multi_domain_matrix[agent_id] = {
-                "domains_mastered": len(domain_scores),
+                "measurement_kind": "synthetic_regression",
+                "domains_mastered": None,
+                "synthetic_domains_evaluated": len(domain_scores),
                 "domains_trained_locally": 1,
                 "domains_leveraged_from_swarm_peers": len(domains) - 1,
-                "compute_leverage_multiplier": float(len(domains)),
+                "compute_leverage_multiplier": None,
+                "simulated_adapter_reuse_multiplier": float(len(domains)),
                 "holdout_loss_by_domain": domain_scores,
                 "mean_4domain_holdout_loss": round(
                     sum(domain_scores.values()) / len(domain_scores), 6
@@ -948,7 +955,10 @@ class JoinedSwarmCampaignEngine:
 
         elapsed_s = round(time.perf_counter() - t_start, 3)
         return {
-            "suite_version": "v1.7.0-scientific-swarm-community-hub",
+            "suite_version": "v1.7.0-synthetic-swarm-community-hub",
+            "measurement_kind": "synthetic_regression",
+            "hardware_validation_status": "not_run",
+            "leaderboard_status": "scripted_game_simulation_not_live_telemetry",
             "device": str(self.device),
             "elapsed_seconds": elapsed_s,
             "scientific_knowledge_transfer_audits": transfer_audits,
