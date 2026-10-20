@@ -1,10 +1,11 @@
 """Swarm Fabric M1: AsyncQUICGeoRingTransport with 0-RTT Session Resumption & WebSocket Fallback (`HM-M1-01`).
 
-Integrates contributor PR #9 (@clark719664) closing Issue #1:
-- `ZeroRTTSessionTicket` issuance and resumption for `CompressedHiddenStatePacket` frames
-- Binary 0-RTT packet framing (`MAGIC_QUIC_0RTT = b"HQ0R"`) with automatic `libp2p` WebSocket fallback (`MAGIC_WS_FALLBACK = b"HWSF"`)
-- Localhost UDP loopback multi-socket benchmark sustaining >= 100 hidden-state frames/sec with < 1.5 ms serialization overhead
-- STUN/ICE endpoint candidate negotiation & datagram loopback verification
+Integrates contributor PRs #9 and #22 (@clark719664), closing Issues #1 and #14:
+- `CompressedHiddenStatePacket` frames over real QUIC (`aioquic`) with TLS 1.3 0-RTT session
+  resumption, and a libp2p multistream-select WebSocket fallback when UDP is blocked (`quic_link`)
+- Binary frame format (`MAGIC_QUIC_0RTT = b"HQ0R"`, `MAGIC_WS_FALLBACK = b"HWSF"`)
+- RFC 5389 STUN discovery, RFC 5780 mapping classification, UDP hole punching and RFC 5766 TURN
+  relay fallback (`nat_traversal`), plus ICE (RFC 8445/8839) host and server-reflexive candidates
 
 Season 4 Milestone `HM-S4-02` (Issue #27, branch `feat/s4-hierarchical-super-ring`) extends this
 transport with the 2-Tier Kademlia Continental Super-Ring:
@@ -19,14 +20,39 @@ transport with the 2-Tier Kademlia Continental Super-Ring:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import math
+import secrets
 import socket
 import struct
+import threading
 import time
+from contextlib import ExitStack
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from numbers import Integral
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import torch
+
+from hivemind.swarm.nat_traversal import (
+    DEFAULT_STUN_SERVERS,
+    Address,
+    PunchResult,
+    ServerSpec,
+    StunError,
+    TurnClient,
+    classify_nat_mapping,
+    outbound_interface_ip,
+    resolve,
+    stun_binding,
+    udp_hole_punch,
+    udp_socket,
+)
+from hivemind.swarm.quic_link import LinkRun, run_local_link
+
+if TYPE_CHECKING:
+    from hivemind.swarm.quic_link import LinkEndpoint, RemoteHiddenStateLink
 
 from hivemind.swarm.swarm_fabric import (
     CompressedHiddenStatePacket,
@@ -37,6 +63,30 @@ from hivemind.swarm.swarm_fabric import (
 
 MAGIC_QUIC_0RTT = b"HQ0R"
 MAGIC_WS_FALLBACK = b"HWSF"
+
+_T = TypeVar("_T")
+
+
+def _run_coroutine(coro: Coroutine[Any, Any, _T]) -> _T:
+    """Run `coro` to completion from synchronous code, even if this thread already has a loop."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    outcome: Dict[str, Any] = {}
+
+    def runner() -> None:
+        try:
+            outcome["value"] = asyncio.run(coro)
+        except BaseException as exc:  # re-raised in the caller's thread
+            outcome["error"] = exc
+
+    worker = threading.Thread(target=runner)
+    worker.start()
+    worker.join()
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"]
 
 
 @dataclass
@@ -712,7 +762,17 @@ class AdaptiveCongestionController:
 
 
 class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
-    """M1 (`HM-M1-01`) & S3 (`HM-S3-01`): 0-RTT QUIC / UDP Datagram Hidden-State Transport with WAN STUN/TURN & UDP Hole Punching."""
+    """M1 (`HM-M1-01`) & S3 (`HM-S3-01`): QUIC 0-RTT hidden-state transport with STUN/TURN NAT traversal.
+
+    Frames ride real QUIC streams (`hivemind.swarm.quic_link`) with TLS 1.3 0-RTT resumption and
+    fall back to a libp2p-negotiated WebSocket when UDP is unusable. Peers learn reflexive
+    addresses with RFC 5389 STUN, punch UDP holes directly when their NATs allow it, and relay
+    through an RFC 5766 TURN allocation when they do not (`hivemind.swarm.nat_traversal`).
+
+    Remote hidden-state sends require an explicit trusted `LinkEndpoint`; the NAT
+    probe/relay APIs do not automatically configure that link. Methods ending in
+    `_loopback` and `benchmark_loopback_0rtt` remain explicit local demonstrations.
+    """
 
     def __init__(
         self,
@@ -720,30 +780,49 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         max_rtt_ms: float = 20.0,
         bind_host: str = "127.0.0.1",
         signing_secret: bytes = b"HiveMind-QUIC-0RTT-Secret",
+        *,
+        remote_endpoint: "LinkEndpoint | None" = None,
     ) -> None:
         super().__init__(region=region, max_rtt_ms=max_rtt_ms)
         self.bind_host = bind_host
         self.signing_secret = signing_secret
+        self.remote_endpoint = remote_endpoint
+        self._remote_links: Dict["LinkEndpoint", "RemoteHiddenStateLink"] = {}
+        self._remote_links_lock = threading.Lock()
         self.zero_rtt_tickets: Dict[str, ZeroRTTSessionTicket] = {}
         self.session_tickets_0rtt: Dict[str, str] = {}
         self.anti_replay_max_nonce: Dict[str, int] = {}
+        self._nonce_lock = threading.Lock()
         self.nat_endpoints: Dict[str, Dict[str, Any]] = {}
+        self.turn_clients: Dict[str, TurnClient] = {}
         self.total_udp_hole_punches: int = 0
         self.total_turn_fallbacks: int = 0
         self.congestion_controller: AdaptiveCongestionController = AdaptiveCongestionController()
 
     def issue_0rtt_ticket(self, peer_id: str) -> ZeroRTTSessionTicket:
-        """Issue and cache a 12-byte 0-RTT session resumption token for `peer_id`."""
-        token = hashlib.sha256(f"{peer_id}:{self.region}".encode("utf-8")).digest()[:12]
-        ticket = ZeroRTTSessionTicket(
-            peer_id=peer_id,
-            session_token=token,
-            issued_at=time.time(),
-        )
-        self.zero_rtt_tickets[peer_id] = ticket
-        self.session_tickets_0rtt[peer_id] = token.hex()
-        self.anti_replay_max_nonce.setdefault(peer_id, 0)
-        return ticket
+        """Issue the application-level resumption record that keys `peer_id`'s anti-replay state.
+
+        The TLS 1.3 session ticket that actually enables 0-RTT is issued by the QUIC server in
+        `quic_link`; this record carries the swarm-side nonce window and NAT metadata.
+        """
+        with self._nonce_lock:
+            previous = self.zero_rtt_tickets.get(peer_id)
+            # A new ticket refreshes its lifetime, never the peer's strike register.
+            max_seen = max(
+                self.anti_replay_max_nonce.get(peer_id, 0),
+                previous.last_accepted_nonce if previous is not None else 0,
+            )
+            token = secrets.token_bytes(12)
+            ticket = ZeroRTTSessionTicket(
+                peer_id=peer_id,
+                session_token=token,
+                issued_at=time.time(),
+                last_accepted_nonce=max_seen,
+            )
+            self.zero_rtt_tickets[peer_id] = ticket
+            self.session_tickets_0rtt[peer_id] = token.hex()
+            self.anti_replay_max_nonce[peer_id] = max_seen
+            return ticket
 
     def verify_0rtt_ticket_anti_replay(
         self,
@@ -752,96 +831,178 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         timestamp: float | None = None,
         max_age_sec: float = 600.0,
     ) -> Tuple[bool, str]:
-        """RFC 9001 0-RTT anti-replay check enforcing ticket freshness and strictly monotonic nonces (`HM-S3-01`)."""
-        ticket = self.zero_rtt_tickets.get(peer_id)
-        if ticket is None:
-            return False, "missing_0rtt_session_ticket"
-        now = timestamp if timestamp is not None else time.time()
-        if abs(now - ticket.issued_at) > max_age_sec:
-            return False, "expired_0rtt_session_ticket"
-        max_seen = self.anti_replay_max_nonce.get(peer_id, 0)
-        if nonce <= max_seen:
-            return False, f"replay_nonce_detected(nonce={nonce}<=max_seen={max_seen})"
-        self.anti_replay_max_nonce[peer_id] = nonce
-        ticket.resumed_count += 1
-        return True, "0rtt_nonce_accepted"
+        """Check and atomically advance the application-level monotonic strike register.
+
+        ``timestamp`` is the verifier's trusted current time, not a sender-supplied
+        packet timestamp. Tickets are valid on the inclusive interval
+        ``[issued_at, issued_at + max_age_sec]``; future-issued tickets fail closed.
+        This in-process register is not a substitute for QUIC/TLS authentication or
+        a shared, durable replay store across servers and process restarts.
+        """
+        with self._nonce_lock:
+            ticket = self.zero_rtt_tickets.get(peer_id)
+            if ticket is None:
+                return False, "missing_0rtt_session_ticket"
+            if isinstance(nonce, bool) or not isinstance(nonce, Integral) or nonce <= 0:
+                return False, "invalid_0rtt_nonce"
+            now = timestamp if timestamp is not None else time.time()
+            if (
+                not math.isfinite(now)
+                or not math.isfinite(ticket.issued_at)
+                or not math.isfinite(max_age_sec)
+                or max_age_sec < 0
+            ):
+                return False, "invalid_0rtt_ticket_time"
+            if now < ticket.issued_at:
+                return False, "future_0rtt_session_ticket"
+            if now - ticket.issued_at > max_age_sec:
+                return False, "expired_0rtt_session_ticket"
+            # Keep the public ticket field and legacy dictionary synchronized, also
+            # when restoring an older record that persisted only one of them.
+            max_seen = max(self.anti_replay_max_nonce.get(peer_id, 0), ticket.last_accepted_nonce)
+            self.anti_replay_max_nonce[peer_id] = max_seen
+            ticket.last_accepted_nonce = max_seen
+            if nonce <= max_seen:
+                return False, f"replay_nonce_detected(nonce={nonce}<=max_seen={max_seen})"
+            self.anti_replay_max_nonce[peer_id] = int(nonce)
+            ticket.last_accepted_nonce = int(nonce)
+            ticket.resumed_count += 1
+            return True, "0rtt_nonce_accepted"
+
+    @staticmethod
+    def _punch_pair(
+        sock_a: socket.socket,
+        sock_b: socket.socket,
+        candidates_a: List[Address],
+        candidates_b: List[Address],
+        timeout: float,
+    ) -> Tuple[PunchResult, PunchResult]:
+        """Run both sides of a simultaneous-open hole punch at once (B on a worker thread)."""
+        session = secrets.token_bytes(8)
+        result_b: List[PunchResult] = []
+        worker = threading.Thread(
+            target=lambda: result_b.append(udp_hole_punch(sock_b, candidates_a, session, timeout))
+        )
+        worker.start()
+        result_a = udp_hole_punch(sock_a, candidates_b, session, timeout)
+        worker.join()
+        return result_a, result_b[0]
+
+    def _open_peer_socket(
+        self, peer_id: str, stun_server: Optional[ServerSpec]
+    ) -> Tuple[socket.socket, Address, Dict[str, Any]]:
+        """Bind a peer socket and return it with its candidate (STUN-reflexive or host) address."""
+        if stun_server is None:
+            sock = udp_socket((self.bind_host, 0))
+            candidate: Address = sock.getsockname()
+            return sock, candidate, {"peer_id": peer_id, "candidate": candidate, "nat_type": "unknown"}
+        sock = udp_socket(("0.0.0.0", 0))
+        try:
+            mapping = classify_nat_mapping(sock, [stun_server])
+        except BaseException:
+            sock.close()
+            raise
+        endpoint = {
+            "peer_id": peer_id,
+            "candidate": mapping.mapped[0],
+            "nat_type": mapping.nat_type,
+            "mapping_behaviour": mapping.behaviour,
+        }
+        return sock, mapping.mapped[0], endpoint
 
     def perform_udp_hole_punch(
         self,
         local_peer_id: str,
         remote_peer_id: str,
-        nat_type: str = "restricted_cone",
+        stun_server: Optional[ServerSpec] = None,
+        timeout: float = 1.0,
     ) -> Dict[str, Any]:
-        """Execute bidirectional STUN/ICE UDP hole-punching with automatic TURN relay fallback for Symmetric NAT (`HM-S3-01`)."""
-        t0 = time.perf_counter()
+        """Punch a UDP path between two local peers with simultaneous-open checks (`HM-S3-01`).
+
+        Candidates are STUN server-reflexive addresses when `stun_server` is given, otherwise the
+        sockets' host addresses. Use `execute_udp_hole_punch` for TURN fallback.
+        """
         self.issue_0rtt_ticket(local_peer_id)
         self.issue_0rtt_ticket(remote_peer_id)
-
-        if nat_type == "symmetric_nat":
-            elapsed_ms = round((time.perf_counter() - t0) * 1000.0 + 18.5, 3)
-            return {
-                "local_peer_id": local_peer_id,
-                "remote_peer_id": remote_peer_id,
-                "nat_type": nat_type,
-                "hole_punch_succeeded": False,
-                "transport_mode": "turn_relay_websocket_fallback",
-                "effective_rtt_ms": elapsed_ms,
-                "handshake_verified": True,
-            }
-
-        sock_a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock_b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            sock_a.bind((self.bind_host, 0))
-            sock_b.bind((self.bind_host, 0))
-            port_a = sock_a.getsockname()[1]
-            port_b = sock_b.getsockname()[1]
-            sock_a.settimeout(0.5)
-            sock_b.settimeout(0.5)
-
-            syn_a = hashlib.sha256(f"STUN_PUNCH:{local_peer_id}->{remote_peer_id}:{port_a}".encode()).digest()[:16]
-            syn_b = hashlib.sha256(f"STUN_PUNCH:{remote_peer_id}->{local_peer_id}:{port_b}".encode()).digest()[:16]
-
-            sock_a.sendto(syn_a, (self.bind_host, port_b))
-            sock_b.sendto(syn_b, (self.bind_host, port_a))
-
-            rx_b, _ = sock_b.recvfrom(128)
-            rx_a, _ = sock_a.recvfrom(128)
-            verified = (rx_b == syn_a) and (rx_a == syn_b)
-        finally:
-            sock_a.close()
-            sock_b.close()
-
-        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 3)
+        with ExitStack() as sockets:
+            sock_a, cand_a, _ = self._open_peer_socket(local_peer_id, stun_server)
+            sockets.callback(sock_a.close)
+            sock_b, cand_b, _ = self._open_peer_socket(remote_peer_id, stun_server)
+            sockets.callback(sock_b.close)
+            res_a, res_b = self._punch_pair(sock_a, sock_b, [cand_a], [cand_b], timeout)
+        verified = res_a.succeeded and res_b.succeeded
+        rtts = [r.rtt_ms for r in (res_a, res_b) if r.rtt_ms is not None]
         return {
             "local_peer_id": local_peer_id,
             "remote_peer_id": remote_peer_id,
-            "nat_type": nat_type,
-            "local_ephemeral_port": port_a,
-            "remote_ephemeral_port": port_b,
+            "local_candidate": f"{cand_a[0]}:{cand_a[1]}",
+            "remote_candidate": f"{cand_b[0]}:{cand_b[1]}",
+            "local_ephemeral_port": cand_a[1],
+            "remote_ephemeral_port": cand_b[1],
             "hole_punch_succeeded": verified,
-            "transport_mode": "direct_p2p_udp_0rtt",
-            "effective_rtt_ms": elapsed_ms,
+            "transport_mode": "direct_udp" if verified else "failed",
+            "effective_rtt_ms": round(max(rtts), 3) if rtts else None,
+            "probes_sent": res_a.probes_sent + res_b.probes_sent,
             "handshake_verified": verified,
         }
 
-    def negotiate_stun_ice_candidate(self, peer_id: str, local_port: int = 4433) -> Dict[str, Any]:
-        """Discover STUN/ICE reflexive endpoint and issue a 0-RTT QUIC session resumption ticket."""
+    @staticmethod
+    def _ice_candidate(
+        foundation: int, ip: str, port: int, kind: str, related: Optional[Address] = None
+    ) -> str:
+        """RFC 8839 candidate line with an RFC 8445 §5.1.2.1 priority (component 1, UDP)."""
+        type_preference = {"host": 126, "srflx": 100, "relay": 0}[kind]
+        priority = (type_preference << 24) + (65535 << 8) + (256 - 1)
+        line = f"candidate:{foundation} 1 UDP {priority} {ip} {port} typ {kind}"
+        if related is not None:
+            line += f" raddr {related[0]} rport {related[1]}"
+        return line
+
+    def negotiate_stun_ice_candidate(
+        self,
+        peer_id: str,
+        local_port: int = 0,
+        stun_server: Optional[ServerSpec] = None,
+    ) -> Dict[str, Any]:
+        """Gather ICE candidates for `peer_id` and issue its 0-RTT resumption record.
+
+        Always yields the host candidate of a socket bound on `bind_host`; with `stun_server` it
+        also performs a Binding request and adds the server-reflexive candidate.
+        """
+        try:
+            sock = udp_socket(("0.0.0.0" if stun_server else self.bind_host, local_port))
+        except OSError:
+            sock = udp_socket(("0.0.0.0" if stun_server else self.bind_host, 0))
+        try:
+            host_ip, port = sock.getsockname()
+            if host_ip == "0.0.0.0":
+                host_ip = outbound_interface_ip(resolve(stun_server)) if stun_server else self.bind_host
+            candidates = [self._ice_candidate(1, host_ip, port, "host")]
+            reflexive: Optional[Address] = None
+            if stun_server is not None:
+                reflexive = stun_binding(sock, stun_server).mapped
+                candidates.append(
+                    self._ice_candidate(2, reflexive[0], reflexive[1], "srflx", related=(host_ip, port))
+                )
+        finally:
+            sock.close()
         ticket_obj = self.issue_0rtt_ticket(peer_id)
         ticket_hex = hashlib.sha256(
-            self.signing_secret + f":{peer_id}:{local_port}".encode("utf-8")
+            self.signing_secret + f":{peer_id}:{port}".encode("utf-8")
         ).hexdigest()[:24]
         self.session_tickets_0rtt[peer_id] = ticket_hex
         return {
             "peer_id": peer_id,
-            "ice_candidate": f"candidate:1 1 UDP 2130706431 {self.bind_host} {local_port} typ srflx",
-            "candidate_type": "srflx_udp_quic",
+            "ice_candidates": candidates,
+            "ice_candidate": candidates[-1],
+            "candidate_type": "srflx" if reflexive else "host",
             "bind_host": self.bind_host,
-            "local_port": local_port,
+            "local_port": port,
+            "reflexive_address": f"{reflexive[0]}:{reflexive[1]}" if reflexive else None,
             "session_ticket_0rtt": ticket_hex,
             "session_token_bytes_hex": ticket_obj.session_token.hex(),
-            "protocol": "quic_h3_0rtt",
-            "fallback_protocol": "libp2p_websocket_tls",
+            "protocol": "quic_0rtt",
+            "fallback_protocol": "libp2p_websocket",
         }
 
     def serialize_packet_0rtt(
@@ -850,9 +1011,8 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         packet: CompressedHiddenStatePacket,
         use_websocket_fallback: bool = False,
     ) -> bytes:
-        """Pack an FP8 `CompressedHiddenStatePacket` into a compact binary 0-RTT QUIC or WebSocket frame."""
+        """Pack an FP8 `CompressedHiddenStatePacket` into the binary frame carried by QUIC or WebSocket."""
         ticket = self.zero_rtt_tickets.get(peer_id) or self.issue_0rtt_ticket(peer_id)
-        ticket.resumed_count += 1
         magic = MAGIC_WS_FALLBACK if use_websocket_fallback else MAGIC_QUIC_0RTT
         shape = packet.original_shape
         ndim = len(shape)
@@ -872,14 +1032,28 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
     def deserialize_packet_0rtt(
         self, frame: bytes
     ) -> Tuple[CompressedHiddenStatePacket, str]:
-        """Unpack a binary 0-RTT QUIC or WebSocket frame back into a `CompressedHiddenStatePacket`."""
+        """Validate and unpack a hidden-state frame; this parser does not authenticate its token."""
+        if len(frame) < 17:
+            raise ValueError("truncated hidden-state frame header")
         magic, _token, ndim = struct.unpack("!4s12sB", frame[:17])
-        protocol = "libp2p_websocket_tls" if magic == MAGIC_WS_FALLBACK else "aioquic_h3_0rtt"
+        if magic not in (MAGIC_QUIC_0RTT, MAGIC_WS_FALLBACK):
+            raise ValueError("unknown hidden-state frame magic")
+        if not 1 <= ndim <= 64:
+            raise ValueError("hidden-state frame must have 1 to 64 dimensions")
+        protocol = "libp2p_websocket" if magic == MAGIC_WS_FALLBACK else "quic"
         fmt = f"!{ndim}III"
         header_len = 17 + struct.calcsize(fmt)
+        if len(frame) < header_len:
+            raise ValueError("truncated hidden-state shape header")
         unpacked = struct.unpack(fmt, frame[17:header_len])
         shape = tuple(unpacked[:ndim])
         fp8_len, scale_len = unpacked[ndim], unpacked[ndim + 1]
+        if any(dimension == 0 for dimension in shape):
+            raise ValueError("hidden-state frame dimensions must be positive")
+        if fp8_len != math.prod(shape) or scale_len != math.prod(shape[:-1]) * 2:
+            raise ValueError("hidden-state payload lengths do not match the declared shape")
+        if len(frame) != header_len + fp8_len + scale_len:
+            raise ValueError("hidden-state frame is truncated or contains trailing data")
         fp8_raw = frame[header_len : header_len + fp8_len]
         scale_raw = frame[header_len + fp8_len : header_len + fp8_len + scale_len]
 
@@ -889,7 +1063,7 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         scale_tensor = torch.frombuffer(bytearray(scale_raw), dtype=torch.float16).reshape(
             scale_shape
         )
-        orig_bytes = int(torch.prod(torch.tensor(shape)).item()) * 2
+        orig_bytes = math.prod(shape) * 2
         pkt = CompressedHiddenStatePacket(
             fp8_data=fp8_tensor,
             absmax_scale=scale_tensor,
@@ -899,13 +1073,117 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         )
         return pkt, protocol
 
+    async def _send_remote_frames(
+        self,
+        peer_id: str,
+        frames: Sequence[bytes],
+        endpoint: "LinkEndpoint | None",
+    ) -> LinkRun:
+        from hivemind.swarm.quic_link import LinkEndpoint, RemoteHiddenStateLink
+
+        selected = endpoint if endpoint is not None else self.remote_endpoint
+        if selected is None:
+            raise ValueError("configure remote_endpoint or supply an explicit trusted LinkEndpoint")
+        if not isinstance(selected, LinkEndpoint):
+            raise TypeError("remote endpoint must be a LinkEndpoint")
+        if not frames:
+            raise ValueError("at least one hidden-state packet is required")
+        with self._remote_links_lock:
+            link = self._remote_links.get(selected)
+            if link is None:
+                link = RemoteHiddenStateLink(selected)
+                self._remote_links[selected] = link
+        run = await link.send_frames(frames)
+        if run.session_resumed:
+            with self._nonce_lock:
+                ticket = self.zero_rtt_tickets.get(peer_id)
+                if ticket is not None:
+                    ticket.resumed_count += 1
+        return run
+
+    async def send_compressed_hidden_states(
+        self,
+        peer_id: str,
+        packets: Sequence[CompressedHiddenStatePacket],
+        *,
+        endpoint: "LinkEndpoint | None" = None,
+    ) -> LinkRun:
+        """Send packets to an explicitly configured, independently running receiver.
+
+        The endpoint supplies the trusted CA and server name. Its client caches
+        single-use TLS session tickets between calls on this transport instance;
+        no local receiver or warmup frame is created. A receiver acknowledgment
+        confirms its delivered-frame count, not model execution or tensor quality.
+        STUN discovery and TURN allocation are separate APIs and do not wire a NAT
+        path into this link. Application nonce checks also remain separate.
+        """
+        frames = [self.serialize_packet_0rtt(peer_id, packet) for packet in packets]
+        return await self._send_remote_frames(peer_id, frames, endpoint)
+
+    def transmit_compressed_hidden_state(
+        self,
+        peer_id: str,
+        packet: CompressedHiddenStatePacket,
+        *,
+        endpoint: "LinkEndpoint | None" = None,
+    ) -> Dict[str, Any]:
+        """Synchronous remote send; use send_compressed_hidden_states in async code.
+
+        Unlike the explicitly named loopback demonstration, this requires a
+        configured receiver. Certificate and uncertain-delivery failures propagate.
+        """
+        selected = endpoint if endpoint is not None else self.remote_endpoint
+        if selected is None:
+            raise ValueError("configure remote_endpoint or supply an explicit trusted LinkEndpoint")
+        frame = self.serialize_packet_0rtt(peer_id, packet)
+        run = _run_coroutine(self._send_remote_frames(peer_id, [frame], selected))
+        return {
+            "transport_used": {
+                "quic_0rtt": "quic_0rtt_stream",
+                "quic": "quic_stream",
+                "libp2p_websocket": "libp2p_websocket_fallback",
+            }[run.protocol],
+            "endpoint_host": selected.host,
+            "endpoint_port": selected.port,
+            "tls_server_name": selected.server_name,
+            "frame_bytes": len(frame),
+            "frames_sent": run.frames_sent,
+            "frames_delivered": run.frames_delivered,
+            "frame_acknowledged": run.frames_delivered == 1,
+            "transport_latency_ms": round(run.elapsed_s * 1000.0, 3),
+            "session_resumed": run.session_resumed,
+            "early_data_accepted": run.early_data_accepted,
+            "fallback_reason": run.fallback_reason,
+        }
+
+    def _send_over_link(
+        self, frames: List[bytes], expected_shape: Tuple[int, ...], udp_blocked: bool
+    ) -> Tuple[LinkRun, int]:
+        """Push `frames` through a local QUIC link (WebSocket on fallback); count intact arrivals."""
+        intact: List[bool] = []
+
+        def on_frame(frame: bytes) -> None:
+            if frame == b"warmup":
+                return
+            restored, _ = self.deserialize_packet_0rtt(frame)
+            intact.append(restored.original_shape == expected_shape)
+
+        run = _run_coroutine(
+            run_local_link(frames, host=self.bind_host, on_frame=on_frame, udp_blocked=udp_blocked)
+        )
+        return run, sum(intact)
+
     def benchmark_loopback_0rtt(
         self,
         hidden_states: torch.Tensor,
         num_frames: int = 120,
         simulate_udp_blocked: bool = False,
     ) -> Dict[str, Any]:
-        """Benchmark multi-frame 0-RTT UDP datagram streaming (or WebSocket fallback) on localhost."""
+        """Stream `num_frames` FP8 hidden-state frames over a resumed 0-RTT QUIC connection on `bind_host`.
+
+        `simulate_udp_blocked` aims the QUIC client at a UDP port nothing listens on, so the
+        handshake genuinely times out and the libp2p WebSocket fallback carries the frames.
+        """
         pkt = compress_hidden_states_fp8(hidden_states)
         peer_id = "peer-paris-01"
         self.issue_0rtt_ticket(peer_id)
@@ -914,39 +1192,24 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         wire_frame = self.serialize_packet_0rtt(
             peer_id, pkt, use_websocket_fallback=simulate_udp_blocked
         )
-        restored_pkt, proto = self.deserialize_packet_0rtt(wire_frame)
+        restored_pkt, _ = self.deserialize_packet_0rtt(wire_frame)
         ser_ms = (time.perf_counter() - t_ser0) * 1000.0
         _ = decompress_hidden_states_fp8(restored_pkt)
 
-        if not simulate_udp_blocked:
-            tx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            rx_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            rx_sock.bind((self.bind_host, 0))
-            port = rx_sock.getsockname()[1]
-            rx_sock.settimeout(1.0)
-            t0 = time.perf_counter()
-            try:
-                for _ in range(num_frames):
-                    tx_sock.sendto(wire_frame, (self.bind_host, port))
-                    data, _ = rx_sock.recvfrom(65535)
-                    self.deserialize_packet_0rtt(data)
-            finally:
-                tx_sock.close()
-                rx_sock.close()
-            elapsed = max(1e-6, time.perf_counter() - t0)
-        else:
-            t0 = time.perf_counter()
-            for _ in range(num_frames):
-                f = self.serialize_packet_0rtt(peer_id, pkt, use_websocket_fallback=True)
-                self.deserialize_packet_0rtt(f)
-            elapsed = max(1e-6, time.perf_counter() - t0)
-
-        fps = round(num_frames / elapsed, 1)
+        run, intact = self._send_over_link([wire_frame] * num_frames, pkt.original_shape, simulate_udp_blocked)
+        if run.session_resumed:
+            self.zero_rtt_tickets[peer_id].resumed_count += 1
         return {
-            "protocol": proto,
+            "protocol": run.protocol,
             "frames_transmitted": num_frames,
-            "frames_per_sec": fps,
+            "frames_delivered": run.frames_delivered,
+            "frames_verified": intact,
+            "frames_per_sec": round(run.frames_per_sec, 1),
             "serialization_overhead_ms": round(ser_ms, 3),
+            "session_resumed": run.session_resumed,
+            "early_data_accepted": run.early_data_accepted,
+            "server_early_frames": run.server_early_frames,
+            "fallback_reason": run.fallback_reason,
             "zero_rtt_resumptions": self.zero_rtt_tickets[peer_id].resumed_count,
         }
 
@@ -955,163 +1218,194 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         packet: CompressedHiddenStatePacket,
         simulate_udp_blocked: bool = False,
     ) -> Dict[str, Any]:
-        """Transmit a single FP8 hidden-state packet over UDP 0-RTT datagram loopback (with WebSocket fallback)."""
+        """Send one FP8 hidden-state packet over a resumed 0-RTT QUIC link (or the WebSocket fallback)."""
         t0 = time.perf_counter()
-        peer_id = "peer-paris-01"
         wire_frame = self.serialize_packet_0rtt(
-            peer_id, packet, use_websocket_fallback=simulate_udp_blocked
+            "peer-paris-01", packet, use_websocket_fallback=simulate_udp_blocked
         )
-
-        if not simulate_udp_blocked:
-            sock_rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock_tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            try:
-                sock_rx.bind((self.bind_host, 0))
-                port = sock_rx.getsockname()[1]
-                sock_rx.settimeout(0.5)
-                sock_tx.sendto(wire_frame, (self.bind_host, port))
-                received, _ = sock_rx.recvfrom(65535)
-                restored_pkt, _proto = self.deserialize_packet_0rtt(received)
-                transport_used = "udp_quic_0rtt_datagram"
-                verified = restored_pkt.original_shape == packet.original_shape
-            finally:
-                sock_rx.close()
-                sock_tx.close()
-        else:
-            restored_pkt, _proto = self.deserialize_packet_0rtt(wire_frame)
-            transport_used = "libp2p_websocket_fallback"
-            verified = restored_pkt.original_shape == packet.original_shape
-
-        elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 3)
+        run, intact = self._send_over_link([wire_frame], packet.original_shape, simulate_udp_blocked)
+        if run.session_resumed:
+            self.zero_rtt_tickets["peer-paris-01"].resumed_count += 1
+        transport_used = {
+            "quic_0rtt": "quic_0rtt_stream",
+            "quic": "quic_stream",
+            "libp2p_websocket": "libp2p_websocket_fallback",
+        }[run.protocol]
         return {
             "transport_used": transport_used,
             "frame_bytes": len(wire_frame),
-            "loopback_latency_ms": elapsed_ms,
-            "frame_verified": verified,
+            "loopback_latency_ms": round((time.perf_counter() - t0) * 1000.0, 3),
+            "frame_verified": intact == 1 and run.frames_delivered == 1,
+            "early_data_accepted": run.early_data_accepted,
         }
 
     def discover_stun_turn_endpoint(
         self,
         peer_id: str,
-        local_port: int = 4433,
-        simulated_nat_type: str = "restricted_cone",
-        stun_server: str = "stun.hivemind.network:3478",
-        turn_server: str = "turn.hivemind.network:5349",
+        local_port: int = 0,
+        stun_servers: Union[ServerSpec, Sequence[ServerSpec]] = DEFAULT_STUN_SERVERS,
+        turn_server: Optional[ServerSpec] = None,
+        turn_username: Optional[str] = None,
+        turn_password: Optional[str] = None,
+        timeout: float = 2.0,
     ) -> Dict[str, Any]:
-        """Executes an RFC 5389 STUN Binding discovery probe and RFC 5766 TURN relay allocation (`HM-S3-01`, PR #22)."""
-        t0 = time.perf_counter()
-        digest = hashlib.sha256(
-            f"{peer_id}:{local_port}:{simulated_nat_type}".encode("utf-8")
-        ).digest()
-        octet_3 = 10 + (digest[0] % 200)
-        octet_4 = 2 + (digest[1] % 250)
-        reflexive_ip = (
-            f"198.51.100.{octet_4}" if simulated_nat_type != "loopback" else "127.0.0.1"
-        )
-        reflexive_port = 32768 + ((digest[2] << 8 | digest[3]) % 28000)
-        turn_alloc_port = 49152 + ((digest[4] << 8 | digest[5]) % 16000)
-        turn_relay_endpoint = f"{turn_server}/alloc/{octet_3}.{octet_4}:{turn_alloc_port}"
-        stun_rtt_ms = (time.perf_counter() - t0) * 1000.0
+        """RFC 5389 STUN discovery (+ RFC 5780 mapping test) and optional RFC 5766 TURN allocation (`HM-S3-01`).
 
+        With two answering STUN servers the mapping behaviour tells cone NATs (hole-punchable)
+        from symmetric ones. When `turn_server` and credentials are given, a relay is allocated
+        and kept alive in `turn_clients[peer_id]` until `release_turn_allocations()`.
+        """
+        # A tuple can be one (host, port) address or a sequence of server specs.
+        # In particular DEFAULT_STUN_SERVERS is a tuple of two URL strings.
+        is_address = (
+            isinstance(stun_servers, tuple)
+            and len(stun_servers) == 2
+            and isinstance(stun_servers[0], str)
+            and isinstance(stun_servers[1], Integral)
+            and not isinstance(stun_servers[1], bool)
+        )
+        servers = [stun_servers] if isinstance(stun_servers, str) or is_address else list(stun_servers)
+        if not servers:
+            raise ValueError("at least one STUN server is required")
+        sock = udp_socket(("0.0.0.0", local_port))
+        try:
+            mapping = classify_nat_mapping(sock, servers, timeout)
+        finally:
+            sock.close()
+        relay: Optional[Address] = None
+        if turn_server is not None and turn_username is not None:
+            previous = self.turn_clients.pop(peer_id, None)
+            if previous is not None:
+                previous.close()
+            client = TurnClient(turn_server, turn_username, turn_password or "", timeout=timeout)
+            try:
+                relay = client.allocate()
+            except BaseException:
+                client.close()
+                raise
+            self.turn_clients[peer_id] = client
+
+        reflexive = mapping.mapped[0]
         endpoint = {
             "peer_id": peer_id,
-            "local_port": int(local_port),
-            "reflexive_ip": reflexive_ip,
-            "reflexive_port": int(reflexive_port),
-            "nat_type": simulated_nat_type,
-            "stun_server": stun_server,
-            "turn_server": turn_server,
-            "turn_relay_endpoint": turn_relay_endpoint,
-            "stun_rtt_ms": round(stun_rtt_ms, 4),
+            "local_port": mapping.local[1],
+            "local_address": f"{mapping.local[0]}:{mapping.local[1]}",
+            "reflexive_ip": reflexive[0],
+            "reflexive_port": reflexive[1],
+            "nat_type": mapping.nat_type,
+            "mapping_behaviour": mapping.behaviour,
+            "hole_punchable": mapping.hole_punchable,
+            "stun_server": f"{mapping.servers[0][0]}:{mapping.servers[0][1]}",
+            "stun_servers_answered": len(mapping.servers),
+            "stun_rtt_ms": round(mapping.rtt_ms[0], 3),
+            "turn_server": turn_server if turn_server is None or isinstance(turn_server, str) else f"{turn_server[0]}:{turn_server[1]}",
+            "turn_relay_endpoint": f"{relay[0]}:{relay[1]}" if relay else None,
         }
         self.nat_endpoints[peer_id] = endpoint
 
         ticket = self.zero_rtt_tickets.get(peer_id) or self.issue_0rtt_ticket(peer_id)
-        ticket.reflexive_ip = reflexive_ip
-        ticket.reflexive_port = int(reflexive_port)
-        ticket.nat_type = simulated_nat_type
-        ticket.turn_relay_endpoint = turn_relay_endpoint
+        ticket.reflexive_ip = reflexive[0]
+        ticket.reflexive_port = int(reflexive[1])
+        ticket.nat_type = mapping.nat_type
+        ticket.turn_relay_endpoint = endpoint["turn_relay_endpoint"]
         return endpoint
 
+    def release_turn_allocations(self) -> None:
+        """Deallocate every TURN relay opened by `discover_stun_turn_endpoint`."""
+        for client in self.turn_clients.values():
+            client.close()
+        self.turn_clients.clear()
+
     def verify_and_advance_0rtt_nonce(self, peer_id: str, incoming_nonce: int) -> bool:
-        """Enforces RFC 9001 Section 8 monotonic anti-replay strike-register validation (`HM-S3-01`, PR #22)."""
-        ticket = self.zero_rtt_tickets.get(peer_id) or self.issue_0rtt_ticket(peer_id)
-        if incoming_nonce <= ticket.last_accepted_nonce:
-            return False
-        ticket.last_accepted_nonce = int(incoming_nonce)
-        self.anti_replay_max_nonce[peer_id] = int(incoming_nonce)
-        return True
+        """Boolean wrapper using the same ticket lifetime and strike register as verification.
+
+        A ticket must already have been issued; verification never creates or
+        refreshes one on behalf of an unrecognized incoming peer.
+        """
+        accepted, _ = self.verify_0rtt_ticket_anti_replay(peer_id, incoming_nonce)
+        return accepted
+
+    @staticmethod
+    def _relay_pair(
+        turn_server: ServerSpec, username: str, password: str, timeout: float = 2.0
+    ) -> Tuple[bool, float, str]:
+        """Allocate a TURN relay for each peer and exchange a probe both ways through them."""
+        with ExitStack() as clients:
+            client_a = TurnClient(turn_server, username, password, timeout=timeout)
+            clients.callback(client_a.close)
+            client_b = TurnClient(turn_server, username, password, timeout=timeout)
+            clients.callback(client_b.close)
+            relay_a, relay_b = client_a.allocate(), client_b.allocate()
+            client_a.create_permission(relay_b[0])
+            client_b.create_permission(relay_a[0])
+            probe = b"HMRELAY" + secrets.token_bytes(8)
+            t0 = time.perf_counter()
+            client_a.send_to(relay_b, probe)
+            from_a, data_at_b = client_b.recv_from(timeout)
+            client_b.send_to(relay_a, probe[::-1])
+            from_b, data_at_a = client_a.recv_from(timeout)
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            verified = (
+                data_at_b == probe and data_at_a == probe[::-1] and from_a == relay_a and from_b == relay_b
+            )
+            return verified, elapsed_ms, f"{relay_b[0]}:{relay_b[1]}"
 
     def execute_udp_hole_punch(
         self,
         peer_a_id: str,
         peer_b_id: str,
-        simulated_nat_a: str = "restricted_cone",
-        simulated_nat_b: str = "port_restricted_cone",
+        stun_server: Optional[ServerSpec] = None,
+        turn_server: Optional[ServerSpec] = None,
+        turn_username: Optional[str] = None,
+        turn_password: Optional[str] = None,
+        direct_timeout: float = 1.0,
+        transport_policy: str = "all",
     ) -> Dict[str, Any]:
-        """Performs simultaneous UDP hole-punching (ICE-lite RFC 8445) with 0-RTT TURN relay fallback (`HM-S3-01`, PR #22)."""
-        ep_a = self.discover_stun_turn_endpoint(peer_a_id, simulated_nat_type=simulated_nat_a)
-        ep_b = self.discover_stun_turn_endpoint(peer_b_id, simulated_nat_type=simulated_nat_b)
+        """Connect two peers: direct UDP hole punch first, TURN relay when that fails (`HM-S3-01`).
 
-        both_symmetric = (
-            simulated_nat_a == "symmetric_cgnat" and simulated_nat_b == "symmetric_cgnat"
-        )
-
-        sock_a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock_b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock_a.bind((self.bind_host, 0))
-        sock_b.bind((self.bind_host, 0))
-        sock_a.settimeout(1.0)
-        sock_b.settimeout(1.0)
-
-        try:
-            addr_a = sock_a.getsockname()
-            addr_b = sock_b.getsockname()
-            t0 = time.perf_counter()
-
-            probe_a = (
-                f"ICE-PUNCH-SYN:{peer_a_id}->{peer_b_id}:{ep_a['reflexive_port']}".encode("utf-8")
+        `transport_policy="relay"` skips the direct attempt and always uses TURN, mirroring
+        WebRTC's `iceTransportPolicy: "relay"` for peers that must not expose their address.
+        """
+        direct_ok = False
+        relay_verified = False
+        latency_ms: Optional[float] = None
+        active_endpoint: Optional[str] = None
+        with ExitStack() as sockets:
+            sock_a, cand_a, ep_a = self._open_peer_socket(peer_a_id, stun_server)
+            sockets.callback(sock_a.close)
+            sock_b, cand_b, ep_b = self._open_peer_socket(peer_b_id, stun_server)
+            sockets.callback(sock_b.close)
+            if transport_policy != "relay":
+                res_a, res_b = self._punch_pair(sock_a, sock_b, [cand_a], [cand_b], direct_timeout)
+                direct_ok = res_a.succeeded and res_b.succeeded
+                if direct_ok and res_a.peer is not None:
+                    latency_ms = max(r.rtt_ms or 0.0 for r in (res_a, res_b))
+                    active_endpoint = f"{res_a.peer[0]}:{res_a.peer[1]}"
+                    self.total_udp_hole_punches += 1
+        if not direct_ok and turn_server is not None and turn_username is not None:
+            relay_verified, latency_ms, active_endpoint = self._relay_pair(
+                turn_server, turn_username, turn_password or ""
             )
-            probe_b = (
-                f"ICE-PUNCH-ACK:{peer_b_id}->{peer_a_id}:{ep_b['reflexive_port']}".encode("utf-8")
-            )
-
-            sock_a.sendto(probe_a, addr_b)
-            rx_b, _ = sock_b.recvfrom(1024)
-            sock_b.sendto(probe_b, addr_a)
-            rx_a, _ = sock_a.recvfrom(1024)
-
-            hole_punch_latency_ms = (time.perf_counter() - t0) * 1000.0
-        finally:
-            sock_a.close()
-            sock_b.close()
-
-        if both_symmetric:
-            self.total_turn_fallbacks += 1
-            transport_mode = "turn_allocation_relay_0rtt"
-            direct_hole_punch_succeeded = False
-            fallback_to_turn = True
-            active_endpoint = ep_b["turn_relay_endpoint"]
+            if relay_verified:
+                self.total_turn_fallbacks += 1
+        if direct_ok:
+            transport_mode = "direct_udp_hole_punch"
+        elif relay_verified:
+            transport_mode = "turn_relay"
         else:
-            self.total_udp_hole_punches += 1
-            transport_mode = "direct_udp_hole_punch_0rtt"
-            direct_hole_punch_succeeded = rx_b.startswith(b"ICE-PUNCH-SYN:") and rx_a.startswith(
-                b"ICE-PUNCH-ACK:"
-            )
-            fallback_to_turn = False
-            active_endpoint = f"{ep_b['reflexive_ip']}:{ep_b['reflexive_port']}"
-
+            transport_mode = "failed"
         return {
             "peer_a_id": peer_a_id,
             "peer_b_id": peer_b_id,
-            "nat_type_a": simulated_nat_a,
-            "nat_type_b": simulated_nat_b,
-            "direct_hole_punch_succeeded": direct_hole_punch_succeeded,
-            "fallback_to_turn": fallback_to_turn,
+            "nat_type_a": ep_a["nat_type"],
+            "nat_type_b": ep_b["nat_type"],
+            "direct_hole_punch_succeeded": direct_ok,
+            "fallback_to_turn": transport_mode == "turn_relay",
+            "relay_verified": relay_verified,
             "transport_mode": transport_mode,
             "active_endpoint": active_endpoint,
-            "hole_punch_latency_ms": round(hole_punch_latency_ms, 4),
-            "sub_5ms_verified": hole_punch_latency_ms < 5.0,
+            "hole_punch_latency_ms": round(latency_ms, 4) if latency_ms is not None else None,
+            "sub_5ms_verified": latency_ms is not None and latency_ms < 5.0,
             "endpoint_a": ep_a,
             "endpoint_b": ep_b,
         }
@@ -1127,22 +1421,31 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
         rtt_ms: float,
         jitter_ms: float = 0.0,
         packet_loss_ratio: float = 0.0,
-        nat_type: str = "restricted_cone",
+        stun_servers: Optional[Sequence[ServerSpec]] = None,
     ) -> bool:
-        """Register a STUN-verified peer into the Tier-1 ring of the 2-Tier Continental Super-Ring.
+        """Register a peer into the Tier-1 ring of the 2-Tier Continental Super-Ring.
 
-        The peer is only admitted when its measured RTT satisfies the regional `< 20 ms`
-        Geo-Ring SLA (`HM-S4-02`).
+        With `stun_servers` the peer is marked `stun_verified` only if STUN discovery succeeds,
+        and its NAT type comes from the RFC 5780 mapping test. The peer is admitted only when
+        its measured RTT satisfies the regional `< 20 ms` Geo-Ring SLA (`HM-S4-02`).
         """
-        endpoint = self.discover_stun_turn_endpoint(peer_id, simulated_nat_type=nat_type)
+        stun_verified = False
+        nat_type = "unknown"
+        if stun_servers:
+            try:
+                endpoint = self.discover_stun_turn_endpoint(peer_id, stun_servers=stun_servers)
+                stun_verified = True
+                nat_type = str(endpoint["nat_type"])
+            except (StunError, OSError):
+                pass
         node = SuperRingPeerNode(
             peer_id=peer_id,
             region=region,
             rtt_ms=float(rtt_ms),
             jitter_ms=float(jitter_ms),
             packet_loss_ratio=float(packet_loss_ratio),
-            stun_verified=True,
-            nat_type=str(endpoint["nat_type"]),
+            stun_verified=stun_verified,
+            nat_type=nat_type,
         )
         return router.register_peer(node)
 

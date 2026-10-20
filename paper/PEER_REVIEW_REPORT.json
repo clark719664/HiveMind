@@ -1,13 +1,14 @@
 {
   "manuscript_title": "Project HiveMind: Byzantine-Resilient Decentralized Sparse Mixture-of-Experts Training and Speculative Swarm Inference on 8 GB Consumer Gaming GPUs",
   "version": "2.1.0",
-  "timestamp_utc": "2026-10-19T20:47:26Z",
+  "timestamp_utc": "2026-10-20T07:26:45Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
   "lean4_verification": {
     "spec_file": "lean4/HiveMindSpec.lean",
-    "theorem_count": 33,
+    "spec_sha256": "52529ed54318eff8e90a85dd865ccd29123e25bc18664b229c1a1ce784d4bc98",
+    "theorem_count": 40,
     "theorems": [
       "nf4_double_quant_compression_bound",
       "rtx2070_8gb_vram_envelope_verified",
@@ -31,9 +32,16 @@
       "fused_moe_fp8_vram_fits_16_experts_in_8gb",
       "nat_hole_punch_direct_p2p_avoids_turn_relay_latency",
       "prefix_trie_dedup_node_bound",
+      "mem_le_sum",
+      "accepted_add_residual_sum",
+      "redistribute_eq",
       "speculative_rejection_sampling_target_invariance",
+      "acceptedPrefix_le",
       "prefix_trie_speculative_progress_bounds",
+      "speculative_run_progress_bounds",
+      "strikeRegister_gt",
       "rfc9001_0rtt_monotonic_nonce_anti_replay",
+      "rfc9001_0rtt_no_nonce_accepted_twice",
       "rfc9001_0rtt_ticket_expiration_bound",
       "wan_nat_hole_punch_rtt_bound",
       "quadratic_voting_cost_bound",
@@ -43,11 +51,209 @@
       "opoi_merkle_inclusion_depth_bound",
       "opoi_merkle_inclusion_depth_logarithmic"
     ],
+    "qualified_theorems": [
+      "HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound",
+      "HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified",
+      "HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction",
+      "HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings",
+      "HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_rejects_tampered_worker",
+      "HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker",
+      "HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute",
+      "HiveMindSpec.Pillar3_BTM_Sparse_MoE.router_gate_strictly_higher_precision",
+      "HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct",
+      "HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap",
+      "HiveMindSpec.Pillar4_PoUW_Tokenomics.byzantine_slashing_strictly_reduces_positive_stake",
+      "HiveMindSpec.Phase2_SwarmFabric.georing_rejects_high_latency_wan_peer",
+      "HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_self_zero",
+      "HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_comm",
+      "HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall",
+      "HiveMindSpec.Phase2_SwarmFabric.speculative_tree_gamma6_rtt_reduction",
+      "HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation",
+      "HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops",
+      "HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce",
+      "HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb",
+      "HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.mem_le_sum",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.accepted_add_residual_sum",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.redistribute_eq",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.acceptedPrefix_le",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.strikeRegister_gt",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound",
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound",
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound",
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound",
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound",
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings",
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound",
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic"
+    ],
     "sorry_count": 0,
     "user_axiom_count": 0,
-    "compiler_binary": "lean.exe",
+    "compiler_binary": "lean.EXE",
+    "compiler_executed": true,
     "compiler_return_code": 0,
-    "print_axioms_log": "'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]",
+    "print_axioms_log": "'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice' depends on axioms: [propext]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_rejects_tampered_worker' depends on axioms: [propext]\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.router_gate_strictly_higher_precision' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.byzantine_slashing_strictly_reduces_positive_stake' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.georing_rejects_high_latency_wan_peer' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_self_zero' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_comm' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.speculative_tree_gamma6_rtt_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.mem_le_sum' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.accepted_add_residual_sum' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.redistribute_eq' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.acceptedPrefix_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.strikeRegister_gt' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]",
+    "axioms_by_theorem": {
+      "HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings": [],
+      "HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct": [],
+      "HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall": [
+        "propext"
+      ],
+      "HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation": [
+        "propext"
+      ],
+      "HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops": [],
+      "HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce": [
+        "propext"
+      ],
+      "HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay": [
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice": [
+        "propext"
+      ],
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings": [],
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_rejects_tampered_worker": [
+        "propext"
+      ],
+      "HiveMindSpec.Pillar3_BTM_Sparse_MoE.router_gate_strictly_higher_precision": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Pillar4_PoUW_Tokenomics.byzantine_slashing_strictly_reduces_positive_stake": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Phase2_SwarmFabric.georing_rejects_high_latency_wan_peer": [
+        "propext"
+      ],
+      "HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_self_zero": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_comm": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Phase2_SwarmFabric.speculative_tree_gamma6_rtt_reduction": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.mem_le_sum": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.accepted_add_residual_sum": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.redistribute_eq": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.acceptedPrefix_le": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season3_PrefixTrie_And_0RTT.strikeRegister_gt": [
+        "propext"
+      ]
+    },
+    "missing_axiom_checks": [],
+    "unexpected_axioms": [],
+    "verification_status": "verified",
+    "verification_failures": [],
     "tier_a_machine_checked": true
   },
   "empirical_telemetry_verified": {
@@ -78,7 +284,7 @@
       "score_out_of_10": 9.6,
       "verdict": "STRONG_ACCEPT",
       "strengths": [
-        "All 33 formal theorems in `lean4/HiveMindSpec.lean` are machine-checked with 0 `sorry` and 0 user `axiom`.",
+        "All 40 formal theorems in `lean4/HiveMindSpec.lean` are machine-checked with 0 `sorry` and 0 user `axiom`.",
         "10% Deterministic Micro-Checkpoint Spot-Check (`CUBLAS_WORKSPACE_CONFIG=:4096:8`) achieves a 20x verification FLOP reduction vs. classic 2x BOINC replication.",
         "Multi-Krum 2-sigma cosine filter + 5% OPoI activation audit + Layer-2 $HIVE state channel settlement provide defense-in-depth across training and inference."
       ],
