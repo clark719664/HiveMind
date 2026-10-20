@@ -1,6 +1,6 @@
 [project]
 name = "project-hivemind"
-version = "1.1.0"
+version = "1.7.0"
 description = "Project HiveMind: Decentralized MoE Training & Inference via Steam, BOINC, and DiLoCo-QLoRA"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -29,6 +29,8 @@ dependencies = [
 dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.23.8",
+    "coverage>=7.6.0",
+    "pytest-cov>=5.0.0",
 ]
 
 [project.scripts]
@@ -54,3 +56,17 @@ torch = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+
+[tool.coverage.run]
+source = ["src/hivemind"]
+omit = ["*/__pycache__/*"]
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

@@ -39,13 +39,13 @@ jobs:
       - name: Set up Python 3.11
         run: uv python install 3.11
 
-      - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT)
+      - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT + Coverage)
         run: |
           uv venv
-          uv pip install --no-sources --torch-backend cpu -e ".[dev]" datasets huggingface-hub aioquic websockets cryptography \
+          uv pip install --no-sources --torch-backend cpu -e ".[dev]" datasets huggingface-hub aioquic websockets cryptography coverage pytest-cov \
             "torch==2.6.0" "transformers==4.57.6" "peft==0.17.1" "numpy==2.1.3"
           uv pip check
-          uv run --no-sync python -c "import torch, transformers, peft"
+          uv run --no-sync python -c "import torch, transformers, peft, coverage"
 
       - name: Compile Lean specification with pinned lean4/lean-toolchain
         uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1
@@ -55,19 +55,47 @@ jobs:
           lint: "false"
           use-mathlib-cache: "false"
 
-      - name: Require compiler-checked proofs and complete axiom audit
+      - name: Require compiler-checked proofs (48+ Theorems) and complete axiom audit
         run: |
           uv run --no-sync python - <<'PY'
           from paper.autoevolve_peer_review_pipeline import require_machine_checked, verify_lean4_specification
           result = verify_lean4_specification()
           print("Lean audit:", result)
           require_machine_checked(result)
-          assert result["theorem_count"] >= 32, "Expected at least 32 theorems"
+          assert result["theorem_count"] >= 48, f"Expected at least 48 theorems, got {result['theorem_count']}"
           PY
 
-      - name: Run Full Verification Suite
+      - name: Run Unit & Integration Verification Suite with >=95% Coverage Gate
         run: |
-          uv run --no-sync python -m pytest tests/ -v --tb=short
+          uv run --no-sync python -m coverage run --source=src/hivemind -m pytest tests/ -v --tb=short
+          uv run --no-sync python -m coverage report --fail-under=95 --show-missing
+          uv run --no-sync python -m coverage xml -o artifacts/coverage.xml
+          uv run --no-sync python -m coverage json -o artifacts/coverage.json
+
+      - name: Publish CI Coverage & Formal Proof Summary to GitHub Step Summary
+        run: |
+          uv run --no-sync python - <<'PY'
+          import json, os
+          from pathlib import Path
+          cov = json.loads(Path("artifacts/coverage.json").read_text(encoding="utf-8"))
+          pct = cov["totals"]["percent_covered"]
+          stmts = cov["totals"]["num_statements"]
+          covered = cov["totals"]["covered_lines"]
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as f:
+                  f.write(f"## 🛡️ Project HiveMind CI Quality & Coverage Gate (`{pct:.2f}%` >= `95.00%`)\n\n")
+                  f.write(f"- **Total Statements Covered:** `{covered} / {stmts}` (**`{pct:.2f}%`**)\n")
+                  f.write(f"- **Formal Lean 4 Specification:** `48+` Theorems Machine-Checked (`0 sorry`, `0` user axioms)\n")
+          PY
+
+      - name: Upload Coverage XML & JSON Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: hivemind-coverage-report
+          path: |
+            artifacts/coverage.xml
+            artifacts/coverage.json
 
       - name: Verify CLI Entrypoints & Hardware Telemetry
         run: |
