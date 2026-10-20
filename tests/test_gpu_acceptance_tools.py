@@ -35,6 +35,13 @@ def pre():
     return _load("preemption_measure")
 
 
+@pytest.fixture(autouse=True)
+def synthetic_ample_host_ram(pre, monkeypatch):
+    # Functional tests are independent of the test runner's memory pressure.
+    # Admission-failure tests override this explicitly. No hardware evidence.
+    monkeypatch.setattr(pre, "host_ram", lambda: {"available_bytes": 64 * 2**30, "total_bytes": 64 * 2**30})
+
+
 @pytest.fixture
 def no_cuda(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
@@ -548,3 +555,120 @@ def test_nf4_nonfinite_timing_cannot_be_a_successful_measurement(nf4, synthetic_
     monkeypatch.setattr(nf4, "measure_cuda", lambda *a: [row])
     assert _nf4_synthetic_main(nf4) == 1
     assert _json_from(capsys)["status"] == "FAIL_CUDA_MEASUREMENTS"
+
+
+@pytest.mark.parametrize("profile", ["tiny", "qwen2-local"])
+@pytest.mark.parametrize("available,status", [(None, "BLOCKED_HOST_RAM_UNKNOWN"),
+                                             ("unknown", "BLOCKED_HOST_RAM_UNKNOWN"),
+                                             (-1, "BLOCKED_HOST_RAM_UNKNOWN"),
+                                             (True, "BLOCKED_HOST_RAM_UNKNOWN"),
+                                             (0, "BLOCKED_INSUFFICIENT_HOST_RAM"),
+                                             (1, "BLOCKED_INSUFFICIENT_HOST_RAM")])
+def test_host_ram_block_precedes_all_model_and_scenario_allocations(pre, no_cuda, monkeypatch, capsys,
+                                                                  profile, available, status):
+    monkeypatch.setattr(pre, "host_ram", lambda: {"available_bytes": available, "total_bytes": None})
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("blocked host-RAM preflight reached allocation or measurement")
+
+    monkeypatch.setattr(pre, "build_model", forbidden)
+    monkeypatch.setattr(pre, "cuda_mem", forbidden)
+    monkeypatch.setattr(torch, "empty", forbidden)
+    monkeypatch.setattr(torch, "randn", forbidden)
+    monkeypatch.setattr(torch, "randint", forbidden)
+    assert pre.main(["--functional-dry-run-cpu", "--profile", profile]) == 2
+    report = _json_from(capsys)
+    assert report["status"] == status
+    assert report["scenarios"] == []
+    assert report["measurements"] is None and report["vram_release"] is None
+    assert report["host_ram_preflight"]["required_host_ram_bytes"] > 0
+    assert "model allocation was not started" in report["reason"]
+
+
+@pytest.mark.parametrize("snapshot", [None, {}, {"available_bytes": float("nan")}])
+def test_missing_or_malformed_host_ram_snapshot_blocks(pre, monkeypatch, snapshot):
+    monkeypatch.setattr(pre, "host_ram", lambda: snapshot)
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    with pytest.raises(pre.HostRamPreflightBlocked) as exc:
+        pre.require_host_ram("tiny", args)
+    assert exc.value.report["status"] == "BLOCKED_HOST_RAM_UNKNOWN"
+
+
+def test_host_ram_probe_exception_blocks(pre, monkeypatch):
+    def unavailable():
+        raise RuntimeError("synthetic telemetry failure")
+
+    monkeypatch.setattr(pre, "host_ram", unavailable)
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    with pytest.raises(pre.HostRamPreflightBlocked) as exc:
+        pre.require_host_ram("tiny", args)
+    assert exc.value.report["status"] == "BLOCKED_HOST_RAM_UNKNOWN"
+
+
+@pytest.mark.parametrize("available", [None, 1])
+def test_reference_offload_preflight_blocks_before_gpu_or_model_work(pre, monkeypatch, available):
+    monkeypatch.setattr(pre, "host_ram", lambda: {"available_bytes": available, "total_bytes": None})
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("blocked reference probe reached model/GPU work")
+
+    monkeypatch.setattr(pre, "build_model", forbidden)
+    monkeypatch.setattr(torch.cuda, "synchronize", forbidden)
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    with pytest.raises(pre.HostRamPreflightBlocked):
+        pre.reference_offload_time(torch.device("cuda:0"), args)
+
+
+def test_preflight_requires_the_full_budget_and_bystander_headroom(pre, monkeypatch):
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    budget = pre.HOST_RAM_MODEL_MULTIPLIER * pre.model_storage_upper_bound("tiny", args) + pre.HOST_RAM_HEADROOM_BYTES
+    monkeypatch.setattr(pre, "host_ram", lambda: {"available_bytes": budget - 1})
+    with pytest.raises(pre.HostRamPreflightBlocked):
+        pre.require_host_ram("tiny", args)
+    monkeypatch.setattr(pre, "host_ram", lambda: {"available_bytes": budget})
+    assert pre.require_host_ram("tiny", args)["status"] == "ADMITTED"
+    with pytest.raises(pre.HostRamPreflightBlocked):
+        pre.require_host_ram("tiny", args, bystander_mib=1)
+
+
+@pytest.mark.parametrize("profile", ["tiny", "qwen2-local"])
+def test_preallocation_storage_bound_covers_actual_small_cpu_profiles(pre, no_cuda, profile):
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib, args.hidden_size, args.layers = profile, 0.25, 16, 1
+    bound = pre.model_storage_upper_bound(profile, args)
+    model = pre.build_model(profile, torch.device("cpu"), args)
+    actual = sum(t.nbytes for t in list(model.parameters()) + list(model.buffers()))
+    assert 0 < actual <= bound
+
+
+def test_admitted_cpu_scenarios_report_preflight_without_gpu_evidence(pre, no_cuda, capsys):
+    assert pre.main(["--functional-dry-run-cpu"]) == 3
+    report = _json_from(capsys)
+    for scenario in report["scenarios"]:
+        guard = scenario["host_ram_preflight"]
+        assert guard["status"] == "ADMITTED"
+        assert guard["host_ram_before"]["available_bytes"] >= guard["required_host_ram_bytes"]
+        assert scenario["model_bytes"] <= guard["estimated_model_storage_upper_bound_bytes"]
+        assert scenario["functional_checks"]["host_ram_sufficient_for_cpu_copy"] is True
+        assert scenario["measurements"] is None
+
+
+def test_unknown_ram_blocks_cuda_main_before_environment_probe(pre, monkeypatch, capsys):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.version, "hip", None)
+    monkeypatch.setattr(pre, "host_ram", lambda: {"available_bytes": None})
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("RAM admission failure reached a CUDA context/environment probe")
+
+    monkeypatch.setattr(pre, "environment", forbidden)
+    monkeypatch.setattr(pre, "build_model", forbidden)
+    monkeypatch.setattr(torch.cuda, "get_device_properties", forbidden)
+    assert pre.main([]) == 2
+    report = _json_from(capsys)
+    assert report["status"] == "BLOCKED_HOST_RAM_UNKNOWN"
+    assert report["scenarios"] == [] and "environment" not in report

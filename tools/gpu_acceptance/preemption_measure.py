@@ -7,10 +7,10 @@ available. Without CUDA it prints a BLOCKED status JSON and exits 2.
     python tools/gpu_acceptance/preemption_measure.py                  # needs CUDA, else BLOCKED (exit 2)
     python tools/gpu_acceptance/preemption_measure.py --out run.json
     python tools/gpu_acceptance/preemption_measure.py --functional-dry-run-cpu
-        # CPU control-flow check only: NO latency and NO VRAM numbers, always exits non-zero (3 or 1)
+        # CPU control-flow check only: NO latency and NO VRAM numbers, always exits non-zero (1, 2, or 3)
 
 Exit codes: 0 all functional checks passed on CUDA with measurements; 1 a functional check failed;
-2 BLOCKED (no CUDA or non-CUDA backend); 3 CPU dry-run finished (not acceptance evidence).
+2 BLOCKED (no CUDA, non-CUDA backend, or missing/insufficient host RAM); 3 CPU dry-run finished (not acceptance evidence).
 
 Measurements come from torch.cuda allocator counters, torch.cuda.mem_get_info and (if present)
 nvidia-smi. Allocator bytes exclude the CUDA context and driver overhead; compare with the
@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import math
 import os
 import platform
 import shutil
@@ -174,6 +175,71 @@ def host_ram() -> dict:
         return {"available_bytes": None, "total_bytes": None}
 
 
+# Conservative admission budget, not a measured peak or a guarantee against OOM.
+# Covers construction/offload copies and optimizer/checkpoint work, plus headroom.
+HOST_RAM_MODEL_MULTIPLIER = 4
+HOST_RAM_HEADROOM_BYTES = 256 * 2**20
+
+
+class HostRamPreflightBlocked(RuntimeError):
+    def __init__(self, report: dict):
+        self.report = report
+        super().__init__(report["reason"])
+
+
+def model_storage_upper_bound(profile: str, args) -> int:
+    """Bound the two fixed local model profiles without constructing tensors/models."""
+    if profile == "tiny":
+        if not math.isfinite(args.tiny_mib) or args.tiny_mib <= 0:
+            raise ValueError("--tiny-mib must be finite and positive")
+        width = max(16, math.isqrt(math.ceil(args.tiny_mib * 2**20 / 4)))
+        # Round up before the square root, then allow one additional column so
+        # the budget cannot underestimate TinyLoraModel's floating-point sqrt.
+        width += 1
+        elements = width * width + 2 * 8 * width + 1
+    elif profile == "qwen2-local":
+        h, layers = args.hidden_size, args.layers
+        if h <= 0 or layers <= 0:
+            raise ValueError("--hidden-size and --layers must be positive")
+        intermediate = math.ceil(h * 2.75)
+        # Untied embeddings/head and full-width Q/K/V projections deliberately
+        # overestimate the tied, grouped-query Qwen2 profile used by build_model.
+        base = 2 * 4096 * h + layers * (4 * h * h + 3 * h * intermediate + 8 * h) + 4 * h
+        lora = layers * 8 * (8 * h + 3 * (h + intermediate))
+        elements = base + lora
+    else:
+        raise ValueError(f"unsupported model profile: {profile}")
+    # Eight bytes also cover a caller's float64 default dtype, without allocating
+    # a scalar tensor simply to inspect its element size.
+    return elements * 8
+
+
+def require_host_ram(profile: str, args, *, bystander_mib: int = 0) -> dict:
+    if bystander_mib < 0:
+        raise ValueError("--bystander-mib must be nonnegative")
+    model_bound = model_storage_upper_bound(profile, args)
+    required = HOST_RAM_MODEL_MULTIPLIER * model_bound + HOST_RAM_HEADROOM_BYTES + bystander_mib * 2**20
+    try:
+        snapshot = host_ram()
+    except Exception as exc:  # noqa: BLE001
+        snapshot = {"available_bytes": None, "error": f"{type(exc).__name__}: {exc}"}
+    available = snapshot.get("available_bytes") if isinstance(snapshot, dict) else None
+    known = isinstance(available, int) and not isinstance(available, bool) and available >= 0
+    report = {"model_profile": profile, "estimated_model_storage_upper_bound_bytes": model_bound,
+              "required_host_ram_bytes": required, "host_ram_before": snapshot,
+              "model_multiplier": HOST_RAM_MODEL_MULTIPLIER, "headroom_bytes": HOST_RAM_HEADROOM_BYTES,
+              "bystander_bytes_budgeted": bystander_mib * 2**20,
+              "status": "ADMITTED" if known and available >= required else (
+                  "BLOCKED_INSUFFICIENT_HOST_RAM" if known else "BLOCKED_HOST_RAM_UNKNOWN")}
+    if report["status"] != "ADMITTED":
+        report["reason"] = (
+            "Host RAM availability is missing or invalid; model allocation was not started."
+            if not known else "Available host RAM is below the conservative preflight budget; model allocation was not started."
+        )
+        raise HostRamPreflightBlocked(report)
+    return report
+
+
 def environment(dev: torch.device, args) -> dict:
     env = {
         "os": platform.platform(),
@@ -233,10 +299,11 @@ def _valid_cuda_rng_states(states, required: bool) -> bool:
 def run_scenario(name: str, dev: torch.device, args, *, bystander_mib: int = 0, checkpoint_dir: Path | None = None,
                  fail_offload: bool = False, profile: str | None = None, restart: bool = False,
                  expect_checkpoint_failure: bool = False) -> dict:
+    profile = profile or args.profile
+    preflight = require_host_ram(profile, args, bystander_mib=bystander_mib)
     import hivemind.core.diloco_inner as inner
     from hivemind.core.quantization import extract_lora_state_dict
 
-    profile = profile or args.profile
     k = args.steps_before_preempt
     functional: dict[str, bool] = {}
     notes: list[str] = []
@@ -246,15 +313,15 @@ def run_scenario(name: str, dev: torch.device, args, *, bystander_mib: int = 0, 
     if cuda:
         torch.cuda.empty_cache()
     pre_model = cuda_mem(dev)
-    ram_before = host_ram()
+    ram_before = preflight["host_ram_before"]
     model = build_model(profile, dev, args, fail_offload=fail_offload)  # owner stays alive below
-    bystander = torch.empty(bystander_mib * 2**20, dtype=torch.uint8, device=dev) if (cuda and bystander_mib) else None
     model_bytes = sum(t.nbytes for t in list(model.parameters()) + list(model.buffers()))
+    if model_bytes > preflight["estimated_model_storage_upper_bound_bytes"]:
+        raise RuntimeError("Model exceeded its preflight storage bound; refusing to train/offload with an invalid estimate")
+    bystander = torch.empty(bystander_mib * 2**20, dtype=torch.uint8, device=dev) if (cuda and bystander_mib) else None
     param_dtypes = sorted({str(p.dtype).replace("torch.", "") for p in model.parameters()})
     after_model = cuda_mem(dev)
-    functional["host_ram_sufficient_for_cpu_copy"] = (
-        ram_before["available_bytes"] is None or ram_before["available_bytes"] > 2 * model_bytes
-    )
+    functional["host_ram_sufficient_for_cpu_copy"] = True  # admitted before any model/tensor allocation
 
     steps_counter = {"optimizer_steps": 0}
     real_builder = inner.build_inner_optimizer
@@ -358,6 +425,7 @@ def run_scenario(name: str, dev: torch.device, args, *, bystander_mib: int = 0, 
         },
         "optimizer_steps_counted": steps_counter["optimizer_steps"],
         "host_ram_before": ram_before,
+        "host_ram_preflight": preflight,
         "checkpoint": checkpoint_report,
         "notes": notes,
     }
@@ -427,6 +495,7 @@ def reference_offload_time(dev: torch.device, args) -> dict | None:
     """Wall time of a bare model.to('cpu') with CUDA sync, no optimizer, for comparison."""
     if dev.type != "cuda":
         return None
+    preflight = require_host_ram(args.profile, args)
     model = build_model(args.profile, dev, args)
     torch.cuda.synchronize(dev)
     start = time.perf_counter()
@@ -436,7 +505,7 @@ def reference_offload_time(dev: torch.device, args) -> dict | None:
     del model
     gc.collect()
     torch.cuda.empty_cache()
-    return {"model_to_cpu_wall_seconds": seconds, "note": "bare module move, synchronized; excludes optimizer, checkpoint and post-processing"}
+    return {"model_to_cpu_wall_seconds": seconds, "host_ram_preflight": preflight, "note": "bare module move, synchronized; excludes optimizer, checkpoint and post-processing"}
 
 
 def parse_args(argv):
@@ -452,7 +521,7 @@ def parse_args(argv):
     ap.add_argument("--steps-before-preempt", type=int, default=3)
     ap.add_argument("--bystander-mib", type=int, default=64)
     ap.add_argument("--functional-dry-run-cpu", action="store_true",
-                    help="exercise control flow on CPU; never produces latency/VRAM numbers; exits 3 (or 1)")
+                    help="exercise control flow on CPU; never produces latency/VRAM numbers; exits 3 on success, 1 on failure, 2 when blocked")
     return ap.parse_args(argv)
 
 
@@ -478,10 +547,17 @@ def main(argv: list[str] | None = None) -> int:
     args.tiny_mib = args.tiny_mib if args.tiny_mib is not None else (256.0 if cuda else 1.0)
 
     report: dict = {"tool": "preemption_measure", "schema_version": SCHEMA_VERSION,
-                    "environment": environment(dev, args), "manual_checks_not_run": MANUAL_CHECKS,
+                    "manual_checks_not_run": MANUAL_CHECKS,
                     "claims_not_supported_by_this_tool_alone": CLAIMS_NOT_SUPPORTED, "scenarios": []}
-    scratch = Path(tempfile.mkdtemp(prefix="hivemind-preempt-"))
+    scratch = None
     try:
+        # Refuse unknown/insufficient RAM before even the environment's CUDA
+        # property probe can initialize a context. Each scenario rechecks later.
+        report["initial_host_ram_preflight"] = require_host_ram(
+            args.profile, args, bystander_mib=args.bystander_mib if cuda else 0
+        )
+        report["environment"] = environment(dev, args)
+        scratch = Path(tempfile.mkdtemp(prefix="hivemind-preempt-"))
         report["scenarios"].append(run_scenario("main", dev, args, checkpoint_dir=scratch / "main", restart=True))
         if cuda:
             report["scenarios"].append(run_scenario("unrelated_live_cuda_tensor", dev, args, bystander_mib=args.bystander_mib,
@@ -492,11 +568,22 @@ def main(argv: list[str] | None = None) -> int:
         report["scenarios"].append(run_scenario("model_rejects_cpu_offload", dev, args, checkpoint_dir=scratch / "reject",
                                                 fail_offload=True, profile="tiny"))
         report["reference_bare_model_to_cpu"] = reference_offload_time(dev, args)
+    except HostRamPreflightBlocked as exc:
+        report["status"] = exc.report["status"]
+        report["reason"] = str(exc)
+        report["host_ram_preflight"] = exc.report
+        report["preemption_latency_seconds"] = None
+        report["vram_release"] = None
+        report["measurements"] = None
     except Exception as exc:  # noqa: BLE001
         report["error"] = f"{type(exc).__name__}: {exc}"
     finally:
-        shutil.rmtree(scratch, ignore_errors=True)
+        if scratch is not None:
+            shutil.rmtree(scratch, ignore_errors=True)
 
+    if report.get("status", "").startswith("BLOCKED_HOST_RAM") or report.get("status") == "BLOCKED_INSUFFICIENT_HOST_RAM":
+        _emit(report, args.out)
+        return EXIT_BLOCKED
     if "error" in report:
         report["status"] = "FAIL_EXECUTION"
         _emit(report, args.out)
