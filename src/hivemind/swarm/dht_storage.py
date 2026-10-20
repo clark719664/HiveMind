@@ -3,38 +3,102 @@
 Stores sharded Hugging Face datasets and converged LoRA domain adapters on local NVMe/SSD storage
 (`D:\\xdev\\DecentralizedAI\\.cache\\swarm_store`), tracks R=3 peer replication pins, and answers
 block-hash-seeded Merkle Byte-Range Proof-of-Storage challenges.
+
+Season 5 / Wave 4 (`HM-S5-01`) extends the vault with **resumable 64 KB Content-Addressed Chunk
+Seeding**: exported community adapter bundles are split into 64 KB SHA-256 chunks, advertised
+through a Merkle-rooted seed manifest, replicated across peer seeders and streamed (with resume
+support) by downloading peers, with corrupted chunks rejected before reassembly.
 """
 
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass, field
 import hashlib
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+import shutil
+import time
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
 
 from hivemind.swarm.ledger import StorageProofReceipt
+
+CHUNK_SIZE_BYTES = 64 * 1024
+"""Default 64 KB content-addressed chunk granularity used for multi-peer bundle seeding."""
+
+PARTIAL_DIR_NAME = ".hivemind_cas_partial"
+"""Staging folder holding partially downloaded chunks so transfers can resume."""
+
+
+class ChunkIntegrityError(RuntimeError):
+    """Raised when a chunked CAS transfer fails SHA-256 or Merkle-root verification."""
+
+
+@dataclass
+class ChunkedFileEntry:
+    """Deterministic 64 KB chunking plan of a single file inside a seeded bundle."""
+
+    relative_path: str
+    size: int
+    sha256: str
+    chunk_size: int
+    num_chunks: int
+    chunk_hashes: List[str]
+    merkle_root: str
+    chunk_seeders: List[str] = field(default_factory=list)
+
+
+@dataclass
+class BundleSeedManifest:
+    """Merkle-rooted advertisement of a bundle's content-addressed chunks.
+
+    The manifest is the contract shared between the originating node and every peer
+    seeder: it pins the exact chunk digests, the per-file and bundle-wide Merkle roots,
+    and the peer node id hosting each individual chunk.
+    """
+
+    bundle_id: str
+    source_node_id: str
+    created_at_epoch: float
+    chunk_size: int
+    total_bytes: int
+    num_chunks: int
+    bundle_merkle_root: str
+    files: List[ChunkedFileEntry]
+    seeders: List[str] = field(default_factory=list)
 
 
 class ContentAddressedSwarmStore:
     """Local Agent Disk Vault & Kademlia-style Content-Addressed Storage (CAS).
 
     Stores sharded Hugging Face datasets and converged LoRA domain adapters on disk,
-    and generates deterministic Merkle Proof-of-Storage receipts.
+    generates deterministic Merkle Proof-of-Storage receipts, and (Season 5) seeds and
+    streams exported community adapter bundles as resumable 64 KB content-addressed chunks.
     """
 
     SHARD_BLOCK_ALIGNMENT_BYTES = 16_384
+    CHUNK_SIZE_BYTES = CHUNK_SIZE_BYTES
 
-    def __init__(self, root_dir: Path, replication_factor: int = 3) -> None:
+    def __init__(
+        self,
+        root_dir: Path,
+        replication_factor: int = 3,
+        node_id: Optional[str] = None,
+    ) -> None:
         self.root_dir = Path(root_dir)
         self.replication_factor = replication_factor
         self.shards_dir = self.root_dir / "dataset_shards"
         self.experts_dir = self.root_dir / "lora_experts"
+        self.chunks_dir = self.root_dir / "cas_chunks"
+        self.bundle_seeds_dir = self.root_dir / "bundle_seeds"
         self.shards_dir.mkdir(parents=True, exist_ok=True)
         self.experts_dir.mkdir(parents=True, exist_ok=True)
+        self.chunks_dir.mkdir(parents=True, exist_ok=True)
+        self.bundle_seeds_dir.mkdir(parents=True, exist_ok=True)
         self.node_pins: Dict[str, List[str]] = {}
         self.cid_to_path: Dict[str, Path] = {}
+        self.node_id = str(node_id) if node_id else f"cas-peer-{self.root_dir.name}"
 
     def store_hf_dataset_shard(
         self,
@@ -142,3 +206,360 @@ class ContentAddressedSwarmStore:
         raw_state: Dict[str, torch.Tensor] = payload.get("lora_state", {})
         lora_state = {k: v.to(dtype=dtype) for k, v in raw_state.items()}
         return cid, meta, lora_state
+
+    # ------------------------------------------------------------------
+    # Season 5 (HM-S5-01): Resumable 64 KB Content-Addressed Chunk Seeding
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def compute_merkle_root(leaf_hex_digests: Sequence[str]) -> str:
+        """Compute the deterministic binary Merkle root over SHA-256 leaf digests.
+
+        Leaves are the raw SHA-256 digests of the chunk (or file) payloads, hex encoded.
+        Odd nodes are duplicated on every level, mirroring the `HiveSwarmLedger` Merkle
+        convention so both modules can be audited with the same tooling.
+        """
+        if not leaf_hex_digests:
+            return hashlib.sha256(b"hivemind-empty-cas-merkle").hexdigest()
+        layer = [bytes.fromhex(str(digest)) for digest in leaf_hex_digests]
+        while len(layer) > 1:
+            if len(layer) % 2 == 1:
+                layer.append(layer[-1])
+            layer = [
+                hashlib.sha256(layer[i] + layer[i + 1]).digest()
+                for i in range(0, len(layer), 2)
+            ]
+        return layer[0].hex()
+
+    def put_chunk(self, data: bytes) -> str:
+        """Store a chunk blob in the local CAS chunk vault and return its SHA-256 digest."""
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise TypeError("Chunk payload must be a bytes-like object.")
+        payload = bytes(data)
+        digest = hashlib.sha256(payload).hexdigest()
+        chunk_path = self.chunks_dir / f"{digest}.chunk"
+        if not chunk_path.exists():
+            chunk_path.write_bytes(payload)
+        return digest
+
+    def has_chunk(self, chunk_hash: str) -> bool:
+        """Return whether the local chunk vault already holds the given chunk digest."""
+        return (self.chunks_dir / f"{chunk_hash}.chunk").exists()
+
+    def read_chunk(self, chunk_hash: str) -> bytes:
+        """Read a chunk blob out of the local CAS chunk vault."""
+        chunk_path = self.chunks_dir / f"{chunk_hash}.chunk"
+        if not chunk_path.exists():
+            raise FileNotFoundError(
+                f"Chunk {chunk_hash} is not present in the local CAS chunk vault."
+            )
+        return chunk_path.read_bytes()
+
+    @staticmethod
+    def _iter_file_chunks(file_path: Path, chunk_size: int) -> Iterable[bytes]:
+        """Stream a file as fixed-size byte blocks without loading it fully into memory."""
+        with Path(file_path).open("rb") as handle:
+            while True:
+                block = handle.read(chunk_size)
+                if not block:
+                    return
+                yield block
+
+    def plan_bundle_chunks(
+        self,
+        bundle_dir: Path,
+        chunk_size: int = CHUNK_SIZE_BYTES,
+    ) -> List[ChunkedFileEntry]:
+        """Deterministically split every file of `bundle_dir` into `chunk_size` SHA-256 chunks.
+
+        The plan is purely derived from the bundle bytes, so any peer can recompute the very
+        same chunk digests and Merkle roots without talking to the originating node.
+        """
+        bundle_path = Path(bundle_dir)
+        if not bundle_path.is_dir():
+            raise FileNotFoundError(f"Bundle directory '{bundle_path}' does not exist.")
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be a positive number of bytes.")
+
+        entries: List[ChunkedFileEntry] = []
+        for file_path in sorted(p for p in bundle_path.rglob("*") if p.is_file()):
+            relative = file_path.relative_to(bundle_path)
+            parts = relative.parts
+            if any(part.startswith(".") for part in parts):
+                # Skip hidden metadata (e.g. the resumable partial staging folder).
+                continue
+            file_hasher = hashlib.sha256()
+            chunk_hashes: List[str] = []
+            size = 0
+            for block in self._iter_file_chunks(file_path, chunk_size):
+                file_hasher.update(block)
+                size += len(block)
+                chunk_hashes.append(hashlib.sha256(block).hexdigest())
+            entries.append(
+                ChunkedFileEntry(
+                    relative_path=relative.as_posix(),
+                    size=size,
+                    sha256=file_hasher.hexdigest(),
+                    chunk_size=chunk_size,
+                    num_chunks=len(chunk_hashes),
+                    chunk_hashes=chunk_hashes,
+                    merkle_root=self.compute_merkle_root(chunk_hashes),
+                )
+            )
+        return entries
+
+    def seed_bundle_chunks(
+        self,
+        bundle_dir: Path,
+        source_node_id: str,
+        bundle_id: Optional[str] = None,
+        seeders: Optional[List[str]] = None,
+        chunk_size: int = CHUNK_SIZE_BYTES,
+    ) -> BundleSeedManifest:
+        """Split an exported bundle into 64 KB chunks, store them locally and publish a manifest.
+
+        The chunks are stored in the local CAS chunk vault and advertised through a
+        Merkle-rooted :class:`BundleSeedManifest`. Chunks are assigned round-robin to the
+        advertised `seeders` so that peer swarm agents can stream (and resume) a bundle
+        from several independent seeders.
+        """
+        bundle_path = Path(bundle_dir)
+        entries = self.plan_bundle_chunks(bundle_path, chunk_size=chunk_size)
+        seeder_ids = [str(seeder) for seeder in (seeders or [source_node_id])] or [str(source_node_id)]
+
+        for entry in entries:
+            assignments: List[str] = []
+            file_path = bundle_path / entry.relative_path
+            for index, block in enumerate(self._iter_file_chunks(file_path, entry.chunk_size)):
+                digest = hashlib.sha256(block).hexdigest()
+                if index >= len(entry.chunk_hashes) or digest != entry.chunk_hashes[index]:
+                    raise ChunkIntegrityError(
+                        f"Bundle '{bundle_path}' changed while being chunked "
+                        f"(chunk {index} of '{entry.relative_path}' digest mismatch)."
+                    )
+                self.put_chunk(block)
+                assignments.append(seeder_ids[index % len(seeder_ids)])
+            entry.chunk_seeders = assignments
+
+        manifest = BundleSeedManifest(
+            bundle_id=str(bundle_id or bundle_path.name),
+            source_node_id=str(source_node_id),
+            created_at_epoch=time.time(),
+            chunk_size=chunk_size,
+            total_bytes=sum(entry.size for entry in entries),
+            num_chunks=sum(entry.num_chunks for entry in entries),
+            bundle_merkle_root=self.compute_merkle_root([entry.sha256 for entry in entries]),
+            files=entries,
+            seeders=seeder_ids,
+        )
+        self.save_seed_manifest(manifest)
+        return manifest
+
+    def save_seed_manifest(self, manifest: BundleSeedManifest) -> Path:
+        """Persist a bundle seed manifest inside the local CAS vault."""
+        self.bundle_seeds_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = self.bundle_seeds_dir / f"{self._safe_bundle_id(manifest.bundle_id)}.seed_manifest.json"
+        manifest_path.write_text(
+            json.dumps(asdict(manifest), indent=2, sort_keys=True), encoding="utf-8"
+        )
+        return manifest_path
+
+    def load_seed_manifest(self, bundle_id: str) -> BundleSeedManifest:
+        """Load a previously advertised bundle seed manifest from the local CAS vault."""
+        manifest_path = self.bundle_seeds_dir / f"{self._safe_bundle_id(bundle_id)}.seed_manifest.json"
+        if not manifest_path.exists():
+            raise FileNotFoundError(
+                f"No seed manifest for bundle '{bundle_id}' in the local CAS vault."
+            )
+        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        raw["files"] = [ChunkedFileEntry(**entry) for entry in raw.get("files", [])]
+        return BundleSeedManifest(**raw)
+
+    def replicate_seed_manifest(
+        self,
+        manifest: BundleSeedManifest,
+        source_store: "ContentAddressedSwarmStore",
+        node_id: str,
+    ) -> int:
+        """Copy the chunks assigned to `node_id` from `source_store` into this node's vault.
+
+        This is the multi-peer seeding primitive: the originating node chunks the bundle
+        once, then every peer seeder pulls (and re-verifies) only the chunks it advertises.
+        """
+        copied = 0
+        for entry in manifest.files:
+            for index, chunk_hash in enumerate(entry.chunk_hashes):
+                assigned = (
+                    entry.chunk_seeders[index]
+                    if index < len(entry.chunk_seeders)
+                    else str(node_id)
+                )
+                if assigned != str(node_id):
+                    continue
+                if self.has_chunk(chunk_hash):
+                    continue
+                payload = source_store.read_chunk(chunk_hash)
+                if hashlib.sha256(payload).hexdigest() != chunk_hash:
+                    raise ChunkIntegrityError(
+                        f"Seeder '{source_store.node_id}' served a corrupted chunk {chunk_hash}."
+                    )
+                self.put_chunk(payload)
+                copied += 1
+        self.save_seed_manifest(manifest)
+        return copied
+
+    def download_bundle_chunks(
+        self,
+        manifest: BundleSeedManifest,
+        target_dir: Path,
+        peer_stores: Optional[List["ContentAddressedSwarmStore"]] = None,
+        resume: bool = True,
+    ) -> Dict[str, Any]:
+        """Stream a seeded bundle from peer seeders with 64 KB chunk verification & resume.
+
+        Every chunk is verified against the SHA-256 digest pinned in the manifest before it is
+        staged; corrupted chunks are rejected and the next candidate seeder is tried. Partially
+        staged chunks survive a failed transfer so the next call resumes where it stopped.
+        """
+        target_path = Path(target_dir)
+        target_path.mkdir(parents=True, exist_ok=True)
+        staging_root = target_path / PARTIAL_DIR_NAME
+        peers = list(peer_stores or [])
+
+        summary: Dict[str, Any] = {
+            "bundle_id": manifest.bundle_id,
+            "target_dir": str(target_path),
+            "files_written": [],
+            "total_bytes": 0,
+            "chunks_downloaded": 0,
+            "chunks_reused": 0,
+            "bytes_downloaded": 0,
+            "bytes_reused": 0,
+            "corrupt_chunks_rejected": 0,
+            "chunk_sources": {},
+            "seeders_contacted": [],
+            "bundle_merkle_root": manifest.bundle_merkle_root,
+            "verified": False,
+        }
+
+        for entry in manifest.files:
+            file_target = target_path / entry.relative_path
+            file_target.parent.mkdir(parents=True, exist_ok=True)
+            if file_target.exists() and hashlib.sha256(file_target.read_bytes()).hexdigest() == entry.sha256:
+                summary["files_written"].append(entry.relative_path)
+                summary["total_bytes"] += entry.size
+                continue
+
+            stage_dir = staging_root / entry.relative_path
+            stage_dir.mkdir(parents=True, exist_ok=True)
+            assembled = bytearray()
+            for index, expected_hash in enumerate(entry.chunk_hashes):
+                staged_path = stage_dir / f"{index:06d}.chunk"
+                chunk_bytes: Optional[bytes] = None
+                if resume and staged_path.exists():
+                    candidate = staged_path.read_bytes()
+                    if hashlib.sha256(candidate).hexdigest() == expected_hash:
+                        chunk_bytes = candidate
+                        summary["chunks_reused"] += 1
+                        summary["bytes_reused"] += len(candidate)
+                        summary["chunk_sources"][f"{entry.relative_path}#{index}"] = "resume-cache"
+                    else:
+                        staged_path.unlink(missing_ok=True)
+                if chunk_bytes is None:
+                    chunk_bytes, source_id = self._fetch_verified_chunk(
+                        expected_hash=expected_hash,
+                        entry=entry,
+                        index=index,
+                        peers=peers,
+                        summary=summary,
+                    )
+                    staged_path.write_bytes(chunk_bytes)
+                    summary["chunks_downloaded"] += 1
+                    summary["bytes_downloaded"] += len(chunk_bytes)
+                    summary["chunk_sources"][f"{entry.relative_path}#{index}"] = source_id
+                    if source_id not in summary["seeders_contacted"]:
+                        summary["seeders_contacted"].append(source_id)
+                assembled.extend(chunk_bytes)
+
+            payload = bytes(assembled)
+            if len(payload) != entry.size:
+                raise ChunkIntegrityError(
+                    f"Reassembled '{entry.relative_path}' has {len(payload)} bytes, expected {entry.size}."
+                )
+            if hashlib.sha256(payload).hexdigest() != entry.sha256:
+                raise ChunkIntegrityError(
+                    f"SHA-256 mismatch after reassembling '{entry.relative_path}'."
+                )
+            recomputed = self.compute_merkle_root(
+                [
+                    hashlib.sha256(payload[offset : offset + entry.chunk_size]).hexdigest()
+                    for offset in range(0, len(payload), entry.chunk_size)
+                ]
+            )
+            if recomputed != entry.merkle_root:
+                raise ChunkIntegrityError(
+                    f"Merkle root mismatch after reassembling '{entry.relative_path}'."
+                )
+            file_target.write_bytes(payload)
+            summary["files_written"].append(entry.relative_path)
+            summary["total_bytes"] += entry.size
+            shutil.rmtree(stage_dir, ignore_errors=True)
+
+        if staging_root.exists() and not any(staging_root.iterdir()):
+            staging_root.rmdir()
+
+        written_digests = [
+            hashlib.sha256((target_path / relative).read_bytes()).hexdigest()
+            for relative in summary["files_written"]
+        ]
+        recomputed_bundle_root = self.compute_merkle_root(written_digests)
+        if recomputed_bundle_root != manifest.bundle_merkle_root:
+            raise ChunkIntegrityError(
+                "Bundle Merkle root mismatch after chunked reassembly "
+                f"({recomputed_bundle_root} != {manifest.bundle_merkle_root})."
+            )
+        summary["verified"] = True
+        summary["bundle_merkle_root"] = recomputed_bundle_root
+        return summary
+
+    def _fetch_verified_chunk(
+        self,
+        expected_hash: str,
+        entry: ChunkedFileEntry,
+        index: int,
+        peers: List["ContentAddressedSwarmStore"],
+        summary: Dict[str, Any],
+    ) -> Tuple[bytes, str]:
+        """Fetch a single chunk from the advertised seeder (or any peer) and verify its digest."""
+        candidates: List["ContentAddressedSwarmStore"] = []
+        assigned = entry.chunk_seeders[index] if index < len(entry.chunk_seeders) else None
+        if assigned:
+            for peer in peers:
+                if peer.node_id == assigned:
+                    candidates.append(peer)
+        if self.has_chunk(expected_hash):
+            candidates.append(self)
+        for peer in peers:
+            if not any(peer is candidate for candidate in candidates):
+                candidates.append(peer)
+
+        for candidate in candidates:
+            try:
+                payload = candidate.read_chunk(expected_hash)
+            except Exception:
+                # Seeder is unreachable or does not host the chunk: try the next peer.
+                continue
+            if hashlib.sha256(payload).hexdigest() != expected_hash:
+                summary["corrupt_chunks_rejected"] += 1
+                continue
+            return payload, candidate.node_id
+
+        raise ChunkIntegrityError(
+            f"Unable to fetch chunk #{index} ({expected_hash}) of '{entry.relative_path}': "
+            "no seeder returned a valid copy (corrupted chunks were rejected)."
+        )
+
+    @staticmethod
+    def _safe_bundle_id(bundle_id: str) -> str:
+        """Normalize a bundle id so it can be used as a portable file name."""
+        return str(bundle_id).replace("/", "_").replace("\\", "_").replace(":", "_")
