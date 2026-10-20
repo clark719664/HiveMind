@@ -20,6 +20,7 @@ from hivemind.data.token_training_eval import (
 from hivemind.swarm.scientific_swarm_eval import (
     SwarmKnowledgeTransferEngine, _evaluate_lora_on_scientific_holdout,
 )
+from hivemind.security.swarm_runtime_hardening import SwarmSecurityViolationError
 from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
 
 
@@ -79,7 +80,7 @@ def test_fixture_has_pinned_separate_documents(tmp_path: Path) -> None:
         with pytest.raises(ValueError, match="empty"):
             validate_splits(corrupted)
     custom = tmp_path / "custom.json"
-    custom.write_text(FIXTURE_PATH.read_text())
+    custom.write_bytes(FIXTURE_PATH.read_bytes())
     assert load_fixture(custom)[1] == digest
 
 
@@ -193,12 +194,14 @@ def test_generated_campaign_ui_does_not_repeat_unsupported_claims() -> None:
 
 def test_synthetic_trainer_reports_what_it_actually_uses_and_runs() -> None:
     state = {"x.lora_A": torch.zeros(4, 8), "x.lora_B": torch.zeros(8, 4)}
-    _, metrics = train_single_domain_lora_adapter("Rust_Systems_Security", state, inner_steps=0)
+    with pytest.raises(SwarmSecurityViolationError, match="INNER_STEPS_OUT_OF_BOUNDS"):
+        train_single_domain_lora_adapter("Rust_Systems_Security", state, inner_steps=0)
+    _, metrics = train_single_domain_lora_adapter("Rust_Systems_Security", state, inner_steps=1)
     assert metrics["measurement_kind"] == "synthetic_regression"
     assert metrics["loss_metric"] == "mean_squared_error"
     assert metrics["text_content_used"] is False
     assert metrics["dataset_id"].startswith("synthetic/")
-    assert metrics["requested_inner_steps"] == 0
+    assert metrics["requested_inner_steps"] == 1
     assert metrics["inner_steps"] == 2
     assert "not compression-only" in metrics["returned_state_provenance"]
     assert "not serialized wire bytes" in metrics["byte_count_basis"]
