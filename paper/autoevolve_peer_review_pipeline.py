@@ -13,8 +13,10 @@ Executes:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -29,61 +31,207 @@ PEER_REVIEW_JSON = PAPER_DIR / "PEER_REVIEW_REPORT.json"
 AUTOEVOLVE_MANIFEST_JSON = PAPER_DIR / "AUTOEVOLVE_SESSION_MANIFEST.json"
 
 
+ALLOWED_LEAN_AXIOMS = frozenset({"propext", "Classical.choice", "Quot.sound"})
+
+
+class FormalVerificationError(RuntimeError):
+    """The current specification has no complete, successful compiler audit."""
+
+
+def _lean_source_without_comments_or_strings(code: str) -> str:
+    """Conservatively inventory source, including Lean's nested block comments.
+
+    This is lexical bookkeeping, never evidence that a proof type-checks.
+    """
+    result = list(code)
+    depth = 0
+    in_string = False
+    index = 0
+    while index < len(code):
+        pair = code[index:index + 2]
+        if depth:
+            if pair == "/-":
+                depth += 1
+            elif pair == "-/":
+                depth -= 1
+            else:
+                pair = ""
+            width = 2 if pair else 1
+        elif in_string:
+            width = 2 if code[index] == "\\" else 1
+            if code[index] == '"':
+                in_string = False
+        elif pair == "/-":
+            depth = 1
+            width = 2
+        elif pair == "--":
+            newline = code.find("\n", index)
+            width = (len(code) if newline == -1 else newline) - index
+        elif code[index] == '"':
+            in_string = True
+            width = 1
+        else:
+            index += 1
+            continue
+        for offset in range(index, min(index + width, len(code))):
+            if code[offset] != "\n":
+                result[offset] = " "
+        index += width
+    return "".join(result)
+
+
+def _lean_theorem_inventory(source: str) -> tuple[list[str], list[str]]:
+    """Resolve the plain namespace/theorem syntax used by this specification.
+
+    Unrecognized declaration syntax fails closed rather than claiming coverage.
+    """
+    scopes: list[tuple[str, str]] = []
+    names: list[str] = []
+    errors: list[str] = []
+    identifier = r"[A-Za-z_][A-Za-z0-9_'.]*"
+    for line in source.splitlines():
+        scope = re.fullmatch(rf"\s*(namespace|section)\s*({identifier})?\s*", line)
+        closing = re.fullmatch(rf"\s*end(?:\s+({identifier}))?\s*", line)
+        theorem = re.match(rf"^\s*(?:theorem|lemma)\s+({identifier})(?=\s|:|\(|$)", line)
+        if scope:
+            scopes.append((scope[1], scope[2] or ""))
+        elif closing:
+            if not scopes or (closing[1] and closing[1] != scopes[-1][1]):
+                errors.append("Unrecognized namespace/section closure")
+            else:
+                scopes.pop()
+        elif theorem:
+            namespace = [name for kind, name in scopes if kind == "namespace"]
+            names.append(".".join([*namespace, theorem[1]]))
+    if scopes:
+        errors.append("Unclosed namespace/section")
+    if len(names) != len(re.findall(r"\b(?:theorem|lemma)\s+", source)):
+        errors.append("Unsupported theorem declaration syntax; cannot audit every theorem")
+    if len(names) != len(set(names)):
+        errors.append("Duplicate theorem names")
+    return names, errors
+
+
+def _find_lean_compiler() -> str | None:
+    compiler = shutil.which("lean")
+    if compiler:
+        return compiler
+    for name in ("lean", "lean.exe"):
+        compiler = shutil.which(str(Path.home() / ".elan" / "bin" / name))
+        if compiler:
+            return compiler
+    return None
+
+
 def verify_lean4_specification() -> Dict[str, Any]:
-    """Verify `lean4/HiveMindSpec.lean` statically and via the Lean 4 compiler if installed."""
+    """Compile the current source and inspect every theorem's axiom dependencies.
+
+    Missing/broken compilers, empty or incomplete output, unknown axioms, and
+    unsupported inventory syntax are never reported as machine-checked.
+    """
     code = LEAN4_SPEC_PATH.read_text(encoding="utf-8")
-    # Strip comments before scanning for `sorry` or `axiom` declarations
-    no_block_comments = re.sub(r"/-.*?-/", "", code, flags=re.DOTALL)
-    no_comments = re.sub(r"--.*$", "", no_block_comments, flags=re.MULTILINE)
-
-    sorry_hits = len(re.findall(r"\bsorry\b", no_comments))
-    axiom_hits = len(re.findall(r"^\s*axiom\b", no_comments, flags=re.MULTILINE))
-    theorems = re.findall(r"theorem\s+([a-zA-Z0-9_]+)", no_comments)
-
-    lean_candidates = [
-        Path(r"D:\.elan\toolchains\leanprover--lean4---v4.33.0-rc2\bin\lean.exe"),
-        Path.home() / ".elan" / "bin" / "lean.exe",
-    ]
-    compiler_used = "static_ast_audit"
-    compiler_rc = 0
-    axioms_output = ""
-    for cand in lean_candidates:
-        if cand.exists():
-            res = subprocess.run(
-                [str(cand), str(LEAN4_SPEC_PATH)],
+    source = _lean_source_without_comments_or_strings(code)
+    qualified_names, failures = _lean_theorem_inventory(source)
+    sorry_hits = len(re.findall(r"\b(?:sorry|admit)\b", source))
+    axiom_hits = len(re.findall(r"\baxiom\s+", source))
+    compiler = _find_lean_compiler()
+    compiler_rc = None
+    compiler_executed = False
+    output = ""
+    if compiler is None:
+        failures.append("Lean compiler unavailable; source inventory is not a proof check")
+    else:
+        # Do not trust the source's hand-maintained #print list: cover every
+        # inventoried theorem, including helpers and newly added declarations.
+        audit_source = code + "\n" + "\n".join(
+            f"#print axioms {name}" for name in qualified_names
+        ) + "\n"
+        try:
+            result = subprocess.run(
+                [compiler, "--stdin"],
+                input=audit_source,
+                cwd=LEAN4_SPEC_PATH.parent,
                 capture_output=True,
                 text=True,
-                timeout=60,
+                timeout=120,
+                check=False,
             )
-            compiler_used = str(cand)
-            compiler_rc = res.returncode
-            axioms_output = (res.stdout + "\n" + res.stderr).strip()
-            break
+            compiler_executed = True
+            compiler_rc = result.returncode
+            output = (result.stdout + "\n" + result.stderr).strip()
+            if compiler_rc != 0:
+                failures.append(f"Lean compiler failed with exit code {compiler_rc}")
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            failures.append(f"Lean compiler could not complete: {exc}")
 
-    verified = (
-        sorry_hits == 0
-        and axiom_hits == 0
-        and compiler_rc == 0
-        and "sorryAx" not in axioms_output
-        and len(theorems) >= 14
-    )
+    dependencies: dict[str, set[str]] = {}
+    for match in re.finditer(
+        r"'([^'\n]+)' (?:does not depend on any axioms|depends on axioms:\s*\[([^]]*)\])",
+        output,
+    ):
+        axioms = {part.strip() for part in (match[2] or "").split(",") if part.strip()}
+        dependencies.setdefault(match[1], set()).update(axioms)
+    missing = sorted(set(qualified_names) - dependencies.keys())
+    unexpected = sorted({axiom for axioms in dependencies.values() for axiom in axioms}
+                        - ALLOWED_LEAN_AXIOMS)
+    if missing:
+        failures.append(f"Missing axiom output for {len(missing)} theorem(s)")
+    if unexpected or "sorryAx" in output:
+        failures.append("Compiler output contains unapproved axiom dependencies")
+    if sorry_hits or axiom_hits:
+        failures.append("Source contains proof placeholders or user axioms")
+    if len(qualified_names) < 14:
+        failures.append("Expected at least 14 theorem declarations")
+    if not output:
+        failures.append("No compiler axiom output was captured")
+    verified = compiler_executed and compiler_rc == 0 and not failures
     return {
         "spec_file": str(LEAN4_SPEC_PATH),
-        "theorem_count": len(theorems),
-        "theorems": theorems,
+        "spec_sha256": hashlib.sha256(code.encode("utf-8")).hexdigest(),
+        "theorem_count": len(qualified_names),
+        "theorems": [name.rsplit(".", 1)[-1] for name in qualified_names],
+        "qualified_theorems": qualified_names,
         "sorry_count": sorry_hits,
         "user_axiom_count": axiom_hits,
-        "compiler_binary": compiler_used,
+        "compiler_binary": compiler,
+        "compiler_executed": compiler_executed,
         "compiler_return_code": compiler_rc,
-        "print_axioms_log": axioms_output,
+        "print_axioms_log": output,
+        "axioms_by_theorem": {name: sorted(axioms) for name, axioms in dependencies.items()},
+        "missing_axiom_checks": missing,
+        "unexpected_axioms": unexpected,
+        "verification_status": "verified" if verified else ("blocked" if not compiler_executed else "failed"),
+        "verification_failures": failures,
         "tier_a_machine_checked": verified,
     }
+
+
+def require_machine_checked(audit: Dict[str, Any]) -> None:
+    """Reject unchecked/incomplete audit reports without truthiness coercion."""
+    if not (
+        audit.get("tier_a_machine_checked") is True
+        and audit.get("compiler_executed") is True
+        and type(audit.get("compiler_return_code")) is int
+        and audit["compiler_return_code"] == 0
+        and isinstance(audit.get("compiler_binary"), str)
+        and audit["compiler_binary"] != "static_ast_audit"
+        and audit.get("print_axioms_log")
+        and audit.get("verification_status") == "verified"
+        and audit.get("missing_axiom_checks") == []
+        and audit.get("unexpected_axioms") == []
+        and audit.get("verification_failures") == []
+    ):
+        raise FormalVerificationError(
+            "Lean machine-checked verification is required: "
+            + "; ".join(audit.get("verification_failures") or ["missing or invalid compiler evidence"])
+        )
 
 
 def run_autoevolve_peer_review() -> Dict[str, Any]:
     """Run the 3-Referee + Meta-Reviewer peer review and generate the AutoevolveAI handoff manifest."""
     PAPER_DIR.mkdir(parents=True, exist_ok=True)
     lean_audit = verify_lean4_specification()
+    require_machine_checked(lean_audit)
 
     poc_report_path = PROJECT_ROOT / "artifacts" / "poc_qwen25_rtx2070_report.json"
     game_report_path = PROJECT_ROOT / "artifacts" / "hf_hack_miner_game_report.json"

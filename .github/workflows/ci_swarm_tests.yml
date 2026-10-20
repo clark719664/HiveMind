@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   verify-swarm-suite:
-    name: "Verify 4 Core Pillars, Swarm Fabric (M1-M5), Lean 4 Spec & Steam Hack-Miner (20/20 Tests)"
+    name: "Verify 4 Core Pillars, Swarm Fabric (M1-M5), Lean 4 Spec & Steam Hack-Miner"
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -42,21 +42,30 @@ jobs:
       - name: Install Dependencies (CPU CI Fallback + FastAPI/PyTorch/Transformers/PEFT)
         run: |
           uv venv
-          uv pip install pytest pytest-asyncio httpx fastapi uvicorn pydantic pyyaml psutil pyarrow rich numpy torch transformers peft accelerate safetensors datasets huggingface-hub
-          uv pip install --no-deps -e .
+          uv pip install --no-sources --torch-backend cpu -e ".[dev]" datasets huggingface-hub \
+            "torch==2.6.0" "transformers==4.57.6" "peft==0.17.1" "numpy==2.1.3"
+          uv pip check
+          uv run --no-sync python -c "import torch, transformers, peft"
 
-      - name: Audit Lean 4 Formal Specification Invariants (0 sorry, 0 axiom, >=17 Theorems)
+      - name: Compile Lean specification with pinned lean4/lean-toolchain
+        uses: leanprover/lean-action@24581d74d674803a25a81b10b059c5c0cdd344c6 # v1
+        with:
+          lake-package-directory: lean4
+          test: "false"
+          lint: "false"
+          use-mathlib-cache: "false"
+
+      - name: Require compiler-checked proofs and complete axiom audit
         run: |
-          uv run --no-sync python -c "
-          from paper.autoevolve_peer_review_pipeline import verify_lean4_specification
-          res = verify_lean4_specification()
-          print('Lean 4 Audit:', res)
-          assert res['sorry_count'] == 0, 'sorry detected in Lean 4 spec!'
-          assert res['user_axiom_count'] == 0, 'user axiom detected in Lean 4 spec!'
-          assert res['theorem_count'] >= 17, 'expected >= 17 theorems!'
-          "
+          uv run --no-sync python - <<'PY'
+          from paper.autoevolve_peer_review_pipeline import require_machine_checked, verify_lean4_specification
+          result = verify_lean4_specification()
+          print("Lean audit:", result)
+          require_machine_checked(result)
+          assert result["theorem_count"] >= 32, "Expected at least 32 theorems"
+          PY
 
-      - name: Run Full 20-Test Verification Suite
+      - name: Run Full Verification Suite
         run: |
           uv run --no-sync python -m pytest tests/ -v --tb=short
 
