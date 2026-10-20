@@ -5,12 +5,15 @@ gamification for the HiveMind SETI-Swarm & Hack-Miner ecosystem:
 1. `HFCommunityModelCardExporter`: Generates PEFT-compatible `README.md` Model Cards
    (with YAML `model-index` metadata, Content-Addressed `cid://sha256/...` provenance,
    SVD rank-adaptive telemetry, and Lean 4 formal proof badges) plus `adapter_config.json`
-   and `hivemind_swarm_manifest.json` for 1-click Hugging Face Hub sharing.
+   and `hivemind_swarm_manifest.json` for 1-click Hugging Face Hub sharing. Season 5
+   (`HM-S5-01`) adds **live `huggingface_hub` push/pull** with a deterministic offline
+   mock-hub fallback when no token or network is available.
 2. `CommunityAdapterBundleManager`: Exports and imports portable multi-domain LoRA
    expert bundles across nodes, automatically normalizing heterogeneous community ranks
    (`r=8, 16, 32, 64 -> r=16`) via truncated SVD (`project_lora_rank_svd`), verifying
    SHA-256 content hashes, hot-plugging into `UpcycledSparseMoEModel`, and settling
-   `$HIVE` + `PTS` Peer Reuse Royalties to original trainers.
+   `$HIVE` + `PTS` Peer Reuse Royalties to original trainers. It also drives the
+   resumable 64 KB Content-Addressed Chunk Seeding of exported bundles.
 3. `SwarmMiningGuildEngine`: Organizes miners and open-source contributors into
    cooperative **Swarm Mining Guilds / Alliances** with shared expert pools,
    Guild Synergy Multipliers (`1.25x`–`1.50x`), and a live Guild Standings table.
@@ -21,7 +24,9 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 import hashlib
 import json
+import os
 from pathlib import Path
+import shutil
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -29,8 +34,11 @@ import torch
 
 from hivemind.core.btm_moe import project_lora_rank_svd, project_lora_rank_svd_with_report
 from hivemind.core.btm_upcycle import UpcycledSparseMoEModel, detect_lora_rank
-from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
+from hivemind.swarm.dht_storage import BundleSeedManifest, ContentAddressedSwarmStore
 from hivemind.swarm.ledger import HiveSwarmLedger
+
+MOCK_HUB_METADATA_DIRNAME = ".hivemind_mock_repos"
+"""Folder (inside the mock hub root) holding metadata about offline-mirrored repos."""
 
 
 @dataclass
@@ -169,9 +177,17 @@ class HFCommunityModelCardExporter:
         self,
         hf_org_or_user: str = "hivemind-swarm",
         base_model_id: str = "Qwen/Qwen2.5-0.5B",
+        mock_hub_root: Optional[Path] = None,
     ) -> None:
         self.hf_org_or_user = hf_org_or_user
         self.base_model_id = base_model_id
+        self.mock_hub_root = Path(
+            mock_hub_root
+            if mock_hub_root is not None
+            else Path.home() / ".cache" / "hivemind" / "mock_hf_hub"
+        )
+        self.push_history: List[Dict[str, Any]] = []
+        self.pull_history: List[Dict[str, Any]] = []
 
     def generate_model_card_markdown(self, bundle: CommunityAdapterBundle) -> str:
         """Render a Hugging Face Hub `README.md` with YAML frontmatter and evaluation metrics."""
