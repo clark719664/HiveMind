@@ -862,13 +862,13 @@ class JoinedSwarmCampaignEngine:
             {
                 "standing": 1,
                 "contributor_handle": "@xaviercallens",
-                "role_title": "Founding Protocol Architect & Principal Maintainer",
-                "merged_prs_count": 25,
-                "lean4_theorems_authored": 17,
+                "role_title": "Founding Protocol Architect & Principal Maintainer (Core, Bisection v3, Pareto Strategy SI-01..05)",
+                "merged_prs_count": 29,
+                "lean4_theorems_authored": 25,
                 "cas_experts_seeded": 16,
                 "downstream_swarm_agents_powered": 128,
-                "bounty_hive_awarded": 18500.0,
-                "contributor_prestige_pts": 38400,
+                "bounty_hive_awarded": 23500.0,
+                "contributor_prestige_pts": 44800,
                 "hf_badges": [
                     "HF_OPEN_SOURCE_ARCHITECT",
                     "HF_COOP_RAID_COMMANDER",
@@ -894,13 +894,13 @@ class JoinedSwarmCampaignEngine:
             {
                 "standing": 3,
                 "contributor_handle": "@pedromineo",
-                "role_title": "Season 4 Full-Stack Systems & Formal Lean 4 Architect (PR #33 — HM-S4-01..06)",
-                "merged_prs_count": 1,
+                "role_title": "Season 4 & 5 Full-Stack Systems, WAN Faults, Guild Wars & 64-MoE Architect (5 PRs: #33, #52, #53, #54, #55)",
+                "merged_prs_count": 5,
                 "lean4_theorems_authored": 5,
-                "cas_experts_seeded": 6,
-                "downstream_swarm_agents_powered": 80,
-                "bounty_hive_awarded": 11600.0,
-                "contributor_prestige_pts": 19600,
+                "cas_experts_seeded": 10,
+                "downstream_swarm_agents_powered": 96,
+                "bounty_hive_awarded": 21600.0,
+                "contributor_prestige_pts": 31400,
                 "hf_badges": [
                     "HF_OPEN_SOURCE_ARCHITECT",
                     "HF_SWARM_KNOWLEDGE_DONOR",
@@ -923,15 +923,15 @@ class JoinedSwarmCampaignEngine:
             },
             {
                 "standing": 5,
-                "contributor_handle": "Open Season 5 Challenger",
-                "role_title": "Wave 4 Bounty Hunter (Issues #43-#48 — 13,500 $HIVE Pool)",
+                "contributor_handle": "Open Season 6 Challenger",
+                "role_title": "Wave 5 Bounty Hunter (EF21-DiLoCo, 128-MoE, ZK-OPoI v4 — 15,000 $HIVE Pool)",
                 "merged_prs_count": 0,
                 "lean4_theorems_authored": 0,
                 "cas_experts_seeded": 0,
                 "downstream_swarm_agents_powered": 0,
-                "bounty_hive_awarded": 13500.0,
+                "bounty_hive_awarded": 15000.0,
                 "contributor_prestige_pts": 0,
-                "hf_badges": ["Fork & Submit a Season 5 PR (#43-#48) to Unlock!"],
+                "hf_badges": ["Fork & Submit a Season 6 PR to Unlock!"],
             },
         ]
 
@@ -948,7 +948,7 @@ class JoinedSwarmCampaignEngine:
 
         elapsed_s = round(time.perf_counter() - t_start, 3)
         return {
-            "suite_version": "v1.6.0-scientific-swarm-community-hub",
+            "suite_version": "v1.7.0-scientific-swarm-community-hub",
             "device": str(self.device),
             "elapsed_seconds": elapsed_s,
             "scientific_knowledge_transfer_audits": transfer_audits,

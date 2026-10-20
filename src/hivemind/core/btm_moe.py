@@ -298,8 +298,256 @@ class Season3DomainExpertRegistry:
         return [dom for dom, _ in selected], weights
 
 
+
+
+class HierarchicalMoERouter(nn.Module):
+    """Season 5 (`HM-S5-02`): 2-Level `G_macro -> G_micro` Router for 64-Expert Sparse MoE.
+
+    Partitions `E = num_macro_domains * experts_per_domain` (default `8 * 8 = 64`) experts into
+    `num_macro_domains` macro-clusters. For each token:
+      1. `macro_gate(x)` selects the winning macro-domain `m* in {0..M-1}` (`O(M)`).
+      2. `micro_gates[m*](x)` selects the Top-`k` (`k=2`) micro-experts inside cluster `m*` (`O(E/M)`).
+    Total router gating cost is `M + E/M = 16` inner products instead of `64` (`4.0x` router speedup).
+    """
+
+    def __init__(
+        self,
+        hidden_size: int,
+        num_macro_domains: int = 8,
+        experts_per_domain: int = 8,
+        top_k: int = 2,
+        dtype: torch.dtype = torch.float32,
+    ) -> None:
+        super().__init__()
+        _ = dtype
+        if num_macro_domains < 1 or experts_per_domain < 1:
+            raise ValueError("num_macro_domains and experts_per_domain must be >= 1")
+        self.hidden_size = int(hidden_size)
+        self.num_macro_domains = int(num_macro_domains)
+        self.experts_per_domain = int(experts_per_domain)
+        self.num_experts = self.num_macro_domains * self.experts_per_domain
+        self.top_k = min(int(top_k), self.experts_per_domain)
+
+        self.macro_gate = nn.Linear(
+            self.hidden_size, self.num_macro_domains, bias=False, dtype=torch.float32
+        )
+        self.micro_gates = nn.ModuleList(
+            [
+                nn.Linear(self.hidden_size, self.experts_per_domain, bias=False, dtype=torch.float32)
+                for _ in range(self.num_macro_domains)
+            ]
+        )
+        nn.init.normal_(self.macro_gate.weight, mean=0.0, std=0.02)
+        for mg in self.micro_gates:
+            nn.init.normal_(mg.weight, mean=0.0, std=0.02)
+
+    def forward(
+        self, hidden_states: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute hierarchical Top-k routing weights, global expert indices `[0..E-1]`, and aux loss."""
+        hs_fp32 = hidden_states.to(torch.float32)
+        num_tokens = hs_fp32.shape[0]
+        device = hs_fp32.device
+
+        macro_logits = self.macro_gate(hs_fp32)  # [N, M]
+        macro_probs = F.softmax(macro_logits, dim=-1, dtype=torch.float32)
+        winning_macro_prob, winning_macro_idx = torch.max(macro_probs, dim=-1)  # [N]
+
+        # Stack micro gates `[M, E_m, d]` for vectorized per-token dispatch
+        micro_weight_stack = torch.stack(
+            [mg.weight for mg in self.micro_gates], dim=0
+        )  # [M, E_m, d]
+        token_micro_weights = micro_weight_stack[winning_macro_idx]  # [N, E_m, d]
+        micro_logits = torch.bmm(
+            token_micro_weights, hs_fp32.unsqueeze(-1)
+        ).squeeze(-1)  # [N, E_m]
+
+        top_micro_logits, top_micro_indices = torch.topk(
+            micro_logits, k=self.top_k, dim=-1
+        )  # [N, top_k]
+        micro_probs = F.softmax(top_micro_logits, dim=-1, dtype=torch.float32)
+        routing_weights = (
+            micro_probs * winning_macro_prob.unsqueeze(-1)
+        )
+        routing_weights = (
+            routing_weights / routing_weights.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        ).to(hidden_states.dtype)
+
+        global_selected_experts = (
+            winning_macro_idx.unsqueeze(-1) * self.experts_per_domain + top_micro_indices
+        ).clamp(0, self.num_experts - 1)
+
+        # Switch-style hierarchical load-balancing auxiliary loss
+        one_hot_macro = F.one_hot(
+            winning_macro_idx, num_classes=self.num_macro_domains
+        ).to(torch.float32)
+        frac_macro = one_hot_macro.mean(dim=0)
+        mean_macro_prob = macro_probs.mean(dim=0)
+        aux_loss = self.num_macro_domains * torch.sum(frac_macro * mean_macro_prob)
+        _ = num_tokens, device
+        return routing_weights, global_selected_experts, aux_loss
+
+    def expand_for_new_expert(self) -> None:
+        """Expand the last macro cluster's micro-gate to accommodate a newly hot-plugged expert."""
+        self.num_experts += 1
+        last_mg = self.micro_gates[-1]
+        old_out = last_mg.out_features
+        new_mg = nn.Linear(
+            self.hidden_size,
+            old_out + 1,
+            bias=False,
+            dtype=torch.float32,
+            device=last_mg.weight.device,
+        )
+        with torch.no_grad():
+            new_mg.weight[:old_out].copy_(last_mg.weight)
+            mean_col = last_mg.weight.mean(dim=0, keepdim=True)
+            new_mg.weight[old_out:].copy_(mean_col)
+        self.micro_gates[-1] = new_mg
+        self.experts_per_domain = max(self.experts_per_domain, old_out + 1)
+
+
+class FP8PagedKVCache:
+    """Season 5 (`HM-S5-02`): Block-Scaled FP8 (`float8_e4m3fn`) Paged KV-Cache Manager.
+
+    Stores attention Key/Value states in fixed-size pages (`page_size_tokens=16`) quantized to
+    8-bit (`float8_e4m3fn` with per-page FP16 absmax scales), achieving `2.0x` KV-cache VRAM
+    compression so a 64-Expert Sparse MoE + active KV pages stay strictly `< 2.2 GB` VRAM.
+    """
+
+    def __init__(
+        self,
+        num_layers: int = 12,
+        num_kv_heads: int = 8,
+        head_dim: int = 64,
+        page_size_tokens: int = 16,
+        max_pages: int = 128,
+        device: torch.device | str = "cpu",
+    ) -> None:
+        self.num_layers = int(num_layers)
+        self.num_kv_heads = int(num_kv_heads)
+        self.head_dim = int(head_dim)
+        self.page_size_tokens = int(page_size_tokens)
+        self.max_pages = int(max_pages)
+        self.device = torch.device(device)
+        self._pages_k: Dict[Tuple[int, int], Tuple[torch.Tensor, torch.Tensor]] = {}
+        self._pages_v: Dict[Tuple[int, int], Tuple[torch.Tensor, torch.Tensor]] = {}
+
+    @staticmethod
+    def _quantize_page_fp8(tensor: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        t_fp32 = tensor.detach().to(torch.float32)
+        absmax = t_fp32.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
+        scale = (absmax / 448.0).to(torch.float16)
+        scaled = (t_fp32 / scale.to(torch.float32)).clamp(-448.0, 448.0)
+        if hasattr(torch, "float8_e4m3fn"):
+            q = scaled.to(torch.float8_e4m3fn)
+        else:
+            q = torch.round(scaled / 448.0 * 127.0).to(torch.int8)
+        return q, scale
+
+    @staticmethod
+    def _dequantize_page_fp8(
+        q: torch.Tensor, scale: torch.Tensor, target_dtype: torch.dtype = torch.float16
+    ) -> torch.Tensor:
+        if hasattr(torch, "float8_e4m3fn") and q.dtype == torch.float8_e4m3fn:
+            return (q.to(torch.float32) * scale.to(torch.float32)).to(target_dtype)
+        return ((q.to(torch.float32) / 127.0) * 448.0 * scale.to(torch.float32)).to(target_dtype)
+
+    def write_kv_page(
+        self, layer_idx: int, page_idx: int, k_tensor: torch.Tensor, v_tensor: torch.Tensor
+    ) -> Dict[str, Any]:
+        """Quantize and store a `(K, V)` page in FP8 with per-token FP16 scales."""
+        if len(self._pages_k) >= self.max_pages and (layer_idx, page_idx) not in self._pages_k:
+            oldest_key = next(iter(self._pages_k))
+            self._pages_k.pop(oldest_key, None)
+            self._pages_v.pop(oldest_key, None)
+        qk, sk = self._quantize_page_fp8(k_tensor.to(self.device))
+        qv, sv = self._quantize_page_fp8(v_tensor.to(self.device))
+        self._pages_k[(layer_idx, page_idx)] = (qk, sk)
+        self._pages_v[(layer_idx, page_idx)] = (qv, sv)
+        fp16_bytes = (k_tensor.numel() + v_tensor.numel()) * 2
+        fp8_bytes = (
+            qk.numel() * qk.element_size()
+            + qv.numel() * qv.element_size()
+            + (sk.numel() + sv.numel()) * 2
+        )
+        return {
+            "layer_idx": layer_idx,
+            "page_idx": page_idx,
+            "fp16_equivalent_bytes": fp16_bytes,
+            "fp8_paged_bytes": fp8_bytes,
+            "compression_ratio": round(fp16_bytes / max(1, fp8_bytes), 4),
+        }
+
+    def read_kv_page(
+        self, layer_idx: int, page_idx: int, target_dtype: torch.dtype = torch.float16
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Dequantize and return a stored `(K, V)` page."""
+        qk, sk = self._pages_k[(layer_idx, page_idx)]
+        qv, sv = self._pages_v[(layer_idx, page_idx)]
+        return (
+            self._dequantize_page_fp8(qk, sk, target_dtype=target_dtype),
+            self._dequantize_page_fp8(qv, sv, target_dtype=target_dtype),
+        )
+
+    def total_kv_cache_bytes(self) -> int:
+        total = 0
+        for q, s in list(self._pages_k.values()) + list(self._pages_v.values()):
+            total += q.numel() * q.element_size() + s.numel() * s.element_size()
+        return total
+
+
+def hotplug_hierarchical_experts(
+    moe_model: UpcycledSparseMoEModel,
+    community_adapters: Dict[str, Dict[str, torch.Tensor]],
+    canonical_rank_r: int = 16,
+    num_macro_domains: int = 8,
+    experts_per_domain: int = 8,
+    top_k: int = 2,
+    vram_ceiling_gb: float = 2.2,
+) -> Dict[str, Any]:
+    """Season 5 (`HM-S5-02`): Hot-plug up to 64 heterogeneous community adapters into `moe_model`
+    using SVD rank normalization (`r -> canonical_rank_r`) and install `HierarchicalMoERouter`.
+    """
+    hotplug_report = hotplug_rank_adaptive_experts(
+        moe_model=moe_model,
+        community_adapters=community_adapters,
+        target_rank_r=canonical_rank_r,
+        vram_ceiling_gb=vram_ceiling_gb,
+    )
+    total_experts = moe_model.num_experts
+    eff_macro = min(num_macro_domains, max(1, total_experts))
+    eff_micro = max(1, (total_experts + eff_macro - 1) // eff_macro)
+
+    for block in moe_model.moe_blocks:
+        dev = block.router.wg.weight.device
+        hier_router = HierarchicalMoERouter(
+            hidden_size=moe_model.hidden_size,
+            num_macro_domains=eff_macro,
+            experts_per_domain=eff_micro,
+            top_k=top_k,
+        ).to(dev)
+        block.router = hier_router
+
+    vram_stats = measure_moe_vram_footprint_gb(moe_model)
+    return {
+        **hotplug_report,
+        "router_type": "HierarchicalMoERouter",
+        "num_macro_domains": eff_macro,
+        "experts_per_domain": eff_micro,
+        "total_experts": total_experts,
+        "gating_flops_reduction_factor": round(
+            float(total_experts) / float(eff_macro + eff_micro), 2
+        ),
+        "vram_footprint_gb": vram_stats["total_footprint_gb"],
+        "fits_under_2_2gb_vram": vram_stats["total_footprint_gb"] < vram_ceiling_gb,
+    }
+
+
 __all__ = [
     "ExpertBranchState",
+    "FP8PagedKVCache",
+    "HierarchicalMoERouter",
     "MoEUpcycleReport",
     "ProjectedLoRAStateDict",
     "RegisteredDomainExpert",
@@ -312,6 +560,7 @@ __all__ = [
     "UpcycledSparseMoEModel",
     "UpcycledSwiGLUExpert",
     "detect_lora_rank",
+    "hotplug_hierarchical_experts",
     "hotplug_rank_adaptive_experts",
     "initialize_domain_branches",
     "measure_moe_vram_footprint_gb",

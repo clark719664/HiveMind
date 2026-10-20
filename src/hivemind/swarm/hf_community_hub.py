@@ -328,6 +328,104 @@ print(import_report["status"], import_report["royalties_settled_hive"])
         }
 
 
+
+    def push_bundle_to_hf_hub(
+        self,
+        bundle_dir: Path,
+        repo_id: Optional[str] = None,
+        token: Optional[str] = None,
+        offline_fallback: bool = True,
+    ) -> Dict[str, Any]:
+        """Season 5 (`HM-S5-01`): Push an exported bundle directory to the Hugging Face Hub
+        (or to the deterministic offline `mock_hub_root` mirror when offline / no token).
+        """
+        bundle_path = Path(bundle_dir)
+        manifest_path = bundle_path / "hivemind_swarm_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        target_repo_id = repo_id or manifest["hf_repo_id"]
+        hf_token = token or os.environ.get("HF_TOKEN")
+
+        mode = "mock_hf_hub_offline"
+        if hf_token and not offline_fallback:
+            try:
+                from huggingface_hub import HfApi  # type: ignore
+
+                api = HfApi(token=hf_token)
+                api.create_repo(repo_id=target_repo_id, repo_type="model", exist_ok=True)
+                api.upload_folder(
+                    folder_path=str(bundle_path),
+                    repo_id=target_repo_id,
+                    repo_type="model",
+                    commit_message=f"Publish HiveMind bundle {manifest['bundle_id']}",
+                )
+                mode = "huggingface_hub_live"
+            except Exception:
+                mode = "mock_hf_hub_offline"
+
+        repo_slug = target_repo_id.replace("/", "__")
+        mirror_dir = self.mock_hub_root / repo_slug
+        mirror_dir.mkdir(parents=True, exist_ok=True)
+        copied_files: List[str] = []
+        for fpath in sorted(bundle_path.iterdir()):
+            if fpath.is_file():
+                shutil.copy2(fpath, mirror_dir / fpath.name)
+                copied_files.append(fpath.name)
+
+        record = {
+            "status": "pushed",
+            "mode": mode,
+            "repo_id": target_repo_id,
+            "bundle_id": manifest["bundle_id"],
+            "bundle_sha256": manifest["bundle_sha256"],
+            "mirror_dir": str(mirror_dir),
+            "files_uploaded": copied_files,
+            "pushed_at_epoch": time.time(),
+        }
+        self.push_history.append(record)
+        return record
+
+    def pull_bundle_from_hf_hub(
+        self,
+        repo_id: str,
+        target_dir: Path,
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Season 5 (`HM-S5-01`): Pull a community adapter bundle from `repo_id` into `target_dir`."""
+        target_path = Path(target_dir)
+        target_path.mkdir(parents=True, exist_ok=True)
+        repo_slug = repo_id.replace("/", "__")
+        mirror_dir = self.mock_hub_root / repo_slug
+
+        mode = "mock_hf_hub_offline"
+        files_downloaded: List[str] = []
+        if mirror_dir.is_dir():
+            for fpath in sorted(mirror_dir.iterdir()):
+                if fpath.is_file():
+                    shutil.copy2(fpath, target_path / fpath.name)
+                    files_downloaded.append(fpath.name)
+        else:
+            hf_token = token or os.environ.get("HF_TOKEN")
+            from huggingface_hub import snapshot_download  # type: ignore
+
+            snapshot_download(repo_id=repo_id, local_dir=str(target_path), token=hf_token)
+            mode = "huggingface_hub_live"
+            files_downloaded = [p.name for p in sorted(target_path.iterdir()) if p.is_file()]
+
+        manifest = json.loads((target_path / "hivemind_swarm_manifest.json").read_text(encoding="utf-8"))
+        record = {
+            "status": "pulled",
+            "mode": mode,
+            "repo_id": repo_id,
+            "bundle_id": manifest["bundle_id"],
+            "bundle_sha256": manifest["bundle_sha256"],
+            "target_dir": str(target_path),
+            "files_downloaded": files_downloaded,
+            "pulled_at_epoch": time.time(),
+        }
+        self.pull_history.append(record)
+        return record
+
+
 class CommunityAdapterBundleManager:
     """Manages portable community LoRA bundle creation, SVD rank normalization, import verification, and royalty payouts."""
 
@@ -550,6 +648,71 @@ class CommunityAdapterBundleManager:
         }
         self.import_history.append(receipt)
         return receipt
+
+
+
+    def seed_and_replicate_bundle_chunks(
+        self,
+        bundle_dir: Path,
+        source_node_id: str,
+        peer_stores: Optional[List[ContentAddressedSwarmStore]] = None,
+        chunk_size: int = 65536,
+    ) -> Dict[str, Any]:
+        """Season 5 (`HM-S5-01`): Split an exported bundle into 64 KB Merkle-verified chunks
+        and replicate assigned chunks across `peer_stores`.
+        """
+        peers = list(peer_stores or [])
+        seeder_ids = [source_node_id] + [p.node_id for p in peers if p.node_id != source_node_id]
+        manifest = self.store.seed_bundle_chunks(
+            bundle_dir=bundle_dir,
+            source_node_id=source_node_id,
+            seeders=seeder_ids,
+            chunk_size=chunk_size,
+        )
+        replication_counts: Dict[str, int] = {}
+        for peer in peers:
+            copied = peer.replicate_seed_manifest(
+                manifest=manifest,
+                source_store=self.store,
+                node_id=peer.node_id,
+            )
+            replication_counts[peer.node_id] = copied
+        return {
+            "bundle_id": manifest.bundle_id,
+            "bundle_merkle_root": manifest.bundle_merkle_root,
+            "num_chunks": manifest.num_chunks,
+            "total_bytes": manifest.total_bytes,
+            "seeders": seeder_ids,
+            "replication_counts": replication_counts,
+            "manifest": manifest,
+        }
+
+    def download_and_import_chunked_bundle(
+        self,
+        manifest: BundleSeedManifest,
+        target_dir: Path,
+        importer_agent_id: str,
+        peer_stores: Optional[List[ContentAddressedSwarmStore]] = None,
+        moe_model: Optional[UpcycledSparseMoEModel] = None,
+    ) -> Dict[str, Any]:
+        """Season 5 (`HM-S5-01`): Reassemble a bundle from multi-peer 64 KB chunks with Merkle
+        verification and immediately import + hot-plug into `moe_model` with `$HIVE` royalty payout.
+        """
+        download_summary = self.store.download_bundle_chunks(
+            manifest=manifest,
+            target_dir=target_dir,
+            peer_stores=peer_stores,
+            resume=True,
+        )
+        import_receipt = self.import_community_bundle(
+            bundle_dir=target_dir,
+            importer_agent_id=importer_agent_id,
+            moe_model=moe_model,
+        )
+        return {
+            "download_summary": download_summary,
+            "import_receipt": import_receipt,
+        }
 
 
 class SwarmMiningGuildEngine:

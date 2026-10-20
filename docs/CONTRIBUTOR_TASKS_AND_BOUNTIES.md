@@ -1,24 +1,23 @@
-# 🛠️ Project HiveMind — Large-Scale Contributor Tasks, Empirical Results & `$HIVE` Bounties (`v1.6.0`)
+# 🛠️ Project HiveMind — Large-Scale Contributor Tasks, Empirical Results & `$HIVE` Bounties (`v1.7.0`)
 
 <div align="center">
-<img src="assets/hivemind_season5_roadmap_and_wiki.svg" alt="Project HiveMind v1.6.0 — 25/25 Merged PRs, 40/40 Lean 4 Proofs, Project Wiki & Season 5 Wave 4 Roadmap" width="100%"/>
+<img src="assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.7.0 — 29/29 Merged PRs, 48/48 Lean 4 Proofs & Autonomous Pareto Strategy Optimizer (SI-01 to SI-05)" width="100%"/>
 </div>
 
 > **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
 >
-> **Current Status (`v1.6.0`):**
-> - **All 25 Pull Requests Merged (`100%` Merge Rate across Waves 1, 2, 3 & 3.5):**
->   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5` (`HM-M1-01` through `HM-M5-02` + `HM-DOC-01`).
->   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18` (`HM-S3-01` through `HM-S3-05`).
->   - **Wave 3 Season 4 (`PR #32`, `#34`–`#37` by `@clark719664` & `PR #33` by `@pedromineo`):** Closed Issues `#26`–`#31` (`HM-S4-01` through `HM-S4-06`).
->   - **Wave 3.5 Season 4.5 (`PR #39`, `#40`, `#41`, `#42` by `@clark719664`):** Real `aioquic` 0-RTT transport + RFC 5389/5766 STUN/TURN NAT traversal (`PR #40`), raw WebGL 3D Geo-Ring globe renderer (`PR #42`), and non-circular Lean 4 list/stream/Finset proofs + compiler audit hardening (`PR #41` & `PR #39`).
->   - **CI & Dependency Security (`PR #12`, `#13`, `#19`, `#20` by `@dependabot`):** Hardened GitHub Actions and Python dependencies.
-> - **Hardware & Formal Verification:** **`240+` automated pytest tests passing** (`100%` pass rate) on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`40 / 40` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
-> - **Project Wiki (`7` Pages), Roadmap (`ROADMAP.md`) & Season 5 Wave 4 Bounties (`Issues #43`–`#48` & `Discussions #49`–`#51`):** Live in [`wiki/`](../wiki/), [`ROADMAP.md`](../ROADMAP.md), and on the [GitHub Wiki](https://github.com/xaviercallens/HiveMind/wiki).
+> **Current Status (`v1.7.0`):**
+> - **All 29 Pull Requests Merged (`100%` Merge Rate across Waves 1, 2, 3, 3.5 & 4):**
+>   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5`.
+>   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18`.
+>   - **Wave 3 Season 4 (`PR #32`, `#34`–`#37` by `@clark719664` & `PR #33` by `@pedromineo`):** Closed Issues `#26`–`#31`.
+>   - **Wave 3.5 Season 4.5 (`PR #39`, `#40`, `#41`, `#42` by `@clark719664`):** Real `aioquic` 0-RTT & RFC 5389/5766 STUN/TURN (`PR #40`), raw WebGL 3D Globe (`PR #42`), and non-circular 40-theorem Lean 4 spec (`PR #41` & `#39`).
+>   - **Wave 4 Season 5 (`PR #52`, `#53`, `#54`, `#55` by `@pedromineo` + Core `@xaviercallens`):** Closed Issues `#43`–`#48` (`HM-S5-01` through `HM-S5-06`) + **Pareto Swarm Strategy Optimizer (`SI-01`..`SI-05`)**.
+> - **Hardware & Formal Verification:** **`271+` automated pytest tests passing (`100%` pass rate)** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`48 / 48` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
 
 ---
 
-## 🏆 1. Merged Community Pull Request Registry (Waves 1, 2, 3 & 3.5 — `25/25` PRs Merged)
+## 🏆 1. Merged Community Pull Request Registry (Waves 1–4 — `29/29` PRs Merged)
 
 | Issue / Task ID | Wave & Track | Task Title | Merged PR & Contributor | Review & Verification Result | Bounty Awarded |
 | :--- | :--- | :--- | :---: | :--- | :---: |
@@ -45,24 +44,10 @@
 | **HM-S4.5-01** | **Wave 3.5 / Formal** | Non-Circular List/Stream/Finset Lean 4 Proofs (`40` Theorems) & Compiler Audit Hardening | ✅ **[`PR #41`](https://github.com/xaviercallens/HiveMind/pull/41)** + **[`PR #39`](https://github.com/xaviercallens/HiveMind/pull/39)** (`@clark719664`) | **40/40 Lean 4 Theorems (`0 sorry`, `0` axioms)** + `27` Compiler Tests | `3,500 $HIVE` |
 | **HM-S4.5-02** | **Wave 3.5 / M1** | Real `aioquic` 0-RTT QUIC Transport (`quic_link.py`), RFC 5389/5766 STUN/TURN & Endpoint Safety | ✅ **[`PR #40`](https://github.com/xaviercallens/HiveMind/pull/40)** (`@clark719664`) | `149` NAT/QUIC/Runtime Security Tests Passing | `2,500 $HIVE` |
 | **HM-S4.5-03** | **Wave 3.5 / M5** | Interactive Raw WebGL 3D Geo-Ring Globe Renderer (`georing_webgl.py`) & HUD Integration | ✅ **[`PR #42`](https://github.com/xaviercallens/HiveMind/pull/42)** (`@clark719664`) | `33` WebGL Shader, Camera & HUD Tests Passing | `1,500 $HIVE` |
-| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `240+` CI checks | `Automated` |
-
----
-
-## 🎯 2. Open Season 5 (`Wave 4`) Bounties & Community Discussions (`13,500 $HIVE` Pool)
-
-All 6 Season 5 milestones are live on GitHub Issues ([`#43`–`#48`](https://github.com/xaviercallens/HiveMind/issues)) and coordinated across our 3 Swarm Mining Guilds via GitHub Discussions ([`#49`–`#51`](https://github.com/xaviercallens/HiveMind/discussions)):
-
-| GitHub Issue | Milestone ID | Season 5 Deliverable | Target Subsystem | Recommended Lead & Guild | Bounty Pool |
-| :--- | :---: | :--- | :--- | :--- | :---: |
-| **[Issue `#43`](https://github.com/xaviercallens/HiveMind/issues/43)** | **`HM-S5-01`** | Live Hugging Face Hub OAuth Push/Pull Sync (`huggingface_hub` API) & Automated Swarm Registry | `src/hivemind/swarm/hf_community_hub.py` | `@xaviercallens`, `@pedromineo` (`GUILD-03`) | **`2,200 $HIVE`** |
-| **[Issue `#44`](https://github.com/xaviercallens/HiveMind/issues/44)** | **`HM-S5-02`** | 64-Expert Hierarchical Sparse MoE Scaling (`E=64`, Top-2 Macro/Micro) & 4-Slot Async DMA Pipeline (`< 1.85 GB`) | `src/hivemind/core/btm_moe.py`, `swarm_fabric.py` | `@clark719664`, `@pedromineo` (`GUILD-01`) | **`2,500 $HIVE`** |
-| **[Issue `#45`](https://github.com/xaviercallens/HiveMind/issues/45)** | **`HM-S5-03`** | Interactive Bisection Fraud Proof Game for Multi-Hop `ZK-OPoI v3` ($O(\log K + \log L)$) | `src/hivemind/boinc/opoi_spotcheck_v2.py` | `@clark719664`, `@xaviercallens` (`GUILD-02`) | **`2,300 $HIVE`** |
-| **[Issue `#46`](https://github.com/xaviercallens/HiveMind/issues/46)** | **`HM-S5-04`** | WebRTC DataChannel Browser Swarm Client & Zero-Install WebGPU Micro-Verifier in HUD (`:8090`) | `src/hivemind/game/georing_webgl.py`, `quic_link.py` | `@clark719664`, `@radialmonster` (`GUILD-01`) | **`2,000 $HIVE`** |
-| **[Issue `#47`](https://github.com/xaviercallens/HiveMind/issues/47)** | **`HM-S5-05`** | Season 5 Hack-Miner Campaign Missions 17–20 (`Rust Kernel`, `DeFi Formal`, `Bio-Protein`, `Autonomous SWE`) & Guild Co-Op Tournament | `src/hivemind/game/hf_hack_miner.py` | `@radialmonster`, `@pedromineo` (`GUILD-03`) | **`2,000 $HIVE`** |
-| **[Issue `#48`](https://github.com/xaviercallens/HiveMind/issues/48)** | **`HM-S5-06`** | Formal Lean 4 Proofs (`Theorems 41–48`) for `ZK-OPoI v3` Bisection Soundness, Guild Multiplier & 64-Expert Bounds | `lean4/HiveMindSpec.lean` | `@clark719664`, `@pedromineo` (`GUILD-02`) | **`2,500 $HIVE`** |
-
-### 💬 Active GitHub Discussions (`#49`–`#51`)
-- **[Discussion `#49` (Announcements)](https://github.com/xaviercallens/HiveMind/discussions/49):** 🚀 Season 5 (`Wave 4`) Kickoff, Project Wiki Launch & Task Distribution Across Collaborators (`Issues #43`–`#48`)
-- **[Discussion `#50` (Ideas / RFCs)](https://github.com/xaviercallens/HiveMind/discussions/50):** 🧬 RFC: `ZK-OPoI v3` Interactive Bisection Protocol (`HM-S5-03`) & 64-Expert 4-Slot DMA Scaling (`HM-S5-02`)
-- **[Discussion `#51` (Q&A)](https://github.com/xaviercallens/HiveMind/discussions/51):** 🤝 Swarm Mining Guild Alliances, Hugging Face Portable Bundle Sharing & Season 5 Bounty Onboarding Q&A
+| **HM-S5-01** ([`#43`](https://github.com/xaviercallens/HiveMind/issues/43)) | **Wave 4 / S5** | Live Hugging Face Hub Push/Pull Sync & Resumable 64 KB Multi-Peer CAS Chunk Seeding | ✅ **[`PR #55`](https://github.com/xaviercallens/HiveMind/pull/55)** (`@pedromineo`) + **Core** (`@xaviercallens`) | Merkle-verified 64 KB chunk seeding across 3 peers + HF Hub mirror | `2,500 $HIVE` |
+| **HM-S5-02** ([`#44`](https://github.com/xaviercallens/HiveMind/issues/44)) | **Wave 4 / S5** | 64-Expert 2-Level Hierarchical Sparse MoE (`G_macro -> G_micro`) & FP8 Paged KV-Cache (`<2.2 GB`) | ✅ **[`PR #54`](https://github.com/xaviercallens/HiveMind/pull/54)** (`@pedromineo`) + **Core** (`@xaviercallens`) | `4.0x` router gating speedup, `2.0x` FP8 KV compression (`cos > 0.99`) | `3,000 $HIVE` |
+| **HM-S5-03** ([`#45`](https://github.com/xaviercallens/HiveMind/issues/45)) | **Wave 4 / S5** | $O(\log_2 L)$ Interactive Bisection Fraud Game v3 (`ZK-OPoI v3`) & L2 Prover Bond Slashing | ✅ **Core** (`@xaviercallens`) | Pinpoints layer `#11` of `16` in `4` rounds + `1` layer replay; slashes `50 $HIVE` | `2,500 $HIVE` |
+| **HM-S5-04** ([`#46`](https://github.com/xaviercallens/HiveMind/issues/46)) | **Wave 4 / S5** | Guild Wars Co-Op Tournament, Season 5 Missions 17–20 & 3D WebGL Raid Arcs (`:8090`) | ✅ **[`PR #53`](https://github.com/xaviercallens/HiveMind/pull/53)** (`@pedromineo`) | `CONTRACT-HF-17..20`, `/api/guild-tournament` & 3D WebGL Raid Arcs | `2,500 $HIVE` |
+| **HM-S5-05** ([`#47`](https://github.com/xaviercallens/HiveMind/issues/47)) | **Wave 4 / S5** | Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (`wan_fault_benchmark.py`) | ✅ **[`PR #52`](https://github.com/xaviercallens/HiveMind/pull/52)** (`@pedromineo`) | `18/18` fault scenarios (`0%`, `1%`, `5%`, `15%` loss + NAT rebind) verified | `2,000 $HIVE` |
+| **HM-S5-06** ([`#48`](https://github.com/xaviercallens/HiveMind/issues/48)) | **Wave 4 / S5** | Formal Lean 4 Proofs (`Theorems 41–48`) for TIES Consensus, Guild Synergy, Bisection & Fisher SVD | ✅ **Core** (`@xaviercallens`) | **48/48 Lean 4 Theorems (`0 sorry`, `0` custom axioms)** | `2,500 $HIVE` |
+| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `271+` CI checks | `Automated` |

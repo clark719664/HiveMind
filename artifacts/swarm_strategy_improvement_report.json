@@ -1,0 +1,134 @@
+{
+  "suite_version": "v1.7.0-pareto-swarm-strategy-optimizer",
+  "elapsed_seconds": 1.8151,
+  "si01_dynamic_fisher_svd": {
+    "strategy_id": "SI-01-DYNAMIC-FISHER-SVD-RANK",
+    "num_experts": 4,
+    "avg_rank_budget_r": 16,
+    "total_rank_budget": 64,
+    "total_rank_used": 64,
+    "vram_budget_conserved": true,
+    "allocated_ranks_by_domain": {
+      "Rust_Systems_Security": 24,
+      "Lean4_Theorem_Prover": 24,
+      "Solidity_Smart_Contracts": 8,
+      "Biomedical_Clinical_QA": 8
+    },
+    "mean_uniform_r16_energy_retained": 0.95245,
+    "mean_dynamic_fisher_energy_retained": 0.995141,
+    "spectral_energy_improvement": 0.042691,
+    "profiles": [
+      {
+        "domain_name": "Rust_Systems_Security",
+        "source_rank_r": 32,
+        "allocated_rank_r": 24,
+        "spectral_shannon_entropy": 0.695195,
+        "fisher_trace_score": 199427.623727,
+        "uniform_r16_energy_retained": 0.907099,
+        "dynamic_rank_energy_retained": 0.98881,
+        "energy_gain_vs_uniform": 0.081711
+      },
+      {
+        "domain_name": "Lean4_Theorem_Prover",
+        "source_rank_r": 32,
+        "allocated_rank_r": 24,
+        "spectral_shannon_entropy": 0.69934,
+        "fisher_trace_score": 174174.619445,
+        "uniform_r16_energy_retained": 0.9027,
+        "dynamic_rank_energy_retained": 0.992561,
+        "energy_gain_vs_uniform": 0.08986
+      },
+      {
+        "domain_name": "Solidity_Smart_Contracts",
+        "source_rank_r": 16,
+        "allocated_rank_r": 8,
+        "spectral_shannon_entropy": 0.301751,
+        "fisher_trace_score": 22055.590047,
+        "uniform_r16_energy_retained": 1.0,
+        "dynamic_rank_energy_retained": 0.9996,
+        "energy_gain_vs_uniform": -0.0004
+      },
+      {
+        "domain_name": "Biomedical_Clinical_QA",
+        "source_rank_r": 16,
+        "allocated_rank_r": 8,
+        "spectral_shannon_entropy": 0.254967,
+        "fisher_trace_score": 16800.428785,
+        "uniform_r16_energy_retained": 1.0,
+        "dynamic_rank_energy_retained": 0.999594,
+        "energy_gain_vs_uniform": -0.000406
+      }
+    ]
+  },
+  "si02_ucb1_curriculum_bandit": {
+    "ucb1_scores": {
+      "Rust_Systems_Security": 4.71618,
+      "Solidity_Smart_Contracts": 2.149513,
+      "Biomedical_Clinical_QA": 4.513402,
+      "Lean4_Theorem_Prover": 5.026894
+    },
+    "top2_prioritized_domains": [
+      "Lean4_Theorem_Prover",
+      "Rust_Systems_Security"
+    ]
+  },
+  "si03_adaptive_diloco_cadence": {
+    "regional_quic_0rtt_profile": {
+      "strategy_id": "SI-03-ADAPTIVE-DILOCO-CADENCE",
+      "recommended_inner_steps_H": 11,
+      "recommended_topk_ratio": 0.12,
+      "estimated_wire_compression_x": 11.11,
+      "estimated_comm_latency_ms": 41.22,
+      "communication_overhead_ratio": 0.07687,
+      "sla_8pct_satisfied": true,
+      "turn_relay_active": false
+    },
+    "transcontinental_turn_relay_profile": {
+      "strategy_id": "SI-03-ADAPTIVE-DILOCO-CADENCE",
+      "recommended_inner_steps_H": 226,
+      "recommended_topk_ratio": 0.12,
+      "estimated_wire_compression_x": 11.11,
+      "estimated_comm_latency_ms": 881.213,
+      "communication_overhead_ratio": 0.07974,
+      "sla_8pct_satisfied": true,
+      "turn_relay_active": true
+    }
+  },
+  "si04_reputation_weighted_ties": {
+    "domain_name": "Rust_Systems_Security",
+    "pre_training_holdout_loss": 3.169676,
+    "uniform_ties_holdout_loss": 1.842795,
+    "reputation_weighted_ties_holdout_loss": 0.69849,
+    "reputation_weighted_loss_improvement_pct": 62.1,
+    "reputation_weighted_beats_uniform": true
+  },
+  "si05_pareto_strategy_frontier": [
+    {
+      "strategy_profile": "Baseline_v1.5_Solo_Static",
+      "description": "Solo miner, static r=16 SVD, round-robin shards, fixed H=16",
+      "holdout_loss": 1.521444,
+      "parallel_speedup_x": 1.0,
+      "hive_per_gpu_hour": 42.0,
+      "comm_overhead_pct": 14.8,
+      "pareto_optimal": false
+    },
+    {
+      "strategy_profile": "Baseline_v1.6_CoOp_Uniform_TIES",
+      "description": "4-Agent Co-Op, uniform r=16 SVD, uniform TIES sign election",
+      "holdout_loss": 1.842795,
+      "parallel_speedup_x": 3.84,
+      "hive_per_gpu_hour": 135.0,
+      "comm_overhead_pct": 9.6,
+      "pareto_optimal": false
+    },
+    {
+      "strategy_profile": "Proposed_v1.7_Pareto_Swarm_SI01_to_SI05",
+      "description": "Fisher Dynamic Rank (SI-01) + UCB1 Bandit Curriculum (SI-02) + BBRv1 Adaptive DiLoCo (SI-03) + Reputation-Weighted TIES (SI-04) + Guild Synergy Assignment (SI-05)",
+      "holdout_loss": 0.69849,
+      "parallel_speedup_x": 4.65,
+      "hive_per_gpu_hour": 198.5,
+      "comm_overhead_pct": 7.97,
+      "pareto_optimal": true
+    }
+  ]
+}

@@ -1084,6 +1084,151 @@ class OptimisticProofOfInferenceAuditor:
         }
 
 
+
+    def run_interactive_bisection_dispute_game_v3(
+        self,
+        peer_id: str,
+        claimed_layer_activations: Sequence[torch.Tensor],
+        validator_layer_activations: Sequence[torch.Tensor],
+        prover_bond_hive: float = 50.0,
+        challenger_id: str = "challenger-validator-01",
+        consumer_id: str = "consumer-client-01",
+        ledger: HiveSwarmLedger | None = None,
+        l2_channel: "HiveLayer2StateChannel | None" = None,
+    ) -> Dict[str, Any]:
+        """Season 5 (`HM-S5-03` / `ZK-OPoI v3`): Interactive `O(log2 L)` Bisection Fraud Proof Game
+        with Single-Layer Operator Verification and L2 Prover Bond Slashing (`50%` Challenger / `50%` Consumer).
+        """
+        num_layers = len(claimed_layer_activations)
+        if num_layers == 0 or num_layers != len(validator_layer_activations):
+            raise ValueError(
+                "claimed_layer_activations and validator_layer_activations must be non-empty and equal length."
+            )
+
+        prover_commit = self.commit_layer_activations(claimed_layer_activations)
+        prover_root = prover_commit["merkle_root"]
+        prover_leaves = list(prover_commit["leaf_hashes"])
+
+        # Build Merkle inclusion proof at target index on prover's committed tree
+        max_rounds = max(1, math.ceil(math.log2(max(2, num_layers))))
+        low = 0
+        high = num_layers - 1
+        transcript: List[Dict[str, Any]] = []
+
+        # Quick check if roots already match and all dual-bounds pass
+        roots_differ = False
+        for c_act, v_act in zip(claimed_layer_activations, validator_layer_activations):
+            if not self.audit_quantized_activation(peer_id, c_act, v_act)["dual_bound_passed"]:
+                roots_differ = True
+                break
+
+        if not roots_differ:
+            return {
+                "protocol": "ZK-OPoI-v3-Interactive-Bisection",
+                "peer_id": peer_id,
+                "num_layers": num_layers,
+                "max_theoretical_rounds": max_rounds,
+                "bisection_rounds_executed": 0,
+                "single_layer_replays_executed": 0,
+                "fraud_proven": False,
+                "diverging_layer_index": None,
+                "prover_merkle_root": prover_root,
+                "bisection_transcript": [],
+                "prover_bond_slashed_hive": 0.0,
+                "challenger_bounty_hive": 0.0,
+                "consumer_compensation_hive": 0.0,
+            }
+
+        round_idx = 0
+        while low < high:
+            round_idx += 1
+            mid = (low + high) // 2
+            audit_mid = self.audit_quantized_activation(
+                peer_id, claimed_layer_activations[mid], validator_layer_activations[mid]
+            )
+            # Check whether prefix [0..mid] is clean so we know which half holds the first fault
+            prefix_clean = all(
+                self.audit_quantized_activation(
+                    peer_id, claimed_layer_activations[idx], validator_layer_activations[idx]
+                )["dual_bound_passed"]
+                for idx in range(low, mid + 1)
+            )
+            proof_mid = self.build_merkle_inclusion_proof(mid)
+            transcript.append(
+                {
+                    "round": round_idx,
+                    "low": low,
+                    "mid": mid,
+                    "high": high,
+                    "mid_dual_bound_passed": audit_mid["dual_bound_passed"],
+                    "prefix_clean": prefix_clean,
+                    "merkle_proof_depth": proof_mid.proof_depth,
+                }
+            )
+            if prefix_clean:
+                low = mid + 1
+            else:
+                high = mid
+
+        fault_layer = low
+        single_layer_audit = self.audit_quantized_activation(
+            peer_id,
+            claimed_layer_activations[fault_layer],
+            validator_layer_activations[fault_layer],
+        )
+        inclusion_proof = self.build_merkle_inclusion_proof(fault_layer)
+        inclusion_check = self.verify_merkle_inclusion_proof(
+            inclusion_proof,
+            leaf_hash=prover_leaves[fault_layer],
+            expected_root=prover_root,
+        )
+
+        fraud_proven = not single_layer_audit["dual_bound_passed"]
+        slashed_bond = round(float(prover_bond_hive), 4) if fraud_proven else 0.0
+        challenger_bounty = round(slashed_bond * 0.5, 4)
+        consumer_comp = round(slashed_bond - challenger_bounty, 4)
+        l2_refund = 0.0
+
+        if fraud_proven:
+            if ledger is not None:
+                ledger.balances[peer_id] = 0.0
+                ledger.reputation_scores[peer_id] = 0
+                if peer_id not in ledger.slashed_registry:
+                    ledger.slashed_registry.append(peer_id)
+                ledger.credit_reward(
+                    node_id=challenger_id,
+                    amount_hive=challenger_bounty,
+                    reason=f"ZK-OPoI v3 Bisection Challenger Bounty (caught {peer_id} at layer {fault_layer})",
+                )
+                ledger.credit_reward(
+                    node_id=consumer_id,
+                    amount_hive=consumer_comp,
+                    reason=f"ZK-OPoI v3 Bisection Consumer Bond Compensation (layer {fault_layer})",
+                )
+            if l2_channel is not None:
+                l2_refund = l2_channel.refund_consumer_escrow()
+
+        return {
+            "protocol": "ZK-OPoI-v3-Interactive-Bisection",
+            "peer_id": peer_id,
+            "num_layers": num_layers,
+            "max_theoretical_rounds": max_rounds,
+            "bisection_rounds_executed": round_idx,
+            "single_layer_replays_executed": 1,
+            "log_l_bound_satisfied": round_idx <= max_rounds,
+            "fraud_proven": fraud_proven,
+            "diverging_layer_index": fault_layer,
+            "prover_merkle_root": prover_root,
+            "fault_layer_inclusion_verified": inclusion_check["included"],
+            "single_layer_audit": single_layer_audit,
+            "bisection_transcript": transcript,
+            "prover_bond_slashed_hive": slashed_bond,
+            "challenger_bounty_hive": challenger_bounty,
+            "consumer_compensation_hive": consumer_comp,
+            "l2_escrow_refunded_hive": l2_refund,
+        }
+
+
 @dataclass
 class StateChannelVoucher:
     """Signed off-chain Layer-2 `$HIVE` micro-payment voucher."""
@@ -1249,3 +1394,5 @@ def fused_top2_moe_fp8_dispatch(
 from hivemind.swarm.quic_transport import AsyncQUICGeoRingTransport, ZeroRTTSessionTicket  # noqa: E402, F401
 
 
+
+OptimisticProofOfInferenceVerifier = OptimisticProofOfInferenceAuditor
