@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from hivemind.config import ARTIFACTS_ROOT, PROJECT_ROOT
+from hivemind.game.georing_webgl import GEORING_PANEL_HTML
 
 try:  # pragma: no cover - FastAPI is only required for the live HUD server
     from fastapi import WebSocket
@@ -258,11 +259,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       <div class="terminal" id="bounty-terminal">[READY] Submit any Coding, Biomedical, Math, Rust, CyberSecurity, or French prompt to route across the 6-Expert Sparse MoE and earn live Bounty + Swarm Points.</div>
     </div>
 
-    <div class="card" id="webgl-georing-map" style="grid-column: 1 / -1;">
-      <h2>SEASON 3 INTERACTIVE WEBGL 3D GEO-RING TOPOLOGY MAP &amp; MISSIONS (9-12)</h2>
-      <canvas id="webgl-georing-canvas" width="920" height="220" style="width:100%; height:220px; background:#050811; border:1px solid #00f0ff; border-radius:6px;"></canvas>
-      <div class="terminal" id="georing-terminal">[WEBGL 3D GEO-RING ACTIVE] Nodes: EU-West-Paris &rarr; EU-Central-Berlin &rarr; US-East-Virginia &rarr; APAC-East-Tokyo | Season 3 Missions 9-12 Loaded.</div>
-    </div>
+{GEORING_PANEL_HTML}
 
 <<<<<<< HEAD
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
