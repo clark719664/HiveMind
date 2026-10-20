@@ -40,6 +40,7 @@ from hivemind.config import (
     configure_deterministic_runtime,
     detect_local_hardware,
     get_hf_token,
+    hf_download_kwargs,
 )
 from hivemind.core.btm_upcycle import (
     train_moe_router_gating,
@@ -102,7 +103,7 @@ def fetch_hf_domain_subset(
                 repo_id=dataset_id,
                 filename="pqa_labeled/train-00000-of-00001.parquet",
                 repo_type="dataset",
-                token=hf_token,
+                **hf_download_kwargs(hf_token),
             )
             tbl = pq.read_table(p)
             for i in range(min(num_samples, tbl.num_rows)):
@@ -115,7 +116,7 @@ def fetch_hf_domain_subset(
                 repo_id=dataset_id,
                 filename="code_alpaca_20k.json",
                 repo_type="dataset",
-                token=hf_token,
+                **hf_download_kwargs(hf_token),
             )
             with open(p, "r", encoding="utf-8") as fp:
                 head_chunk = fp.read(65536)
@@ -247,7 +248,7 @@ def run_huggingface_rtx2070_poc(
         f"[cyan]1/5 Streaming tokenizer & {model_id} onto {device} ({compute_dtype}) "
         f"with on-the-fly 4-bit NF4 + Double Quantization...[/cyan]"
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, **hf_download_kwargs(hf_token))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 

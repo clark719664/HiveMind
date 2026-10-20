@@ -41,6 +41,8 @@ from hivemind.config import (
     detect_local_hardware,
     ensure_local_drive_caches,
     get_hf_token,
+    hf_download_kwargs,
+    hf_offline_enabled,
 )
 from hivemind.core.btm_upcycle import (
     train_moe_router_gating,
@@ -91,7 +93,6 @@ def fetch_hf_domain_subset(
         except Exception:
             pass
 
-    hf_token = get_hf_token()
     samples: List[str] = []
     ds_lower = dataset_id.lower()
 
@@ -136,6 +137,7 @@ def fetch_hf_domain_subset(
         subset_cache_file.write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
         return res
 
+    hf_token = get_hf_token() if not hf_offline_enabled() else None
     try:
         from huggingface_hub import hf_hub_download
 
@@ -146,7 +148,7 @@ def fetch_hf_domain_subset(
                 repo_id=dataset_id,
                 filename="pqa_labeled/train-00000-of-00001.parquet",
                 repo_type="dataset",
-                token=hf_token,
+                **hf_download_kwargs(hf_token),
             )
             pf = pq.ParquetFile(p)
             batch = next(pf.iter_batches(batch_size=num_samples))
@@ -174,7 +176,7 @@ def fetch_hf_domain_subset(
                 repo_id=dataset_id,
                 filename="main/train-00000-of-00001.parquet",
                 repo_type="dataset",
-                token=hf_token,
+                **hf_download_kwargs(hf_token),
             )
             pf = pq.ParquetFile(p)
             batch = next(pf.iter_batches(batch_size=num_samples))
@@ -196,7 +198,7 @@ def fetch_hf_domain_subset(
                 repo_id=dataset_id,
                 filename="code_alpaca_20k.json",
                 repo_type="dataset",
-                token=hf_token,
+                **hf_download_kwargs(hf_token),
             )
             with open(p, "r", encoding="utf-8") as fp:
                 head_chunk = fp.read(262144)
@@ -224,29 +226,34 @@ def fetch_hf_domain_subset(
     except Exception:
         pass
 
-    # Fallback via Hugging Face Datasets Server REST API
-    try:
-        import urllib.request
+    # The direct REST fallback must obey the same runtime offline policy.
+    if not hf_offline_enabled():
+        try:
+            import urllib.request
 
-        url = (
-            f"https://datasets-server.huggingface.co/rows?"
-            f"dataset={dataset_id}&config=default&split=train&offset=0&length={num_samples}"
-        )
-        req = urllib.request.Request(url)
-        if hf_token:
-            req.add_header("Authorization", f"Bearer {hf_token}")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            for item in data.get("rows", []):
-                row = item.get("row", {})
-                instr = str(row.get("instruction") or row.get("question") or "").strip()[:200]
-                out = str(row.get("output") or row.get("long_answer") or row.get("answer") or "").strip()[:240]
-                if instr and out:
-                    samples.append(f"### Instruction:\n{instr}\n### Response:\n{out}")
-            if samples:
-                return samples[:num_samples]
-    except Exception:
-        pass
+            url = (
+                f"https://datasets-server.huggingface.co/rows?"
+                f"dataset={dataset_id}&config=default&split=train&offset=0&length={num_samples}"
+            )
+            req = urllib.request.Request(url)
+            if hf_token:
+                req.add_header("Authorization", f"Bearer {hf_token}")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                for item in data.get("rows", []):
+                    row = item.get("row", {})
+                    instr = str(row.get("instruction") or row.get("question") or "").strip()[:200]
+                    out = str(row.get("output") or row.get("long_answer") or row.get("answer") or "").strip()[:240]
+                    if instr and out:
+                        samples.append(f"### Instruction:\n{instr}\n### Response:\n{out}")
+                if samples:
+                    return samples[:num_samples]
+        except Exception:
+            pass
+
+    # A locally cached Hub file may contain fewer rows than requested.
+    if samples:
+        return samples[:num_samples]
 
     fallback = [
         "### Instruction:\nWrite a Python function for binary search on a sorted list.\n### Response:\ndef binary_search(arr: list[int], target: int) -> int:\n    lo, hi = 0, len(arr) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1"
@@ -576,7 +583,7 @@ def run_decentralized_hf_domain_demo(
         )
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, **hf_download_kwargs(hf_token))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -719,7 +726,7 @@ def run_three_hf_swarm_experiments(
         _ = fetch_hf_domain_subset(dataset_id=str(spec["dataset_id"]), num_samples=36)
     gc.collect()
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, **hf_download_kwargs(hf_token))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 

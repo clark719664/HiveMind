@@ -99,8 +99,28 @@ def ensure_local_drive_caches() -> dict[str, str]:
     return cache_dirs
 
 
+def hf_offline_enabled() -> bool:
+    """Honor any explicit HF offline flag at call time, even after library imports."""
+    return any(
+        os.environ.get(key, "").strip().upper() in {"1", "ON", "YES", "TRUE"}
+        for key in ("HF_HUB_OFFLINE", "HF_DATASETS_OFFLINE", "TRANSFORMERS_OFFLINE")
+    )
+
+
+def hf_download_kwargs(hf_token: str | None = None) -> dict[str, Any]:
+    """Explicitly constrain HF clients instead of trusting import-time env flags.
+
+    ``token=False`` also prevents implicit lookup of a saved token by HF clients
+    when reading cached files offline. Online callers retain their normal token.
+    """
+    offline = hf_offline_enabled()
+    return {"local_files_only": offline, "token": False if offline else hf_token}
+
+
 def get_hf_token() -> str | None:
-    """Resolve Hugging Face token from environment variables (.env, process env, or Windows HKCU)."""
+    """Resolve a Hugging Face token only when remote access is enabled."""
+    if hf_offline_enabled():
+        return None
     env_keys = ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HUGGINGFACE_HUB_TOKEN", "HF_API_TOKEN")
     for key in env_keys:
         val = os.environ.get(key)

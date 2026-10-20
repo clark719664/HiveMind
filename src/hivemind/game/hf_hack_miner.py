@@ -48,6 +48,7 @@ from hivemind.config import (
     detect_local_hardware,
     ensure_local_drive_caches,
     get_hf_token,
+    hf_download_kwargs,
 )
 from hivemind.core.btm_upcycle import (
     train_moe_router_gating,
@@ -984,7 +985,7 @@ def run_hf_hack_mining_game(
         _ = fetch_hf_domain_subset(dataset_id=c.dataset_id, num_samples=36)
     gc.collect()
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
+    tokenizer = AutoTokenizer.from_pretrained(model_id, **hf_download_kwargs(hf_token))
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
