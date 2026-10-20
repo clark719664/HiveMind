@@ -16,7 +16,7 @@ import torch.nn as nn
 from peft import LoraConfig, PeftModel, TaskType, get_peft_model
 from transformers import AutoModelForCausalLM, Qwen2Config, Qwen2ForCausalLM
 
-from hivemind.config import HardwareProfile, configure_deterministic_runtime
+from hivemind.config import HardwareProfile, configure_deterministic_runtime, hf_download_kwargs
 
 QWEN_ALL_LINEAR_MODULES = [
     "q_proj",
@@ -359,9 +359,11 @@ def stream_load_hf_causal_lm(
     from huggingface_hub import hf_hub_download
     from transformers import AutoConfig
 
-    cfg = AutoConfig.from_pretrained(model_id, token=hf_token)
+    cfg = AutoConfig.from_pretrained(model_id, **hf_download_kwargs(hf_token))
     cfg.use_cache = False
-    ckpt_path = hf_hub_download(repo_id=model_id, filename="model.safetensors", token=hf_token)
+    ckpt_path = hf_hub_download(
+        repo_id=model_id, filename="model.safetensors", **hf_download_kwargs(hf_token)
+    )
 
     with torch.device("meta"):
         if getattr(cfg, "model_type", "") == "qwen2":

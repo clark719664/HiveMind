@@ -12,6 +12,7 @@ because that module resolves its cache and artifact roots at import time.
 from __future__ import annotations
 
 import argparse
+import errno
 import ipaddress
 import json
 import logging
@@ -19,9 +20,11 @@ import os
 import shutil
 import socket
 import sys
+import tempfile
 import threading
 import time
 import webbrowser
+import uuid
 from pathlib import Path
 from typing import Any, Callable, Mapping, MutableMapping
 
@@ -36,6 +39,7 @@ EXIT_MISSING_DEPENDENCY = 4
 EXIT_UNSAFE_PATHS = 5
 EXIT_STARTUP_FAILED = 6
 EXIT_STOP_TIMEOUT = 7
+EXIT_ALREADY_RUNNING = 8
 
 log = logging.getLogger("hivemind.standalone")
 
@@ -198,23 +202,212 @@ def _status_file(data_dir: Path) -> Path:
     return data_dir / "run" / "hud-server.json"
 
 
-def _stop_request_file(data_dir: Path) -> Path:
-    return data_dir / "run" / "stop-request"
+def _stop_request_file(data_dir: Path, instance_id: str) -> Path:
+    # Never let status contents choose an arbitrary filesystem path.
+    if uuid.UUID(instance_id).hex != instance_id:
+        raise ValueError("Invalid HUD instance ID")
+    return data_dir / "run" / f"stop-request-{instance_id}"
+
+
+def _read_status(data_dir: Path) -> dict[str, Any]:
+    try:
+        status = json.loads(_status_file(data_dir).read_text(encoding="utf-8"))
+        instance_id = status["instance_id"]
+        _stop_request_file(data_dir, instance_id)
+        return status
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return {}
+
+
+def _write_status(data_dir: Path, status: Mapping[str, Any]) -> None:
+    """Readers must see one complete generation, never a partial JSON write."""
+    path = _status_file(data_dir)
+    fd, name = tempfile.mkstemp(prefix="hud-status-", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(status, stream)
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)
+
+
+class _DataDirectoryLock:
+    """Kernel-held ownership; crash recovery never guesses from a reusable PID.
+
+    Keep the lock file in place forever. Unlinking it would let another process
+    lock a new inode while an existing contender still holds the old one.
+    The OS releases the lock if its owner exits, including an unclean exit.
+    """
+
+    def __init__(self, data_dir: Path, filename: str = "hud-server.lock") -> None:
+        self.path = data_dir / "run" / filename
+        self.stream: Any = None
+
+    def acquire(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        stream = self.path.open("a+b")
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                # Windows byte-range locks may extend beyond EOF. Do not write
+                # to the locked byte while another process owns this file.
+                stream.seek(0)
+                msvcrt.locking(stream.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            stream.close()
+            if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                raise
+            raise LauncherError(
+                f"A HiveMind HUD already owns data directory {self.path.parent.parent}. "
+                "Use --stop with that data directory, or use a different --data-dir.",
+                EXIT_ALREADY_RUNNING,
+            ) from exc
+        except BaseException:
+            stream.close()
+            raise
+        self.stream = stream
+
+    def acquire_until(self, deadline: float) -> bool:
+        while True:
+            try:
+                self.acquire()
+                return True
+            except LauncherError as exc:
+                if exc.exit_code != EXIT_ALREADY_RUNNING:
+                    raise
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.01)
+
+    def close(self) -> None:
+        if self.stream is not None:
+            # Closing the handle releases both Windows and POSIX locks.
+            self.stream.close()
+            self.stream = None
+
+
+class _InstanceOwner:
+    def __init__(self, data_dir: Path) -> None:
+        self.data_dir = data_dir
+        self.instance_id = uuid.uuid4().hex
+        self.stop_path = _stop_request_file(data_dir, self.instance_id)
+        self.lock = _DataDirectoryLock(data_dir)
+        self._mutex = threading.Lock()
+        self._closed = True
+
+    def __enter__(self) -> "_InstanceOwner":
+        # Coordinate initial status handover with --stop. A stopper must not
+        # select the previous crashed generation before this ID is published.
+        control = _DataDirectoryLock(self.data_dir, "hud-control.lock")
+        if not control.acquire_until(time.monotonic() + 30.0):
+            raise LauncherError("Timed out waiting for HUD launch/stop coordination.", EXIT_STARTUP_FAILED)
+        try:
+            self.lock.acquire()
+            with self._mutex:
+                self._closed = False
+                try:
+                    self._publish_locked(state="starting")
+                except BaseException:
+                    self._close_locked()
+                    raise
+        finally:
+            control.close()
+        return self
+
+    def _publish_locked(self, **fields: Any) -> None:
+        _write_status(self.data_dir, {
+            **fields, "instance_id": self.instance_id, "pid": os.getpid(),
+        })
+
+    def publish(self, **fields: Any) -> bool:
+        with self._mutex:
+            if self._closed:
+                return False
+            # Serialize all status reads/writes, including Windows where an
+            # open reader may prevent an atomic replace or unlink.
+            control = _DataDirectoryLock(self.data_dir, "hud-control.lock")
+            if not control.acquire_until(time.monotonic() + 30.0):
+                raise LauncherError("Timed out publishing HUD status.", EXIT_STARTUP_FAILED)
+            try:
+                self._publish_locked(**fields)
+            finally:
+                control.close()
+            return True
+
+    def _close_locked(self) -> None:
+        self._closed = True
+        try:
+            if _read_status(self.data_dir).get("instance_id") == self.instance_id:
+                _status_file(self.data_dir).unlink(missing_ok=True)
+            self.stop_path.unlink(missing_ok=True)
+        finally:
+            self.lock.close()
+
+    def close(self) -> None:
+        with self._mutex:
+            if self._closed:
+                return
+            control = _DataDirectoryLock(self.data_dir, "hud-control.lock")
+            if not control.acquire_until(time.monotonic() + 30.0):
+                # Leave stale metadata rather than racing a reader or retaining
+                # lifetime ownership forever; the next launch can recover it.
+                self._closed = True
+                self.lock.close()
+                log.warning("Timed out cleaning HUD status; stale files retained.")
+                return
+            try:
+                self._close_locked()
+            finally:
+                control.close()
+
+    def __exit__(self, *exc: Any) -> None:
+        self.close()
+
+
+def _instance_is_locked(data_dir: Path) -> bool:
+    probe = _DataDirectoryLock(data_dir)
+    try:
+        probe.acquire()
+    except LauncherError as exc:
+        if exc.exit_code != EXIT_ALREADY_RUNNING:
+            raise
+        return True
+    finally:
+        probe.close()
+    return False
 
 
 def request_stop(data_dir: Path, timeout: float = 30.0) -> int:
-    """Ask a running HUD to exit through a file in the user's own data directory."""
-    status_path = _status_file(data_dir)
-    if not status_path.exists():
-        print("No running HiveMind HUD found for this data directory.", flush=True)
-        return EXIT_OK
-    _stop_request_file(data_dir).write_text(str(time.time()), encoding="utf-8")
+    """Target one launch generation, without signalling any PID or newer launch."""
     deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        if not status_path.exists():
-            print("HiveMind HUD stopped.", flush=True)
-            return EXIT_OK
-        time.sleep(0.2)
+    target: str | None = None
+    while True:
+        control = _DataDirectoryLock(data_dir, "hud-control.lock")
+        if not control.acquire_until(deadline):
+            break
+        try:
+            locked = _instance_is_locked(data_dir)
+            status = _read_status(data_dir)
+            if target is None:
+                if not locked:
+                    print("No running HiveMind HUD found for this data directory.", flush=True)
+                    return EXIT_OK
+                target = status.get("instance_id")
+                if target is not None:
+                    _stop_request_file(data_dir, target).write_text("stop\n", encoding="utf-8")
+            elif not locked or (status and status["instance_id"] != target):
+                print("HiveMind HUD stopped.", flush=True)
+                return EXIT_OK
+        finally:
+            control.close()
+        if time.monotonic() >= deadline:
+            break
+        time.sleep(0.05)
     print(f"HiveMind HUD did not stop within {timeout:.0f}s.", file=sys.stderr, flush=True)
     return EXIT_STOP_TIMEOUT
 
@@ -292,6 +485,17 @@ def run(argv: list[str] | None = None) -> int:
     data_dir.mkdir(parents=True, exist_ok=True)
     if args.stop:
         return request_stop(data_dir)
+    if args.check:
+        return _run_configured(args, data_dir, root)
+    # Acquire before importing the app, binding a port, or touching status/logs.
+    # A busy default port may still fall back for *different* data directories.
+    with _InstanceOwner(data_dir) as owner:
+        return _run_configured(args, data_dir, root, owner)
+
+
+def _run_configured(
+    args: argparse.Namespace, data_dir: Path, root: Path, owner: _InstanceOwner | None = None,
+) -> int:
     log_path = _setup_logging(data_dir)
     # Never resolve relative paths (including the Steam DLL probe) against an
     # arbitrary launch directory such as Downloads.
@@ -353,43 +557,62 @@ def run(argv: list[str] | None = None) -> int:
         log.exception("HUD failed to initialise")
         raise LauncherError(f"HUD failed to initialise: {exc}. See {log_path}.", EXIT_STARTUP_FAILED) from exc
 
-    status_path = _status_file(data_dir)
-    status_path.parent.mkdir(parents=True, exist_ok=True)
-    stop_path = _stop_request_file(data_dir)
-    stop_path.unlink(missing_ok=True)
+    assert owner is not None
+    return _serve_hud(server, sock, owner, url, bound_port, no_browser=args.no_browser)
+
+
+def _serve_hud(
+    server: Any, sock: socket.socket, owner: _InstanceOwner, url: str, bound_port: int,
+    *, no_browser: bool,
+) -> int:
+    shutdown = threading.Event()
+
+    def _open_browser() -> None:
+        try:
+            webbrowser.open(url)
+        except Exception:
+            log.exception("Could not open the default browser; use %s manually", url)
 
     def _announce() -> None:
-        while not server.started and not server.should_exit:
-            time.sleep(0.05)
-        if not server.started:
-            return
-        status_path.write_text(
-            json.dumps({"pid": os.getpid(), "url": url, "port": bound_port, "started_at": time.time()}),
-            encoding="utf-8",
-        )
-        print(f"HiveMind HUD running at {url}  (Ctrl+C to stop)", flush=True)
-        if not args.no_browser:
-            webbrowser.open(url)
-        while not server.should_exit:
-            if stop_path.exists():
-                log.info("Stop requested via %s", stop_path)
-                stop_path.unlink(missing_ok=True)
-                server.should_exit = True
-                break
-            time.sleep(0.25)
+        try:
+            while not server.started and not server.should_exit and not shutdown.is_set():
+                if owner.stop_path.exists():
+                    server.should_exit = True
+                    return
+                shutdown.wait(0.05)
+            if not server.started or shutdown.is_set():
+                return
+            if not owner.publish(state="running", url=url, port=bound_port, started_at=time.time()):
+                return
+            print(f"HiveMind HUD running at {url}  (Ctrl+C to stop)", flush=True)
+            if not no_browser:
+                # Some browser handlers wait until their browser exits. Keep
+                # that wait independent from the stop/control watcher.
+                threading.Thread(target=_open_browser, name="hud-browser", daemon=True).start()
+            while not server.should_exit and not shutdown.is_set():
+                if owner.stop_path.exists():
+                    log.info("Stop requested for instance %s", owner.instance_id)
+                    server.should_exit = True
+                    break
+                shutdown.wait(0.05)
+        except Exception:
+            log.exception("HUD status/control watcher failed; stopping the server")
+            server.should_exit = True
 
-    threading.Thread(target=_announce, name="hud-announce", daemon=True).start()
+    announce = threading.Thread(target=_announce, name="hud-announce", daemon=True)
+    announce.start()
     try:
         server.run(sockets=[sock])
     finally:
+        shutdown.set()
+        server.should_exit = True
+        announce.join(timeout=2.0)
         sock.close()
         reaped = _terminate_owned_children()
         if reaped:
             log.info("Terminated leftover child processes: %s", reaped)
-        try:
-            status_path.unlink()
-        except FileNotFoundError:
-            pass
+        # The outer owner context removes only this generation's files and then
+        # releases the kernel lock, including on startup or runtime failures.
         log.info("HUD stopped.")
     return EXIT_OK if server.started else EXIT_STARTUP_FAILED
 
