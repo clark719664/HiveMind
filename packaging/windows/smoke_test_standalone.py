@@ -194,6 +194,93 @@ class Instance:
         self.stderr.close()
 
 
+
+def wait_exit(instance: Instance, timeout: float = STARTUP_TIMEOUT) -> int | None:
+    try:
+        return instance.proc.wait(timeout)
+    except subprocess.TimeoutExpired:
+        return None
+
+
+def read_owner(data_dir: Path) -> dict:
+    try:
+        status = json.loads((data_dir / "run" / "hud-server.json").read_text(encoding="utf-8"))
+        return status if isinstance(status, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def stop_instance(exe: Path, env: dict, logs: Path) -> subprocess.CompletedProcess:
+    return subprocess.run([str(exe), "--stop"], env=env, cwd=str(logs), capture_output=True,
+                          encoding="utf-8", errors="replace", timeout=120, stdin=subprocess.DEVNULL)
+
+
+def check_explicit_port_conflict(exe: Path, env: dict, logs: Path, base: Path, port: int, rec: Recorder) -> None:
+    # Ownership is checked before binding. Use another directory so this check
+    # actually reaches the occupied-port path instead of the owner lock (exit 8).
+    conflict_env = dict(env, HIVEMIND_DATA_DIR=str(base / "port conflict data"))
+    conflict = Instance(exe, ["--no-browser", "--port", str(port)], conflict_env, logs, "conflict")
+    try:
+        code = wait_exit(conflict)
+        rec.check("second instance on same explicit port with distinct data dir exits 3", code == 3,
+                  exit_code=code, data_dir=conflict_env["HIVEMIND_DATA_DIR"],
+                  stderr_tail=conflict.stderr_path.read_text(encoding="utf-8", errors="replace")[-300:])
+    finally:
+        conflict.close()
+
+
+def check_shared_directory_ownership(exe: Path, env: dict, logs: Path, base: Path, rec: Recorder) -> None:
+    shared_dir = base / "shared data"
+    shared_env = dict(env, HIVEMIND_DATA_DIR=str(shared_dir))
+    other_dir = base / "independent data"
+    other_env = dict(env, HIVEMIND_DATA_DIR=str(other_dir))
+    instances = []
+    try:
+        # Port 0 avoids racing between reserving and releasing two ephemeral ports.
+        owner = Instance(exe, ["--no-browser", "--port", "0"], shared_env, logs, "shared_owner")
+        instances.append(owner)
+        owner_url = owner.wait_url()
+        before = read_owner(shared_dir)
+        rec.check("shared data dir owner starts with generation identity",
+                  bool(owner_url) and bool(before.get("instance_id")) and before.get("pid") == owner.proc.pid,
+                  url=owner_url, status=before)
+        contender = Instance(exe, ["--no-browser", "--port", "0"], shared_env, logs, "shared_contender")
+        instances.append(contender)
+        code = wait_exit(contender)
+        rec.check("second instance sharing data dir is rejected with exit 8", code == 8, exit_code=code,
+                  stderr_tail=contender.stderr_path.read_text(encoding="utf-8", errors="replace")[-300:])
+        after = read_owner(shared_dir)
+        rec.check("rejected contender leaves original owner running and status unchanged",
+                  owner.proc.poll() is None and bool(before.get("instance_id")) and after == before,
+                  owner_exit=owner.proc.poll(), before=before, after=after)
+
+        other = Instance(exe, ["--no-browser", "--port", "0"], other_env, logs, "independent_owner")
+        instances.append(other)
+        other_url = other.wait_url()
+        other_before = read_owner(other_dir)
+        rec.check("independent data dir starts a different owner",
+                  bool(other_url) and bool(other_before.get("instance_id"))
+                  and other_before.get("instance_id") != before.get("instance_id"),
+                  url=other_url, status=other_before)
+        stop = stop_instance(exe, shared_env, logs)
+        owner_code = wait_exit(owner, 60)
+        rec.check("shared data dir stop shuts down the original owner", stop.returncode == 0 and owner_code == 0,
+                  stop_exit=stop.returncode, owner_exit=owner_code, stopped_instance_id=before.get("instance_id"),
+                  stop_stdout=stop.stdout.strip()[-300:], stop_stderr=stop.stderr.strip()[-300:])
+        rec.check("shared owner status removed after stop", not (shared_dir / "run" / "hud-server.json").exists())
+        rec.check("shared data dir stop leaves independent owner running",
+                  other.proc.poll() is None and bool(other_before.get("instance_id"))
+                  and read_owner(other_dir) == other_before,
+                  independent_exit=other.proc.poll(), independent_instance_id=other_before.get("instance_id"))
+        other_stop = stop_instance(exe, other_env, logs)
+        other_code = wait_exit(other, 60)
+        rec.check("independent owner stops with its own data dir", other_stop.returncode == 0 and other_code == 0,
+                  stop_exit=other_stop.returncode, owner_exit=other_code)
+    finally:
+        for inst in reversed(instances):
+            inst.close()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--zip", type=Path, required=True)
@@ -304,14 +391,7 @@ def main() -> int:
                       note="byte-level micro model trained on bundled fixture rows; not evidence of model quality or accepted work")
             results["real_training_response"] = detail if isinstance(detail, dict) else body[:2000]
 
-        conflict = Instance(exe, ["--no-browser", "--port", str(port)], env, logs, "conflict")
-        instances.append(conflict)
-        try:
-            code = conflict.proc.wait(STARTUP_TIMEOUT)
-        except subprocess.TimeoutExpired:
-            code = None
-        rec.check("second instance on same explicit port exits 3", code == 3, exit_code=code,
-                  stderr_tail=conflict.stderr_path.read_text(encoding="utf-8", errors="replace")[-300:])
+        check_explicit_port_conflict(exe, env, logs, base, port, rec)
 
         held = None
         try:
@@ -358,23 +438,7 @@ def main() -> int:
         for inst in instances:
             inst.close()
 
-    shared_env = dict(env, HIVEMIND_DATA_DIR=str(base / "shared data"))
-    pa, pb = free_port(), free_port()
-    a_inst = Instance(exe, ["--no-browser", "--port", str(pa)], shared_env, logs, "shared_a")
-    a_url = a_inst.wait_url()
-    b_inst = Instance(exe, ["--no-browser", "--port", str(pb)], shared_env, logs, "shared_b")
-    b_url = b_inst.wait_url()
-    try:
-        stop_s = subprocess.run([str(exe), "--stop"], env=shared_env, cwd=str(logs), capture_output=True, encoding="utf-8",
-                                errors="replace", timeout=120, stdin=subprocess.DEVNULL)
-        time.sleep(5)
-        rec.observe("two instances sharing one data dir, then one --stop", a_url=a_url, b_url=b_url,
-                    a_exit=a_inst.proc.poll(), b_exit=b_inst.proc.poll(), stop_exit=stop_s.returncode,
-                    stop_stdout=stop_s.stdout.strip()[-300:], stop_stderr=stop_s.stderr.strip()[-300:],
-                    note="known launcher issue (shared stop/status files) pending the maintainer's fix; no expected result asserted")
-    finally:
-        a_inst.close()
-        b_inst.close()
+    check_shared_directory_ownership(exe, env, logs, base, rec)
     results["proxy_attempts_total"] = list(proxy.attempts)
     proxy.close()
 
