@@ -37,6 +37,20 @@
 
 ---
 
+## 2.1 Season 5 Guild Wars (`HM-S5-04`): Missions 17-20 & Cross-Guild Tournament
+
+- **Season 5 Frontier Missions (`--season 5`, catalog: `GET /api/season5-missions`):**
+  17. `CONTRACT-HF-17-CUDA-ROCM-PTX-OPT` — `hivemind/cuda-rocm-ptx-kernels` (`CUDA_ROCm_PTX_Optimizer`)
+  18. `CONTRACT-HF-18-LEAN4-AUTOFORMALIZE` — `hivemind/lean4-mathlib-autoformalizer` (`Lean4_Mathlib_Autoformalizer`)
+  19. `CONTRACT-HF-19-PROTEIN-STRUCTURE-PRED` — `hivemind/protein-structure-predictor` (`Biomolecular_Protein_Structure`)
+  20. `CONTRACT-HF-20-AUTONOMOUS-SWE-PATCH` — `hivemind/autonomous-swe-patches` (`Autonomous_SWE_Patch_Synthesizer`)
+- **Cross-Guild Co-Op Tournament (`GET`/`POST /api/guild-tournament`):** the `GUILD-01`, `GUILD-02` and `GUILD-03`
+  squads are matched round-robin on their **multi-domain holdout perplexity** and **speculative tokens/sec**.
+  Every settled match spawns a **live animated raid arc** between the two guild home nodes on the 3D WebGL
+  Geo-Ring globe (`data-raid-arcs` on the HUD panel). The season badge is `HF_COOP_RAID_COMMANDER`.
+
+---
+
 ## 3. 4-Pillar Competitive Hack-Mining Scoring (`PTS`) & `$HIVE` Tokenomics
 
 Gamers compete on the **Global Steamworks Leaderboard** across 4 cryptographic pillars:

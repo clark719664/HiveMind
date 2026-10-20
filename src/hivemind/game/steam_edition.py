@@ -261,7 +261,6 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
 
 {GEORING_PANEL_HTML}
 
-<<<<<<< HEAD
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
       <h2>SCIENTIFIC SWARM KNOWLEDGE TRANSFER, JOINED CO-OP CAMPAIGNS &amp; DUAL LEADERBOARD (BEST MINER + BEST CONTRIBUTOR)</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
@@ -274,7 +273,8 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (5.4x RTT)</button>
       </div>
       <div class="terminal" id="joined-campaign-terminal">[SCIENTIFIC SWARM READY] Click any Joined Co-Op Campaign above to execute live peer knowledge transfer across CyberValkyrie_FR, NeuralGhost_DE, ZeroCool_UK &amp; SakuraNode_JP and update the Best Miner + Best Contributor Dual Leaderboard.</div>
-=======
+    </div>
+
     <div class="card" id="season4-missions-panel" style="grid-column: 1 / -1;">
       <h2>SEASON 4 HACK-MINER CAMPAIGN (MISSIONS 13-16) &amp; LIVE <code>/ws/swarm-telemetry</code> WEBSOCKET</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
@@ -290,7 +290,36 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       </div>
       <div class="terminal" id="season4-terminal">[SEASON 4] Loading bounty contracts 13-16 from /api/season4-missions...</div>
       <div class="terminal" id="swarm-telemetry-terminal">[WS] Connecting to /ws/swarm-telemetry ...</div>
->>>>>>> pr-36
+    </div>
+
+    <div class="card" id="season5-missions-panel" style="grid-column: 1 / -1;">
+      <h2>SEASON 5 HACK-MINER CAMPAIGN (MISSIONS 17-20)</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Season 5 frontier bounty contracts (<code>CUDA/ROCm PTX Kernel Optimizer</code>,
+        <code>Lean 4 Mathlib Autoformalizer</code>, <code>Biomolecular Protein Structure Predictor</code>,
+        <code>Autonomous SWE Patch Synthesizer</code>) that feed the cross-guild Co-Op tournament:
+      </p>
+      <div id="season5-mission-buttons">
+        <button class="btn" onclick="selectSeason5Mission(0)">S5 M17: CUDA/ROCm PTX</button>
+        <button class="btn" onclick="selectSeason5Mission(1)">S5 M18: Lean 4 Autoformalizer</button>
+        <button class="btn" onclick="selectSeason5Mission(2)">S5 M19: Protein Structure</button>
+        <button class="btn btn-cyan" onclick="selectSeason5Mission(3)">S5 M20: Autonomous SWE</button>
+      </div>
+      <div class="terminal" id="season5-terminal">[SEASON 5] Loading bounty contracts 17-20 from /api/season5-missions...</div>
+    </div>
+
+    <div class="card" id="guild-tournament-panel" style="grid-column: 1 / -1;">
+      <h2>GUILD WARS CO-OP TOURNAMENT (GUILD-01 / GUILD-02 / GUILD-03) &amp; LIVE 3D WEBGL RAID ARCS</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Cross-guild matchmaking on multi-domain holdout perplexity and speculative tokens/sec. Every settled
+        match spawns an animated raid arc between the two guild home nodes on the 3D WebGL Geo-Ring globe:
+      </p>
+      <div class="terminal" id="guild-tournament-terminal">[GUILD WARS] Loading cross-guild tournament from /api/guild-tournament ...</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <button class="btn btn-cyan" onclick="runGuildTournamentMatch('GUILD-01')">Queue GUILD-01 Squad</button>
+        <button class="btn" onclick="runGuildTournamentMatch('GUILD-02')">Queue GUILD-02 Squad</button>
+        <button class="btn" onclick="runGuildTournamentMatch('GUILD-03')">Queue GUILD-03 Squad</button>
+      </div>
     </div>
   </div>
 
@@ -644,11 +673,93 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         setTimeout(connectSwarmTelemetry, 3000);
       }};
     }}
+
+    // ---- Season 5 Missions 17-20 + cross-guild Co-Op tournament (HM-S5-04) ----
+    let SEASON5_MISSIONS = [];
+    let GUILD_TOURNAMENT = null;
+
+    async function loadSeason5Missions() {{
+      const term = document.getElementById('season5-terminal');
+      if (!term) return;
+      try {{
+        const resp = await fetch('/api/season5-missions');
+        if (!resp.ok) throw new Error('offline');
+        const res = await resp.json();
+        SEASON5_MISSIONS = res.contracts || [];
+        const ids = res.missions || [];
+        term.textContent =
+          `[SEASON 5 BOUNTY CONTRACTS] ${{ids.length}} missions loaded (pool: ${{res.bounty_pool_hive}} $HIVE)\\n` +
+          ids.map((id, i) => `  [${{i + 17}}] ${{id}}`).join('\\n');
+        if (SEASON5_MISSIONS.length) selectSeason5Mission(0);
+      }} catch (e) {{
+        term.textContent =
+          `[SEASON 5 OFFLINE MODE] Missions 17-20 unavailable (HUD opened from file:// or server offline).\\n` +
+          `  [17] CONTRACT-HF-17-CUDA-ROCM-PTX-OPT | [18] CONTRACT-HF-18-LEAN4-AUTOFORMALIZE\\n` +
+          `  [19] CONTRACT-HF-19-PROTEIN-STRUCTURE-PRED | [20] CONTRACT-HF-20-AUTONOMOUS-SWE-PATCH`;
+      }}
+    }}
+
+    function selectSeason5Mission(idx) {{
+      const m = SEASON5_MISSIONS[idx];
+      if (!m) return;
+      const term = document.getElementById('season5-terminal');
+      term.textContent =
+        `[SEASON 5 CONTRACT] ${{m.contract_id}} // ${{m.mission_codename}}\\n` +
+        `[HF DATASET NODE] ${{m.dataset_id}} -> Expert: ${{m.domain_expert}}\\n` +
+        `[DIFFICULTY] ${{'*'.repeat(m.difficulty_skulls || 5)}} | [BASE BOUNTY] ${{m.base_bounty_pts}} PTS\\n` +
+        `[GUILD WARS] This mission feeds the multi-domain holdout of the cross-guild tournament (raid arcs on the 3D globe).`;
+    }}
+
+    function renderGuildTournament(t) {{
+      const term = document.getElementById('guild-tournament-terminal');
+      if (!term || !t) return;
+      const standings = (t.standings || []).map(s =>
+        `  #${{s.rank}} ${{s.guild_id}} - ${{s.total_points}} PTS | PPL ${{s.multi_domain_holdout_perplexity}} | ${{s.speculative_tokens_per_sec}} tok/s`).join('\\n');
+      const matches = (t.matches || []).map(m =>
+        `  ${{m.match_id}} -> winner ${{m.winner_guild}} (raid arc ${{m.raid_arc_id}})`).join('\\n');
+      term.textContent =
+        `[GUILD WARS TOURNAMENT] ${{t.tournament_id}} | ${{t.num_guilds}} guilds | ${{t.num_matches}} matches | ${{t.num_raid_arcs}} live raid arcs\\n` +
+        `[CHAMPION] ${{t.champion_guild_id}} | [POOL] ${{t.bounty_pool_hive}} $HIVE | [BADGE] ${{t.badge}}\\n` +
+        `[STANDINGS]\\n${{standings}}\\n[MATCHMAKING]\\n${{matches}}`;
+    }}
+
+    async function loadGuildTournament() {{
+      const term = document.getElementById('guild-tournament-terminal');
+      if (!term) return;
+      try {{
+        const resp = await fetch('/api/guild-tournament');
+        if (!resp.ok) throw new Error('offline');
+        GUILD_TOURNAMENT = await resp.json();
+        renderGuildTournament(GUILD_TOURNAMENT);
+      }} catch (e) {{
+        term.textContent = '[GUILD WARS OFFLINE] /api/guild-tournament unavailable (HUD opened from file:// or server offline).';
+      }}
+    }}
+
+    async function runGuildTournamentMatch(guildId) {{
+      const term = document.getElementById('guild-tournament-terminal');
+      const gamer = document.getElementById('scan-gamer') ? document.getElementById('scan-gamer').value : 'CyberValkyrie_FR';
+      term.textContent = `[QUEUEING ${{guildId}} SQUAD] Running cross-guild matchmaking...`;
+      try {{
+        const resp = await fetch('/api/guild-tournament', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ guild_id: guildId, gamer_tag: gamer }})
+        }});
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        GUILD_TOURNAMENT = await resp.json();
+        renderGuildTournament(GUILD_TOURNAMENT);
+      }} catch (e) {{
+        term.textContent = `[GUILD WARS MATCHMAKING FAILED] ${{guildId}}: ${{e}}`;
+      }}
+    }}
     renderLeaderboard();
     selectMission(0);
     renderMoE();
     loadSeason4Missions();
     connectSwarmTelemetry();
+    loadSeason5Missions();
+    loadGuildTournament();
   </script>
 </body>
 </html>
@@ -697,6 +808,20 @@ def _generate_free_steam_readme_md(game_report: Dict[str, Any]) -> str:
   4. `CONTRACT-HF-04-RUST-SYSTEMS` — `anon/rust-code-instructions` (`Rust_Systems_Security`)
   5. `CONTRACT-HF-05-CYBERSEC-AUDIT` — `CyberNative/Code_Vulnerability_Security_DPO` (`CyberSecurity_Vulnerability_Recon`)
   6. `CONTRACT-HF-06-MULTILINGUAL-FR` — `CohereForAI/aya_collection` (`Multilingual_FR_Synthesis`)
+
+---
+
+## 2.1 Season 5 Guild Wars (`HM-S5-04`): Missions 17-20 & Cross-Guild Tournament
+
+- **Season 5 Frontier Missions (`--season 5`, catalog: `GET /api/season5-missions`):**
+  17. `CONTRACT-HF-17-CUDA-ROCM-PTX-OPT` — `hivemind/cuda-rocm-ptx-kernels` (`CUDA_ROCm_PTX_Optimizer`)
+  18. `CONTRACT-HF-18-LEAN4-AUTOFORMALIZE` — `hivemind/lean4-mathlib-autoformalizer` (`Lean4_Mathlib_Autoformalizer`)
+  19. `CONTRACT-HF-19-PROTEIN-STRUCTURE-PRED` — `hivemind/protein-structure-predictor` (`Biomolecular_Protein_Structure`)
+  20. `CONTRACT-HF-20-AUTONOMOUS-SWE-PATCH` — `hivemind/autonomous-swe-patches` (`Autonomous_SWE_Patch_Synthesizer`)
+- **Cross-Guild Co-Op Tournament (`GET`/`POST /api/guild-tournament`):** the `GUILD-01`, `GUILD-02` and `GUILD-03`
+  squads are matched round-robin on their **multi-domain holdout perplexity** and **speculative tokens/sec**.
+  Every settled match spawns a **live animated raid arc** between the two guild home nodes on the 3D WebGL
+  Geo-Ring globe (`data-raid-arcs` on the HUD panel). The season badge is `HF_COOP_RAID_COMMANDER`.
 
 ---
 
@@ -905,7 +1030,7 @@ pause
 def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> Any:
     """Create a FastAPI server serving the Interactive Cyberpunk Hack-Miner HUD and Live REST API."""
     import torch
-    from fastapi import Body, FastAPI, WebSocket
+    from fastapi import Body, FastAPI, HTTPException, WebSocket
     import hivemind.game.steam_edition as _steam_mod
 
     _steam_mod.WebSocket = WebSocket
@@ -914,8 +1039,10 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     from hivemind.config import HiveMindConfig, detect_local_hardware
     from hivemind.core.quantization import measure_vram_footprint
     from hivemind.game.hf_hack_miner import (
+        GuildTournamentEngine,
         build_georing_3d_topology_snapshot,
         build_season4_mission_catalog,
+        build_season5_mission_catalog,
         build_swarm_telemetry_frame,
         execute_interactive_bounty_probe,
         execute_interactive_hf_shard_scan,
@@ -933,6 +1060,9 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         title="HiveMind: Neural Breach — Free Steam RTX Tool & HUD (v1.0.0)",
         version="1.0.0",
     )
+
+    # Season 5 (`HM-S5-04`) cross-guild Co-Op tournament state (one per HUD server).
+    tournament_engine = GuildTournamentEngine()
 
     @app.get("/", response_class=HTMLResponse)
     def index() -> str:
@@ -978,6 +1108,49 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
             "bounty_pool_hive": catalog["bounty_pool_hive"],
             "telemetry_endpoint": catalog["telemetry_endpoint"],
         }
+
+    @app.get("/api/season5-missions", response_class=JSONResponse)
+    def get_season5_missions() -> Dict[str, Any]:
+        """Serve the Season 5 Hack-Miner campaign catalog (Missions 17-20)."""
+        catalog = build_season5_mission_catalog()
+        return {
+            "steam_app_id": STEAM_APP_ID,
+            "season": 5,
+            "num_missions": catalog["num_missions"],
+            "missions": catalog["mission_ids"],
+            "mission_ids": catalog["mission_ids"],
+            "contracts": catalog["contracts"],
+            "mission_details": catalog["missions"],
+            "season5_missions": catalog["missions"],
+            "total_bounty_pts": catalog["total_bounty_pts"],
+            "bounty_pool_hive": catalog["bounty_pool_hive"],
+            "telemetry_endpoint": catalog["telemetry_endpoint"],
+            "guild_tournament_endpoint": catalog["guild_tournament_endpoint"],
+        }
+
+    @app.get("/api/guild-tournament", response_class=JSONResponse)
+    def get_guild_tournament() -> Dict[str, Any]:
+        """Serve the live cross-guild Co-Op tournament & WebGL raid-arc geometry."""
+        state = tournament_engine.build_state()
+        state["steam_app_id"] = STEAM_APP_ID
+        return state
+
+    @app.post("/api/guild-tournament", response_class=JSONResponse)
+    def post_guild_tournament(payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
+        """Register a guild squad's self-reported metrics and re-run the matchmaking."""
+        try:
+            state = tournament_engine.register_squad_update(
+                guild_id=str(payload.get("guild_id", "")),
+                multi_domain_holdout_perplexity=payload.get("multi_domain_holdout_perplexity"),
+                speculative_tokens_per_sec=payload.get("speculative_tokens_per_sec"),
+                gamer_tag=payload.get("gamer_tag"),
+            )
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid tournament payload: {exc}")
+        state["steam_app_id"] = STEAM_APP_ID
+        return state
 
     def _build_telemetry_frame(seq: int) -> Dict[str, Any]:
         """Build a live `/ws/swarm-telemetry` frame enriched with the current leaderboard state."""

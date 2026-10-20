@@ -224,7 +224,7 @@
     </div>
 
 
-    <div class="card" id="webgl-georing-map" style="grid-column: 1 / -1;" data-nodes="0" data-arcs="0" data-frames="0" data-errors="0" data-webgl="pending" data-yaw="0">
+    <div class="card" id="webgl-georing-map" style="grid-column: 1 / -1;" data-nodes="0" data-arcs="0" data-frames="0" data-errors="0" data-webgl="pending" data-yaw="0" data-raid-arcs="0">
       <h2>SEASON 3 INTERACTIVE WEBGL 3D GEO-RING TOPOLOGY MAP &amp; MISSIONS (9-12)</h2>
       <div id="georing-stage" style="position:relative;">
         <canvas id="webgl-georing-canvas" width="920" height="360" style="display:block; width:100%; height:360px; background:#050811; border:1px solid #00f0ff; border-radius:6px; cursor:grab; touch-action:none;"></canvas>
@@ -253,7 +253,7 @@
       });
     }
   }
-  var stats = { nodes: 0, arcs: 0, frames: 0, errors: 0, webgl: 'pending' };
+  var stats = { nodes: 0, arcs: 0, frames: 0, errors: 0, webgl: 'pending', raidArcs: 0 };
   var yaw = 0.6, pitch = 0.35, dist = 3.4;
   window.__georingStats = stats;
   var qy = /[?&]georing_yaw=(-?[0-9.]+)/.exec(location.search);
@@ -265,6 +265,7 @@
     panel.setAttribute('data-errors', stats.errors);
     panel.setAttribute('data-webgl', stats.webgl);
     panel.setAttribute('data-yaw', yaw.toFixed(4));
+    panel.setAttribute('data-raid-arcs', stats.raidArcs);
     var r = canvas.getBoundingClientRect();
     panel.setAttribute('data-canvas-rect', [r.left + window.scrollX, r.top + window.scrollY, r.width, r.height].map(Math.round).join(','));
   }
@@ -341,6 +342,101 @@
   var hover = -1, pinned = -1, mouse = null, peers = [], arcs = [];
   var batches = { grid: null, arcs: null, pts: null };
   var lastT = 0, telemetry = null;
+
+  // ---- Season 5 (HM-S5-04): live animated cross-guild raid arcs ----
+  var GUILD_COLORS = {
+    'GUILD-01': [1.00, 0.30, 0.52],
+    'GUILD-02': [0.30, 0.85, 1.00],
+    'GUILD-03': [0.45, 1.00, 0.45]
+  };
+  var raidArcs = [], raidNodes = [], tournament = null;
+  var raidBatch = null, raidHeadBatch = null, raidNodeBatch = null;
+
+  function guildColor(gid) {
+    if (GUILD_COLORS[gid]) return GUILD_COLORS[gid];
+    var h = 0, s = String(gid || '');
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return [
+      0.55 + 0.45 * Math.abs(Math.sin(h * Math.PI / 180)),
+      0.55 + 0.45 * Math.abs(Math.sin((h + 120) * Math.PI / 180)),
+      0.55 + 0.45 * Math.abs(Math.sin((h + 240) * Math.PI / 180))
+    ];
+  }
+
+  function rebuildRaidArcs(t) {
+    raidArcs = [];
+    raidNodes = [];
+    if (!t) { stats.raidArcs = 0; return; }
+    (t.guilds || []).forEach(function (g) {
+      if (!isFinite(Number(g.lat)) || !isFinite(Number(g.lon))) return;
+      raidNodes.push({
+        id: g.guild_id, guild_id: g.guild_id, rank: g.rank,
+        pos: llToXyz(Number(g.lat), Number(g.lon), 1.0), color: guildColor(g.guild_id)
+      });
+    });
+    (t.raid_arcs || []).forEach(function (a) {
+      var pts = null;
+      if (a.points && a.points.length > 1) {
+        pts = a.points.map(function (p) { return [Number(p[0]), Number(p[1]), Number(p[2])]; });
+      } else if (isFinite(Number(a.source_lat)) && isFinite(Number(a.target_lat))) {
+        pts = arcPoints(
+          llToXyz(Number(a.source_lat), Number(a.source_lon), 1.0),
+          llToXyz(Number(a.target_lat), Number(a.target_lon), 1.0),
+          isFinite(Number(a.lift)) ? Number(a.lift) : 0.32,
+          isFinite(Number(a.steps)) ? Number(a.steps) : 40);
+      }
+      if (!pts) return;
+      raidArcs.push({
+        id: a.arc_id, pts: pts, color: a.color || guildColor(a.source_guild),
+        intensity: isFinite(Number(a.intensity)) ? Number(a.intensity) : 0.5,
+        phase: isFinite(Number(a.phase)) ? Number(a.phase) : 0,
+        source: a.source_guild, target: a.target_guild
+      });
+    });
+    stats.raidArcs = raidArcs.length;
+    buildRaidNodeBatch();
+  }
+
+  function buildRaidNodeBatch() {
+    if (!gl) return;
+    var d = [];
+    raidNodes.forEach(function (n) {
+      pushV(d, n.pos, n.color, 0.28, 30);
+      pushV(d, n.pos, n.color, 1.0, 14);
+      pushV(d, n.pos, [1, 1, 1], 0.85, 5);
+    });
+    if (!raidNodeBatch) raidNodeBatch = { buf: gl.createBuffer(), count: 0 };
+    gl.bindBuffer(gl.ARRAY_BUFFER, raidNodeBatch.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.STATIC_DRAW);
+    raidNodeBatch.count = d.length / 8;
+  }
+
+  function updateRaidBatch(now) {
+    if (!gl) return;
+    var d = [], ranges = [], heads = [];
+    raidArcs.forEach(function (a) {
+      var pulse = 0.35 + 0.65 * Math.abs(Math.sin(now * 1.7 + a.phase));
+      var alpha = (0.30 + 0.70 * a.intensity) * pulse;
+      var start = d.length / 8;
+      a.pts.forEach(function (p) { pushV(d, p, a.color, alpha, 1); });
+      ranges.push([start, a.pts.length]);
+      var u = (now * 0.22 + a.phase * 0.37) % 1;
+      var idx = u * (a.pts.length - 1);
+      var i0 = Math.floor(idx), i1 = Math.min(a.pts.length - 1, i0 + 1), f = idx - i0;
+      var p0 = a.pts[i0], p1 = a.pts[i1];
+      var hp = [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f, p0[2] + (p1[2] - p0[2]) * f];
+      pushV(heads, hp, [1, 1, 1], 0.95, 11);
+      pushV(heads, hp, a.color, 0.60, 20);
+    });
+    if (!raidBatch) raidBatch = { buf: gl.createBuffer(), ranges: [] };
+    gl.bindBuffer(gl.ARRAY_BUFFER, raidBatch.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.DYNAMIC_DRAW);
+    raidBatch.ranges = ranges;
+    if (!raidHeadBatch) raidHeadBatch = { buf: gl.createBuffer(), count: 0 };
+    gl.bindBuffer(gl.ARRAY_BUFFER, raidHeadBatch.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(heads), gl.DYNAMIC_DRAW);
+    raidHeadBatch.count = heads.length / 8;
+  }
 
   function initGL() {
     var opts = { antialias: true, alpha: false };
@@ -492,6 +588,24 @@
         bind(batches.pts);
         gl.drawArrays(gl.POINTS, 0, peers.length * 3);
       }
+      if (raidArcs.length) {
+        updateRaidBatch(t / 1000);
+        if (raidBatch) {
+          gl.uniform1f(loc.uRound, 0);
+          bind(raidBatch);
+          raidBatch.ranges.forEach(function (r) { gl.drawArrays(gl.LINE_STRIP, r[0], r[1]); });
+        }
+        if (raidNodeBatch && raidNodeBatch.count) {
+          gl.uniform1f(loc.uRound, 1);
+          bind(raidNodeBatch);
+          gl.drawArrays(gl.POINTS, 0, raidNodeBatch.count);
+        }
+        if (raidHeadBatch && raidHeadBatch.count) {
+          gl.uniform1f(loc.uRound, 1);
+          bind(raidHeadBatch);
+          gl.drawArrays(gl.POINTS, 0, raidHeadBatch.count);
+        }
+      }
       updateLabel(M);
       stats.frames++;
     } catch (e) { fail('render: ' + e.message); return; }
@@ -554,6 +668,7 @@
     var s = '[WEBGL 3D GEO-RING ' + stats.webgl.toUpperCase() + '] ' + stats.nodes + ' peers / ' + stats.arcs +
       ' arcs. Drag to orbit, wheel to zoom, hover or click a peer.';
     if (telemetry) s += ' | live telemetry frame #' + telemetry.seq;
+    if (stats.raidArcs) s += ' | ' + stats.raidArcs + ' live guild raid arc(s)';
     term.textContent = s;
   }
   function load() {
@@ -562,6 +677,17 @@
       return r.json();
     }).then(function (topo) { rebuild(topo); status(); publish(); })
       .catch(function (e) { fail('topology fetch failed: ' + e.message); });
+  }
+  function loadTournament() {
+    fetch('/api/guild-tournament', { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (t) {
+      tournament = t;
+      rebuildRaidArcs(t);
+      status();
+      publish();
+    }).catch(function (e) { /* offline HUD: keep the last raid-arc snapshot */ });
   }
   function ws() {
     if (!window.WebSocket || location.protocol === 'file:') return;
@@ -584,7 +710,7 @@
     }
     batches.grid = buildGrid();
     events(); resize();
-    load(); setInterval(load, 2000); ws();
+    load(); setInterval(load, 2000); loadTournament(); setInterval(loadTournament, 2000); ws();
     requestAnimationFrame(frame);
   } catch (e) {
     stats.webgl = 'error';
@@ -597,7 +723,6 @@
 </script>
 
 
-<<<<<<< HEAD
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">
       <h2>SCIENTIFIC SWARM KNOWLEDGE TRANSFER, JOINED CO-OP CAMPAIGNS &amp; DUAL LEADERBOARD (BEST MINER + BEST CONTRIBUTOR)</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
@@ -610,7 +735,8 @@
         <button class="btn" onclick="runJoinedCampaign('CAMPAIGN-COOP-04-SUPERRING-EXPRESS')">Launch Co-Op 04: Global Super-Ring Express (5.4x RTT)</button>
       </div>
       <div class="terminal" id="joined-campaign-terminal">[SCIENTIFIC SWARM READY] Click any Joined Co-Op Campaign above to execute live peer knowledge transfer across CyberValkyrie_FR, NeuralGhost_DE, ZeroCool_UK &amp; SakuraNode_JP and update the Best Miner + Best Contributor Dual Leaderboard.</div>
-=======
+    </div>
+
     <div class="card" id="season4-missions-panel" style="grid-column: 1 / -1;">
       <h2>SEASON 4 HACK-MINER CAMPAIGN (MISSIONS 13-16) &amp; LIVE <code>/ws/swarm-telemetry</code> WEBSOCKET</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
@@ -626,7 +752,36 @@
       </div>
       <div class="terminal" id="season4-terminal">[SEASON 4] Loading bounty contracts 13-16 from /api/season4-missions...</div>
       <div class="terminal" id="swarm-telemetry-terminal">[WS] Connecting to /ws/swarm-telemetry ...</div>
->>>>>>> pr-36
+    </div>
+
+    <div class="card" id="season5-missions-panel" style="grid-column: 1 / -1;">
+      <h2>SEASON 5 HACK-MINER CAMPAIGN (MISSIONS 17-20)</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Season 5 frontier bounty contracts (<code>CUDA/ROCm PTX Kernel Optimizer</code>,
+        <code>Lean 4 Mathlib Autoformalizer</code>, <code>Biomolecular Protein Structure Predictor</code>,
+        <code>Autonomous SWE Patch Synthesizer</code>) that feed the cross-guild Co-Op tournament:
+      </p>
+      <div id="season5-mission-buttons">
+        <button class="btn" onclick="selectSeason5Mission(0)">S5 M17: CUDA/ROCm PTX</button>
+        <button class="btn" onclick="selectSeason5Mission(1)">S5 M18: Lean 4 Autoformalizer</button>
+        <button class="btn" onclick="selectSeason5Mission(2)">S5 M19: Protein Structure</button>
+        <button class="btn btn-cyan" onclick="selectSeason5Mission(3)">S5 M20: Autonomous SWE</button>
+      </div>
+      <div class="terminal" id="season5-terminal">[SEASON 5] Loading bounty contracts 17-20 from /api/season5-missions...</div>
+    </div>
+
+    <div class="card" id="guild-tournament-panel" style="grid-column: 1 / -1;">
+      <h2>GUILD WARS CO-OP TOURNAMENT (GUILD-01 / GUILD-02 / GUILD-03) &amp; LIVE 3D WEBGL RAID ARCS</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Cross-guild matchmaking on multi-domain holdout perplexity and speculative tokens/sec. Every settled
+        match spawns an animated raid arc between the two guild home nodes on the 3D WebGL Geo-Ring globe:
+      </p>
+      <div class="terminal" id="guild-tournament-terminal">[GUILD WARS] Loading cross-guild tournament from /api/guild-tournament ...</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <button class="btn btn-cyan" onclick="runGuildTournamentMatch('GUILD-01')">Queue GUILD-01 Squad</button>
+        <button class="btn" onclick="runGuildTournamentMatch('GUILD-02')">Queue GUILD-02 Squad</button>
+        <button class="btn" onclick="runGuildTournamentMatch('GUILD-03')">Queue GUILD-03 Squad</button>
+      </div>
     </div>
   </div>
 
@@ -3019,11 +3174,93 @@
         setTimeout(connectSwarmTelemetry, 3000);
       };
     }
+
+    // ---- Season 5 Missions 17-20 + cross-guild Co-Op tournament (HM-S5-04) ----
+    let SEASON5_MISSIONS = [];
+    let GUILD_TOURNAMENT = null;
+
+    async function loadSeason5Missions() {
+      const term = document.getElementById('season5-terminal');
+      if (!term) return;
+      try {
+        const resp = await fetch('/api/season5-missions');
+        if (!resp.ok) throw new Error('offline');
+        const res = await resp.json();
+        SEASON5_MISSIONS = res.contracts || [];
+        const ids = res.missions || [];
+        term.textContent =
+          `[SEASON 5 BOUNTY CONTRACTS] ${ids.length} missions loaded (pool: ${res.bounty_pool_hive} $HIVE)\n` +
+          ids.map((id, i) => `  [${i + 17}] ${id}`).join('\n');
+        if (SEASON5_MISSIONS.length) selectSeason5Mission(0);
+      } catch (e) {
+        term.textContent =
+          `[SEASON 5 OFFLINE MODE] Missions 17-20 unavailable (HUD opened from file:// or server offline).\n` +
+          `  [17] CONTRACT-HF-17-CUDA-ROCM-PTX-OPT | [18] CONTRACT-HF-18-LEAN4-AUTOFORMALIZE\n` +
+          `  [19] CONTRACT-HF-19-PROTEIN-STRUCTURE-PRED | [20] CONTRACT-HF-20-AUTONOMOUS-SWE-PATCH`;
+      }
+    }
+
+    function selectSeason5Mission(idx) {
+      const m = SEASON5_MISSIONS[idx];
+      if (!m) return;
+      const term = document.getElementById('season5-terminal');
+      term.textContent =
+        `[SEASON 5 CONTRACT] ${m.contract_id} // ${m.mission_codename}\n` +
+        `[HF DATASET NODE] ${m.dataset_id} -> Expert: ${m.domain_expert}\n` +
+        `[DIFFICULTY] ${'*'.repeat(m.difficulty_skulls || 5)} | [BASE BOUNTY] ${m.base_bounty_pts} PTS\n` +
+        `[GUILD WARS] This mission feeds the multi-domain holdout of the cross-guild tournament (raid arcs on the 3D globe).`;
+    }
+
+    function renderGuildTournament(t) {
+      const term = document.getElementById('guild-tournament-terminal');
+      if (!term || !t) return;
+      const standings = (t.standings || []).map(s =>
+        `  #${s.rank} ${s.guild_id} - ${s.total_points} PTS | PPL ${s.multi_domain_holdout_perplexity} | ${s.speculative_tokens_per_sec} tok/s`).join('\n');
+      const matches = (t.matches || []).map(m =>
+        `  ${m.match_id} -> winner ${m.winner_guild} (raid arc ${m.raid_arc_id})`).join('\n');
+      term.textContent =
+        `[GUILD WARS TOURNAMENT] ${t.tournament_id} | ${t.num_guilds} guilds | ${t.num_matches} matches | ${t.num_raid_arcs} live raid arcs\n` +
+        `[CHAMPION] ${t.champion_guild_id} | [POOL] ${t.bounty_pool_hive} $HIVE | [BADGE] ${t.badge}\n` +
+        `[STANDINGS]\n${standings}\n[MATCHMAKING]\n${matches}`;
+    }
+
+    async function loadGuildTournament() {
+      const term = document.getElementById('guild-tournament-terminal');
+      if (!term) return;
+      try {
+        const resp = await fetch('/api/guild-tournament');
+        if (!resp.ok) throw new Error('offline');
+        GUILD_TOURNAMENT = await resp.json();
+        renderGuildTournament(GUILD_TOURNAMENT);
+      } catch (e) {
+        term.textContent = '[GUILD WARS OFFLINE] /api/guild-tournament unavailable (HUD opened from file:// or server offline).';
+      }
+    }
+
+    async function runGuildTournamentMatch(guildId) {
+      const term = document.getElementById('guild-tournament-terminal');
+      const gamer = document.getElementById('scan-gamer') ? document.getElementById('scan-gamer').value : 'CyberValkyrie_FR';
+      term.textContent = `[QUEUEING ${guildId} SQUAD] Running cross-guild matchmaking...`;
+      try {
+        const resp = await fetch('/api/guild-tournament', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ guild_id: guildId, gamer_tag: gamer })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        GUILD_TOURNAMENT = await resp.json();
+        renderGuildTournament(GUILD_TOURNAMENT);
+      } catch (e) {
+        term.textContent = `[GUILD WARS MATCHMAKING FAILED] ${guildId}: ${e}`;
+      }
+    }
     renderLeaderboard();
     selectMission(0);
     renderMoE();
     loadSeason4Missions();
     connectSwarmTelemetry();
+    loadSeason5Missions();
+    loadGuildTournament();
   </script>
 </body>
 </html>

@@ -20,6 +20,7 @@ import gc
 import json
 import math
 import os
+import re
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -63,6 +64,12 @@ from hivemind.core.quantization import (
     measure_vram_footprint,
     resolve_compute_dtype,
     stream_load_hf_causal_lm,
+)
+from hivemind.game.georing_webgl import (
+    GUILD_RAID_ARC_LIFT,
+    GUILD_RAID_ARC_STEPS,
+    build_guild_raid_arc_geometry,
+    guild_raid_arc_color,
 )
 from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
 from hivemind.swarm.inference_ring import RegionalDHTSwarmRing, SwarmPeerNode
@@ -126,6 +133,10 @@ STEAM_ACHIEVEMENTS_CATALOG: Dict[str, Dict[str, str]] = {
         "title": "Omega 6-Expert MoE Conqueror (gamma=6)",
         "description": "Hot-plug all 6 Season 1 + Season 2 Hugging Face LoRA Experts (E=2 -> E=6) with 2-Slot Pinned RAM DMA and clear the Omega Boss Raid.",
     },
+    "HF_COOP_RAID_COMMANDER": {
+        "title": "Guild Wars Co-Op Raid Commander (Season 5)",
+        "description": "Forge a Season 5 frontier mission (Missions 17-20) and lead a GUILD-01/02/03 Co-Op squad through the cross-guild tournament raid arcs.",
+    },
 }
 
 
@@ -185,6 +196,7 @@ class GamerMinerProfile:
     bounties_solved: int = 0
     boss_raids_cleared: int = 0
     swarm_tokens_served: int = 0
+    season5_missions_forged: int = 0
     best_loss_reduction_pct: float = 0.0
     rank_title: str = "Rank I: Script Kiddie"
     steam_sybil_verified: bool = True
@@ -231,6 +243,11 @@ class GamerMinerProfile:
             and "OMEGA_6_EXPERT_SLAYER" not in self.achievements_unlocked
         ):
             self.achievements_unlocked.append("OMEGA_6_EXPERT_SLAYER")
+        if (
+            self.season5_missions_forged >= 1
+            and "HF_COOP_RAID_COMMANDER" not in self.achievements_unlocked
+        ):
+            self.achievements_unlocked.append("HF_COOP_RAID_COMMANDER")
         if is_top_miner and "TOP_1_APEX_MINER" not in self.achievements_unlocked:
             self.achievements_unlocked.append("TOP_1_APEX_MINER")
 
@@ -724,11 +741,744 @@ def build_season4_mission_catalog() -> Dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Season 5 (`HM-S5-04`): the four frontier Hack-Miner missions 17-20
+# ---------------------------------------------------------------------------
+SEASON_5_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-17-CUDA-ROCM-PTX-OPT",
+        mission_codename="Mission 17: CUDA/ROCm PTX Kernel Optimizer",
+        dataset_id="hivemind/cuda-rocm-ptx-kernels",
+        domain_expert="CUDA_ROCm_PTX_Optimizer",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 5 Kernel Task:\nRewrite the fused QLoRA GEMM epilogue in portable PTX and "
+            "report the achieved occupancy and register footprint on both CUDA and ROCm.\n"
+            "### Verified PTX Kernel:\n"
+        ),
+        reference_solution=(
+            "def optimize_ptx_kernel(kernel):\n"
+            "    return {'occupancy': 0.875, 'registers_per_thread': 32, "
+            "'speedup_vs_cublas': 1.42, 'backends': ['cuda', 'rocm']}"
+        ),
+        target_keywords=["ptx", "rocm", "cuda", "occupancy", "registers", "def", "return"],
+        base_bounty_pts=2200,
+        season=5,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-18-LEAN4-AUTOFORMALIZE",
+        mission_codename="Mission 18: Lean 4 Mathlib Autoformalizer",
+        dataset_id="hivemind/lean4-mathlib-autoformalizer",
+        domain_expert="Lean4_Mathlib_Autoformalizer",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 5 Formalization Task:\nAutoformalize the Mathlib-style statement into Lean 4 "
+            "and report the number of `sorry` axioms left in the compiled proof.\n"
+            "### Autoformalized Proof:\n"
+        ),
+        reference_solution=(
+            "def autoformalize_mathlib(statement):\n"
+            "    return {'lean4_proof': 'theorem guild_wars : 2 + 2 = 4 := by norm_num', "
+            "'sorry_axioms': 0, 'compile_ms': 412}"
+        ),
+        target_keywords=["lean4", "mathlib", "sorry", "axioms", "theorem", "def", "return"],
+        base_bounty_pts=2300,
+        season=5,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-19-PROTEIN-STRUCTURE-PRED",
+        mission_codename="Mission 19: Biomolecular Protein Structure Predictor",
+        dataset_id="hivemind/protein-structure-predictor",
+        domain_expert="Biomolecular_Protein_Structure",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 5 Structural Biology Task:\nPredict the tertiary fold of the target protein "
+            "from its sequence and report the residue-level RMSD against the crystal structure.\n"
+            "### Verified Fold:\n"
+        ),
+        reference_solution=(
+            "def predict_protein_structure(sequence):\n"
+            "    return {'rmsd_angstrom': 1.84, 'plddt': 92.4, "
+            "'secondary_structure': 'alpha_helix_beta_sheet'}"
+        ),
+        target_keywords=["protein", "fold", "rmsd", "plddt", "structure", "def", "return"],
+        base_bounty_pts=2400,
+        season=5,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-20-AUTONOMOUS-SWE-PATCH",
+        mission_codename="Mission 20: Autonomous SWE Patch Synthesizer",
+        dataset_id="hivemind/autonomous-swe-patches",
+        domain_expert="Autonomous_SWE_Patch_Synthesizer",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 5 Software-Engineering Task:\nSynthesize the SWE-bench patch that fixes the "
+            "reported issue and report the fraction of held-out tests that now pass.\n"
+            "### Verified Patch:\n"
+        ),
+        reference_solution=(
+            "def synthesize_swe_patch(issue):\n"
+            "    return {'patch_applied': True, 'tests_passed_pct': 96.4, "
+            "'files_changed': 2, 'review_score': 0.91}"
+        ),
+        target_keywords=["patch", "swe", "tests", "issue", "files", "def", "return"],
+        base_bounty_pts=2500,
+        season=5,
+    ),
+]
+
+SEASON_5_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + SEASON_5_HF_BOUNTY_CONTRACTS
+)
+SEASON_5_EXTENDED_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_5_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + BONUS_S3_FORMAL_CONTRACTS
+)
+
+# Season 5 bounty pool (paid per completed HM-S5-04 milestone).
+SEASON_5_BOUNTY_POOL_HIVE = 2500.0
+
+# Curated, offline Season 5 corpora so Missions 17-20 remain playable without network access.
+SEASON_5_OFFLINE_CURATED_CORPUS: Dict[str, List[str]] = {
+    "hivemind/cuda-rocm-ptx-kernels": [
+        "### Season 5 Kernel Task:\nRewrite the fused QLoRA GEMM epilogue in portable PTX and "
+        "report the achieved occupancy and register footprint on both CUDA and ROCm.\n"
+        "### Verified PTX Kernel:\n"
+        "def optimize_ptx_kernel(kernel):\n"
+        "    return {'occupancy': 0.875, 'registers_per_thread': 32, "
+        "'speedup_vs_cublas': 1.42, 'backends': ['cuda', 'rocm']}",
+        "### Season 5 Kernel Task:\nFuse the INT4 dequant epilogue with the FP8 GEMM stage and "
+        "keep the shared-memory footprint under 48 KB.\n"
+        "### Verified PTX Kernel:\n"
+        "def optimize_ptx_kernel(kernel):\n"
+        "    return {'occupancy': 0.812, 'shared_memory_kb': 48, 'registers_per_thread': 40, "
+        "'backends': ['cuda', 'rocm']}",
+        "### Season 5 Kernel Task:\nAutotune the ROCm wavefront size for the 2070-class GPU and "
+        "report the achieved tokens/sec.\n"
+        "### Verified PTX Kernel:\n"
+        "def optimize_ptx_kernel(kernel):\n"
+        "    return {'occupancy': 0.844, 'wavefront': 64, 'tokens_per_sec': 512.7, "
+        "'backends': ['rocm']}",
+    ],
+    "hivemind/lean4-mathlib-autoformalizer": [
+        "### Season 5 Formalization Task:\nAutoformalize the Mathlib-style statement into Lean 4 "
+        "and report the number of `sorry` axioms left in the compiled proof.\n"
+        "### Autoformalized Proof:\n"
+        "def autoformalize_mathlib(statement):\n"
+        "    return {'lean4_proof': 'theorem guild_wars : 2 + 2 = 4 := by norm_num', "
+        "'sorry_axioms': 0, 'compile_ms': 412}",
+        "### Season 5 Formalization Task:\nAutoformalize the streaming consensus bound and prove it "
+        "without circular hypotheses.\n"
+        "### Autoformalized Proof:\n"
+        "def autoformalize_mathlib(statement):\n"
+        "    return {'lean4_proof': 'theorem stream_bound : p 0 <= 1 := by positivity', "
+        "'sorry_axioms': 0, 'compile_ms': 508}",
+        "### Season 5 Formalization Task:\nAutoformalize the guild synergy conservation law and "
+        "report the surviving axioms.\n"
+        "### Autoformalized Proof:\n"
+        "def autoformalize_mathlib(statement):\n"
+        "    return {'lean4_proof': 'theorem synergy : a + b = b + a := by ring', "
+        "'sorry_axioms': 1, 'compile_ms': 733}",
+    ],
+    "hivemind/protein-structure-predictor": [
+        "### Season 5 Structural Biology Task:\nPredict the tertiary fold of the target protein "
+        "from its sequence and report the residue-level RMSD against the crystal structure.\n"
+        "### Verified Fold:\n"
+        "def predict_protein_structure(sequence):\n"
+        "    return {'rmsd_angstrom': 1.84, 'plddt': 92.4, "
+        "'secondary_structure': 'alpha_helix_beta_sheet'}",
+        "### Season 5 Structural Biology Task:\nRank the candidate binders of the target enzyme and "
+        "report the docking score of the winner.\n"
+        "### Verified Fold:\n"
+        "def predict_protein_structure(sequence):\n"
+        "    return {'rmsd_angstrom': 2.11, 'plddt': 88.9, 'docking_score': -9.84, "
+        "'secondary_structure': 'beta_sheet'}",
+        "### Season 5 Structural Biology Task:\nResolve the flexible loop of the target protein "
+        "and report the ensemble confidence.\n"
+        "### Verified Fold:\n"
+        "def predict_protein_structure(sequence):\n"
+        "    return {'rmsd_angstrom': 1.52, 'plddt': 94.2, 'ensemble_members': 12, "
+        "'secondary_structure': 'alpha_helix'}",
+    ],
+    "hivemind/autonomous-swe-patches": [
+        "### Season 5 Software-Engineering Task:\nSynthesize the SWE-bench patch that fixes the "
+        "reported issue and report the fraction of held-out tests that now pass.\n"
+        "### Verified Patch:\n"
+        "def synthesize_swe_patch(issue):\n"
+        "    return {'patch_applied': True, 'tests_passed_pct': 96.4, "
+        "'files_changed': 2, 'review_score': 0.91}",
+        "### Season 5 Software-Engineering Task:\nRepair the flaky regression test that the "
+        "linter keeps flagging and re-run the suite.\n"
+        "### Verified Patch:\n"
+        "def synthesize_swe_patch(issue):\n"
+        "    return {'patch_applied': True, 'tests_passed_pct': 100.0, "
+        "'files_changed': 1, 'review_score': 0.88}",
+        "### Season 5 Software-Engineering Task:\nBackport the upstream fix to the 1.x branch and "
+        "report the backport coverage.\n"
+        "### Verified Patch:\n"
+        "def synthesize_swe_patch(issue):\n"
+        "    return {'patch_applied': True, 'tests_passed_pct': 92.7, "
+        "'files_changed': 4, 'review_score': 0.79}",
+    ],
+}
+
+
+def fetch_season5_curated_corpus(dataset_id: str, num_samples: int = 12) -> List[str]:
+    """Return the curated offline Season 5 corpus for a mission dataset (no network required)."""
+    bank = SEASON_5_OFFLINE_CURATED_CORPUS.get(dataset_id, [])
+    if not bank:
+        return []
+    return [bank[i % len(bank)] for i in range(num_samples)]
+
+
+def fetch_offline_curated_corpus(dataset_id: str, num_samples: int = 12) -> List[str]:
+    """Return the curated offline corpus of any shipped season (Season 4 or Season 5)."""
+    rows = fetch_season4_curated_corpus(dataset_id, num_samples=num_samples)
+    if rows:
+        return rows
+    return fetch_season5_curated_corpus(dataset_id, num_samples=num_samples)
+
+
+def build_season5_mission_catalog() -> Dict[str, Any]:
+    """Build the Season 5 (Missions 17-20) campaign catalog served by `/api/season5-missions`."""
+    contracts = SEASON_5_HF_BOUNTY_CONTRACTS
+    return {
+        "season": 5,
+        "num_missions": len(contracts),
+        "mission_ids": [c.contract_id for c in contracts],
+        "missions": [asdict(c) for c in contracts],
+        "contracts": [
+            {
+                "contract_id": c.contract_id,
+                "mission_codename": c.mission_codename,
+                "dataset_id": c.dataset_id,
+                "domain_expert": c.domain_expert,
+                "difficulty_skulls": c.difficulty_skulls,
+                "base_bounty_pts": c.base_bounty_pts,
+                "season": c.season,
+            }
+            for c in contracts
+        ],
+        "total_bounty_pts": sum(c.base_bounty_pts for c in contracts),
+        "bounty_pool_hive": SEASON_5_BOUNTY_POOL_HIVE,
+        "telemetry_endpoint": "/ws/swarm-telemetry",
+        "guild_tournament_endpoint": "/api/guild-tournament",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Season 5 (`HM-S5-04`): cross-guild Co-Op tournament & matchmaking
+# ---------------------------------------------------------------------------
+GUILD_TOURNAMENT_ID = "HM-S5-04-GUILD-WARS-TOURNAMENT"
+GUILD_TOURNAMENT_SCHEMA_VERSION = "hm-s5-04/guild-tournament/v1"
+GUILD_TOURNAMENT_BOUNTY_POOL_HIVE = SEASON_5_BOUNTY_POOL_HIVE
+GUILD_TOURNAMENT_BADGE = "HF_COOP_RAID_COMMANDER"
+# Reference decode rate of the swarm ring (matches `build_swarm_telemetry_frame`).
+GUILD_TOURNAMENT_REFERENCE_TOKENS_PER_SEC = 28.5
+GUILD_TOURNAMENT_MAX_TOKENS_PER_SEC = 500.0
+GUILD_TOURNAMENT_MIN_PERPLEXITY = 1e-3
+GUILD_TOURNAMENT_PERPLEXITY_POINTS = 600.0
+GUILD_TOURNAMENT_THROUGHPUT_POINTS = 400.0
+GUILD_TOURNAMENT_COOP_POINTS_PER_ARC = 25.0
+
+
+@dataclass
+class GuildTournamentSquad:
+    """A Swarm Mining Guild squad competing in the Season 5 cross-guild tournament."""
+
+    guild_id: str
+    guild_name: str
+    full_guild_id: str
+    guild_motto: str
+    region_hub: str
+    home_node: str
+    lat: float
+    lon: float
+    member_miners: List[str]
+    member_contributors: List[str]
+    synergy_multiplier: float
+    domain_weights: Dict[str, float]
+
+
+DEFAULT_GUILD_TOURNAMENT_SQUADS: List[GuildTournamentSquad] = [
+    GuildTournamentSquad(
+        guild_id="GUILD-01",
+        guild_name="Euro-Cyber Neural Syndicate",
+        full_guild_id="GUILD-01-EURO-CYBER-SYNDICATE",
+        guild_motto="Sub-20ms Geo-Ring Zero-Copy Speculation & Rust/CyberSec Defense",
+        region_hub="EU-West-Paris / EU-Central-Berlin",
+        home_node="seti-node-paris-01",
+        lat=48.8566,
+        lon=2.3522,
+        member_miners=["CyberValkyrie_FR", "NeuralGhost_DE"],
+        member_contributors=["@xaviercallens", "@pedromineo"],
+        synergy_multiplier=1.35,
+        domain_weights={
+            "CUDA_ROCm_PTX_Optimizer": 0.55,
+            "Lean4_Mathlib_Autoformalizer": 0.20,
+            "Biomolecular_Protein_Structure": 0.15,
+            "Autonomous_SWE_Patch_Synthesizer": 0.10,
+        },
+    ),
+    GuildTournamentSquad(
+        guild_id="GUILD-02",
+        guild_name="Global ZK-OPoI & Formal Proof Guardians",
+        full_guild_id="GUILD-02-GLOBAL-ZK-GUARDIANS",
+        guild_motto="32/32 Machine-Checked Lean 4 Invariants & Merkle Activation Proofs",
+        region_hub="US-East-Virginia / EU-West-London",
+        home_node="seti-node-virginia-03",
+        lat=38.9072,
+        lon=-77.0369,
+        member_miners=["ZeroCool_UK", "CyberValkyrie_FR"],
+        member_contributors=["@clark719664", "@xaviercallens"],
+        synergy_multiplier=1.45,
+        domain_weights={
+            "Lean4_Mathlib_Autoformalizer": 0.55,
+            "Biomolecular_Protein_Structure": 0.20,
+            "CUDA_ROCm_PTX_Optimizer": 0.15,
+            "Autonomous_SWE_Patch_Synthesizer": 0.10,
+        },
+    ),
+    GuildTournamentSquad(
+        guild_id="GUILD-03",
+        guild_name="APAC Continental Super-Ring Vanguard",
+        full_guild_id="GUILD-03-APAC-SUPER-RING-VANGUARD",
+        guild_motto="2-Tier Kademlia Continental Bridges & Multi-Vendor CUDA/ROCm/MPS Swarm",
+        region_hub="APAC-East-Tokyo / US-East-Virginia",
+        home_node="seti-node-tokyo-04",
+        lat=35.6762,
+        lon=139.6503,
+        member_miners=["AetherPulse_JP", "NeuralGhost_DE"],
+        member_contributors=["@pedromineo", "@clark719664"],
+        synergy_multiplier=1.30,
+        domain_weights={
+            "Autonomous_SWE_Patch_Synthesizer": 0.50,
+            "CUDA_ROCm_PTX_Optimizer": 0.25,
+            "Biomolecular_Protein_Structure": 0.15,
+            "Lean4_Mathlib_Autoformalizer": 0.10,
+        },
+    ),
+]
+
+
+def _tokenize_corpus_row(text: str) -> List[str]:
+    """Split a corpus row into deterministic lowercase alphanumeric tokens."""
+    return [tok for tok in re.split(r"[^a-z0-9_+#]+", str(text).lower()) if tok]
+
+
+def estimate_bigram_holdout_perplexity(
+    corpus: List[str],
+    holdout_ratio: float = 0.5,
+    smoothing: float = 0.25,
+) -> Dict[str, Any]:
+    """Estimate a deterministic bigram-model holdout perplexity over a curated corpus.
+
+    The corpus is split into a training half and a held-out half; a smoothed
+    bigram language model is fitted on the training half and scored on the
+    held-out half (mean cross-entropy -> perplexity).  The measurement uses no
+    RNG and no network access, so the cross-guild tournament standings are
+    reproducible on every HUD server.
+    """
+    rows = [r for r in corpus if r and str(r).strip()]
+    if len(rows) < 2:
+        return {
+            "holdout_perplexity": 0.0,
+            "train_tokens": 0,
+            "holdout_tokens": 0,
+            "vocab_size": 0,
+            "measured": False,
+        }
+    split = max(1, int(len(rows) * (1.0 - holdout_ratio)))
+    train_rows = rows[:split]
+    holdout_rows = rows[split:] or rows[-1:]
+
+    train_tokens: List[str] = []
+    for row in train_rows:
+        train_tokens.extend(_tokenize_corpus_row(row))
+    holdout_tokens: List[str] = []
+    for row in holdout_rows:
+        holdout_tokens.extend(_tokenize_corpus_row(row))
+    if len(holdout_tokens) < 2 or not train_tokens:
+        return {
+            "holdout_perplexity": 0.0,
+            "train_tokens": len(train_tokens),
+            "holdout_tokens": len(holdout_tokens),
+            "vocab_size": 0,
+            "measured": False,
+        }
+
+    bigrams: Dict[str, Dict[str, int]] = {}
+    unigrams: Dict[str, int] = {}
+    for prev, nxt in zip(train_tokens, train_tokens[1:]):
+        row_counts = bigrams.setdefault(prev, {})
+        row_counts[nxt] = row_counts.get(nxt, 0) + 1
+        unigrams[nxt] = unigrams.get(nxt, 0) + 1
+    vocab_size = len(set(bigrams) | set(unigrams)) + 1  # +1 for the unknown-token bucket
+
+    total_nll = 0.0
+    scored = 0
+    for prev, nxt in zip(holdout_tokens, holdout_tokens[1:]):
+        row_counts = bigrams.get(prev, {})
+        denom = sum(row_counts.values()) + smoothing * vocab_size
+        prob = (row_counts.get(nxt, 0) + smoothing) / denom
+        total_nll += -math.log(max(prob, 1e-12))
+        scored += 1
+    mean_nll = total_nll / max(1, scored)
+    return {
+        "holdout_perplexity": round(math.exp(mean_nll), 4),
+        "train_tokens": len(train_tokens),
+        "holdout_tokens": len(holdout_tokens),
+        "scored_bigrams": scored,
+        "vocab_size": vocab_size,
+        "measured": True,
+    }
+
+
+class GuildTournamentEngine:
+    """Cross-guild Co-Op tournament, matchmaking & raid-arc generator (`HM-S5-04`).
+
+    The engine ranks the `GUILD-01` / `GUILD-02` / `GUILD-03` squads on two
+    competitive metrics:
+
+    1. `multi_domain_holdout_perplexity` — the weighted bigram holdout
+       perplexity of the Season 5 frontier domains each squad routes through
+       (measured, not hard-coded).
+    2. `speculative_tokens_per_sec` — the speculative decoding throughput
+       derived from that perplexity, the squad's Geo-Ring RTT and its co-op
+       size, using the reference ring decode rate.
+
+    Matchmaking is a deterministic round-robin; every match spawns a 3D WebGL
+    raid arc between the two guild home nodes on the Geo-Ring globe.
+    """
+
+    def __init__(self, squads: List[GuildTournamentSquad] | None = None) -> None:
+        self.squads: Dict[str, GuildTournamentSquad] = {
+            s.guild_id: s for s in (squads or DEFAULT_GUILD_TOURNAMENT_SQUADS)
+        }
+        self.updates: Dict[str, Dict[str, Any]] = {}
+
+    # -- measurement ---------------------------------------------------
+    def measure_domain_holdout_perplexity(self) -> Dict[str, Dict[str, Any]]:
+        """Measure the holdout perplexity of every Season 5 frontier domain."""
+        measured: Dict[str, Dict[str, Any]] = {}
+        for contract in SEASON_5_HF_BOUNTY_CONTRACTS:
+            corpus = fetch_season5_curated_corpus(contract.dataset_id, num_samples=12)
+            stats = estimate_bigram_holdout_perplexity(corpus)
+            stats["dataset_id"] = contract.dataset_id
+            stats["contract_id"] = contract.contract_id
+            measured[contract.domain_expert] = stats
+        return measured
+
+    def _squad_raw_metrics(
+        self,
+        squad: GuildTournamentSquad,
+        domain_stats: Dict[str, Dict[str, Any]],
+        reference_ppl: float,
+        rtt_by_node: Dict[str, float],
+    ) -> Dict[str, Any]:
+        weights = {
+            domain: float(w)
+            for domain, w in squad.domain_weights.items()
+            if domain in domain_stats
+        }
+        weight_sum = sum(weights.values()) or 1.0
+        per_domain = {
+            domain: round(
+                float(domain_stats[domain]["holdout_perplexity"]) * (w / weight_sum), 4
+            )
+            for domain, w in weights.items()
+        }
+        perplexity = round(sum(per_domain.values()), 4)
+        override = self.updates.get(squad.guild_id, {})
+        if override.get("multi_domain_holdout_perplexity") is not None:
+            perplexity = float(override["multi_domain_holdout_perplexity"])
+        perplexity = max(GUILD_TOURNAMENT_MIN_PERPLEXITY, perplexity)
+
+        rtt_ms = float(rtt_by_node.get(squad.home_node, 2.0))
+        acceptance_rate = max(
+            0.25, min(0.95, 1.0 - (perplexity / max(reference_ppl, 1e-6) - 1.0) * 0.25)
+        )
+        latency_factor = max(0.30, min(1.0, 1.0 - rtt_ms / 60.0))
+        squad_factor = 1.0 + 0.05 * (len(squad.member_miners) - 1)
+        tokens_per_sec = (
+            GUILD_TOURNAMENT_REFERENCE_TOKENS_PER_SEC * acceptance_rate * latency_factor * squad_factor
+        )
+        if override.get("speculative_tokens_per_sec") is not None:
+            tokens_per_sec = float(override["speculative_tokens_per_sec"])
+        tokens_per_sec = max(0.0, min(GUILD_TOURNAMENT_MAX_TOKENS_PER_SEC, tokens_per_sec))
+
+        return {
+            "guild_id": squad.guild_id,
+            "multi_domain_holdout_perplexity": round(perplexity, 4),
+            "per_domain_holdout_perplexity": per_domain,
+            "speculative_tokens_per_sec": round(tokens_per_sec, 4),
+            "speculative_acceptance_rate": round(acceptance_rate, 4),
+            "ring_rtt_ms": round(rtt_ms, 3),
+            "squad_size": len(squad.member_miners),
+            "squad_factor": round(squad_factor, 4),
+            "latency_factor": round(latency_factor, 4),
+            "squad_reported": bool(
+                override.get("multi_domain_holdout_perplexity") is not None
+                or override.get("speculative_tokens_per_sec") is not None
+            ),
+            "reported_by": str(override.get("gamer_tag", "")) or None,
+        }
+
+    # -- matchmaking ---------------------------------------------------
+    def build_state(self) -> Dict[str, Any]:
+        """Build the full `/api/guild-tournament` JSON payload."""
+        domain_stats = self.measure_domain_holdout_perplexity()
+        measured_ppls = [
+            float(v["holdout_perplexity"]) for v in domain_stats.values() if v.get("measured")
+        ]
+        reference_ppl = min(measured_ppls) if measured_ppls else 1.0
+
+        topo = build_georing_3d_topology_snapshot()
+        rtt_by_node = {n["node_id"]: float(n["rtt_ms"]) for n in topo["nodes"]}
+
+        rows: List[Dict[str, Any]] = []
+        for squad in self.squads.values():
+            row = dict(asdict(squad))
+            row.update(
+                self._squad_raw_metrics(squad, domain_stats, reference_ppl, rtt_by_node)
+            )
+            rows.append(row)
+
+        best_ppl = min(r["multi_domain_holdout_perplexity"] for r in rows)
+        best_tps = max(r["speculative_tokens_per_sec"] for r in rows) or 1.0
+        for row in rows:
+            row["perplexity_points"] = round(
+                GUILD_TOURNAMENT_PERPLEXITY_POINTS
+                * min(1.5, best_ppl / max(row["multi_domain_holdout_perplexity"], 1e-6)),
+                2,
+            )
+            row["throughput_points"] = round(
+                GUILD_TOURNAMENT_THROUGHPUT_POINTS
+                * min(1.5, row["speculative_tokens_per_sec"] / best_tps),
+                2,
+            )
+
+        # Deterministic round-robin matchmaking over the three guild squads.
+        guild_ids = sorted(self.squads)
+        by_id = {r["guild_id"]: r for r in rows}
+        matches: List[Dict[str, Any]] = []
+        arc_specs: List[Dict[str, Any]] = []
+        for i in range(len(guild_ids)):
+            for j in range(i + 1, len(guild_ids)):
+                home_id, away_id = guild_ids[i], guild_ids[j]
+                home, away = by_id[home_id], by_id[away_id]
+                home_base = home["perplexity_points"] + home["throughput_points"]
+                away_base = away["perplexity_points"] + away["throughput_points"]
+                if home_base >= away_base:
+                    winner_id, loser_id = home_id, away_id
+                else:
+                    winner_id, loser_id = away_id, home_id
+                match_id = f"MATCH-{home_id}-VS-{away_id}"
+                arc_id = f"RAID-ARC-{loser_id}-TO-{winner_id}"
+                spread = abs(home_base - away_base)
+                intensity = round(min(1.0, 0.35 + spread / 200.0), 4)
+                phase = round((i * len(guild_ids) + j) * 0.9, 4)
+                matches.append(
+                    {
+                        "match_id": match_id,
+                        "round": len(matches) + 1,
+                        "home_guild": home_id,
+                        "away_guild": away_id,
+                        "home_score": round(home_base, 2),
+                        "away_score": round(away_base, 2),
+                        "winner_guild": winner_id,
+                        "loser_guild": loser_id,
+                        "raid_arc_id": arc_id,
+                        "status": "settled",
+                    }
+                )
+                loser = self.squads[loser_id]
+                winner = self.squads[winner_id]
+                arc_specs.append(
+                    {
+                        "arc_id": arc_id,
+                        "match_id": match_id,
+                        "source_guild": loser_id,
+                        "target_guild": winner_id,
+                        "kind": "guild_raid",
+                        "source_lat": loser.lat,
+                        "source_lon": loser.lon,
+                        "target_lat": winner.lat,
+                        "target_lon": winner.lon,
+                        "lift": GUILD_RAID_ARC_LIFT,
+                        "steps": GUILD_RAID_ARC_STEPS,
+                        "intensity": intensity,
+                        "phase": phase,
+                        "color": guild_raid_arc_color(loser_id),
+                    }
+                )
+
+        raid_arcs = build_guild_raid_arc_geometry(arc_specs)
+
+        arcs_per_guild: Dict[str, List[str]] = {gid: [] for gid in guild_ids}
+        for arc in raid_arcs:
+            arcs_per_guild.setdefault(arc["source_guild"], []).append(arc["arc_id"])
+            arcs_per_guild.setdefault(arc["target_guild"], []).append(arc["arc_id"])
+
+        for row in rows:
+            row_arcs = arcs_per_guild.get(row["guild_id"], [])
+            row["raid_arc_ids"] = row_arcs
+            row["coop_synergy_points"] = round(
+                GUILD_TOURNAMENT_COOP_POINTS_PER_ARC * len(row_arcs) * row["synergy_multiplier"], 2
+            )
+            row["total_points"] = round(
+                row["perplexity_points"]
+                + row["throughput_points"]
+                + row["coop_synergy_points"],
+                2,
+            )
+
+        standings = sorted(
+            rows,
+            key=lambda r: (-r["total_points"], r["guild_id"]),
+        )
+        for rank, row in enumerate(standings, start=1):
+            row["rank"] = rank
+
+        guild_payload = []
+        for row in sorted(rows, key=lambda r: r["guild_id"]):
+            guild_payload.append(
+                {
+                    "guild_id": row["guild_id"],
+                    "guild_name": row["guild_name"],
+                    "full_guild_id": row["full_guild_id"],
+                    "guild_motto": row["guild_motto"],
+                    "region_hub": row["region_hub"],
+                    "home_node": row["home_node"],
+                    "lat": row["lat"],
+                    "lon": row["lon"],
+                    "member_miners": row["member_miners"],
+                    "member_contributors": row["member_contributors"],
+                    "synergy_multiplier": row["synergy_multiplier"],
+                    "domain_weights": row["domain_weights"],
+                    "rank": row["rank"],
+                    "multi_domain_holdout_perplexity": row["multi_domain_holdout_perplexity"],
+                    "per_domain_holdout_perplexity": row["per_domain_holdout_perplexity"],
+                    "speculative_tokens_per_sec": row["speculative_tokens_per_sec"],
+                    "speculative_acceptance_rate": row["speculative_acceptance_rate"],
+                    "ring_rtt_ms": row["ring_rtt_ms"],
+                    "perplexity_points": row["perplexity_points"],
+                    "throughput_points": row["throughput_points"],
+                    "coop_synergy_points": row["coop_synergy_points"],
+                    "total_points": row["total_points"],
+                    "raid_arc_ids": row["raid_arc_ids"],
+                }
+            )
+
+        now = time.time()
+        return {
+            "schema_version": GUILD_TOURNAMENT_SCHEMA_VERSION,
+            "tournament_id": GUILD_TOURNAMENT_ID,
+            "milestone": "HM-S5-04",
+            "season": 5,
+            "status": "live",
+            "generated_at": now,
+            "generated_at_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+            "bounty_pool_hive": GUILD_TOURNAMENT_BOUNTY_POOL_HIVE,
+            "badge": GUILD_TOURNAMENT_BADGE,
+            "num_guilds": len(guild_payload),
+            "num_matches": len(matches),
+            "num_raid_arcs": len(raid_arcs),
+            "champion_guild_id": standings[0]["guild_id"] if standings else None,
+            "guilds": guild_payload,
+            "standings": [
+                {
+                    "rank": row["rank"],
+                    "guild_id": row["guild_id"],
+                    "guild_name": row["guild_name"],
+                    "total_points": row["total_points"],
+                    "perplexity_points": row["perplexity_points"],
+                    "throughput_points": row["throughput_points"],
+                    "coop_synergy_points": row["coop_synergy_points"],
+                    "multi_domain_holdout_perplexity": row["multi_domain_holdout_perplexity"],
+                    "speculative_tokens_per_sec": row["speculative_tokens_per_sec"],
+                    "raid_arc_ids": row["raid_arc_ids"],
+                }
+                for row in standings
+            ],
+            "matches": matches,
+            "raid_arcs": raid_arcs,
+            "metric_definitions": {
+                "multi_domain_holdout_perplexity": (
+                    "Weighted mean of the per-domain smoothed-bigram holdout perplexity of the "
+                    "Season 5 frontier domains routed by the squad (lower is better)."
+                ),
+                "speculative_tokens_per_sec": (
+                    "reference_tokens_per_sec * acceptance_rate * latency_factor * squad_factor, "
+                    "with acceptance_rate = clamp(1 - (ppl / reference_ppl - 1) * 0.25, 0.25, 0.95), "
+                    "latency_factor = clamp(1 - ring_rtt_ms / 60, 0.30, 1.0) and "
+                    "squad_factor = 1 + 0.05 * (squad_size - 1)."
+                ),
+                "reference_tokens_per_sec": GUILD_TOURNAMENT_REFERENCE_TOKENS_PER_SEC,
+                "reference_holdout_perplexity": round(reference_ppl, 4),
+                "perplexity_points": "600 * min(1.5, best_ppl / guild_ppl).",
+                "throughput_points": "400 * min(1.5, guild_tokens_per_sec / best_tokens_per_sec).",
+                "coop_synergy_points": "25 * raid_arc_count * guild_synergy_multiplier.",
+                "total_points": "perplexity_points + throughput_points + coop_synergy_points.",
+                "matchmaking": (
+                    "Deterministic round-robin: every guild pair plays one match, the higher "
+                    "perplexity+throughput score wins, and the raid arc is drawn from the loser's "
+                    "home node to the winner's home node."
+                ),
+            },
+            "domain_holdout_stats": domain_stats,
+            "missions": {
+                "season": 5,
+                "num_missions": len(SEASON_5_HF_BOUNTY_CONTRACTS),
+                "mission_ids": [c.contract_id for c in SEASON_5_HF_BOUNTY_CONTRACTS],
+            },
+            "telemetry_endpoint": "/ws/swarm-telemetry",
+            "raid_arcs_endpoint": "/api/guild-tournament",
+        }
+
+    def register_squad_update(
+        self,
+        guild_id: str,
+        multi_domain_holdout_perplexity: float | None = None,
+        speculative_tokens_per_sec: float | None = None,
+        gamer_tag: str | None = None,
+    ) -> Dict[str, Any]:
+        """Register a squad's self-reported tournament metrics and re-run the matchmaking."""
+        key = str(guild_id or "").strip().upper()
+        if key not in self.squads:
+            raise KeyError(f"Unknown guild squad: {guild_id}")
+        record = self.updates.setdefault(key, {})
+        if multi_domain_holdout_perplexity is not None:
+            record["multi_domain_holdout_perplexity"] = max(
+                GUILD_TOURNAMENT_MIN_PERPLEXITY, float(multi_domain_holdout_perplexity)
+            )
+        if speculative_tokens_per_sec is not None:
+            record["speculative_tokens_per_sec"] = max(
+                0.0,
+                min(GUILD_TOURNAMENT_MAX_TOKENS_PER_SEC, float(speculative_tokens_per_sec)),
+            )
+        if gamer_tag:
+            record["gamer_tag"] = str(gamer_tag)
+        record["updated_at"] = time.time()
+        return self.build_state()
+
+
+_DEFAULT_GUILD_TOURNAMENT_ENGINE = GuildTournamentEngine()
+
+
+def build_guild_tournament_state(
+    engine: GuildTournamentEngine | None = None,
+) -> Dict[str, Any]:
+    """Build the `/api/guild-tournament` payload (default: the shipped guild squads)."""
+    return (engine or _DEFAULT_GUILD_TOURNAMENT_ENGINE).build_state()
+
+
 def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
     """Build one live swarm telemetry frame streamed by the `/ws/swarm-telemetry` HUD socket."""
     topo = build_georing_3d_topology_snapshot()
     contracts = SEASON_4_HF_BOUNTY_CONTRACTS
     active = contracts[seq % len(contracts)]
+    season5_contracts = SEASON_5_HF_BOUNTY_CONTRACTS
+    guild_tournament = _DEFAULT_GUILD_TOURNAMENT_ENGINE.build_state()
     now = time.time()
     return {
         "stream": "swarm-telemetry",
@@ -740,6 +1490,9 @@ def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
         "season4_missions": len(contracts),
         "mission_ids": [c.contract_id for c in contracts],
         "missions": [asdict(c) for c in contracts],
+        "season5_missions": len(season5_contracts),
+        "season5_mission_ids": [c.contract_id for c in season5_contracts],
+        "season5_mission_details": [asdict(c) for c in season5_contracts],
         "active_mission": {
             "contract_id": active.contract_id,
             "mission_codename": active.mission_codename,
@@ -755,6 +1508,15 @@ def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
         "mean_ring_rtt_ms": round(1.42 + 0.37 * (seq % 5), 3),
         "swarm_tokens_per_sec": round(28.5 + 1.75 * (seq % 7), 2),
         "hive_minted_total": round(SEASON_4_BOUNTY_POOL_HIVE * (seq + 1), 4),
+        "guild_tournament": {
+            "tournament_id": guild_tournament["tournament_id"],
+            "status": guild_tournament["status"],
+            "champion_guild_id": guild_tournament["champion_guild_id"],
+            "num_guilds": guild_tournament["num_guilds"],
+            "num_matches": guild_tournament["num_matches"],
+            "num_raid_arcs": guild_tournament["num_raid_arcs"],
+            "standings": guild_tournament["standings"],
+        },
         "telemetry_endpoint": "/ws/swarm-telemetry",
     }
 
@@ -816,6 +1578,7 @@ def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
         "ring_links": links,
         "season3_missions": [asdict(c) for c in SEASON_3_HF_BOUNTY_CONTRACTS],
         "season4_missions": [asdict(c) for c in SEASON_4_HF_BOUNTY_CONTRACTS],
+        "season5_missions": [asdict(c) for c in SEASON_5_HF_BOUNTY_CONTRACTS],
     }
 
 
@@ -953,10 +1716,14 @@ def run_hf_hack_mining_game(
         contracts = SEASON_3_HF_BOUNTY_CONTRACTS
     elif s_norm in ("4", "s4", "season4"):
         contracts = SEASON_4_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("5", "s5", "season5"):
+        contracts = SEASON_5_HF_BOUNTY_CONTRACTS
     elif s_norm in ("s1-s3", "full", "all_seasons"):
         contracts = FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     elif s_norm in ("s1-s4", "all_seasons_s4"):
         contracts = SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("s1-s5", "all_seasons_s5"):
+        contracts = SEASON_5_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     else:
         contracts = ALL_HF_BOUNTY_CONTRACTS
     num_missions = len(contracts)
@@ -1949,11 +2716,12 @@ def execute_interactive_lora_micro_forge(
 ) -> Dict[str, Any]:
     """Execute a fast interactive QLoRA Micro-Forge burst & Steam Rich Presence broadcast from the Web HUD."""
     ensure_local_drive_caches()
-    contract_map = {c.contract_id: c for c in SEASON_4_EXTENDED_HF_BOUNTY_CONTRACTS}
+    contract_map = {c.contract_id: c for c in SEASON_5_EXTENDED_HF_BOUNTY_CONTRACTS}
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
 
-    # Season 4 Missions 13-16 ship curated offline corpora (no Hugging Face round-trip required).
-    rows = fetch_season4_curated_corpus(contract.dataset_id, num_samples=12)
+    # Season 4 Missions 13-16 and Season 5 Missions 17-20 ship curated offline
+    # corpora (no Hugging Face round-trip required).
+    rows = fetch_offline_curated_corpus(contract.dataset_id, num_samples=12)
     if not rows:
         rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=12)
     _, sig_score = HFDataReconScanner.score_and_curate_shard(
@@ -1990,6 +2758,13 @@ def execute_interactive_lora_micro_forge(
                 g["hive_balance"] = round(float(g.get("hive_balance", 0.0)) + hive_minted, 4)
                 g["bounties_solved"] = int(g.get("bounties_solved", 0)) + 1
                 g["rich_presence_status"] = rp.status_string
+                if contract.season == 5:
+                    # Season 5 frontier missions unlock the Guild Wars co-op raid badge.
+                    g["season5_missions_forged"] = int(g.get("season5_missions_forged", 0)) + 1
+                    unlocked = list(g.get("achievements_unlocked", []))
+                    if "HF_COOP_RAID_COMMANDER" not in unlocked:
+                        unlocked.append("HF_COOP_RAID_COMMANDER")
+                    g["achievements_unlocked"] = unlocked
                 break
         data["leaderboard"] = sorted(
             data.get("leaderboard", []),
@@ -2023,6 +2798,7 @@ def execute_interactive_lora_micro_forge(
         "hive_minted": hive_minted,
         "steam_rich_presence": rp.status_string,
         "rich_presence_hmac": rp.rich_presence_hmac,
+        "guild_wars_badge": "HF_COOP_RAID_COMMANDER" if contract.season == 5 else "",
     }
 
 
