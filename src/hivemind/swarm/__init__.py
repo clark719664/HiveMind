@@ -23,11 +23,20 @@ from hivemind.swarm.swarm_fabric import (
     compress_hidden_states_fp8,
     decompress_hidden_states_fp8,
 )
+from hivemind.swarm.wan_fault_benchmark import (
+    FaultProfile,
+    FaultScenario,
+    run_fault_scenario,
+    run_wan_quic_turn_fault_benchmark,
+    write_fault_report,
+)
 
 __all__ = [
     "AsyncQUICGeoRingTransport",
     "CompressedHiddenStatePacket",
     "ContentAddressedSwarmStore",
+    "FaultProfile",
+    "FaultScenario",
     "GeoRingPeer",
     "HiveLayer2StateChannel",
     "HivePoUWBlock",
@@ -46,6 +55,9 @@ __all__ = [
     "WorkReceipt",
     "compress_hidden_states_fp8",
     "decompress_hidden_states_fp8",
+    "run_fault_scenario",
+    "run_wan_quic_turn_fault_benchmark",
+    "write_fault_report",
 ]
 
 

@@ -1,0 +1,1149 @@
+{
+  "schema": "hivemind.wan_quic_turn_fault_report/v1",
+  "bounty": "HM-S5-05",
+  "title": "Multi-host WAN QUIC 0-RTT & RFC 5766 TURN fault-injection benchmark",
+  "generated_at": "2026-10-20T08:26:53.644206+00:00",
+  "environment": {
+    "python": "3.14.3",
+    "platform": "Linux-6.19.10-300.fc44.x86_64-x86_64-with-glibc2.43",
+    "machine": "x86_64",
+    "cpu_count": 12,
+    "packages": {
+      "aioquic": "1.7.0",
+      "websockets": "17.3",
+      "cryptography": "50.0.2"
+    }
+  },
+  "endpoints": {
+    "mode": "local_wan_simulation",
+    "quic_endpoint": null,
+    "turn_endpoint": null
+  },
+  "fault_profiles": [
+    {
+      "scenario_id": "loss_0pct",
+      "packet_loss_rate": 0.0,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47001,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512
+    },
+    {
+      "scenario_id": "loss_1pct",
+      "packet_loss_rate": 0.01,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47002,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512
+    },
+    {
+      "scenario_id": "loss_3pct",
+      "packet_loss_rate": 0.03,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47003,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512
+    },
+    {
+      "scenario_id": "loss_5pct",
+      "packet_loss_rate": 0.05,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47004,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "loss_0pct",
+      "packet_loss_rate": 0.0,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47001,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512,
+      "frames_sent": 120,
+      "frames_delivered": 96,
+      "bytes_delivered": 50304,
+      "elapsed_s": 1.995142,
+      "frame_delivery_latency_ms": {
+        "count": 120,
+        "p50_ms": 7.657,
+        "p95_ms": 21.841,
+        "p99_ms": 23.549,
+        "min_ms": 1.72,
+        "max_ms": 23.556,
+        "mean_ms": 9.341
+      },
+      "quic_0rtt": {
+        "ok": true,
+        "error": null,
+        "attempts": 1,
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "session_resumed": true,
+        "early_data_accepted": true,
+        "server_early_frames": 8,
+        "handshake_latency_ms": 11.579,
+        "resumption_latency_ms": 10.723,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 18.413,
+          "p95_ms": 23.549,
+          "p99_ms": 23.556,
+          "min_ms": 10.941,
+          "max_ms": 23.556,
+          "mean_ms": 17.679
+        },
+        "throughput_mbps": 0.3384,
+        "elapsed_s": 0.297333,
+        "proxy_stats": {
+          "dropped": 0,
+          "reordered": 1,
+          "held": 1,
+          "forwarded": 43,
+          "rebinds": 0
+        }
+      },
+      "turn_relay": {
+        "ok": true,
+        "error": null,
+        "allocate_ok": true,
+        "relayed_addresses": [
+          [
+            "127.0.0.1",
+            33422
+          ],
+          [
+            "127.0.0.1",
+            40018
+          ]
+        ],
+        "channel_number": 16384,
+        "channels_bound": 2,
+        "frames_sent": 72,
+        "frames_delivered": 48,
+        "data_relay": {
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 24,
+            "p50_ms": 9.082,
+            "p95_ms": 11.557,
+            "p99_ms": 11.748,
+            "min_ms": 5.142,
+            "max_ms": 11.748,
+            "mean_ms": 8.874
+          },
+          "throughput_mbps": 3.2777
+        },
+        "channel_relay": {
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 24,
+            "p50_ms": 4.69,
+            "p95_ms": 6.345,
+            "p99_ms": 6.614,
+            "min_ms": 1.72,
+            "max_ms": 6.614,
+            "mean_ms": 4.551
+          },
+          "throughput_mbps": 15.1793
+        },
+        "nat_rebind_events": 1,
+        "reallocations_after_rebind": 1,
+        "frames_lost_after_rebind": 24,
+        "post_rebind_frames_delivered": 24,
+        "post_rebind_latency_ms": {
+          "count": 24,
+          "p50_ms": 8.715,
+          "p95_ms": 12.925,
+          "p99_ms": 13.121,
+          "min_ms": 6.69,
+          "max_ms": 13.121,
+          "mean_ms": 9.492
+        },
+        "elapsed_s": 1.066537,
+        "proxy_stats": {
+          "alice": {
+            "dropped": 0,
+            "reordered": 4,
+            "held": 4,
+            "forwarded": 107,
+            "rebinds": 1
+          },
+          "bob": {
+            "dropped": 0,
+            "reordered": 1,
+            "held": 1,
+            "forwarded": 80,
+            "rebinds": 0
+          }
+        }
+      },
+      "websocket_fallback": {
+        "ok": true,
+        "protocol": "libp2p_websocket",
+        "fallback_reason": "TimeoutError",
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 6.191,
+          "p95_ms": 6.244,
+          "p99_ms": 6.265,
+          "min_ms": 5.911,
+          "max_ms": 6.265,
+          "mean_ms": 6.108
+        },
+        "throughput_mbps": 14.6764,
+        "fallback": {
+          "protocol": "libp2p_websocket",
+          "fallback_reason": "TimeoutError",
+          "frames_sent": 24,
+          "frames_delivered": 24,
+          "note": "the WebSocket fallback carries the batch when UDP is unusable"
+        },
+        "lossy_quic_path": {
+          "protocol": "quic",
+          "fallback_reason": null,
+          "error": null,
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 0,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0,
+            "p99_ms": 0.0,
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+            "mean_ms": 0.0
+          },
+          "note": "an unacknowledged QUIC batch is never replayed automatically"
+        },
+        "elapsed_s": 0.631272,
+        "proxy_stats": {}
+      },
+      "zero_rtt_strike_register": {
+        "attempts": 2,
+        "accepted": 1,
+        "rejected": 1,
+        "replay_probes": 1,
+        "rejection_rate": 0.5,
+        "rejection_reasons": [
+          "replay_nonce_detected(nonce=1<=max_seen=1)"
+        ]
+      },
+      "bbr_v1_pacing": {
+        "cwnd_bytes": 14400,
+        "cwnd_packets": 12,
+        "btl_bw_bps": 15179310.569,
+        "rtprop_ms": 6.206,
+        "jitter_ms": 0.014,
+        "loss_ratio": 0.0,
+        "gain": 1.2473,
+        "mtu_bytes": 1200,
+        "mode": "steady",
+        "leg": "libp2p_websocket",
+        "model": "bbr_v1_delivery_rate_max_filter",
+        "frames_sent": 120,
+        "frames_delivered": 96,
+        "frames_lost": 24,
+        "pacing_samples": [
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 338367.729,
+            "rtprop_ms": 20.989,
+            "jitter_ms": 0.647,
+            "loss_ratio": 0.0,
+            "gain": 1.9402,
+            "mtu_bytes": 1200,
+            "mode": "startup",
+            "leg": "quic_0rtt"
+          },
+          {
+            "cwnd_bytes": 4800,
+            "cwnd_packets": 4,
+            "btl_bw_bps": 3277694.922,
+            "rtprop_ms": 9.897,
+            "jitter_ms": 0.608,
+            "loss_ratio": 0.0,
+            "gain": 1.1777,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_data"
+          },
+          {
+            "cwnd_bytes": 10800,
+            "cwnd_packets": 9,
+            "btl_bw_bps": 15179310.569,
+            "rtprop_ms": 5.108,
+            "jitter_ms": 0.422,
+            "loss_ratio": 0.0,
+            "gain": 1.1547,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_channel"
+          },
+          {
+            "cwnd_bytes": 21600,
+            "cwnd_packets": 18,
+            "btl_bw_bps": 15179310.569,
+            "rtprop_ms": 10.01,
+            "jitter_ms": 1.079,
+            "loss_ratio": 0.0,
+            "gain": 1.1284,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_after_rebind"
+          },
+          {
+            "cwnd_bytes": 14400,
+            "cwnd_packets": 12,
+            "btl_bw_bps": 15179310.569,
+            "rtprop_ms": 6.206,
+            "jitter_ms": 0.014,
+            "loss_ratio": 0.0,
+            "gain": 1.2473,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "libp2p_websocket"
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "loss_1pct",
+      "packet_loss_rate": 0.01,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47002,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512,
+      "frames_sent": 120,
+      "frames_delivered": 96,
+      "bytes_delivered": 50304,
+      "elapsed_s": 2.007693,
+      "frame_delivery_latency_ms": {
+        "count": 120,
+        "p50_ms": 6.841,
+        "p95_ms": 24.979,
+        "p99_ms": 24.998,
+        "min_ms": 3.13,
+        "max_ms": 25.002,
+        "mean_ms": 9.747
+      },
+      "quic_0rtt": {
+        "ok": true,
+        "error": null,
+        "attempts": 1,
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "session_resumed": true,
+        "early_data_accepted": true,
+        "server_early_frames": 2,
+        "handshake_latency_ms": 13.454,
+        "resumption_latency_ms": 11.401,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 24.955,
+          "p95_ms": 24.998,
+          "p99_ms": 25.002,
+          "min_ms": 11.544,
+          "max_ms": 25.002,
+          "mean_ms": 22.934
+        },
+        "throughput_mbps": 0.327,
+        "elapsed_s": 0.307661,
+        "proxy_stats": {
+          "dropped": 0,
+          "reordered": 0,
+          "held": 0,
+          "forwarded": 42,
+          "rebinds": 0
+        }
+      },
+      "turn_relay": {
+        "ok": true,
+        "error": null,
+        "allocate_ok": true,
+        "relayed_addresses": [
+          [
+            "127.0.0.1",
+            45173
+          ],
+          [
+            "127.0.0.1",
+            40732
+          ]
+        ],
+        "channel_number": 16384,
+        "channels_bound": 2,
+        "frames_sent": 72,
+        "frames_delivered": 48,
+        "data_relay": {
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 24,
+            "p50_ms": 7.61,
+            "p95_ms": 10.938,
+            "p99_ms": 11.076,
+            "min_ms": 4.19,
+            "max_ms": 11.076,
+            "mean_ms": 8.012
+          },
+          "throughput_mbps": 3.1021
+        },
+        "channel_relay": {
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 24,
+            "p50_ms": 4.726,
+            "p95_ms": 6.439,
+            "p99_ms": 6.463,
+            "min_ms": 3.13,
+            "max_ms": 6.463,
+            "mean_ms": 4.747
+          },
+          "throughput_mbps": 15.5417
+        },
+        "nat_rebind_events": 1,
+        "reallocations_after_rebind": 1,
+        "frames_lost_after_rebind": 24,
+        "post_rebind_frames_delivered": 24,
+        "post_rebind_latency_ms": {
+          "count": 24,
+          "p50_ms": 8.366,
+          "p95_ms": 10.723,
+          "p99_ms": 10.927,
+          "min_ms": 5.379,
+          "max_ms": 10.927,
+          "mean_ms": 8.329
+        },
+        "elapsed_s": 1.064145,
+        "proxy_stats": {
+          "alice": {
+            "dropped": 1,
+            "reordered": 0,
+            "held": 0,
+            "forwarded": 106,
+            "rebinds": 1
+          },
+          "bob": {
+            "dropped": 0,
+            "reordered": 2,
+            "held": 2,
+            "forwarded": 80,
+            "rebinds": 0
+          }
+        }
+      },
+      "websocket_fallback": {
+        "ok": true,
+        "protocol": "libp2p_websocket",
+        "fallback_reason": "TimeoutError",
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 4.775,
+          "p95_ms": 4.824,
+          "p99_ms": 4.838,
+          "min_ms": 4.56,
+          "max_ms": 4.838,
+          "mean_ms": 4.714
+        },
+        "throughput_mbps": 19.7933,
+        "fallback": {
+          "protocol": "libp2p_websocket",
+          "fallback_reason": "TimeoutError",
+          "frames_sent": 24,
+          "frames_delivered": 24,
+          "note": "the WebSocket fallback carries the batch when UDP is unusable"
+        },
+        "lossy_quic_path": {
+          "protocol": "quic",
+          "fallback_reason": null,
+          "error": null,
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 0,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0,
+            "p99_ms": 0.0,
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+            "mean_ms": 0.0
+          },
+          "note": "an unacknowledged QUIC batch is never replayed automatically"
+        },
+        "elapsed_s": 0.635887,
+        "proxy_stats": {}
+      },
+      "zero_rtt_strike_register": {
+        "attempts": 2,
+        "accepted": 1,
+        "rejected": 1,
+        "replay_probes": 1,
+        "rejection_rate": 0.5,
+        "rejection_reasons": [
+          "replay_nonce_detected(nonce=1<=max_seen=1)"
+        ]
+      },
+      "bbr_v1_pacing": {
+        "cwnd_bytes": 14400,
+        "cwnd_packets": 12,
+        "btl_bw_bps": 19793284.837,
+        "rtprop_ms": 4.79,
+        "jitter_ms": 0.012,
+        "loss_ratio": 0.0,
+        "gain": 1.247,
+        "mtu_bytes": 1200,
+        "mode": "steady",
+        "leg": "libp2p_websocket",
+        "model": "bbr_v1_delivery_rate_max_filter",
+        "frames_sent": 120,
+        "frames_delivered": 96,
+        "frames_lost": 24,
+        "pacing_samples": [
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 327009.436,
+            "rtprop_ms": 24.967,
+            "jitter_ms": 0.009,
+            "loss_ratio": 0.0,
+            "gain": 1.9992,
+            "mtu_bytes": 1200,
+            "mode": "startup",
+            "leg": "quic_0rtt"
+          },
+          {
+            "cwnd_bytes": 3600,
+            "cwnd_packets": 3,
+            "btl_bw_bps": 3102117.153,
+            "rtprop_ms": 8.919,
+            "jitter_ms": 0.644,
+            "loss_ratio": 0.0,
+            "gain": 1.1658,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_data"
+          },
+          {
+            "cwnd_bytes": 12000,
+            "cwnd_packets": 10,
+            "btl_bw_bps": 15541729.069,
+            "rtprop_ms": 5.234,
+            "jitter_ms": 0.365,
+            "loss_ratio": 0.0,
+            "gain": 1.1685,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_channel"
+          },
+          {
+            "cwnd_bytes": 20400,
+            "cwnd_packets": 17,
+            "btl_bw_bps": 15541729.069,
+            "rtprop_ms": 8.831,
+            "jitter_ms": 0.492,
+            "loss_ratio": 0.0,
+            "gain": 1.184,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_after_rebind"
+          },
+          {
+            "cwnd_bytes": 14400,
+            "cwnd_packets": 12,
+            "btl_bw_bps": 19793284.837,
+            "rtprop_ms": 4.79,
+            "jitter_ms": 0.012,
+            "loss_ratio": 0.0,
+            "gain": 1.247,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "libp2p_websocket"
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "loss_3pct",
+      "packet_loss_rate": 0.03,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47003,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512,
+      "frames_sent": 120,
+      "frames_delivered": 95,
+      "bytes_delivered": 49780,
+      "elapsed_s": 5.999259,
+      "frame_delivery_latency_ms": {
+        "count": 116,
+        "p50_ms": 7.049,
+        "p95_ms": 22.107,
+        "p99_ms": 23.187,
+        "min_ms": 3.579,
+        "max_ms": 59.604,
+        "mean_ms": 9.815
+      },
+      "quic_0rtt": {
+        "ok": true,
+        "error": null,
+        "attempts": 1,
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "session_resumed": true,
+        "early_data_accepted": true,
+        "server_early_frames": 2,
+        "handshake_latency_ms": 11.505,
+        "resumption_latency_ms": 11.301,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 19.646,
+          "p95_ms": 23.18,
+          "p99_ms": 23.187,
+          "min_ms": 11.471,
+          "max_ms": 23.187,
+          "mean_ms": 19.578
+        },
+        "throughput_mbps": 0.387,
+        "elapsed_s": 0.259983,
+        "proxy_stats": {
+          "dropped": 0,
+          "reordered": 3,
+          "held": 3,
+          "forwarded": 43,
+          "rebinds": 0
+        }
+      },
+      "turn_relay": {
+        "ok": true,
+        "error": null,
+        "allocate_ok": true,
+        "relayed_addresses": [
+          [
+            "127.0.0.1",
+            43826
+          ],
+          [
+            "127.0.0.1",
+            50616
+          ]
+        ],
+        "channel_number": 16384,
+        "channels_bound": 2,
+        "frames_sent": 72,
+        "frames_delivered": 47,
+        "data_relay": {
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 24,
+            "p50_ms": 8.576,
+            "p95_ms": 11.074,
+            "p99_ms": 59.604,
+            "min_ms": 4.808,
+            "max_ms": 59.604,
+            "mean_ms": 10.312
+          },
+          "throughput_mbps": 1.2746
+        },
+        "channel_relay": {
+          "frames_delivered": 23,
+          "frame_delivery_latency_ms": {
+            "count": 23,
+            "p50_ms": 5.736,
+            "p95_ms": 7.338,
+            "p99_ms": 7.531,
+            "min_ms": 3.579,
+            "max_ms": 7.531,
+            "mean_ms": 5.555
+          },
+          "throughput_mbps": 0.0481
+        },
+        "nat_rebind_events": 1,
+        "reallocations_after_rebind": 1,
+        "frames_lost_after_rebind": 24,
+        "post_rebind_frames_delivered": 21,
+        "post_rebind_latency_ms": {
+          "count": 21,
+          "p50_ms": 8.67,
+          "p95_ms": 10.448,
+          "p99_ms": 10.531,
+          "min_ms": 6.312,
+          "max_ms": 10.531,
+          "mean_ms": 8.442
+        },
+        "elapsed_s": 5.112393,
+        "proxy_stats": {
+          "alice": {
+            "dropped": 2,
+            "reordered": 4,
+            "held": 5,
+            "forwarded": 105,
+            "rebinds": 1
+          },
+          "bob": {
+            "dropped": 2,
+            "reordered": 1,
+            "held": 1,
+            "forwarded": 76,
+            "rebinds": 0
+          }
+        }
+      },
+      "websocket_fallback": {
+        "ok": true,
+        "protocol": "libp2p_websocket",
+        "fallback_reason": "TimeoutError",
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 4.87,
+          "p95_ms": 4.887,
+          "p99_ms": 4.893,
+          "min_ms": 4.749,
+          "max_ms": 4.893,
+          "mean_ms": 4.84
+        },
+        "throughput_mbps": 20.0838,
+        "fallback": {
+          "protocol": "libp2p_websocket",
+          "fallback_reason": "TimeoutError",
+          "frames_sent": 24,
+          "frames_delivered": 24,
+          "note": "the WebSocket fallback carries the batch when UDP is unusable"
+        },
+        "lossy_quic_path": {
+          "protocol": "quic",
+          "fallback_reason": null,
+          "error": null,
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 0,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0,
+            "p99_ms": 0.0,
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+            "mean_ms": 0.0
+          },
+          "note": "an unacknowledged QUIC batch is never replayed automatically"
+        },
+        "elapsed_s": 0.626883,
+        "proxy_stats": {}
+      },
+      "zero_rtt_strike_register": {
+        "attempts": 2,
+        "accepted": 1,
+        "rejected": 1,
+        "replay_probes": 1,
+        "rejection_rate": 0.5,
+        "rejection_reasons": [
+          "replay_nonce_detected(nonce=1<=max_seen=1)"
+        ]
+      },
+      "bbr_v1_pacing": {
+        "cwnd_bytes": 14400,
+        "cwnd_packets": 12,
+        "btl_bw_bps": 20083790.263,
+        "rtprop_ms": 4.875,
+        "jitter_ms": 0.004,
+        "loss_ratio": 0.0293,
+        "gain": 1.1757,
+        "mtu_bytes": 1200,
+        "mode": "steady",
+        "leg": "libp2p_websocket",
+        "model": "bbr_v1_delivery_rate_max_filter",
+        "frames_sent": 120,
+        "frames_delivered": 95,
+        "frames_lost": 25,
+        "pacing_samples": [
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 386978.665,
+            "rtprop_ms": 21.08,
+            "jitter_ms": 0.65,
+            "loss_ratio": 0.0,
+            "gain": 1.9402,
+            "mtu_bytes": 1200,
+            "mode": "startup",
+            "leg": "quic_0rtt"
+          },
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 1274626.509,
+            "rtprop_ms": 9.447,
+            "jitter_ms": 8.868,
+            "loss_ratio": 0.0,
+            "gain": 0.6448,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_data"
+          },
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 1221517.071,
+            "rtprop_ms": 6.209,
+            "jitter_ms": 0.342,
+            "loss_ratio": 0.0104,
+            "gain": 1.16,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_channel"
+          },
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 1115298.195,
+            "rtprop_ms": 8.827,
+            "jitter_ms": 0.561,
+            "loss_ratio": 0.0391,
+            "gain": 1.0835,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_after_rebind"
+          },
+          {
+            "cwnd_bytes": 14400,
+            "cwnd_packets": 12,
+            "btl_bw_bps": 20083790.263,
+            "rtprop_ms": 4.875,
+            "jitter_ms": 0.004,
+            "loss_ratio": 0.0293,
+            "gain": 1.1757,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "libp2p_websocket"
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "loss_5pct",
+      "packet_loss_rate": 0.05,
+      "reorder_rate": 0.02,
+      "jitter_ms": 1.0,
+      "seed": 47004,
+      "nat_rebind_events": 1,
+      "frames_per_batch": 24,
+      "frame_payload_bytes": 512,
+      "frames_sent": 120,
+      "frames_delivered": 90,
+      "bytes_delivered": 47160,
+      "elapsed_s": 8.626687,
+      "frame_delivery_latency_ms": {
+        "count": 113,
+        "p50_ms": 7.501,
+        "p95_ms": 18.545,
+        "p99_ms": 22.462,
+        "min_ms": 3.812,
+        "max_ms": 22.466,
+        "mean_ms": 9.565
+      },
+      "quic_0rtt": {
+        "ok": true,
+        "error": null,
+        "attempts": 1,
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "session_resumed": true,
+        "early_data_accepted": true,
+        "server_early_frames": 0,
+        "handshake_latency_ms": 12.241,
+        "resumption_latency_ms": 16.812,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 18.534,
+          "p95_ms": 22.462,
+          "p99_ms": 22.466,
+          "min_ms": 16.979,
+          "max_ms": 22.466,
+          "mean_ms": 18.378
+        },
+        "throughput_mbps": 0.1998,
+        "elapsed_s": 0.503664,
+        "proxy_stats": {
+          "dropped": 2,
+          "reordered": 0,
+          "held": 0,
+          "forwarded": 35,
+          "rebinds": 0
+        }
+      },
+      "turn_relay": {
+        "ok": true,
+        "error": null,
+        "allocate_ok": true,
+        "relayed_addresses": [
+          [
+            "127.0.0.1",
+            44583
+          ],
+          [
+            "127.0.0.1",
+            45389
+          ]
+        ],
+        "channel_number": 16384,
+        "channels_bound": 2,
+        "frames_sent": 72,
+        "frames_delivered": 42,
+        "data_relay": {
+          "frames_delivered": 21,
+          "frame_delivery_latency_ms": {
+            "count": 21,
+            "p50_ms": 8.722,
+            "p95_ms": 11.607,
+            "p99_ms": 11.94,
+            "min_ms": 6.533,
+            "max_ms": 11.94,
+            "mean_ms": 8.904
+          },
+          "throughput_mbps": 0.0394
+        },
+        "channel_relay": {
+          "frames_delivered": 21,
+          "frame_delivery_latency_ms": {
+            "count": 21,
+            "p50_ms": 6.212,
+            "p95_ms": 7.936,
+            "p99_ms": 7.961,
+            "min_ms": 3.812,
+            "max_ms": 7.961,
+            "mean_ms": 5.879
+          },
+          "throughput_mbps": 0.0439
+        },
+        "nat_rebind_events": 1,
+        "reallocations_after_rebind": 1,
+        "frames_lost_after_rebind": 24,
+        "post_rebind_frames_delivered": 23,
+        "post_rebind_latency_ms": {
+          "count": 23,
+          "p50_ms": 8.518,
+          "p95_ms": 10.457,
+          "p99_ms": 10.578,
+          "min_ms": 5.187,
+          "max_ms": 10.578,
+          "mean_ms": 8.168
+        },
+        "elapsed_s": 7.265881,
+        "proxy_stats": {
+          "alice": {
+            "dropped": 4,
+            "reordered": 4,
+            "held": 4,
+            "forwarded": 104,
+            "rebinds": 1
+          },
+          "bob": {
+            "dropped": 6,
+            "reordered": 0,
+            "held": 0,
+            "forwarded": 73,
+            "rebinds": 0
+          }
+        }
+      },
+      "websocket_fallback": {
+        "ok": true,
+        "protocol": "libp2p_websocket",
+        "fallback_reason": "TimeoutError",
+        "frames_sent": 24,
+        "frames_delivered": 24,
+        "frame_delivery_latency_ms": {
+          "count": 24,
+          "p50_ms": 5.975,
+          "p95_ms": 6.03,
+          "p99_ms": 6.05,
+          "min_ms": 5.701,
+          "max_ms": 6.05,
+          "mean_ms": 5.892
+        },
+        "throughput_mbps": 15.3538,
+        "fallback": {
+          "protocol": "libp2p_websocket",
+          "fallback_reason": "TimeoutError",
+          "frames_sent": 24,
+          "frames_delivered": 24,
+          "note": "the WebSocket fallback carries the batch when UDP is unusable"
+        },
+        "lossy_quic_path": {
+          "protocol": "quic",
+          "fallback_reason": null,
+          "error": null,
+          "frames_delivered": 24,
+          "frame_delivery_latency_ms": {
+            "count": 0,
+            "p50_ms": 0.0,
+            "p95_ms": 0.0,
+            "p99_ms": 0.0,
+            "min_ms": 0.0,
+            "max_ms": 0.0,
+            "mean_ms": 0.0
+          },
+          "note": "an unacknowledged QUIC batch is never replayed automatically"
+        },
+        "elapsed_s": 0.857142,
+        "proxy_stats": {}
+      },
+      "zero_rtt_strike_register": {
+        "attempts": 2,
+        "accepted": 1,
+        "rejected": 1,
+        "replay_probes": 1,
+        "rejection_rate": 0.5,
+        "rejection_reasons": [
+          "replay_nonce_detected(nonce=1<=max_seen=1)"
+        ]
+      },
+      "bbr_v1_pacing": {
+        "cwnd_bytes": 13200,
+        "cwnd_packets": 11,
+        "btl_bw_bps": 15353764.745,
+        "rtprop_ms": 5.99,
+        "jitter_ms": 0.014,
+        "loss_ratio": 0.0386,
+        "gain": 1.1509,
+        "mtu_bytes": 1200,
+        "mode": "steady",
+        "leg": "libp2p_websocket",
+        "model": "bbr_v1_delivery_rate_max_filter",
+        "frames_sent": 120,
+        "frames_delivered": 90,
+        "frames_lost": 30,
+        "pacing_samples": [
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 199752.404,
+            "rtprop_ms": 18.539,
+            "jitter_ms": 1.254,
+            "loss_ratio": 0.0,
+            "gain": 1.8733,
+            "mtu_bytes": 1200,
+            "mode": "startup",
+            "leg": "quic_0rtt"
+          },
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 174783.353,
+            "rtprop_ms": 9.201,
+            "jitter_ms": 0.746,
+            "loss_ratio": 0.0312,
+            "gain": 1.7344,
+            "mtu_bytes": 1200,
+            "mode": "startup",
+            "leg": "turn_data"
+          },
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 174783.353,
+            "rtprop_ms": 6.38,
+            "jitter_ms": 0.522,
+            "loss_ratio": 0.0547,
+            "gain": 1.0291,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_channel"
+          },
+          {
+            "cwnd_bytes": 2400,
+            "cwnd_packets": 2,
+            "btl_bw_bps": 191429.387,
+            "rtprop_ms": 8.63,
+            "jitter_ms": 0.472,
+            "loss_ratio": 0.0514,
+            "gain": 1.0632,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "turn_after_rebind"
+          },
+          {
+            "cwnd_bytes": 13200,
+            "cwnd_packets": 11,
+            "btl_bw_bps": 15353764.745,
+            "rtprop_ms": 5.99,
+            "jitter_ms": 0.014,
+            "loss_ratio": 0.0386,
+            "gain": 1.1509,
+            "mtu_bytes": 1200,
+            "mode": "steady",
+            "leg": "libp2p_websocket"
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "scenarios": 4,
+    "packet_loss_rates": [
+      0.0,
+      0.01,
+      0.03,
+      0.05
+    ],
+    "baseline_scenario": "loss_0pct",
+    "worst_case_scenario": "loss_1pct",
+    "worst_case_p99_frame_latency_ms": 24.998,
+    "frame_delivery_latency_ms_by_scenario": {
+      "loss_0pct": {
+        "p50_ms": 7.657,
+        "p95_ms": 21.841,
+        "p99_ms": 23.549
+      },
+      "loss_1pct": {
+        "p50_ms": 6.841,
+        "p95_ms": 24.979,
+        "p99_ms": 24.998
+      },
+      "loss_3pct": {
+        "p50_ms": 7.049,
+        "p95_ms": 22.107,
+        "p99_ms": 23.187
+      },
+      "loss_5pct": {
+        "p50_ms": 7.501,
+        "p95_ms": 18.545,
+        "p99_ms": 22.462
+      }
+    },
+    "zero_rtt_strike_register": {
+      "attempts": 8,
+      "accepted": 4,
+      "rejected": 4,
+      "rejection_rate": 0.5
+    },
+    "bbr_v1_pacing_adaptation": {
+      "baseline_scenario": "loss_0pct",
+      "baseline_cwnd_bytes": 14400,
+      "baseline_gain": 1.2473,
+      "baseline_btl_bw_bps": 15179310.569,
+      "impaired_scenario": "loss_5pct",
+      "impaired_cwnd_bytes": 13200,
+      "impaired_gain": 1.1509,
+      "impaired_btl_bw_bps": 15353764.745,
+      "impaired_loss_ratio": 0.0386
+    }
+  }
+}

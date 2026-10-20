@@ -27,7 +27,7 @@ import struct
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urlsplit
 
 from aioquic.asyncio import serve
@@ -49,6 +49,8 @@ SERVER_NAME = "hivemind.local"
 MULTISTREAM = "/multistream/1.0.0"
 LIBP2P_PROTOCOL = "/hivemind/hidden-state/1.0.0"
 _LENGTH = struct.Struct("!I")
+ENVELOPE_HEADER = struct.Struct("!dI")
+"""Frame envelope header: the send timestamp (seconds) and the frame sequence number."""
 MAX_FRAME_BYTES = 16 * 1024 * 1024
 MAX_BATCH_BYTES = 64 * 1024 * 1024
 MAX_BATCH_FRAMES = 4096
@@ -186,6 +188,40 @@ def _drain_frames(buffer: bytearray) -> List[bytes]:
         offset += _LENGTH.size + length
     del buffer[:offset]
     return frames
+
+
+@dataclass(frozen=True)
+class FrameEnvelope:
+    """A hidden-state frame that carries its own send timestamp and sequence number.
+
+    The envelope is the frame payload, so the length-prefixed QUIC framing is unchanged.
+    It lets a receiver measure the delivery latency of every single frame, which the WAN
+    fault benchmark reports as p50/p95/p99 (`HM-S5-05`).
+    """
+
+    sequence: int
+    sent_at: float
+    payload: bytes
+
+    def encode(self) -> bytes:
+        """Serialise the envelope."""
+        if isinstance(self.sequence, bool) or not isinstance(self.sequence, int) or self.sequence < 0:
+            raise ValueError("frame sequence number must be a non-negative integer")
+        if not math.isfinite(self.sent_at):
+            raise ValueError("frame send timestamp must be finite")
+        return ENVELOPE_HEADER.pack(self.sent_at, self.sequence) + self.payload
+
+    @classmethod
+    def decode(cls, frame: bytes) -> "FrameEnvelope":
+        """Parse an envelope, rejecting truncated or malformed frames."""
+        if not isinstance(frame, (bytes, bytearray)):
+            raise TypeError("hidden-state frames must be bytes")
+        if len(frame) < ENVELOPE_HEADER.size:
+            raise LinkProtocolError("truncated frame envelope")
+        sent_at, sequence = ENVELOPE_HEADER.unpack_from(frame, 0)
+        if not math.isfinite(sent_at) or sent_at <= 0:
+            raise LinkProtocolError("invalid frame envelope timestamp")
+        return cls(sequence, sent_at, bytes(frame[ENVELOPE_HEADER.size :]))
 
 
 class _ServerProtocol(QuicConnectionProtocol):
@@ -343,12 +379,28 @@ class _ClientProtocol(QuicConnectionProtocol):
         super().__init__(*args, **kwargs)
         self.handshake: Optional[HandshakeCompleted] = None
         self.reply: asyncio.Future = asyncio.get_running_loop().create_future()
+        self.connected: asyncio.Future = asyncio.get_running_loop().create_future()
         self._buffer = bytearray()
         self.stream_id: Optional[int] = None
+        self.started_at: Optional[float] = None
+        self.handshake_latency_s: Optional[float] = None
+
+    async def wait_connected(self) -> None:
+        """Wait for the TLS handshake with a waiter this link owns.
+
+        `aioquic` shields its own waiter, so a connection that is terminated after the wait
+        was cancelled logs "exception in shielded future". The link keeps its own waiter, so
+        a cancelled wait stays silent and the termination is reported to the caller.
+        """
+        await self.connected
 
     def quic_event_received(self, event: QuicEvent) -> None:
         if isinstance(event, HandshakeCompleted):
             self.handshake = event
+            if self.started_at is not None:
+                self.handshake_latency_s = time.perf_counter() - self.started_at
+            if not self.connected.done():
+                self.connected.set_result(None)
         elif isinstance(event, StreamDataReceived):
             if event.stream_id != self.stream_id or len(self._buffer) + len(event.data) > _LENGTH.size:
                 if not self.reply.done():
@@ -361,8 +413,12 @@ class _ClientProtocol(QuicConnectionProtocol):
                     self.reply.set_exception(LinkProtocolError("truncated QUIC acknowledgement"))
                 else:
                     self.reply.set_result(bytes(self._buffer))
-        elif isinstance(event, ConnectionTerminated) and not self.reply.done():
-            self.reply.set_exception(ConnectionError(f"QUIC connection closed: {event.reason_phrase}"))
+        elif isinstance(event, ConnectionTerminated):
+            reason = f"QUIC connection closed: {event.reason_phrase}"
+            if not self.reply.done():
+                self.reply.set_exception(ConnectionError(reason))
+            if not self.connected.done():
+                self.connected.set_exception(ConnectionError(reason))
 
 
 @dataclass
@@ -372,6 +428,8 @@ class QuicSendReport:
     session_resumed: bool
     early_data_accepted: bool
     new_ticket: Optional[SessionTicket]
+    handshake_latency_s: Optional[float] = None
+    """Time from the first byte on the wire to the completed TLS handshake."""
 
 
 async def quic_send_frames(
@@ -409,6 +467,7 @@ async def quic_send_frames(
             transport, protocol = await loop.create_datagram_endpoint(
                 lambda: _ClientProtocol(connection), local_addr=("0.0.0.0", 0), family=socket.AF_INET
             )
+            protocol.started_at = time.perf_counter()
             protocol.connect(addresses[0][4])
             if session_ticket is None:
                 # No application bytes are queued before the initial authenticated handshake.
@@ -433,6 +492,7 @@ async def quic_send_frames(
                 session_resumed=handshake.session_resumed,
                 early_data_accepted=handshake.early_data_accepted,
                 new_ticket=tickets[-1] if tickets else None,
+                handshake_latency_s=protocol.handshake_latency_s,
             )
     except (TimeoutError, ConnectionError, OSError) as exc:
         if attempted_delivery:
@@ -452,8 +512,125 @@ async def quic_send_frames(
                     protocol.reply.cancel()
                 elif not protocol.reply.cancelled():
                     protocol.reply.exception()
+                if not protocol.connected.done():
+                    protocol.connected.cancel()
+                elif not protocol.connected.cancelled():
+                    protocol.connected.exception()
                 if transport is not None:
                     transport.close()
+
+
+@dataclass
+class Quic0RttProbe:
+    """Outcome of one real `aioquic` TLS 1.3 0-RTT resumption probe."""
+
+    frames_sent: int
+    frames_delivered: int
+    session_resumed: bool
+    early_data_accepted: bool
+    server_early_frames: int
+    handshake_latency_ms: Optional[float]
+    resumption_latency_ms: Optional[float]
+    frame_latencies_ms: List[float] = field(default_factory=list)
+    elapsed_s: float = 0.0
+    ticket: Optional[SessionTicket] = None
+    error: Optional[str] = None
+
+    @property
+    def ok(self) -> bool:
+        """True when every frame was acknowledged and the session really resumed."""
+        return self.error is None and self.frames_delivered == self.frames_sent
+
+
+async def quic_0rtt_resumption_probe(
+    server: "QuicHiddenStateServer",
+    frames: Optional[Sequence[bytes]] = None,
+    *,
+    frame_factory: Optional[Callable[[], Sequence[bytes]]] = None,
+    client_target: Optional[Tuple[str, int]] = None,
+    session_ticket: Optional[SessionTicket] = None,
+    timeout: float = 3.0,
+    server_name: str = SERVER_NAME,
+) -> Quic0RttProbe:
+    """Resume a QUIC session with 0-RTT and time the delivery of every frame.
+
+    `client_target` overrides the address the client dials, so the probe can run through a
+    deterministic fault-injection proxy. Without a `session_ticket` the probe performs a first
+    handshake to obtain one and then resumes the session with it; `frame_factory` builds the
+    frames right before that resumed send, so their send timestamps stay meaningful.
+    """
+    _validate_timeout(timeout)
+    if frames is None and frame_factory is None:
+        raise ValueError("the probe needs frames or a frame factory")
+    host, port = client_target if client_target is not None else (server.host, server.port)
+    latencies: List[float] = []
+    first_delivery_at: Optional[float] = None
+    early_frames_before = server.early_frames
+    original = server.on_frame
+
+    def observer(frame: bytes) -> None:
+        nonlocal first_delivery_at
+        try:
+            envelope = FrameEnvelope.decode(frame)
+        except (LinkProtocolError, TypeError):
+            return
+        now = time.time()
+        latencies.append((now - envelope.sent_at) * 1000.0)
+        if first_delivery_at is None:
+            first_delivery_at = now
+        if original is not None:
+            original(frame)
+
+    server.on_frame = observer
+    started = time.perf_counter()
+    started_wall = time.time()
+    try:
+        ticket = session_ticket
+        if ticket is None:
+            # The warm-up frame is shorter than an envelope, so it is never mistaken for one.
+            warmup = await quic_send_frames(
+                host, port, [b"warmup"], server.identity.ca_pem,
+                timeout=timeout, server_name=server_name,
+            )
+            ticket = warmup.new_ticket
+        batch = _validate_frames(frame_factory() if frame_factory is not None else frames)
+        report = await quic_send_frames(
+            host, port, batch, server.identity.ca_pem, session_ticket=ticket,
+            timeout=timeout, server_name=server_name,
+        )
+        return Quic0RttProbe(
+            frames_sent=len(batch),
+            frames_delivered=report.delivered,
+            session_resumed=report.session_resumed,
+            early_data_accepted=report.early_data_accepted,
+            server_early_frames=max(0, server.early_frames - early_frames_before),
+            handshake_latency_ms=(
+                report.handshake_latency_s * 1000.0 if report.handshake_latency_s is not None else None
+            ),
+            resumption_latency_ms=(
+                (first_delivery_at - started_wall) * 1000.0 if first_delivery_at is not None else None
+            ),
+            frame_latencies_ms=list(latencies),
+            elapsed_s=time.perf_counter() - started,
+            ticket=report.new_ticket,
+        )
+    except (TimeoutError, ConnectionError, OSError) as exc:
+        return Quic0RttProbe(
+            frames_sent=len(latencies),
+            frames_delivered=len(latencies),
+            session_resumed=False,
+            early_data_accepted=False,
+            server_early_frames=max(0, server.early_frames - early_frames_before),
+            handshake_latency_ms=None,
+            resumption_latency_ms=(
+                (first_delivery_at - started_wall) * 1000.0 if first_delivery_at is not None else None
+            ),
+            frame_latencies_ms=list(latencies),
+            elapsed_s=time.perf_counter() - started,
+            error=type(exc).__name__,
+        )
+    finally:
+        server.on_frame = original
 
 
 def _uvarint(value: int) -> bytes:
