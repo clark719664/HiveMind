@@ -48,3 +48,16 @@ The `main` branch on `xaviercallens/HiveMind` enforces:
    - Active GitHub Ruleset targeting `refs/tags/v*` blocks `deletion`, `update`, and `non_fast_forward` rewrites. Once a release tag (`v1.0.0` .. `v1.6.0`) is pushed, its commit SHA is permanently locked.
 2. **Cryptographic Attestation ([`artifacts/SHA256SUMS.txt`](artifacts/SHA256SUMS.txt)):**
    - Every release publishes SHA-256 digests for `HiveMind_Steam_FreeEdition_<tag>.zip`, `paper/hivemind_foundation_article.pdf`, `lean4/HiveMindSpec.lean`, and community bundle manifests.
+
+---
+
+## 5. Legal Protection, Zero Monetary Involvement & Reciprocal Compute-Power Retribution
+
+See **[`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)** for the full binding legal charter:
+
+1. **No Money or Financial Payment (`0.00 EUR / 0.00 USD`):**
+   - Project HiveMind is a voluntary, non-commercial, open-source scientific research project. **No money, fiat currency, cryptocurrency, security, wage, or financial payment of any kind is or will ever be offered, owed, or paid** for Pull Requests, GitHub Issue "Bounties", dataset seeding, or GPU compute.
+2. **Retribution Strictly via Reciprocal Computing Power:**
+   - All `$HIVE` units, "Bounties", and PoUW credits are **strictly non-monetary internal compute-accounting units** (analogous to BOINC / SETI@home credits). Retribution for contributions is performed **exclusively by providing computing power and federated MoE inference/training quota back to contributors when the decentralized Swarm and Federation are operational and in place**.
+3. **Waiver of Monetary Claims:**
+   - By submitting any Pull Request, issue contribution, dataset, or compute cycle, contributors explicitly agree that their participation is voluntary and uncompensated in money, and irrevocably waive any claim to financial payment or monetary remuneration.

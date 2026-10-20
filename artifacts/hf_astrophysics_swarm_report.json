@@ -1,0 +1,593 @@
+{
+  "campaign": "HiveMind_v2_Astrophysics_Planet_And_Star_Classification_Swarm",
+  "legal_notice": "NO MONEY INVOLVED: All $HIVE values are non-monetary reciprocal computing power credits redeemable solely for swarm/federation compute when in place.",
+  "model_id": "Qwen/Qwen2.5-0.5B",
+  "lora_rank": 8,
+  "inner_steps": 10,
+  "seq_len": 64,
+  "hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 6.01,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)",
+    "gpu_backend": "cuda",
+    "gpu_vendor": "nvidia",
+    "gpu_arch": null,
+    "mps_available": false,
+    "mps_built": false,
+    "rocm_available": false,
+    "hip_version": null,
+    "cuda_version": "12.4",
+    "unified_memory": false,
+    "zero_copy_staging_supported": false,
+    "compute_backend": "cuda"
+  },
+  "vram_telemetry": {
+    "after_base_load_mb": 946.98,
+    "after_nf4_qlora_mb": 963.76,
+    "peak_4expert_hotplug_moe_mb": 1399.14,
+    "free_vram_gb": 5.54
+  },
+  "experiments": [
+    {
+      "experiment_id": 1,
+      "dataset_id": "mzrk36/exoplanets-unified-dataset",
+      "domain_expert": "Kepler_Exoplanet_Transit_Classifier",
+      "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-4ed2612a710659ee1a96836f",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store_astrophysics\\lora_experts\\expert_kepler_exoplanet_transit_classifier_4ed2612a7106.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/1d0a517e358c65ace48e64a3d3555a03",
+          "challenged_chunk_index": 15,
+          "merkle_proof_hash": "a55a248d4671aaf0259156aa718d818f78777bb6e8de27278cb8dad00a90879f",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/ed8925193129a4a4dc54aa55e5326812",
+          "challenged_chunk_index": 18,
+          "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/47279e88eec5fa7bd39071e47dd5655a",
+          "challenged_chunk_index": 56,
+          "merkle_proof_hash": "e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cfd73514",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 2.99817,
+          "final_loss": 0.596859,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 3.043449,
+          "final_loss": 0.862063,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 3.027461,
+          "final_loss": 0.687669,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 3.584386,
+      "pouw_block": {
+        "height": 1,
+        "block_hash": "e26745b22a8745b28e4b04533caccc2658bf3708f99eec431bacb3ce8d91ac6b",
+        "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
+        "merkle_root": "4ee3027c6d8b855418fa6bd95dbf9e9735d983b49a04b22eaaf14f37967ada85",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-paris-01",
+        "expert_provider_nodes": [
+          "seti-node-lyon-02",
+          "seti-node-nice-03"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {},
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 15.0,
+        "seti-node-lyon-02": 15.0,
+        "seti-node-nice-03": 15.0,
+        "validator-node-eu-01": 5.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 14.775,
+        "seti-node-lyon-02": 15.1125,
+        "seti-node-nice-03": 15.1125,
+        "validator-node-eu-01": 5.0
+      },
+      "pre_lora_perplexity": 20.5965,
+      "post_lora_perplexity": 1.8956,
+      "perplexity_reduction_pct": 90.8,
+      "shared_swarm_generation": "Insolation: 84.65 S_earth | Exoplanet Radius: 1.25 R_earth | Transit Depth: 225.0 ppm (SNR=20.6"
+    },
+    {
+      "experiment_id": 2,
+      "dataset_id": "juliensimon/nasa-exoplanets",
+      "domain_expert": "NASA_Exoplanet_Taxonomy_Classifier",
+      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-29a3faa9c3d21dfa4314e2eb",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store_astrophysics\\lora_experts\\expert_nasa_exoplanet_taxonomy_classifier_29a3faa9c3d2.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/8bf687c796aa881b2451d1d273185f38",
+          "challenged_chunk_index": 1,
+          "merkle_proof_hash": "ad49e85a9f53be35bcaec4aa0c2d0fea21ac85eba6897a42e87465c4fa531ed2",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/88daf161545ea8bb49bd82b9351e75e0",
+          "challenged_chunk_index": 17,
+          "merkle_proof_hash": "d424eb7ff99992cbff2382c245b114d814fd3d0d904627931c1b873f561c4bc8",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/80a99d9d6a68c47557da3534c6e6e69f",
+          "challenged_chunk_index": 25,
+          "merkle_proof_hash": "b2bce2fdf54efc36ef53fe3641fa8e4ad98bf73fd4b7d630c8a0364fc9f19792",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 3.312858,
+          "final_loss": 0.927117,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 3.156241,
+          "final_loss": 0.527535,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 3.154124,
+          "final_loss": 0.724222,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 3.468309,
+      "pouw_block": {
+        "height": 2,
+        "block_hash": "b867cd2a3ef87ff814d1d09ff8a5e22048b6dc9e0c8c36466c34693e918a9fda",
+        "prev_block_hash": "e26745b22a8745b28e4b04533caccc2658bf3708f99eec431bacb3ce8d91ac6b",
+        "merkle_root": "895132f0b674fc19dd0c11ca8fb4d2841f11be0bbd361deb37e09bc327ce0f7a",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-lyon-02",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-nice-03"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 14.775,
+        "seti-node-lyon-02": 15.1125,
+        "seti-node-nice-03": 15.1125,
+        "validator-node-eu-01": 5.0
+      },
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 29.775,
+        "seti-node-lyon-02": 30.1125,
+        "seti-node-nice-03": 30.1125,
+        "validator-node-eu-01": 10.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 29.8875,
+        "seti-node-lyon-02": 29.8875,
+        "seti-node-nice-03": 30.225,
+        "validator-node-eu-01": 10.0
+      },
+      "pre_lora_perplexity": 29.805,
+      "post_lora_perplexity": 2.0154,
+      "perplexity_reduction_pct": 93.24,
+      "shared_swarm_generation": "Mass: Mass (M_earth) | Period: Period (d) | Radius: Radius (R_earth) | Mass: Mass (M_earth) | Period: Period (d) | Radius: Radius ("
+    },
+    {
+      "experiment_id": 3,
+      "dataset_id": "BrunoBarreto/sdss_dr12_stars_regression",
+      "domain_expert": "SDSS_Stellar_MK_Spectral_Classifier",
+      "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-fb73a00d3bd08dd1f2031c33",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store_astrophysics\\lora_experts\\expert_sdss_stellar_mk_spectral_classifier_fb73a00d3bd0.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/64bd166e30f3b784d578a1ef6a566f76",
+          "challenged_chunk_index": 45,
+          "merkle_proof_hash": "af454ab629a797941edabe8d50de72bb37580769c0b3c36b0763621a7d3d58f1",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/179053f0f8b15a485913db1af9d3a856",
+          "challenged_chunk_index": 20,
+          "merkle_proof_hash": "af454ab629a797941edabe8d50de72bb37580769c0b3c36b0763621a7d3d58f1",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/4818b10d5d6c6d54313048a3a116fb75",
+          "challenged_chunk_index": 19,
+          "merkle_proof_hash": "627141fa61e6fa4d5b593d14296367c69633a6f8bed4fe6e9c089e509c604cdb",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 3.76141,
+          "final_loss": 1.07304,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 3.813467,
+          "final_loss": 1.004464,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 3.881751,
+          "final_loss": 1.011068,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 4.20435,
+      "pouw_block": {
+        "height": 3,
+        "block_hash": "8f538cac47a302c7797dcbfbdae508ec22b1f0f3c06ae9c6b62daab1c1bec815",
+        "prev_block_hash": "b867cd2a3ef87ff814d1d09ff8a5e22048b6dc9e0c8c36466c34693e918a9fda",
+        "merkle_root": "caf39c14cddc3df2d39985f4201f4db839d7d7e13cbba08baff2eb7ac561c801",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-nice-03",
+        "expert_provider_nodes": [
+          "seti-node-paris-01",
+          "seti-node-lyon-02"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 29.8875,
+        "seti-node-lyon-02": 29.8875,
+        "seti-node-nice-03": 30.225,
+        "validator-node-eu-01": 10.0
+      },
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 44.8875,
+        "seti-node-lyon-02": 44.8875,
+        "seti-node-nice-03": 45.225,
+        "validator-node-eu-01": 15.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 45.0,
+        "seti-node-lyon-02": 45.0,
+        "seti-node-nice-03": 45.0,
+        "validator-node-eu-01": 15.0
+      },
+      "pre_lora_perplexity": 45.2359,
+      "post_lora_perplexity": 3.0264,
+      "perplexity_reduction_pct": 93.31,
+      "shared_swarm_generation": "Coordinates: RA=130.846, Dec=+54.661 | Teff: 6190.7 K | Surface Gravity log(g): 3.98 |"
+    },
+    {
+      "experiment_id": 4,
+      "dataset_id": "Shoriful025/exoplanet_atmospheric_spectroscopy_results",
+      "domain_expert": "JWST_Atmosphere_Biosignature_Classifier",
+      "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-e006fc4b42265de57158a77f",
+      "expert_disk_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store_astrophysics\\lora_experts\\expert_jwst_atmosphere_biosignature_classifier_e006fc4b4226.pt",
+      "seti_agent_lifecycle_states": {
+        "training_phase": "STATE_2_IDLE_SETI_MINER",
+        "inference_phase": "STATE_3_SWARM_CONSUMER"
+      },
+      "storage_proofs": [
+        {
+          "node_id": "seti-node-paris-01",
+          "shard_cid": "cid://sha256/6e4bad832202fbedf9ec76282fe1616f",
+          "challenged_chunk_index": 34,
+          "merkle_proof_hash": "ad677c5cdb60d9fb56d5d89deeabc28bd94598a50fa3cbcafe053fe566b672dc",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-lyon-02",
+          "shard_cid": "cid://sha256/255f54453cefc68d227762892321f2fb",
+          "challenged_chunk_index": 6,
+          "merkle_proof_hash": "3ac6bf897323d83e0c5b0288a26ce46a26fbc48b50cc143ccbfdb1abdc10d9ca",
+          "bytes_stored": 16384,
+          "verified": true
+        },
+        {
+          "node_id": "seti-node-nice-03",
+          "shard_cid": "cid://sha256/9a3bf93543e4450b31aa66a3d48ff592",
+          "challenged_chunk_index": 0,
+          "merkle_proof_hash": "4e0229f9fba3c405a622ebe0e74f20fff71b7d008c005a53c98b73593ed15b30",
+          "bytes_stored": 16384,
+          "verified": true
+        }
+      ],
+      "worker_loss_trajectories": {
+        "seti-node-paris-01": {
+          "initial_loss": 3.61096,
+          "final_loss": 0.332098,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-lyon-02": {
+          "initial_loss": 3.662789,
+          "final_loss": 0.521152,
+          "spot_check_max_diff": 0.0
+        },
+        "seti-node-nice-03": {
+          "initial_loss": 4.052309,
+          "final_loss": 1.090057,
+          "spot_check_max_diff": 0.0
+        }
+      },
+      "multikrum_accepted": [
+        "seti-node-paris-01",
+        "seti-node-lyon-02",
+        "seti-node-nice-03"
+      ],
+      "multikrum_rejected": [
+        "byzantine-botnet-99"
+      ],
+      "outer_delta_norm": 3.413721,
+      "pouw_block": {
+        "height": 4,
+        "block_hash": "a5c6cf079e687fe2625180b563e63abd4dc775e1740970e70a51d3878013735b",
+        "prev_block_hash": "8f538cac47a302c7797dcbfbdae508ec22b1f0f3c06ae9c6b62daab1c1bec815",
+        "merkle_root": "3b7321bf65e180de3ef5526e71ce4bcb71545733ba0efe40dccc18a790328f70",
+        "total_block_reward_hive": 50.0,
+        "reward_allocations_hive": {
+          "seti-node-paris-01": 15.0,
+          "seti-node-lyon-02": 15.0,
+          "seti-node-nice-03": 15.0,
+          "validator-node-eu-01": 5.0
+        },
+        "slashed_nodes": [
+          "byzantine-botnet-99"
+        ]
+      },
+      "inference_settlement": {
+        "consumer_node_id": "seti-node-paris-01",
+        "expert_provider_nodes": [
+          "seti-node-lyon-02",
+          "seti-node-nice-03"
+        ],
+        "verified_tokens": 45,
+        "rtt_speedup": 5.0,
+        "fee_paid_hive": 0.225
+      },
+      "balances_before_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 45.0,
+        "seti-node-lyon-02": 45.0,
+        "seti-node-nice-03": 45.0,
+        "validator-node-eu-01": 15.0
+      },
+      "balances_after_block_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 60.0,
+        "seti-node-lyon-02": 60.0,
+        "seti-node-nice-03": 60.0,
+        "validator-node-eu-01": 20.0
+      },
+      "post_inference_balances_hive": {
+        "byzantine-botnet-99": 0.0,
+        "seti-node-paris-01": 59.775,
+        "seti-node-lyon-02": 60.1125,
+        "seti-node-nice-03": 60.1125,
+        "validator-node-eu-01": 20.0
+      },
+      "pre_lora_perplexity": 37.7342,
+      "post_lora_perplexity": 1.5319,
+      "perplexity_reduction_pct": 95.94,
+      "shared_swarm_generation": "Transit Depth: 1250 ppm | log(H2O): -4.50 | log(CH4): -6.20 | log(CO2): -5.10 | log(C"
+    }
+  ],
+  "dynamic_btm_moe_v2_hotplug": {
+    "initial_upcycled_experts": 2,
+    "hotplugged_domains": [
+      "SDSS_Stellar_MK_Spectral_Classifier",
+      "JWST_Atmosphere_Biosignature_Classifier"
+    ],
+    "hotplugged_expert_cids": [
+      "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-fb73a00d3bd08dd1f2031c33",
+      "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-e006fc4b42265de57158a77f"
+    ],
+    "final_num_experts": 4,
+    "expert_domains": [
+      "Kepler_Exoplanet_Transit_Classifier",
+      "NASA_Exoplanet_Taxonomy_Classifier",
+      "SDSS_Stellar_MK_Spectral_Classifier",
+      "JWST_Atmosphere_Biosignature_Classifier"
+    ],
+    "router_initial_loss": 2.12432,
+    "router_final_loss": 1.411296,
+    "expert_utilization": {
+      "Kepler_Exoplanet_Transit_Classifier": 0.3295,
+      "NASA_Exoplanet_Taxonomy_Classifier": 0.228,
+      "SDSS_Stellar_MK_Spectral_Classifier": 0.2292,
+      "JWST_Atmosphere_Biosignature_Classifier": 0.2133
+    }
+  },
+  "regional_swarm_speculative_generations": {
+    "Kepler_Exoplanet_Transit_Classifier": {
+      "prompt": "### Kepler/TESS Exoplanet Transit Observation: Period 24.64 d, Radius 1.85 R_earth, Host Teff 3896 K -> Disposition:",
+      "generated_continuation": " 10.0 | Planet Radius: 1.85 R_",
+      "full_text": "### Kepler/TESS Exoplanet Transit Observation: Period 24.64 d, Radius 1.85 R_earth, Host Teff 3896 K -> Disposition: 10.0 | Planet Radius: 1.85 R_",
+      "effective_tokens_per_sec": 4.56,
+      "latency_reduction_factor": 5.33,
+      "expert_routing_share": {
+        "Kepler_Exoplanet_Transit_Classifier": 0.274,
+        "NASA_Exoplanet_Taxonomy_Classifier": 0.2027,
+        "SDSS_Stellar_MK_Spectral_Classifier": 0.1957,
+        "JWST_Atmosphere_Biosignature_Classifier": 0.3276
+      }
+    },
+    "NASA_Exoplanet_Taxonomy_Classifier": {
+      "prompt": "### NASA Exoplanet Archive Observation: TOI-938 b, Period 8.81 d, Radius 4.82 R_earth -> Physical Class:",
+      "generated_continuation": " Jovian | Transit Depth: 1.000000",
+      "full_text": "### NASA Exoplanet Archive Observation: TOI-938 b, Period 8.81 d, Radius 4.82 R_earth -> Physical Class: Jovian | Transit Depth: 1.000000",
+      "effective_tokens_per_sec": 4.73,
+      "latency_reduction_factor": 5.33,
+      "expert_routing_share": {
+        "Kepler_Exoplanet_Transit_Classifier": 0.2529,
+        "NASA_Exoplanet_Taxonomy_Classifier": 0.2233,
+        "SDSS_Stellar_MK_Spectral_Classifier": 0.2037,
+        "JWST_Atmosphere_Biosignature_Classifier": 0.3201
+      }
+    },
+    "SDSS_Stellar_MK_Spectral_Classifier": {
+      "prompt": "### SDSS DR12 Stellar Spectrum: Teff 5382.4 K, log(g) 4.27 dex, [Fe/H] -1.60 dex -> Spectral Type:",
+      "generated_continuation": " O-IV, Radius: 10.00 R_earth,",
+      "full_text": "### SDSS DR12 Stellar Spectrum: Teff 5382.4 K, log(g) 4.27 dex, [Fe/H] -1.60 dex -> Spectral Type: O-IV, Radius: 10.00 R_earth,",
+      "effective_tokens_per_sec": 4.53,
+      "latency_reduction_factor": 5.33,
+      "expert_routing_share": {
+        "Kepler_Exoplanet_Transit_Classifier": 0.2251,
+        "NASA_Exoplanet_Taxonomy_Classifier": 0.1925,
+        "SDSS_Stellar_MK_Spectral_Classifier": 0.243,
+        "JWST_Atmosphere_Biosignature_Classifier": 0.3393
+      }
+    },
+    "JWST_Atmosphere_Biosignature_Classifier": {
+      "prompt": "### JWST Exoplanet Transmission Spectroscopy: Teq 285 K, log(H2O) -4.50, Habitability Index 0.82 -> Habitability Class:",
+      "generated_continuation": " Super Earth:\nOrbital Period: 1.982 d |",
+      "full_text": "### JWST Exoplanet Transmission Spectroscopy: Teq 285 K, log(H2O) -4.50, Habitability Index 0.82 -> Habitability Class: Super Earth:\nOrbital Period: 1.982 d |",
+      "effective_tokens_per_sec": 4.52,
+      "latency_reduction_factor": 5.33,
+      "expert_routing_share": {
+        "Kepler_Exoplanet_Transit_Classifier": 0.2531,
+        "NASA_Exoplanet_Taxonomy_Classifier": 0.1967,
+        "SDSS_Stellar_MK_Spectral_Classifier": 0.1923,
+        "JWST_Atmosphere_Biosignature_Classifier": 0.3579
+      }
+    }
+  },
+  "final_ledger_state": {
+    "ledger_path": "D:\\xdev\\DecentralizedAI\\.cache\\swarm_store_astrophysics\\hive_astro_pouw_ledger.json",
+    "chain_length": 5,
+    "total_hive_minted": 200.0,
+    "chain_integrity_verified": true,
+    "balances_hive": {
+      "byzantine-botnet-99": 0.0,
+      "seti-node-paris-01": 59.775,
+      "seti-node-lyon-02": 60.1125,
+      "seti-node-nice-03": 60.1125,
+      "validator-node-eu-01": 20.0
+    },
+    "reputation_scores": {
+      "byzantine-botnet-99": -100,
+      "seti-node-paris-01": 140,
+      "seti-node-lyon-02": 140,
+      "seti-node-nice-03": 140
+    },
+    "slashed_registry": [
+      "byzantine-botnet-99"
+    ]
+  },
+  "total_elapsed_seconds": 160.97
+}

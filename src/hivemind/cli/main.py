@@ -222,6 +222,14 @@ def main(argv: list[str] | None = None) -> int:
     p_exp3.add_argument("--lora-rank", type=int, default=8, help="LoRA rank r")
     p_exp3.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps per worker")
 
+    p_astro = sub.add_parser(
+        "run-astro-experiments",
+        help="Execute 4 sequential Astrophysics Planet & Star Classification QLoRA Swarm experiments on real Hugging Face datasets + 4-Expert MoE Hot-Plug",
+    )
+    p_astro.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
+    p_astro.add_argument("--lora-rank", type=int, default=8, help="LoRA rank r")
+    p_astro.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps per worker")
+
     p_game = sub.add_parser(
         "play-hack-game",
         help="Play HiveMind: Neural Breach (Free Steam Edition) Hugging Face Hack-Miner Game & build Steam package",
@@ -308,6 +316,15 @@ def main(argv: list[str] | None = None) -> int:
         from hivemind.cli.demo_hf_domain_swarm import run_three_hf_swarm_experiments
 
         run_three_hf_swarm_experiments(
+            model_id=args.model_id,
+            lora_rank=args.lora_rank,
+            inner_steps=args.inner_steps,
+        )
+        return 0
+    if args.command == "run-astro-experiments":
+        from hivemind.cli.demo_hf_domain_swarm import run_astrophysics_hf_swarm_experiments
+
+        run_astrophysics_hf_swarm_experiments(
             model_id=args.model_id,
             lora_rank=args.lora_rank,
             inner_steps=args.inner_steps,

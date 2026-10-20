@@ -1,10 +1,12 @@
-"""Season 3 (`HM-S3-04`) Domain Expert LoRA Trainer, Top-k FP8 Compressor & CAS Publisher.
+"""Season 3 (`HM-S3-04`) & Season 6 Astrophysics Domain Expert LoRA Trainer, Top-k FP8 Compressor & CAS Publisher.
 
 Trains and publishes specialized QLoRA domain adapters (`Rust_Systems_Security`,
-`Solidity_Smart_Contracts`, `Biomedical_Clinical_QA`, and `Lean4_Theorem_Prover`),
-compresses their pseudo-gradient deltas via `Top-k (k=0.05) + FP8 (float8_e4m3fn)`,
-registers their content-addressed checkpoints in `ContentAddressedSwarmStore`,
-and hot-plugs them into `UpcycledSparseMoEModel`.
+`Solidity_Smart_Contracts`, `Biomedical_Clinical_QA`, `Lean4_Theorem_Prover`, and
+Astrophysics Planet & Star Classifiers: `Kepler_Exoplanet_Transit_Classifier`,
+`NASA_Exoplanet_Taxonomy_Classifier`, `SDSS_Stellar_MK_Spectral_Classifier`, and
+`JWST_Atmosphere_Biosignature_Classifier`), compresses their pseudo-gradient deltas
+via `Top-k (k=0.05) + FP8 (float8_e4m3fn)`, registers their content-addressed
+checkpoints in `ContentAddressedSwarmStore`, and hot-plugs them into `UpcycledSparseMoEModel`.
 """
 
 from __future__ import annotations
@@ -49,6 +51,49 @@ CURATED_SEASON3_DOMAIN_CORPORA: Dict[str, List[str]] = {
         "theorem rfc9001_0rtt_monotonic_nonce_anti_replay (lastAcceptedNonce replayedNonce : Nat) (h : replayedNonce <= lastAcceptedNonce) : ¬ (lastAcceptedNonce < replayedNonce) := by omega",
         "theorem l2_state_channel_settlement_conservation (escrow spend : Nat) (h : spend <= escrow) : spend + (escrow - spend) = escrow := by omega",
     ],
+    "Kepler_Exoplanet_Transit_Classifier": [
+        "### Kepler/TESS Exoplanet Transit Observation:\nOrbital Period: 5.604 days | Planet Radius: 1.25 R_earth | Transit Depth: 225.0 ppm (SNR=20.6) | Host Star Teff: 4847 K (logg=4.58, R*=0.74 R_sun, KepMag=13.71)\n### Planet Disposition & Classification:\nDisposition: CONFIRMED | Planetary Class: Rocky Terrestrial / Earth-Size World",
+        "### Kepler/TESS Exoplanet Transit Observation:\nOrbital Period: 0.639 days | Planet Radius: 162.15 R_earth | Transit Depth: 141000.0 ppm (SNR=206.3) | Host Star Teff: 6424 K (logg=4.39, R*=1.18 R_sun, KepMag=14.07)\n### Planet Disposition & Classification:\nDisposition: FALSE POSITIVE | Planetary Class: Eclipsing Binary / False Positive Transit",
+        "### Kepler/TESS Exoplanet Transit Observation:\nOrbital Period: 24.644 days | Planet Radius: 1.85 R_earth | Insolation: 3.30 S_earth | Host Star Teff: 3896 K (logg=4.72, R*=0.56 R_sun, KepMag=11.57)\n### Planet Disposition & Classification:\nDisposition: CONFIRMED | Planetary Class: Super-Earth Exoplanet",
+    ],
+    "NASA_Exoplanet_Taxonomy_Classifier": [
+        "### NASA Exoplanet Archive Observation (TOI-5806 b around TOI-5806):\nDiscovery: Transit (TESS) | Period: 3.186 d | Radius: 15.13 R_earth | Mass: 721.47 M_earth | Teq: 1621 K | Host Star Teff: 6730 K, Distance: 119.2 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Jovian Gas Giant | Thermal Regime: Hot Inner Irradiated Orbit",
+        "### NASA Exoplanet Archive Observation (TOI-938 b around TOI-938):\nDiscovery: Transit (TESS) | Period: 8.807 d | Radius: 4.82 R_earth | Host Star Teff: 5829 K, R*=0.99 R_sun, Distance: 215.0 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Sub-Neptune / Ice Giant | Thermal Regime: Hot Inner Irradiated Orbit",
+        "### NASA Exoplanet Archive Observation (HIP 39330 b around HIP 39330):\nDiscovery: Radial Velocity | Period: 4650.0 d | Semi-Major Axis: 5.05 AU | Mass: 530.77 M_earth | Host Star Teff: 5748 K, Distance: 36.4 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Jovian Gas Giant | Thermal Regime: Cold Outer Giant Orbit",
+    ],
+    "SDSS_Stellar_MK_Spectral_Classifier": [
+        "### SDSS DR12 Stellar Spectrum (SpecID 21143, Plate 2316-580):\nCoordinates: RA=130.846, Dec=+54.661 | Teff: 6190.7 K | Surface Gravity log(g): 3.98 dex | Metallicity [Fe/H]: -0.41 dex | Radial Velocity: -38.3 km/s (SNR=43.4)\n### Stellar MK Classification:\nSpectral Type: F-Type Yellow-White Star | Luminosity Class: Class IV (Subgiant Turnoff) | Galactic Population: Thin-Disk Population I",
+        "### SDSS DR12 Stellar Spectrum (SpecID 4346, Plate 1039-125):\nCoordinates: RA=195.870, Dec=+53.365 | Teff: 5382.4 K | Surface Gravity log(g): 4.27 dex | Metallicity [Fe/H]: -1.60 dex | Radial Velocity: -155.8 km/s (SNR=24.8)\n### Stellar MK Classification:\nSpectral Type: G-Type Solar-Analog Star | Luminosity Class: Class V (Main-Sequence Dwarf) | Galactic Population: Galactic Halo Metal-Poor Population II",
+        "### SDSS DR12 Stellar Spectrum (SpecID 9019, Plate 1507-38):\nCoordinates: RA=34.897, Dec=-0.256 | Teff: 6168.2 K | Surface Gravity log(g): 3.92 dex | Metallicity [Fe/H]: -1.38 dex | Radial Velocity: -265.4 km/s (SNR=34.3)\n### Stellar MK Classification:\nSpectral Type: F-Type Yellow-White Star | Luminosity Class: Class IV (Subgiant Turnoff) | Galactic Population: Galactic Halo Metal-Poor Population II",
+    ],
+    "JWST_Atmosphere_Biosignature_Classifier": [
+        "### JWST Exoplanet Transmission Spectroscopy (EXO-8821 around G-Type Star, 45.2 ly):\nTransit Depth: 1250 ppm | log(H2O): -4.5 | log(CH4): -6.2 | log(CO2): -5.1 | Cloud Deck: 0.10 bar | Teq: 285 K | Habitability Index: 0.82\n### Atmospheric Biosignature Classification:\nHabitability Class: Class-I High-Habitability Temperate World | Biosignature Status: Strong H2O + CH4/CO2 Chemical Disequilibrium Candidate",
+        "### JWST Exoplanet Transmission Spectroscopy (EXO-4410 around M-Dwarf Star, 18.4 ly):\nTransit Depth: 3100 ppm | log(H2O): -5.8 | log(CH4): -8.1 | log(CO2): -3.9 | Cloud Deck: 0.85 bar | Teq: 495 K | Habitability Index: 0.21\n### Atmospheric Biosignature Classification:\nHabitability Class: Class-III Sterile Non-Habitable Atmosphere | Biosignature Status: CO2-Dominated Venusian Runaway Greenhouse",
+        "### JWST Exoplanet Transmission Spectroscopy (EXO-6109 around K-Type Star, 31.8 ly):\nTransit Depth: 1680 ppm | log(H2O): -4.9 | log(CH4): -6.8 | log(CO2): -4.8 | Cloud Deck: 0.30 bar | Teq: 258 K | Habitability Index: 0.64\n### Atmospheric Biosignature Classification:\nHabitability Class: Class-II Marginal Sub-Temperate Atmosphere | Biosignature Status: Moderate H2O/CO2 Absorption in Cold Outer Habitable Zone",
+    ],
+}
+
+ASTROPHYSICS_DOMAIN_EXPERT_SPECS: Dict[str, Dict[str, Any]] = {
+    "Kepler_Exoplanet_Transit_Classifier": {
+        "dataset_id": "mzrk36/exoplanets-unified-dataset",
+        "lora_rank_r": 16,
+        "lora_alpha": 32,
+    },
+    "NASA_Exoplanet_Taxonomy_Classifier": {
+        "dataset_id": "juliensimon/nasa-exoplanets",
+        "lora_rank_r": 16,
+        "lora_alpha": 32,
+    },
+    "SDSS_Stellar_MK_Spectral_Classifier": {
+        "dataset_id": "BrunoBarreto/sdss_dr12_stars_regression",
+        "lora_rank_r": 16,
+        "lora_alpha": 32,
+    },
+    "JWST_Atmosphere_Biosignature_Classifier": {
+        "dataset_id": "Shoriful025/exoplanet_atmospheric_spectroscopy_results",
+        "lora_rank_r": 16,
+        "lora_alpha": 32,
+    },
 }
 
 
@@ -80,7 +125,6 @@ def _encode_corpus_batch(
     return x, y
 
 
-
 def train_single_domain_lora_adapter(
     domain_name: str,
     reference_lora_state: Dict[str, torch.Tensor],
@@ -99,11 +143,14 @@ def train_single_domain_lora_adapter(
 
     spec = SEASON_3_DOMAIN_EXPERT_SPECS.get(
         domain_name,
-        {
-            "dataset_id": f"hivemind/{domain_name.lower()}",
-            "lora_rank_r": lora_rank_r,
-            "lora_alpha": lora_alpha,
-        },
+        ASTROPHYSICS_DOMAIN_EXPERT_SPECS.get(
+            domain_name,
+            {
+                "dataset_id": f"hivemind/{domain_name.lower()}",
+                "lora_rank_r": lora_rank_r,
+                "lora_alpha": lora_alpha,
+            },
+        ),
     )
     corpus = CURATED_SEASON3_DOMAIN_CORPORA.get(
         domain_name,
@@ -187,7 +234,6 @@ def train_single_domain_lora_adapter(
         ).to(torch.float16)
         for k in init_state
     }
-
 
     init_loss_mean = round(sum(initial_losses) / max(1, len(initial_losses)), 6)
     final_loss_mean = round(sum(final_losses) / max(1, len(final_losses)), 6)
@@ -279,3 +325,31 @@ def train_and_publish_season3_domain_experts(
         "receipts": receipts,
         "hotplug_summary": hotplug_summary,
     }
+
+
+def train_and_publish_astrophysics_domain_experts(
+    store: ContentAddressedSwarmStore,
+    reference_lora_state: Dict[str, torch.Tensor],
+    moe_model: Optional[UpcycledSparseMoEModel] = None,
+    domains: Optional[Sequence[str]] = None,
+    topk_ratio: float = 0.05,
+    inner_steps: int = 12,
+) -> Tuple[Season3DomainExpertRegistry, Dict[str, Any]]:
+    """
+    Trains all 4 Astrophysics planet & star classification LoRA adapters
+    (`Kepler_Exoplanet_Transit_Classifier`, `NASA_Exoplanet_Taxonomy_Classifier`,
+    `SDSS_Stellar_MK_Spectral_Classifier`, `JWST_Atmosphere_Biosignature_Classifier`),
+    pins their dataset shards and converged LoRA checkpoints into `ContentAddressedSwarmStore`,
+    and optionally hot-plugs them into `moe_model`.
+    """
+    target_domains = (
+        list(domains) if domains is not None else list(ASTROPHYSICS_DOMAIN_EXPERT_SPECS.keys())
+    )
+    return train_and_publish_season3_domain_experts(
+        store=store,
+        reference_lora_state=reference_lora_state,
+        moe_model=moe_model,
+        domains=target_domains,
+        topk_ratio=topk_ratio,
+        inner_steps=inner_steps,
+    )

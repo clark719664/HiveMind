@@ -4,6 +4,10 @@
 <img src="assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.7.0 — 29/29 Merged PRs, 48/48 Lean 4 Proofs & Autonomous Pareto Strategy Optimizer (SI-01 to SI-05)" width="100%"/>
 </div>
 
+> [!IMPORTANT]
+> **⚖️ Binding Legal Notice — No Money or Financial Payment Involved ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](../LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
+> **No money, fiat currency, cryptocurrency, or financial payment of any kind is or will ever be involved or paid (`0.00 EUR / USD`).** All `$HIVE` amounts, "Bounties", and PoUW credits listed in this document and across GitHub Issues/PRs are **strictly non-monetary, symbolic compute-reciprocity accounting units**. Any retribution for contributions consists **solely of reciprocal computing power** (shared Sparse MoE inference and training quota) provided back to contributors **when the decentralized Swarm and Federation are in place**. By contributing, you waive any claim to monetary compensation.
+
 > **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
 >
 > **Current Status (`v1.7.0`):**

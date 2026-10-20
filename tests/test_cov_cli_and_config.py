@@ -377,6 +377,10 @@ def test_cli_main_commands_and_subcommands() -> None:
         assert cli_main.main(["run-3-experiments", "--lora-rank", "4", "--inner-steps", "2"]) == 0
         m_exp3.assert_called_once()
 
+    with patch("hivemind.cli.demo_hf_domain_swarm.run_astrophysics_hf_swarm_experiments", return_value={}) as m_astro:
+        assert cli_main.main(["run-astro-experiments", "--lora-rank", "4", "--inner-steps", "2"]) == 0
+        m_astro.assert_called_once()
+
     with patch("hivemind.game.hf_hack_miner.run_hf_hack_mining_game", return_value={}) as m_game:
         assert cli_main.main(["play-hack-game", "--season", "1", "--lora-rank", "4", "--inner-steps", "2"]) == 0
         m_game.assert_called_once()
@@ -722,3 +726,38 @@ def test_demo_hf_domain_swarm_fetch_branches_and_runners(
         assert len(three_rep["experiments"]) == 3
         assert three_rep["dynamic_btm_moe_v2_hotplug"]["final_num_experts"] == 3
         assert three_rep["final_ledger_state"]["chain_integrity_verified"] is True
+
+        astro_rep = swarm.run_astrophysics_hf_swarm_experiments(
+            model_id="Qwen/Qwen2.5-0.5B",
+            lora_rank=4,
+            inner_steps=2,
+            seq_len=16,
+        )
+        assert len(astro_rep["experiments"]) == 4
+        assert astro_rep["dynamic_btm_moe_v2_hotplug"]["final_num_experts"] == 4
+        assert astro_rep["final_ledger_state"]["chain_integrity_verified"] is True
+
+    # 8. Astrophysics dataset formatters (offline fallback + live Parquet/CSV branches)
+    with patch("huggingface_hub.hf_hub_download", side_effect=RuntimeError("offline")):
+        for astro_ds in (
+            "mzrk36/exoplanets-unified-dataset",
+            "juliensimon/nasa-exoplanets",
+            "BrunoBarreto/sdss_dr12_stars_regression",
+            "Shoriful025/exoplanet_atmospheric_spectroscopy_results",
+        ):
+            rows = swarm.fetch_hf_domain_subset(astro_ds, num_samples=3)
+            assert len(rows) == 3
+
+    from hivemind.data.hf_real_trainer import train_and_publish_astrophysics_domain_experts
+    from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
+
+    astro_store = ContentAddressedSwarmStore(tmp_path / "astro_cas")
+    ref_lora = {
+        "layers.0.mlp.gate_proj.lora_A": torch.randn(4, 16),
+        "layers.0.mlp.gate_proj.lora_B": torch.randn(32, 4),
+    }
+    reg_astro, summary_astro = train_and_publish_astrophysics_domain_experts(
+        store=astro_store, reference_lora_state=ref_lora, inner_steps=2
+    )
+    assert summary_astro["num_domains_trained"] == 4
+    assert len(reg_astro.experts) == 4

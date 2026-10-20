@@ -5,8 +5,8 @@
 <br/>
 
 [![Release](https://img.shields.io/badge/Release-v1.7.0%20(Pareto%20Swarm%20Strategy%20%26%20Wave%204%20Complete)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.7.0)
-[![Test Suite](https://img.shields.io/badge/Tests-271%2B%20Passing%20(100%25)-brightgreen?style=for-the-badge)](tests/)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-48%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Test Suite](https://img.shields.io/badge/Tests-302%2B%20Passing%20(98%25%20Coverage)-brightgreen?style=for-the-badge)](tests/)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-52%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
 [![Community PRs](https://img.shields.io/badge/Community%20PRs-29%2F29%20Merged%20(Waves%201--4)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
@@ -23,6 +23,10 @@
 **Project HiveMind** is an open-source distributed training and inference framework (think **SETI@home / Folding@home** meets **Petals** and **DiLoCo**) designed to aggregate idle consumer gaming GPUs (**8 GB – 12 GB VRAM**) and local NVMe storage into a community-owned **Sparse Mixture-of-Experts (MoE)** cluster.
 
 Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit NF4 QLoRA** domain experts asynchronously using **DiLoCo** (`500x` lower communication frequency, `64.96x` Top-$k$ + FP8 wire compression), merges them into a unified **Branch-Train-Mix (BTM) Sparse MoE**, and serves the resulting model back to the community via **P2P Prefix-Trie Speculative Decoding ($\gamma=6..8$)**. Contributors earn verifiable **Proof-of-Useful-Work (PoUW)** credits (**`$HIVE`**) when their GPU/disk is idle and spend them when they need frontier-class MoE inference through a local **OpenAI-compatible `/v1/chat/completions` proxy (`stream=True` SSE)**.
+
+> [!IMPORTANT]
+> **⚖️ Binding Legal Notice — No Money Involved & Reciprocal Compute-Power Retribution ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
+> **Project HiveMind is a non-commercial, voluntary open-source scientific project. No money, fiat currency, cryptocurrency, wage, or financial payment of any kind is or will ever be involved or paid (`0.00 EUR / USD`).** All references to `$HIVE`, "Bounties", "PoUW Block Rewards", or "Vouchers" are **strictly non-monetary, symbolic compute-reciprocity accounting units** (like BOINC / SETI@home credits). Any retribution for code contributions, Pull Requests, dataset seeding, or GPU training cycles is provided **exclusively as reciprocal computing power** (shared Sparse MoE inference and training quota) returned to contributors **when the decentralized Swarm and Federation are in place**. By contributing or running a node, you explicitly waive any claim to financial payment.
 
 > [!NOTE]
 > **Steam Integration & Local Prototype Status ([`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md)):** The `HiveMind: Neural Breach` Free Steam RTX Tool & Hack-Miner package in [`steam_dist/HiveMind_Steam_FreeEdition/`](steam_dist/HiveMind_Steam_FreeEdition/) runs locally from this repository using your `.venv` Python environment, dynamic `steam_api64.dll` probing with headless HMAC fallback, and local JSON/VDF manifests. The legacy test constant `3133700` belongs to another product on the public Steam Store; see [`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md) (contributed in `PR #11` by `@radialmonster`).
