@@ -31,6 +31,7 @@ TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
 APP_NAME = "HiveMindHUD"
 BUILD_TOOLING = {"pip", "setuptools", "wheel", "pyinstaller", "pyinstaller-hooks-contrib", "altgraph", "pefile", "pywin32-ctypes"}
 LICENSE_PREFIXES = ("license", "licence", "copying", "notice", "authors")
+VENDORED_LICENSES = HERE / "vendor-licenses"
 
 
 def sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
@@ -69,6 +70,10 @@ print(json.dumps(out))
 
 def collect_licenses(venv_python: Path, dest: Path) -> list[dict]:
     raw = json.loads(sh([venv_python, "-c", _DIST_SCRIPT], capture_output=True).stdout)
+    # Reviewed, exact-version fallbacks only. License collection never downloads
+    # mutable upstream text during a build or infers a license from a classifier.
+    index = json.loads((VENDORED_LICENSES / "manifest.json").read_text(encoding="utf-8"))
+    fallbacks = {(item["name"].lower(), item["version"]): item for item in index["licenses"]}
     dest.mkdir(parents=True, exist_ok=True)
     records = []
     for dist in sorted(raw, key=lambda d: d["name"].lower()):
@@ -76,6 +81,7 @@ def collect_licenses(venv_python: Path, dest: Path) -> list[dict]:
             continue
         target = dest / f"{dist['name']}-{dist['version']}"
         copied = []
+        provenance = []
         for rel in dist["license_files"]:
             src = Path(dist["root"]) / rel
             if src.is_file():
@@ -87,12 +93,49 @@ def collect_licenses(venv_python: Path, dest: Path) -> list[dict]:
                     n += 1
                 shutil.copy2(src, out)
                 copied.append(out.name)
-        records.append({k: dist[k] for k in ("name", "version", "license", "classifiers")} | {"license_files_copied": copied})
+                provenance.append({
+                    "file": out.name, "kind": "installed_distribution",
+                    "source_path": rel, "sha256": sha256(out),
+                })
+        fallback = fallbacks.get((dist["name"].lower(), dist["version"]))
+        if not copied and fallback is not None:
+            src = (VENDORED_LICENSES / fallback["path"]).resolve()
+            if not src.is_relative_to(VENDORED_LICENSES.resolve()):
+                raise ValueError(f"Vendored license path escapes its directory: {fallback['path']}")
+            if not src.is_file() or sha256(src) != fallback["sha256"]:
+                raise ValueError(f"Vendored license is missing or has changed: {fallback['path']}")
+            target.mkdir(parents=True, exist_ok=True)
+            out = target / src.name
+            shutil.copy2(src, out)
+            copied.append(out.name)
+            provenance.append({
+                "file": out.name, "kind": "vendored_upstream",
+                **{k: fallback[k] for k in (
+                    "source_url", "source_tag", "source_commit", "source_blob_sha",
+                    "license_expression", "sha256",
+                )},
+            })
+        records.append({k: dist[k] for k in ("name", "version", "license", "classifiers")} | {
+            "license_files_copied": copied,
+            "license_file_provenance": provenance,
+            "license_collection_status": "files_collected" if copied else "no_license_files_found",
+        })
     python_license = Path(sys.base_prefix) / "LICENSE.txt"
     if python_license.is_file():
         (dest / f"CPython-{platform.python_version()}").mkdir(exist_ok=True)
         shutil.copy2(python_license, dest / f"CPython-{platform.python_version()}" / "LICENSE.txt")
-        records.append({"name": "CPython", "version": platform.python_version(), "license": "PSF-2.0", "classifiers": [], "license_files_copied": ["LICENSE.txt"]})
+    records.append({
+        "name": "CPython", "version": platform.python_version(), "license": "PSF-2.0", "classifiers": [],
+        "license_files_copied": ["LICENSE.txt"] if python_license.is_file() else [],
+        "license_file_provenance": [{
+            "file": "LICENSE.txt", "kind": "build_python", "source_path": "LICENSE.txt",
+            "sha256": sha256(python_license),
+        }] if python_license.is_file() else [],
+        "license_collection_status": "files_collected" if python_license.is_file() else "no_license_files_found",
+    })
+    missing = [f"{item['name']}=={item['version']}" for item in records if not item["license_files_copied"]]
+    if missing:
+        print("WARNING: No license files collected for: " + ", ".join(missing), file=sys.stderr)
     return records
 
 
@@ -162,6 +205,10 @@ def main() -> int:
         "unsupported": "CUDA/ROCm acceleration, NF4 fused kernels, Steamworks (no steam_api64.dll bundled), Lean proof checking (no compiler bundled)",
         "project_license_file": project_license or "NOT FOUND in source tree: redistribution terms for HiveMind itself are unresolved",
         "third_party_licenses": licenses,
+        "license_text_gaps": [
+            {"name": item["name"], "version": item["version"]}
+            for item in licenses if not item["license_files_copied"]
+        ],
         "exe_sha256": sha256(exe),
         "file_count": len(sums),
         "total_bytes": sum(p.stat().st_size for p in app_dir.rglob("*") if p.is_file()),

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "licenses": [
+    {
+      "name": "tokenizers",
+      "version": "0.22.2",
+      "path": "tokenizers-0.22.2/LICENSE",
+      "license_expression": "Apache-2.0",
+      "source_url": "https://github.com/huggingface/tokenizers/blob/f383101a26663708484cac0727792aad74f78234/LICENSE",
+      "source_tag": "v0.22.2",
+      "source_commit": "f383101a26663708484cac0727792aad74f78234",
+      "source_blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    }
+  ]
+}

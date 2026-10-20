@@ -1,0 +1,2 @@
+# Preserve the verified upstream bytes on Windows checkouts as well as Unix.
+*/LICENSE -text
