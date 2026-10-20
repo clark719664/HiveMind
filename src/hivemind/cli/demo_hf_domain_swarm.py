@@ -17,7 +17,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -557,10 +557,99 @@ def fetch_hf_domain_subset(
     except Exception:
         pass
 
-    fallback = [
-        "### Instruction:\nWrite a Python function for binary search on a sorted list.\n### Response:\ndef binary_search(arr: list[int], target: int) -> int:\n    lo, hi = 0, len(arr) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1"
-    ]
+    fallback = [_GENERIC_FALLBACK_SAMPLE]
     return (fallback * num_samples)[:num_samples]
+
+
+_GENERIC_FALLBACK_SAMPLE = (
+    "### Instruction:\nWrite a Python function for binary search on a sorted list.\n### Response:\ndef binary_search(arr: list[int], target: int) -> int:\n    lo, hi = 0, len(arr) - 1\n    while lo <= hi:\n        mid = (lo + hi) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            lo = mid + 1\n        else:\n            hi = mid - 1\n    return -1"
+)
+
+UNMEASURED_RTT_SPEEDUP_STATUS = "not_measured: no network round trip is timed; the former value was a fixed 5.0"
+PERPLEXITY_EVAL_ROWS = (
+    "first 4 rows of the first worker's training shard (seen during training, not held out); "
+    "padded positions (pad = EOS) are scored"
+)
+CLASSIFICATION_ACCURACY_STATUS = (
+    "not_measured: no labelled predictions are scored; shared_swarm_generation is one greedy continuation"
+)
+
+
+def _curated_fallback_texts() -> set[str]:
+    from hivemind.data.hf_real_trainer import CURATED_SEASON3_DOMAIN_CORPORA
+
+    texts = {_GENERIC_FALLBACK_SAMPLE}
+    for rows in CURATED_SEASON3_DOMAIN_CORPORA.values():
+        texts.update(rows)
+    return texts
+
+
+def describe_data_provenance(rows: Iterable[str]) -> Dict[str, Any]:
+    """Count how many rows are the built-in fallback text rather than fetched dataset rows."""
+    rows = list(rows)
+    fallback = _curated_fallback_texts()
+    fallback_rows = sum(1 for r in rows if r in fallback)
+    if not rows:
+        status = "no_rows"
+    elif fallback_rows == len(rows):
+        status = "all_rows_are_curated_fallback"
+    elif fallback_rows:
+        status = "mixed_fetched_and_curated_fallback"
+    else:
+        status = "no_curated_fallback_rows_detected"
+    return {
+        "rows": len(rows),
+        "distinct_rows": len(set(rows)),
+        "curated_fallback_rows": fallback_rows,
+        "source_status": status,
+    }
+
+
+def label_experiment_evidence(exp: Dict[str, Any]) -> Dict[str, Any]:
+    """Mark what one experiment report measured and what it did not. Idempotent."""
+    settlement = exp.get("inference_settlement")
+    if isinstance(settlement, dict):
+        settlement["rtt_speedup"] = None
+        settlement["rtt_speedup_status"] = UNMEASURED_RTT_SPEEDUP_STATUS
+    exp["perplexity_eval_rows"] = PERPLEXITY_EVAL_ROWS
+    exp["heldout_perplexity"] = None
+    exp["classification_accuracy"] = None
+    exp["classification_accuracy_status"] = CLASSIFICATION_ACCURACY_STATUS
+    exp.setdefault("data_provenance", {"source_status": "not_recorded_by_this_run"})
+    exp["pouw_reward_basis"] = (
+        "scripted receipts: flops_contributed = inner_steps * seq_len * 0.5e9 (estimate) and "
+        "cosine_alignment fixed at 0.98 for workers / -0.45 for the injected attacker"
+    )
+    exp["byzantine_node_note"] = (
+        "byzantine-botnet-99 is a locally injected synthetic attacker (-12x worker-1 delta + noise); "
+        "its spot_check_passed=True is scripted, its Multi-Krum outcome is computed"
+    )
+    return exp
+
+
+def label_astrophysics_report_evidence(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Mark measured vs. simulated vs. unmeasured fields in the astrophysics report. Idempotent."""
+    for exp in report.get("experiments", []):
+        label_experiment_evidence(exp)
+    for gen in report.get("regional_swarm_speculative_generations", {}).values():
+        if gen.get("latency_reduction_factor") is not None:
+            gen["tokens_per_verification_pass"] = gen["latency_reduction_factor"]
+        gen["latency_reduction_factor"] = None
+        gen["latency_reduction_status"] = (
+            "not_measured: tokens per verification pass under a simulated 14 ms RTT; "
+            "the draft and target are the same model"
+        )
+        gen["effective_tokens_per_sec_basis"] = "local compute time plus a simulated 14.0 ms per verification pass"
+        gen["classification_accuracy"] = None
+    report["evidence_scope"] = {
+        "execution": "sequential, single process, one local device; swarm nodes are simulated identities",
+        "language_model_training": "measured: real causal-LM QLoRA steps on the rows recorded in data_provenance",
+        "classification_accuracy_measured": False,
+        "heldout_evaluation": False,
+        "network_timing_measured": False,
+        "pouw_rewards": "computed from scripted work receipts, not measured contribution",
+    }
+    return report
 
 
 def _evaluate_batch_perplexity(model: torch.nn.Module, token_batch: torch.Tensor) -> float:
@@ -635,6 +724,7 @@ def _execute_single_domain_on_loaded_model(
     work_receipts: List[WorkReceipt] = []
     worker_losses: Dict[str, Tuple[float, float]] = {}
     spot_check_diffs: Dict[str, float] = {}
+    spot_check_passed: Dict[str, bool] = {}
     spot_interval = max(1, inner_steps // 2)
     domain_token_batch: torch.Tensor | None = None
 
@@ -695,6 +785,7 @@ def _execute_single_domain_on_loaded_model(
             validator_rng_seed=900 + exp_index * 10 + idx,
         )
         spot_check_diffs[node_id] = verdict.max_abs_divergence
+        spot_check_passed[node_id] = bool(verdict.passed)
         end_sha256 = inner_res.micro_checkpoints[inner_steps].lora_sha256
 
         # Free intermediate micro-checkpoint snapshots immediately to keep CPU RAM low
@@ -808,7 +899,7 @@ def _execute_single_domain_on_loaded_model(
         provider_node_ids=provider_node_ids,
         domain_expert=domain_name,
         verified_tokens=45,
-        rtt_speedup=5.0,
+        rtt_speedup=None,
         rate_per_token=0.005,
     )
     balances_post_inference = dict(ledger.balances)
@@ -839,6 +930,7 @@ def _execute_single_domain_on_loaded_model(
                 "initial_loss": v[0],
                 "final_loss": v[1],
                 "spot_check_max_diff": spot_check_diffs[k],
+                "spot_check_passed": spot_check_passed[k],
             }
             for k, v in worker_losses.items()
         },
@@ -870,7 +962,12 @@ def _execute_single_domain_on_loaded_model(
             (pre_lora_ppl - post_lora_ppl) / max(1e-6, pre_lora_ppl) * 100.0, 2
         ),
         "shared_swarm_generation": generated_text,
+        "data_provenance": describe_data_provenance(raw_samples),
+        "eval_prompt_is_training_row_prefix": any(
+            r.startswith(eval_prompt.strip()) for r in raw_samples
+        ),
     }
+    label_experiment_evidence(exp_report)
     assert domain_token_batch is not None
     return exp_report, converged_domain_lora, domain_token_batch
 
@@ -1329,8 +1426,12 @@ def run_astrophysics_hf_swarm_experiments(
     inner_steps: int = 12,
     seq_len: int = 64,
 ) -> Dict[str, Any]:
-    """Execute 4 sequential decentralized Hugging Face Astrophysics (Planet & Star Classification)
-    Swarm QLoRA Experiments on the local RTX 2070 GPU.
+    """Run 4 sequential astrophysics QLoRA swarm demos in one process on the local device.
+
+    Each experiment really trains LoRA adapters on a causal LM over text rows (fetched from
+    Hugging Face when reachable, otherwise curated fallback text; see `data_provenance`).
+    It does not measure classification accuracy, held-out quality or network latency;
+    `label_astrophysics_report_evidence` marks those fields as unmeasured.
     """
     t_start = time.perf_counter()
     ensure_local_drive_caches()
@@ -1603,13 +1704,13 @@ def run_astrophysics_hf_swarm_experiments(
     elapsed_sec = round(time.perf_counter() - t_start, 2)
 
     t_exp = Table(
-        title="HiveMind v2 ('SETI-Swarm') — 4 Astrophysics Planet & Star Classification QLoRA Experiments"
+        title="HiveMind v2 ('SETI-Swarm') — 4 Astrophysics QLoRA Swarm Demos (no classification accuracy measured)"
     )
     t_exp.add_column("Exp # / Block", style="cyan")
     t_exp.add_column("HF Astrophysics Dataset", style="green")
     t_exp.add_column("Astrophysics Expert & CID", style="magenta")
     t_exp.add_column("Worker Inner Losses (Paris / Lyon / Nice)", justify="right")
-    t_exp.add_column("Pre -> Post PPL", justify="right", style="bold cyan")
+    t_exp.add_column("Pre -> Post PPL (train rows)", justify="right", style="bold cyan")
     t_exp.add_column("Spot-Check & PoUW", justify="center", style="bold green")
 
     for rep in experiment_reports:
@@ -1625,15 +1726,18 @@ def run_astrophysics_hf_swarm_experiments(
         blk = rep["pouw_block"]
         ppl_str = (
             f"{rep['pre_lora_perplexity']:.2f} -> {rep['post_lora_perplexity']:.2f}\n"
-            f"(-{rep['perplexity_reduction_pct']:.1f}%)"
+            f"({-rep['perplexity_reduction_pct']:+.1f}%, train rows)"
         )
+        checks = [w.get("spot_check_passed") for w in w_losses.values()]
+        check_str = "PASS" if checks and all(c is True for c in checks) else "FAIL"
+        max_diff = max(w["spot_check_max_diff"] for w in w_losses.values())
         t_exp.add_row(
             f"Exp #{rep['experiment_id']}\nBlock #{blk['height']}\n({blk['block_hash'][:10]}...)",
             rep["dataset_id"],
             f"{rep['domain_expert']}\n{rep['expert_cid'][:26]}...",
             loss_str,
             ppl_str,
-            f"PASS (0.0e+00)\n+{blk['total_block_reward_hive']:.1f} HIVE (Compute Credit)",
+            f"{check_str} ({max_diff:.1e})\n+{blk['total_block_reward_hive']:.1f} HIVE (Compute Credit)",
         )
     console.print(t_exp)
 
@@ -1677,6 +1781,7 @@ def run_astrophysics_hf_swarm_experiments(
         },
         "total_elapsed_seconds": elapsed_sec,
     }
+    label_astrophysics_report_evidence(master_report)
 
     out_path = ARTIFACTS_ROOT / "hf_astrophysics_swarm_report.json"
     out_path.write_text(json.dumps(master_report, indent=2), encoding="utf-8")

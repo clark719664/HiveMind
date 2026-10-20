@@ -716,6 +716,8 @@ def test_demo_hf_domain_swarm_fetch_branches_and_runners(
         )
         assert single_rep["domain_expert"] == "Python_Systems_Code"
         assert single_rep["chain_integrity_verified"] is True
+        assert single_rep["inference_settlement"]["rtt_speedup"] is None
+        assert single_rep["classification_accuracy"] is None
 
         three_rep = swarm.run_three_hf_swarm_experiments(
             model_id="Qwen/Qwen2.5-0.5B",
@@ -736,6 +738,17 @@ def test_demo_hf_domain_swarm_fetch_branches_and_runners(
         assert len(astro_rep["experiments"]) == 4
         assert astro_rep["dynamic_btm_moe_v2_hotplug"]["final_num_experts"] == 4
         assert astro_rep["final_ledger_state"]["chain_integrity_verified"] is True
+        assert astro_rep["evidence_scope"]["classification_accuracy_measured"] is False
+        for exp in astro_rep["experiments"]:
+            assert exp["inference_settlement"]["rtt_speedup"] is None
+            assert exp["classification_accuracy"] is None
+            assert exp["data_provenance"]["rows"] > 0
+            assert all(
+                isinstance(w["spot_check_passed"], bool)
+                for w in exp["worker_loss_trajectories"].values()
+            )
+        for gen in astro_rep["regional_swarm_speculative_generations"].values():
+            assert gen["latency_reduction_factor"] is None
 
     # 8. Astrophysics dataset formatters (offline fallback + live Parquet/CSV branches)
     with patch("huggingface_hub.hf_hub_download", side_effect=RuntimeError("offline")):
