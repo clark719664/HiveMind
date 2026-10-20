@@ -92,4 +92,4 @@ jobs:
       - name: Install lightweight launcher test dependencies
         run: python -m pip install "pytest>=8.3,<10"
       - name: Test native process locks, crash recovery, ports and generation-scoped stop
-        run: python -m pytest tests/test_standalone_launcher.py tests/test_standalone_smoke_harness.py -q -k "not check_reports" --tb=short
+        run: python -m pytest tests/test_standalone_launcher.py tests/test_standalone_smoke_harness.py tests/test_standalone_license_collection.py -q -k "not check_reports" --tb=short

@@ -64,7 +64,7 @@ acceptance script SHA256, source model hashes, configuration, and every loss.
 - Real trainable LoRA parameters: 230,400; base parameters: 134,515,008.
 - Three-example mean heldout causal-LM cross-entropy: **2.628913 → 1.416782**,
   a **46.11% reduction** on this fixture.
-- Training/heldout tokens were disjoint; frozen backbone hashes were unchanged.
+- Training/heldout token sequences were disjoint; frozen backbone hashes were unchanged.
 - Fresh-backbone adapter reload reproduced heldout loss and logits exactly
   (maximum absolute logit difference 0.0).
 - Independent seeded replay reproduced adapter tensor hashes and training

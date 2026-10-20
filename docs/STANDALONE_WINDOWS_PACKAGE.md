@@ -1,9 +1,22 @@
 # Standalone Windows package (HiveMind HUD, CPU-only)
 
-Status as of build `ee6202c68378` (2026-10-19): the package builds reproducibly from a clean
-commit and passes 26 of 27 smoke checks on the build machine. The one failure is a known
-offline-mode issue that is pending the maintainer's fix (see [Known issues](#known-issues-pending-the-maintainers-fix)).
-Clean-machine acceptance has **not** been done (see [Blockers](#blockers)).
+## Current source versus built artifacts
+
+The latest checked-in Windows build evidence is for `d36e654acefc` (2026-10-19),
+which predates the integrated offline, ownership, GPU and WAN fixes. Its 26/27
+build-machine smoke result and browser failures remain historical evidence.
+No rebuilt EXE or clean-machine pass is claimed for the current source.
+
+The source now blocks offline network fallbacks and gives one process exclusive
+ownership of each data directory. The smoke harness tests port conflicts using
+**different** data directories (exit 3), rejects a shared-directory contender
+(exit 8), checks that the original owner/status survive, and verifies `--stop`
+leaves an independent owner alive. Portable harness regressions also run in the
+native Windows/Ubuntu lifecycle CI jobs. These tests do not substitute for a new
+frozen-EXE run; follow [the final PC checklist](FINAL_PC_ACCEPTANCE.md).
+
+Clean-machine acceptance, owner-selected project licensing, signing/SmartScreen,
+and the intermittent full-sequence browser restore investigation remain open.
 
 ## What it is
 
@@ -58,12 +71,14 @@ Neither the zip nor `dist\` is committed. A redacted copy of the manifest is kep
   A non-loopback `--host` is refused (exit 2) unless you pass `--allow-network`, because the HUD has no authentication.
   An explicit `--port` that is busy exits 3. The default port 8090 falls back to a free loopback port.
 - **Offline by default.** It sets `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1` and `HF_DATASETS_OFFLINE=1`, and `--online` re-enables
-  Hub downloads. **These variables do not cover every code path.** See known issue 1.
+  Hub downloads unless an inherited HF offline flag remains set. Direct dataset REST fallbacks
+  also honor offline mode, and offline operation does not resolve or transmit a saved HF token.
 - **Stopping.** `HiveMindHUD.exe --stop` writes a stop request to the data directory and waits for the server to exit
-  (exit 0, or 7 on timeout). The status file is `<data>\run\hud-server.json`. See known issue 2 for what happens when several
-  instances share one data directory.
+  (exit 0, or 7 on timeout). The status file is `<data>\run\hud-server.json`. A kernel-held
+  lock permits only one owner per directory; a contender exits 8 before imports/binding. Stop
+  requests target the recorded generation and do not signal a PID or stop a replacement owner.
 - **`--check`** prints a JSON capability report and exits. Exit codes: 2 usage, 3 port, 4 missing deps,
-  5 unsafe paths, 6 startup failure, 7 stop timeout.
+  5 unsafe paths, 6 startup failure, 7 stop timeout, 8 data directory already owned.
 
 ## Smoke test
 
@@ -137,7 +152,8 @@ After the fix (`ee6202c`), the dry-run zip passed its 26 checks at the time, bef
 - `dependencies`: the full `pip freeze --all` of the build venv.
 - `excluded_from_bundle`, `supported` and `unsupported`.
 - `project_license_file`.
-- `third_party_licenses`: name, version, license metadata and the license files copied into `licenses\`.
+- `third_party_licenses`: name, version, original license metadata, copied files and per-file source/hash provenance.
+- `license_text_gaps`: distributions for which no license text was collected; an explicit review list, not legal clearance.
 - `exe_sha256`, `file_count` and `total_bytes`.
 - `zip` (`file`, `sha256`, `bytes`).
 
@@ -154,16 +170,18 @@ For `ee6202c68378` (redacted copy: `docs/evidence/standalone/ee6202c68378/HiveMi
 
 Both hashes were re-checked independently with `sha256sum` against the built files.
 
-## Known issues (pending the maintainer's fix)
+## Historical build issues (fixed in source; rebuild pending)
 
 1. **"Offline mode" still has a direct Hugging Face network fallback.** With `HF_HUB_OFFLINE=1` set,
    `POST /api/scan-hf-shard` with a `dataset_id` tried `CONNECT datasets-server.huggingface.co:443`. The URL is built in
    `src/hivemind/cli/demo_hf_domain_swarm.py:232`, and the `HF_*_OFFLINE` variables do not cover a direct HTTP call.
    The endpoint still returned 200 because the smoke proxy dropped the connection. On a networked machine the request
-   would go out. Smoke check 16 fails until this is fixed. The packaging work deliberately did not patch it.
+   would go out. This was fixed by the integrated offline/ownership patch. The historical smoke result
+   is unchanged; the final EXE must pass the proxy check after rebuilding.
 2. **Several launches can share the stop/status files ambiguously.** Two instances that use one data directory both start, on
    different ports. A single `--stop` stopped only the later instance and reported success, and the earlier one kept running.
-   This is recorded as an observation, with no expected result asserted. It is not patched here.
+   This historical behavior is fixed in source with kernel-held directory ownership and generation-specific
+   stop files. The current smoke harness asserts the corrected behavior instead of merely observing it.
 
 ## Blockers
 
@@ -173,15 +191,17 @@ Both hashes were re-checked independently with `sha256sum` against the built fil
 - **No project LICENSE file.** The repository has no LICENSE/COPYING file and `pyproject.toml` declares no license. The manifest
   records `project_license_file: NOT FOUND`. A maintainer must settle redistribution terms for HiveMind itself before
   anyone publishes the zip.
-- **Incomplete third-party license texts.** The build found no license file in the `tokenizers` 0.22.2 dist-info (its
-  classifier says Apache), so `licenses\` has no text for it. Apache-2.0 requires a copy of the license with redistributions.
+- **Third-party license bundle needs rebuilt verification.** The historical EXE omitted tokenizers 0.22.2
+  license text. The source collector now uses a version-specific, hash-verified copy of its official
+  upstream license when the installed distribution omits it, records provenance, and lists remaining
+  `license_text_gaps`. Inspect the rebuilt archive. This is not comprehensive native/Rust dependency
+  license clearance; project licensing remains an owner decision.
 - **Unsigned executable.** The build has no Authenticode signing step. SmartScreen and antivirus behaviour on other machines is untested.
-- **Inaccurate `.bat` launchers in the cache.** At HUD startup, `build_free_steam_edition_package`
-  (`src/hivemind/game/steam_edition.py:1229`, which writes the files at lines 1143-1180) writes `Launch_HiveMind_HackMiner.bat` and
-  `Launch_HiveMind_WebHUD.bat` under `<data>\cache\steam_dist\HiveMind_Steam_FreeEdition\`. They `cd` two levels up and run
-  `.venv\Scripts\python.exe -m hivemind.cli.main ...` or `python -m ...`, which is a source-checkout launcher that does not work
-  from the standalone app. This is a follow-up, not fixed here, because `steam_edition.py` is partly reserved.
-- **Masked root cause on a failed import (launcher diagnostic).** When a dependency import fails partway, the "missing required
-  components" message can show a secondary error (`NameError: base_events`) instead of the first one (`WinError 10106`).
-  Suggested launcher change, not made because the launcher is being edited by the maintainer: log the first exception's
-  full traceback to `hud-launcher.log` and include it in `--check`.
+- **Generated shortcuts need frozen validation.** Frozen startup now passes its actual data directory
+  into package generation. Both shortcuts invoke the original standalone EXE with that directory,
+  preserve quoted/Unicode paths, and no longer require Python or a checkout. The campaign shortcut
+  explains that this build opens the HUD, because it does not bundle the CLI campaign. Source
+  checkout launchers are unchanged. Verify both shortcuts against the rebuilt EXE.
+- **Import diagnostics need frozen validation.** Dependency probing now logs each full traceback in
+  `hud-launcher.log`, preserving the first native/import failure before later secondary errors.
+  Portable regressions cover this; verify diagnostics in a fresh frozen build if startup fails.

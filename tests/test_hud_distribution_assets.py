@@ -1,6 +1,7 @@
-"""Dependency-light checks for generated HUD assets and standalone shortcuts.
+"""Checks for generated HUD assets and standalone shortcuts.
 
 Load the template module itself, avoiding the game package's eager ML imports.
+The config module still needs the normal NumPy/PyYAML runtime dependencies.
 These contract checks do not substitute for real-browser layout or Windows cmd
 execution. Opt in to the browser checks with HIVEMIND_BROWSER_EXECUTABLE.
 """
@@ -43,7 +44,7 @@ class Markup(HTMLParser):
 
 @pytest.mark.parametrize('shipped', [False, True])
 def test_hud_embeds_a_valid_offline_favicon(hud, shipped):
-    html = SHIPPED.read_text() if shipped else hud._generate_cyberpunk_hud_html({})
+    html = SHIPPED.read_text(encoding="utf-8") if shipped else hud._generate_cyberpunk_hud_html({})
     icon, = [attrs for tag, attrs in Markup(html).tags if tag == 'link' and attrs.get('rel') == 'icon']
     assert icon['type'] == 'image/svg+xml'
     assert icon['href'].startswith('data:image/svg+xml,')
@@ -54,7 +55,7 @@ def test_hud_embeds_a_valid_offline_favicon(hud, shipped):
 
 @pytest.mark.parametrize('shipped', [False, True])
 def test_hud_layout_contract_keeps_wide_table_in_keyboard_scroll_region(hud, shipped):
-    html = SHIPPED.read_text() if shipped else hud._generate_cyberpunk_hud_html({})
+    html = SHIPPED.read_text(encoding="utf-8") if shipped else hud._generate_cyberpunk_hud_html({})
     assert 'minmax(min(400px, 100%), 1fr)' in html
     assert re.search(r'\.card\s*\{\s*min-width:\s*0;', html)
     assert re.search(r'\.table-scroll\s*\{[^}]*overflow-x:\s*auto;', html)
@@ -74,7 +75,7 @@ def test_hud_layout_contract_keeps_wide_table_in_keyboard_scroll_region(hud, shi
 
 def test_generated_and_shipped_layout_match(hud):
     generated = hud._generate_cyberpunk_hud_html({})
-    assert re.search(r'<head>(.*?)</head>', generated, re.S)[1] == re.search(r'<head>(.*?)</head>', SHIPPED.read_text(), re.S)[1]
+    assert re.search(r'<head>(.*?)</head>', generated, re.S)[1] == re.search(r'<head>(.*?)</head>', SHIPPED.read_text(encoding="utf-8"), re.S)[1]
 
 
 @pytest.mark.parametrize('shipped', [False, True])
@@ -82,20 +83,20 @@ def test_layout_patch_preserves_valid_javascript(hud, shipped, tmp_path):
     node = shutil.which('node')
     if not node:
         pytest.skip('Node is required to check the HUD JavaScript syntax')
-    html = SHIPPED.read_text() if shipped else hud._generate_cyberpunk_hud_html({})
+    html = SHIPPED.read_text(encoding="utf-8") if shipped else hud._generate_cyberpunk_hud_html({})
     scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.S)
     assert len(scripts) == 2
     for index, script in enumerate(scripts):
         file = tmp_path / f'hud-{index}.js'
-        file.write_text(script)
+        file.write_text(script, encoding="utf-8")
         result = subprocess.run([node, '--check', str(file)], capture_output=True, text=True, timeout=15)
         assert result.returncode == 0, result.stderr
 
 
 def test_source_distribution_keeps_checkout_launchers(hud, tmp_path):
     package = hud.build_free_steam_edition_package({}, output_root=tmp_path / 'source')
-    campaign = Path(package['windows_launcher_bat']).read_text()
-    web = Path(package['windows_hud_launcher_bat']).read_text()
+    campaign = Path(package['windows_launcher_bat']).read_text(encoding="utf-8")
+    web = Path(package['windows_hud_launcher_bat']).read_text(encoding="utf-8")
     assert '-m hivemind.cli.main play-hack-game --season all' in campaign
     assert '-m hivemind.cli.main serve-hack-hud --port 8090' in web
     assert '.venv\\Scripts\\python.exe' in campaign and '.venv\\Scripts\\python.exe' in web
@@ -107,14 +108,14 @@ def test_standalone_shortcuts_preserve_exact_executable_and_data_paths(hud, monk
     monkeypatch.setattr(hud.sys, 'executable', executable)
     package = hud.build_free_steam_edition_package({}, output_root=tmp_path / 'frozen', standalone_data_dir=data)
     for key in ('windows_launcher_bat', 'windows_hud_launcher_bat'):
-        launcher = Path(package[key]).read_text()
+        launcher = Path(package[key]).read_text(encoding="utf-8")
         assert f'"{executable.replace("%", "%%")}" --data-dir "{str(data).replace("%", "%%")}"' in launcher
         assert 'setlocal DisableDelayedExpansion' in launcher
         assert 'chcp 65001 >nul' in launcher
         assert 'exit /b %errorlevel%' in launcher
         assert 'python' not in launcher and 'cd /d' not in launcher
         assert '--port' not in launcher and 'start "" "http' not in launcher
-    campaign = Path(package['windows_launcher_bat']).read_text()
+    campaign = Path(package['windows_launcher_bat']).read_text(encoding="utf-8")
     assert 'CLI campaign requires the source distribution' in campaign
     assert 'Opening the standalone HUD instead' in campaign
 
@@ -128,10 +129,10 @@ def test_standalone_shortcuts_reject_invalid_batch_paths(hud, monkeypatch, bad):
 
 def test_standalone_data_dir_is_explicitly_passed_through_to_package():
     # The API imports the optional ML runtime; keep this wiring check static in
-    # the dependency-light suite and exercise the full app in the regular suite.
-    source = (ROOT / 'src/hivemind/cli/standalone.py').read_text()
+    # these asset checks and exercise the full app in the regular suite.
+    source = (ROOT / 'src/hivemind/cli/standalone.py').read_text(encoding="utf-8")
     assert 'create_hack_miner_fastapi_app(standalone_data_dir=data_dir if is_frozen() else None)' in source
-    source = (ROOT / 'src/hivemind/game/steam_edition.py').read_text()
+    source = (ROOT / 'src/hivemind/game/steam_edition.py').read_text(encoding="utf-8")
     assert 'game_report=game_report, standalone_data_dir=standalone_data_dir,' in source
 
 
@@ -143,8 +144,8 @@ def test_real_browser_narrow_layout_and_embedded_favicon(hud, shipped):
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from playwright.sync_api import sync_playwright
 
-    html = SHIPPED.read_text() if shipped else hud._generate_cyberpunk_hud_html(json.loads(
-        re.search(r'let GAME_DATA = (.*?);\n', SHIPPED.read_text(), re.S)[1]))
+    html = SHIPPED.read_text(encoding="utf-8") if shipped else hud._generate_cyberpunk_hud_html(json.loads(
+        re.search(r'let GAME_DATA = (.*?);\n', SHIPPED.read_text(encoding="utf-8"), re.S)[1]))
     requests = []
 
     class Handler(BaseHTTPRequestHandler):
@@ -203,7 +204,7 @@ def test_real_browser_narrow_layout_and_embedded_favicon(hud, shipped):
 
 def test_full_sequence_trace_is_bounded_and_preserves_webgl_calls():
     import ast
-    tree = ast.parse((ROOT / 'tools/browser_evidence/hud_browser_evidence.py').read_text())
+    tree = ast.parse((ROOT / 'tools/browser_evidence/hud_browser_evidence.py').read_text(encoding="utf-8"))
     script = next(ast.literal_eval(node.value) for node in tree.body if isinstance(node, ast.Assign)
                   and any(isinstance(target, ast.Name) and target.id == 'TRACE_SCRIPT' for target in node.targets))
     node = shutil.which('node')

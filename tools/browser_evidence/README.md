@@ -36,7 +36,8 @@ explains it. A simplified drag loop alone does not resolve it.
 
 ## Fast layout regression
 
-The dependency-light template/launcher suite includes two opt-in browser tests:
+The template/launcher suite uses the normal HiveMind runtime dependencies
+(including NumPy/PyYAML) and includes two opt-in browser tests:
 
 ```powershell
 $env:HIVEMIND_BROWSER_EXECUTABLE = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
