@@ -1,11 +1,12 @@
-"""Season 3 (`HM-S3-04`) & Season 6 Astrophysics Domain Expert LoRA Trainer, Top-k FP8 Compressor & CAS Publisher.
+"""Season 3 (`HM-S3-04`), Season 6 Astrophysics & Phase S-2 Hardened Domain Expert LoRA Trainer, Top-k FP8 Compressor & CAS Publisher.
 
 Trains and publishes specialized QLoRA domain adapters (`Rust_Systems_Security`,
 `Solidity_Smart_Contracts`, `Biomedical_Clinical_QA`, `Lean4_Theorem_Prover`, and
 Astrophysics Planet & Star Classifiers: `Kepler_Exoplanet_Transit_Classifier`,
 `NASA_Exoplanet_Taxonomy_Classifier`, `SDSS_Stellar_MK_Spectral_Classifier`, and
-`JWST_Atmosphere_Biosignature_Classifier`), compresses their pseudo-gradient deltas
-via `Top-k (k=0.05) + FP8 (float8_e4m3fn)`, registers their content-addressed
+`JWST_Atmosphere_Biosignature_Classifier`), enforces Phase S-2 Runtime Swarm Hardening
+(`SwarmTrainingAndStoreGuard`), compresses their pseudo-gradient deltas via
+`Top-k (k=0.05) + FP8 (float8_e4m3fn)`, registers their content-addressed
 checkpoints in `ContentAddressedSwarmStore`, and hot-plugs them into `UpcycledSparseMoEModel`.
 """
 
@@ -28,6 +29,7 @@ from hivemind.core.compression import (
     compute_pseudo_gradient_delta,
     decompress_lora_delta,
 )
+from hivemind.security.swarm_runtime_hardening import SwarmTrainingAndStoreGuard
 from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
 
 CURATED_SEASON3_DOMAIN_CORPORA: Dict[str, List[str]] = {
@@ -59,7 +61,7 @@ CURATED_SEASON3_DOMAIN_CORPORA: Dict[str, List[str]] = {
     "NASA_Exoplanet_Taxonomy_Classifier": [
         "### NASA Exoplanet Archive Observation (TOI-5806 b around TOI-5806):\nDiscovery: Transit (TESS) | Period: 3.186 d | Radius: 15.13 R_earth | Mass: 721.47 M_earth | Teq: 1621 K | Host Star Teff: 6730 K, Distance: 119.2 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Jovian Gas Giant | Thermal Regime: Hot Inner Irradiated Orbit",
         "### NASA Exoplanet Archive Observation (TOI-938 b around TOI-938):\nDiscovery: Transit (TESS) | Period: 8.807 d | Radius: 4.82 R_earth | Host Star Teff: 5829 K, R*=0.99 R_sun, Distance: 215.0 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Sub-Neptune / Ice Giant | Thermal Regime: Hot Inner Irradiated Orbit",
-        "### NASA Exoplanet Archive Observation (HIP 39330 b around HIP 39330):\nDiscovery: Radial Velocity | Period: 4650.0 d | Semi-Major Axis: 5.05 AU | Mass: 530.77 M_earth | Host Star Teff: 5748 K, Distance: 36.4 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Jovian Gas Giant | Thermal Regime: Cold Outer Giant Orbit",
+        "### NASA Exoplanet Archive Observation (HIP 39330 b around HIP 39330):\nDiscovery: Radial Velocity | Period: 4650.0 d | Semi-Major Axis: 5.05 AU | Mass: 530.77 M_earth | Host Star Teff: 5748 K, Distance: 119.2 pc\n### Exoplanet Taxonomy Classification:\nPhysical Class: Jovian Gas Giant | Thermal Regime: Cold Outer Giant Orbit",
     ],
     "SDSS_Stellar_MK_Spectral_Classifier": [
         "### SDSS DR12 Stellar Spectrum (SpecID 21143, Plate 2316-580):\nCoordinates: RA=130.846, Dec=+54.661 | Teff: 6190.7 K | Surface Gravity log(g): 3.98 dex | Metallicity [Fe/H]: -0.41 dex | Radial Velocity: -38.3 km/s (SNR=43.4)\n### Stellar MK Classification:\nSpectral Type: F-Type Yellow-White Star | Luminosity Class: Class IV (Subgiant Turnoff) | Galactic Population: Thin-Disk Population I",
@@ -133,14 +135,17 @@ def train_single_domain_lora_adapter(
     inner_steps: int = 12,
     lr: float = 0.11,
     topk_ratio: float = 0.05,
+    custom_corpus: Optional[Sequence[str]] = None,
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
     """
     Trains a domain-specialized LoRA adapter matching the parameter keys/shapes of
-    `reference_lora_state`, compresses the delta with `Top-k (k=0.05) + FP8 (float8_e4m3fn)`,
+    `reference_lora_state`, enforces Phase S-2 runtime GPU & dataset hardening,
+    compresses the delta with `Top-k (k=0.05) + FP8 (float8_e4m3fn)`,
     and returns the reconstructed state dict alongside convergence and compression telemetry.
     """
     import hashlib
 
+    guard = SwarmTrainingAndStoreGuard()
     spec = SEASON_3_DOMAIN_EXPERT_SPECS.get(
         domain_name,
         ASTROPHYSICS_DOMAIN_EXPERT_SPECS.get(
@@ -152,10 +157,37 @@ def train_single_domain_lora_adapter(
             },
         ),
     )
-    corpus = CURATED_SEASON3_DOMAIN_CORPORA.get(
-        domain_name,
-        CURATED_SEASON3_DOMAIN_CORPORA["Rust_Systems_Security"],
+    corpus = list(
+        custom_corpus
+        if custom_corpus is not None
+        else CURATED_SEASON3_DOMAIN_CORPORA.get(
+            domain_name,
+            CURATED_SEASON3_DOMAIN_CORPORA["Rust_Systems_Security"],
+        )
     )
+
+    # Phase S-2 Hardening Gate: Verify GPU training scope, dataset shard anti-poisoning, and input tensors
+    guard.validate_gpu_training_request(
+        domain_name=domain_name,
+        dataset_id=str(spec["dataset_id"]),
+        lora_rank_r=lora_rank_r,
+        lora_alpha=lora_alpha,
+        inner_steps=inner_steps,
+        lr=lr,
+        topk_ratio=topk_ratio,
+        raise_on_violation=True,
+    )
+    guard.validate_dataset_shard(
+        domain_name=domain_name,
+        samples=corpus,
+        raise_on_violation=True,
+    )
+    guard.validate_lora_tensors(
+        lora_state_dict=reference_lora_state,
+        domain_name=f"{domain_name}:init",
+        raise_on_violation=True,
+    )
+
     domain_seed = int(hashlib.sha256(domain_name.encode("utf-8")).hexdigest()[:8], 16) % 10_000 + 101
 
     prefix_groups: Dict[str, Dict[str, torch.Tensor]] = {}
@@ -234,6 +266,12 @@ def train_single_domain_lora_adapter(
         ).to(torch.float16)
         for k in init_state
     }
+
+    guard.validate_lora_tensors(
+        lora_state_dict=converged_state,
+        domain_name=f"{domain_name}:converged",
+        raise_on_violation=True,
+    )
 
     init_loss_mean = round(sum(initial_losses) / max(1, len(initial_losses)), 6)
     final_loss_mean = round(sum(final_losses) / max(1, len(final_losses)), 6)

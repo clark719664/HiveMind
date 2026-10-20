@@ -279,6 +279,16 @@ def main(argv: list[str] | None = None) -> int:
     p_sec.add_argument("--pr-json", default=None, help="Optional path to PR metadata/files JSON payload to audit")
     p_sec.add_argument("--output-json", default=None, help="Optional path to write JSON audit report")
 
+    p_hard = sub.add_parser(
+        "audit-swarm-hardening",
+        help="Execute Phase S-2 GPU Training & Content-Addressed Data Store Runtime Hardening Self-Test",
+    )
+    p_hard.add_argument(
+        "--output-json",
+        default="artifacts/swarm_gpu_and_datastore_hardening_report.json",
+        help="Path to write JSON hardening audit report",
+    )
+
     args = parser.parse_args(argv)
     if args.command == "hardware-check":
         return cmd_hardware_check()
@@ -394,6 +404,12 @@ def main(argv: list[str] | None = None) -> int:
             pr_json_path=args.pr_json,
             output_json_path=args.output_json,
         )
+    if args.command == "audit-swarm-hardening":
+        from hivemind.security.swarm_runtime_hardening import run_swarm_hardening_self_test
+
+        report = run_swarm_hardening_self_test(output_json_path=args.output_json)
+        console.print(json.dumps(report, indent=2))
+        return 0 if report.get("overall_passed") else 1
     return 0
 
 

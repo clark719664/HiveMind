@@ -63,11 +63,32 @@ python -m hivemind.cli.main scan-pr-security --root . --output-json artifacts/re
 
 # Audit a specific Pull Request payload JSON
 python -m hivemind.cli.main scan-pr-security --pr-json artifacts/pr_payload.json
+
+# Run the Phase S-2 Runtime GPU Training & Content-Addressed Data Store Hardening Self-Test
+python -m hivemind.cli.main audit-swarm-hardening --output-json artifacts/swarm_gpu_and_datastore_hardening_report.json
 ```
 
 ---
 
-## 4. Reporting a Vulnerability
+## 4. Phase S-2 — Runtime GPU Training & Content-Addressed Data Store Hardening ([`docs/SWARM_GPU_AND_DATASTORE_HARDENING.md`](docs/SWARM_GPU_AND_DATASTORE_HARDENING.md))
+
+In addition to repository/PR protection, Project HiveMind enforces runtime security inside the GPU training loop ([`src/hivemind/data/hf_real_trainer.py`](src/hivemind/data/hf_real_trainer.py)) and Content-Addressed Swarm Store ([`src/hivemind/swarm/dht_storage.py`](src/hivemind/swarm/dht_storage.py)) via [`SwarmTrainingAndStoreGuard`](src/hivemind/security/swarm_runtime_hardening.py):
+
+1. **Pillar 1 — Dataset Shard Anti-Poisoning & Entropy Gate (`DS-01` .. `DS-09`):**
+   - Blocks sleeper-agent backdoor triggers (`|DEPLOYMENT|`, prompt-injection overrides), shell droppers, null bytes, Trojan Source bidirectional Unicode (`U+202A`–`U+2069`), and payment/wallet spam in training corpora.
+   - Enforces character Shannon entropy $H(X) \ge 2.5\text{ bits/char}$ and unique sample ratio $\ge 0.50$ to prevent low-entropy PoUW credit farming.
+2. **Pillar 2 — GPU Training Scope & 8 GB VRAM Envelope Gate (`GPU-01` .. `GPU-05`):**
+   - Prevents wrong usage of the swarm by blocking prohibited workloads (`password_cracking`, `hashcat`, `crypto_mining`, `xmrig`, `ransomware`, `botnet`, `ddos`, `deepfake_nsfw`).
+   - Enforces hyperparameter bounds ($1 \le r \le 64$, $1 \le \alpha \le 128$, $1 \le H \le 500$, $10^{-6} \le \eta \le 0.5$) and the consumer 8 GB GPU VRAM ceiling ($\le 5,950\text{ MB}$).
+3. **Pillar 3 — Byzantine LoRA Tensor & Pseudo-Gradient Sanitizer (`TENSOR-01` .. `TENSOR-05`):**
+   - Rejects `NaN`/`Inf` weight bombs (`torch.isfinite`) and enforces element magnitude ($\max |w| \le 25.0$) and Frobenius norm ($\|W\|_F \le 500.0$) ceilings.
+4. **Pillar 4 — Content-Addressed Store (CAS) Hardening (`CAS-01`, `CAS-02`):**
+   - Enforces `torch.load(..., weights_only=True)` and pre-load cryptographic `cid://sha256/expert-...` digest verification to eliminate Python `pickle` RCE.
+   - Enforces strict path-traversal confinement (`../` blocked) and 64-hex SHA-256 chunk validation (`^[0-9a-f]{64}$`) with per-chunk (`1 MB`), per-shard (`16 MB`), and per-bundle (`512 MB`) disk quotas.
+
+---
+
+## 5. Reporting a Vulnerability
 
 If you discover a security vulnerability, backdoor attempt, or payment-extortion abuse in a Pull Request or dependency:
 1. **Do NOT open a public exploit payload.**

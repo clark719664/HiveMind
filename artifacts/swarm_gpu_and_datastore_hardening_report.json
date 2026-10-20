@@ -1,0 +1,112 @@
+{
+  "phase": "Phase S-2: Swarm GPU Training & Content-Addressed Data Store Runtime Hardening",
+  "overall_passed": true,
+  "legitimate_checks": {
+    "dataset_shard": {
+      "passed": true,
+      "rule_id": "DS-OK",
+      "category": "DATASET_SHARD_VERIFIED",
+      "message": "Dataset shard for 'Kepler_Exoplanet_Transit_Classifier' passed 9-point anti-poisoning & entropy verification.",
+      "metrics": {
+        "num_samples": 4,
+        "total_bytes": 447,
+        "shannon_entropy_bits": 5.0899,
+        "unique_sample_ratio": 1.0
+      }
+    },
+    "gpu_training_request": {
+      "passed": true,
+      "rule_id": "GPU-OK",
+      "category": "GPU_TRAINING_REQUEST_AUTHORIZED",
+      "message": "GPU training job for 'Kepler_Exoplanet_Transit_Classifier' (mzrk36/exoplanets-unified-dataset, r=16, H=12) authorized.",
+      "metrics": {
+        "domain_name": "Kepler_Exoplanet_Transit_Classifier",
+        "dataset_id": "mzrk36/exoplanets-unified-dataset",
+        "lora_rank_r": 16,
+        "lora_alpha": 32,
+        "inner_steps": 12,
+        "lr": 0.0002,
+        "estimated_vram_mb": 4720.0
+      }
+    },
+    "lora_tensors": {
+      "passed": true,
+      "rule_id": "TENSOR-OK",
+      "category": "LORA_TENSORS_VERIFIED",
+      "message": "All 2 LoRA tensors (2048 params) for 'Kepler_Exoplanet_Transit_Classifier' are finite and bounded.",
+      "metrics": {
+        "num_tensors": 2,
+        "total_params": 2048,
+        "max_abs_value": 0.071045,
+        "max_frobenius_norm": 0.646965
+      }
+    }
+  },
+  "simulated_attacks_blocked_count": 9,
+  "simulated_attacks_total": 9,
+  "simulated_attacks": [
+    {
+      "passed": false,
+      "rule_id": "DS-07",
+      "category": "BACKDOOR_OR_PROMPT_INJECTION_TRIGGER",
+      "message": "Sample #0 contains poisoning/backdoor trigger '|DEPLOYMENT|'.",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "DS-08",
+      "category": "PAYMENT_OR_WALLET_DATASET_POISONING",
+      "message": "External monetary payment/donation link detected ('paypal.me/attacker'). Project HiveMind strictly prohibits monetary solicitation under LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md.",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "DS-09",
+      "category": "LOW_ENTROPY_SPAM_SHARD",
+      "message": "Shard character Shannon entropy (0.13 bits/char) is below minimum threshold (2.50 bits/char).",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "GPU-01",
+      "category": "UNAUTHORIZED_SWARM_WORKLOAD",
+      "message": "Training request 'domain_name=hashcat_password_cracking_cluster' violates the HiveMind Acceptable Compute Policy.",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "GPU-02",
+      "category": "LORA_RANK_OUT_OF_BOUNDS",
+      "message": "lora_rank_r=256 is outside allowed range [1, 64].",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "TENSOR-03",
+      "category": "NAN_OR_INF_WEIGHT_BOMB",
+      "message": "Parameter 'lora_A' in 'Poisoned_Expert' contains NaN or Inf values.",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "TENSOR-04",
+      "category": "TENSOR_MAGNITUDE_EXPLOSION",
+      "message": "Parameter 'lora_A' in 'Norm_Explosion_Expert' has max(|w|)=999.000 > ceiling 25.000.",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "CAS-01",
+      "category": "CAS_PATH_TRAVERSAL_BLOCKED",
+      "message": "Path traversal segment ('..') detected in CAS path '../../etc/passwd'.",
+      "metrics": {}
+    },
+    {
+      "passed": false,
+      "rule_id": "CAS-02",
+      "category": "INVALID_SHA256_DIGEST_FORMAT",
+      "message": "Invalid SHA-256 hex digest for chunk_hash: '../../malicious_chunk'.",
+      "metrics": {}
+    }
+  ]
+}

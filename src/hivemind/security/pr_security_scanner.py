@@ -711,7 +711,9 @@ class PRSecurityScanner:
             # Skip self-referential pattern definitions if trusted owner edits the security scanner or its unit tests
             is_security_Rule_file = raw_fname in {
                 "src/hivemind/security/pr_security_scanner.py",
+                "src/hivemind/security/swarm_runtime_hardening.py",
                 "tests/test_pr_security_scanner.py",
+                "tests/test_swarm_runtime_hardening.py",
                 "SECURITY.md",
                 "LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md",
             }
@@ -726,7 +728,13 @@ class PRSecurityScanner:
 
             if added_lines_text and not (
                 is_trusted_owner
-                and raw_fname in {"src/hivemind/security/pr_security_scanner.py", "tests/test_pr_security_scanner.py"}
+                and raw_fname
+                in {
+                    "src/hivemind/security/pr_security_scanner.py",
+                    "src/hivemind/security/swarm_runtime_hardening.py",
+                    "tests/test_pr_security_scanner.py",
+                    "tests/test_swarm_runtime_hardening.py",
+                }
             ):
                 findings.extend(
                     self.scan_unicode_trojan_source(added_lines_text, file_path=raw_fname)
@@ -841,7 +849,9 @@ class PRSecurityScanner:
 
         exempt_self_files = {
             "src/hivemind/security/pr_security_scanner.py",
+            "src/hivemind/security/swarm_runtime_hardening.py",
             "tests/test_pr_security_scanner.py",
+            "tests/test_swarm_runtime_hardening.py",
         }
 
         for sdir in scan_dirs:

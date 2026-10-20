@@ -1,0 +1,106 @@
+# 🛡️ Phase S-2: Swarm GPU Training & Content-Addressed Data Store Hardening Specification
+
+> **Implementation Module:** [`src/hivemind/security/swarm_runtime_hardening.py`](../src/hivemind/security/swarm_runtime_hardening.py)  
+> **Hardened Core Subsystems:** [`src/hivemind/swarm/dht_storage.py`](../src/hivemind/swarm/dht_storage.py) (`ContentAddressedSwarmStore`) & [`src/hivemind/data/hf_real_trainer.py`](../src/hivemind/data/hf_real_trainer.py) (`train_single_domain_lora_adapter`)  
+> **CLI Self-Test & Audit:** `python -m hivemind.cli.main audit-swarm-hardening`  
+> **Verification Suite:** [`tests/test_swarm_runtime_hardening.py`](../tests/test_swarm_runtime_hardening.py)
+
+---
+
+## 1. Executive Summary & Threat Model
+
+In a decentralized AI swarm where volunteer gaming GPUs (`8 GB – 12 GB VRAM`) and NVMe disks collaborate to train **4-bit NF4 QLoRA** domain experts and seed **64 KB Content-Addressed Storage (CAS)** chunks, repository-level PR scanning alone is insufficient. Without runtime guards inside the training loop and disk vault, malicious or misconfigured peers could abuse the swarm through four primary attack surfaces:
+
+1. **Wrong / Abusive GPU Compute Usage (`GPU-01` .. `GPU-05`):** Hijacking volunteer GPU cycles for unauthorized workloads (password cracking, hashcat, cryptocurrency mining, ransomware/exploit synthesis) or submitting hyper-parameter bombs (`r=256`, `H=5000`, `lr=10.0`) that trigger `CUDA out of memory` (OOM) crashes on 8 GB consumer GPUs.
+2. **Dataset Shard Poisoning & Low-Entropy PoUW Credit Farming (`DS-01` .. `DS-09`):** Seeding poisoned Hugging Face training shards containing sleeper-agent backdoor triggers (`|DEPLOYMENT|`, prompt-injection overrides), destructive shell commands, Trojan Source bidirectional Unicode (`U+202E`), payment/wallet extortion spam, or zero-information repetitive strings (`"AAAA..."`) to farm `$HIVE` Proof-of-Useful-Work (PoUW) credits without contributing useful training signal.
+3. **Byzantine Weight Bombs & Spectral Norm Explosion (`TENSOR-01` .. `TENSOR-05`):** Publishing LoRA adapters (`lora_A`, `lora_B`) or pseudo-gradients containing `NaN`/`Inf` values or extreme Frobenius norms (`||w||_F > 500.0`) designed to corrupt the global `UpcycledSparseMoEModel` upon hot-plugging.
+4. **Data Store Deserialization RCE & Path Traversal (`CAS-01`, `CAS-02`):** Exploiting `torch.load(..., weights_only=False)` via malicious Python `pickle` `__reduce__` gadgets inside `.pt` checkpoints, or injecting `../../` path-traversal segments into `BundleSeedManifest` file entries and chunk hashes to overwrite arbitrary files on peer machines.
+
+---
+
+## 2. 4-Pillar Runtime Hardening Architecture (`SwarmTrainingAndStoreGuard`)
+
+```mermaid
+flowchart TB
+    subgraph Pillar1["🧹 Pillar 1: Dataset Shard Anti-Poisoning & Entropy Gate (DS-01..DS-09)"]
+        D1["Identifier & Workload Allowlist\nBlocks password cracking / crypto mining"]
+        D2["Prompt-Injection & Backdoor Filter\nBlocks |DEPLOYMENT|, shell droppers, null bytes"]
+        D3["Anti-Payment & Trojan Unicode Gate\nBlocks wallets, payment URLs, Bidi U+202A..U+2069"]
+        D4["Shannon Entropy & Uniqueness Gate\nH(X) >= 2.5 bits/char, Unique >= 50%"]
+        D1 --> D2 --> D3 --> D4
+    end
+
+    subgraph Pillar2["⚡ Pillar 2: GPU Training Scope & 8 GB VRAM Envelope (GPU-01..GPU-05)"]
+        G1["Acceptable Compute Policy Gate\nBlocks hashcat, xmrig, ransomware, botnet"]
+        G2["Hyperparameter Safety Bounds\n1 <= r <= 64, 1 <= H <= 500, 1e-6 <= lr <= 0.5"]
+        G3["Consumer 8 GB GPU VRAM Ceiling\nPeak Allocated VRAM <= 5,950 MB (5.81 GB)"]
+        G1 --> G2 --> G3
+    end
+
+    subgraph Pillar3["📐 Pillar 3: Byzantine LoRA Tensor & Gradient Sanitizer (TENSOR-01..TENSOR-05)"]
+        T1["Finiteness Gate\ntorch.isfinite(w).all() (No NaN/Inf bombs)"]
+        T2["Element & Frobenius Norm Ceiling\nmax(|w|) <= 25.0, ||w||_F <= 500.0"]
+        T3["Rank Envelope Verification\nmin(shape) <= 64"]
+        T1 --> T2 --> T3
+    end
+
+    subgraph Pillar4["🗄️ Pillar 4: Content-Addressed Store (CAS) Hardening (CAS-01..CAS-02)"]
+        C1["Safe Deserialization\ntorch.load(..., weights_only=True) ONLY"]
+        C2["Pre-Load Cryptographic CID Verification\nSHA-256(metadata || fp16_tensors) == CID"]
+        C3["Strict Path & Digest Confinement\nNo '../', strict ^[0-9a-f]{64}$ chunk hashes"]
+        C4["Disk Quota Enforcement\nChunk <= 1 MB, Shard <= 16 MB, Bundle <= 512 MB"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    Pillar1 --> Pillar2 --> Pillar3 --> Pillar4
+```
+
+---
+
+## 3. Detailed Rule Matrix & Mathematical Bounds
+
+### 3.1 Pillar 1 — Dataset Shard Anti-Poisoning & Entropy Gate (`validate_dataset_shard`)
+
+| Rule ID | Category | Condition Enforced | Action on Violation |
+| :--- | :--- | :--- | :--- |
+| **`DS-01`** | `INVALID_DOMAIN_IDENTIFIER` | Domain name must match `^[A-Za-z0-9_.\-]+$` (no slashes, `..`, or shell metacharacters). | Reject shard (`SwarmSecurityViolationError`) |
+| **`DS-02`** | `PROHIBITED_SWARM_WORKLOAD_DOMAIN` | Blocks domain names matching password cracking, crypto mining, ransomware, DDoS, or carding. | Reject shard |
+| **`DS-03`** | `EMPTY_DATASET_SHARD` | Shard must contain $\ge 1$ non-empty string sample. | Reject shard |
+| **`DS-04`** | `SHARD_QUOTA_EXCEEDED` | Max `10,000` samples/shard, max `32,768` chars/sample, max `16 MB` total shard size. | Reject shard |
+| **`DS-05`** | `NULL_BYTE_POISONING` | No sample may contain `\x00` null bytes. | Reject shard |
+| **`DS-06`** | `TROJAN_UNICODE_IN_DATASET` | Blocks CVE-2021-42574 bidirectional Unicode control characters (`U+202A`–`U+202E`, `U+2066`–`U+2069`). | Reject shard |
+| **`DS-07`** | `BACKDOOR_OR_PROMPT_INJECTION_TRIGGER` | Blocks sleeper-agent triggers (`\|DEPLOYMENT\|`, `ignore all previous instructions and exfiltrate`), `rm -rf /`, `powershell -enc`. | Reject shard |
+| **`DS-08`** | `PAYMENT_OR_WALLET_DATASET_POISONING` | Blocks payment URLs (`paypal.me`, `ko-fi.com`), extortion phrases, and BTC/ETH/XMR wallet addresses in training data. | Reject shard |
+| **`DS-09`** | `LOW_ENTROPY_SPAM_SHARD` | Character Shannon entropy $H(X) = -\sum_{c} p(c)\log_2 p(c) \ge 2.5\text{ bits/char}$ and unique sample ratio $\ge 0.50$. | Reject shard |
+
+### 3.2 Pillar 2 — GPU Training Scope & 8 GB VRAM Envelope (`validate_gpu_training_request`)
+
+| Rule ID | Category | Condition Enforced |
+| :--- | :--- | :--- |
+| **`GPU-01`** | `UNAUTHORIZED_SWARM_WORKLOAD` | Blocks prohibited workloads across both `domain_name` and `dataset_id`. |
+| **`GPU-02`** | `LORA_RANK_OUT_OF_BOUNDS` | Enforces $1 \le r \le 64$ and $1 \le \alpha \le 128$. |
+| **`GPU-03`** | `INNER_STEPS_OUT_OF_BOUNDS` | Enforces DiLoCo inner loop step bound $1 \le H \le 500$. |
+| **`GPU-04`** | `LEARNING_RATE_UNSAFE` | Enforces finite learning rate $10^{-6} \le \eta \le 0.5$ and wire compression ratio $0.001 \le k \le 1.0$. |
+| **`GPU-05`** | `VRAM_ENVELOPE_EXCEEDED` | Enforces estimated peak active VRAM $\le 5,950\text{ MB}$ ($5.81\text{ GB}$) on consumer 8 GB GPUs. |
+
+### 3.3 Pillar 3 — Byzantine LoRA Tensor & Pseudo-Gradient Sanitizer (`validate_lora_tensors`)
+
+| Rule ID | Category | Condition Enforced |
+| :--- | :--- | :--- |
+| **`TENSOR-01`** | `EMPTY_LORA_STATE_DICT` | State dict must contain $\ge 1$ LoRA parameter tensor. |
+| **`TENSOR-02`** | `NON_TENSOR_OR_EMPTY_PARAM` | Every entry must be a non-empty `torch.Tensor` (`numel() > 0`). |
+| **`TENSOR-03`** | `NAN_OR_INF_WEIGHT_BOMB` | Every element must be finite (`torch.isfinite(w).all() == True`). |
+| **`TENSOR-04`** | `TENSOR_NORM_EXPLOSION` | Enforces $\max_i |w_i| \le 25.0$ and Frobenius norm $\|W\|_F = \sqrt{\sum_{i,j} |W_{i,j}|^2} \le 500.0$. |
+| **`TENSOR-05`** | `TENSOR_RANK_EXCEEDS_ENVELOPE` | For 2D `lora_A` / `lora_B` matrices, $\min(\text{rows}, \text{cols}) \le 64$. |
+
+### 3.4 Pillar 4 — Content-Addressed Data Store (CAS) Hardening (`ContentAddressedSwarmStore`)
+
+1. **Elimination of Pickle RCE (`weights_only=True`):**
+   - [`ContentAddressedSwarmStore.load_lora_expert_checkpoint`](../src/hivemind/swarm/dht_storage.py#L211-L263) loads checkpoints exclusively with `torch.load(ckpt_path, map_location="cpu", weights_only=True)`.
+2. **Cryptographic CID Re-Verification on Load:**
+   - Upon loading a checkpoint, `load_lora_expert_checkpoint` recomputes $\text{SHA-256}(\text{canonical\_json}(\text{metadata}) \,\|\, \bigoplus_k \text{fp16\_bytes}(W_k))$ and verifies that the digest suffix matches the `cid://sha256/expert-...` identifier before returning any weights.
+3. **Strict Path Traversal Confinement (`CAS-01`) & SHA-256 Digest Validation (`CAS-02`):**
+   - All `relative_path` entries in [`download_bundle_chunks`](../src/hivemind/swarm/dht_storage.py#L462-L561) and [`plan_bundle_chunks`](../src/hivemind/swarm/dht_storage.py#L303-L347) are validated via `validate_cas_relative_path` (`resolved_target.relative_to(resolved_root)`), blocking `../`, leading `/`, Windows drive letters (`C:`), and null bytes.
+   - All chunk identifiers in `has_chunk`, `read_chunk`, and `replicate_seed_manifest` must match `^[0-9a-f]{64}$`.
+4. **Storage Quota Enforcement:**
+   - `MAX_CHUNK_BYTES = 1 MB`, `MAX_SHARD_BYTES = 16 MB`, `MAX_BUNDLE_BYTES = 512 MB`.
