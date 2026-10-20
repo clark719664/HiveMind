@@ -10,7 +10,7 @@ available. Without CUDA it prints a BLOCKED status JSON and exits 2.
         # CPU control-flow check only: NO latency and NO VRAM numbers, always exits non-zero (3 or 1)
 
 Exit codes: 0 all functional checks passed on CUDA with measurements; 1 a functional check failed;
-2 BLOCKED (no CUDA); 3 CPU dry-run finished (not acceptance evidence).
+2 BLOCKED (no CUDA or non-CUDA backend); 3 CPU dry-run finished (not acceptance evidence).
 
 Measurements come from torch.cuda allocator counters, torch.cuda.mem_get_info and (if present)
 nvidia-smi. Allocator bytes exclude the CUDA context and driver overhead; compare with the
@@ -40,7 +40,7 @@ if (REPO_ROOT / "src").is_dir() and str(REPO_ROOT / "src") not in sys.path:
 import torch  # noqa: E402
 from torch import nn  # noqa: E402
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 EXIT_OK, EXIT_FAIL, EXIT_BLOCKED, EXIT_DRY_RUN = 0, 1, 2, 3
 BLOCKED_MESSAGE = (
     "BLOCKED: torch.cuda is unavailable. Preemption latency and VRAM release cannot be measured "
@@ -212,8 +212,27 @@ def _all_on_cpu(model: nn.Module) -> bool:
     return all(t.device.type == "cpu" for t in list(model.parameters()) + list(model.buffers()))
 
 
+def _valid_cpu_rng_state(state) -> bool:
+    if not isinstance(state, torch.Tensor) or state.device.type != "cpu" or state.dtype != torch.uint8:
+        return False
+    try:
+        torch.Generator(device="cpu").set_state(state)
+        return True
+    except (TypeError, RuntimeError):
+        return False
+
+
+def _valid_cuda_rng_states(states, required: bool) -> bool:
+    return isinstance(states, list) and (bool(states) or not required) and all(
+        isinstance(state, torch.Tensor) and state.device.type == "cpu"
+        and state.dtype == torch.uint8 and state.ndim == 1 and state.numel() > 0
+        for state in states
+    )
+
+
 def run_scenario(name: str, dev: torch.device, args, *, bystander_mib: int = 0, checkpoint_dir: Path | None = None,
-                 fail_offload: bool = False, profile: str | None = None, restart: bool = False) -> dict:
+                 fail_offload: bool = False, profile: str | None = None, restart: bool = False,
+                 expect_checkpoint_failure: bool = False) -> dict:
     import hivemind.core.diloco_inner as inner
     from hivemind.core.quantization import extract_lora_state_dict
 
@@ -289,8 +308,15 @@ def run_scenario(name: str, dev: torch.device, args, *, bystander_mib: int = 0, 
         functional["no_offload_error"] = result.model_offload_error is None
     functional["original_device_recorded"] = result.preemption_original_device == str(dev)
 
-    checkpoint_report: dict = {"requested": checkpoint_dir is not None}
+    checkpoint_report: dict = {"requested": checkpoint_dir is not None,
+                               "failure_expected": expect_checkpoint_failure}
     if checkpoint_dir is not None:
+        if expect_checkpoint_failure:
+            functional["checkpoint_failed_as_expected"] = result.emergency_dump_path is None
+            functional["checkpoint_failure_is_visible"] = bool(result.emergency_checkpoint_error)
+        else:
+            functional["checkpoint_saved_as_expected"] = result.emergency_dump_path is not None
+            functional["checkpoint_has_no_error"] = result.emergency_checkpoint_error is None
         leftovers = sorted(p.name for p in checkpoint_dir.glob(".emergency-*")) if checkpoint_dir.is_dir() else []
         checkpoint_report["leftover_temp_files"] = leftovers
         functional["no_partial_checkpoint_files"] = not leftovers
@@ -307,14 +333,16 @@ def run_scenario(name: str, dev: torch.device, args, *, bystander_mib: int = 0, 
             })
             functional["checkpoint_step_matches"] = payload.get("step") == k
             functional["checkpoint_has_optimizer_state"] = checkpoint_report["optimizer_state_entries"] > 0
+            functional["checkpoint_has_valid_cpu_rng_state"] = _valid_cpu_rng_state(payload.get("torch_rng_state"))
+            functional["checkpoint_has_valid_cuda_rng_states"] = _valid_cuda_rng_states(
+                payload.get("cuda_rng_states"), required=dev.type == "cuda"
+            )
             functional["checkpoint_marks_resume_unsupported"] = payload.get("automatic_resume_supported") is False
             functional["checkpoint_matches_stopped_weights"] = all(
                 torch.equal(payload["lora_state"][key], result.theta_final[key]) for key in result.theta_final
-            )
+            ) and set(payload["lora_state"]) == set(result.theta_final)
         else:
             checkpoint_report["emergency_checkpoint_error"] = result.emergency_checkpoint_error
-    if checkpoint_dir is not None and result.emergency_dump_path is None:
-        functional["checkpoint_failure_is_visible"] = bool(result.emergency_checkpoint_error)
 
     report: dict = {
         "scenario": name,
@@ -430,11 +458,19 @@ def parse_args(argv):
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    cuda = torch.cuda.is_available()
-    if not cuda and not args.functional_dry_run_cpu:
+    cuda_available = torch.cuda.is_available()
+    # An explicit CPU dry run must remain on CPU even on a CUDA-capable host.
+    cuda = cuda_available and not args.functional_dry_run_cpu
+    if not cuda_available and not args.functional_dry_run_cpu:
         report = blocked_report()
         _emit(report, args.out)
         print(BLOCKED_MESSAGE, file=sys.stderr)
+        return EXIT_BLOCKED
+
+    if cuda and getattr(torch.version, "hip", None):
+        report = blocked_report("ROCm/HIP uses torch.cuda APIs but is not CUDA acceptance evidence.")
+        report["status"] = "BLOCKED_NON_CUDA_BACKEND"
+        _emit(report, args.out)
         return EXIT_BLOCKED
 
     dev = torch.device("cuda:0" if cuda else "cpu")
@@ -452,13 +488,19 @@ def main(argv: list[str] | None = None) -> int:
                                                     checkpoint_dir=scratch / "bystander"))
         blocker = scratch / "not_a_directory"
         blocker.write_text("regular file where a directory is required", encoding="utf-8")
-        report["scenarios"].append(run_scenario("checkpoint_dir_unwritable", dev, args, checkpoint_dir=blocker / "sub", profile="tiny"))
+        report["scenarios"].append(run_scenario("checkpoint_dir_unwritable", dev, args, checkpoint_dir=blocker / "sub", profile="tiny", expect_checkpoint_failure=True))
         report["scenarios"].append(run_scenario("model_rejects_cpu_offload", dev, args, checkpoint_dir=scratch / "reject",
                                                 fail_offload=True, profile="tiny"))
         report["reference_bare_model_to_cpu"] = reference_offload_time(dev, args)
+    except Exception as exc:  # noqa: BLE001
+        report["error"] = f"{type(exc).__name__}: {exc}"
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
 
+    if "error" in report:
+        report["status"] = "FAIL_EXECUTION"
+        _emit(report, args.out)
+        return EXIT_FAIL
     functional_ok = all(s["functional_passed"] for s in report["scenarios"])
     if cuda:
         report["status"] = "MEASURED_ALL_FUNCTIONAL_PASSED" if functional_ok else "MEASURED_FUNCTIONAL_FAILURES"

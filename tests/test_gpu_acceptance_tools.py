@@ -1,7 +1,7 @@
 """CPU-only tests for tools/gpu_acceptance: correctness checks and the no-CUDA refusal behaviour.
 
-Nothing here measures a GPU. The one test that executes the CUDA reporting branch feeds it
-SYNTHETIC counters purely to prove the branch runs; its numbers are never asserted as results.
+Nothing here measures a GPU. Tests of CUDA reporting and kernel dispatch use SYNTHETIC
+counters or CPU-backed mocks to verify control flow, never hardware acceptance results.
 """
 from __future__ import annotations
 
@@ -220,3 +220,331 @@ def test_cuda_reporting_branch_runs_with_synthetic_counters(pre, monkeypatch, tm
     assert measured["allocated_bytes_released_by_preemption"] == 600_000_000 - 100_000_000
     assert measured["bystander_bytes"] == 2**20
     assert "after_cleanup" in report and "restart" in report
+
+
+# ---------------------------------------------------------------- reporting regressions
+# All CUDA results below are synthetic branch tests, never hardware evidence.
+
+
+def _synthetic_nf4_row(shape, dtype):
+    snapshot = {"allocated_bytes": 0, "reserved_bytes": 0, "device_free_bytes": 1024, "device_total_bytes": 1024}
+    timing = {"unit": "ms (torch.cuda.Event)", "warmup_iters": 0, "iters": 1, "median": 1.0, "p95": 1.0, "min": 1.0}
+    return {"shape": list(shape), "dtype": str(dtype).replace("torch.", ""), "status": "MEASURED",
+            "quantize_peak_allocated_over_baseline_bytes": 16,
+            "dequantize_peak_allocated_over_pre_call_bytes": 16, "dense_output_bytes": 16,
+            "memory_bytes_torch_allocator": {
+                "baseline": snapshot, "original_dense_weight_resident": snapshot,
+                "plus_packed_buffers_on_gpu": snapshot, "plus_dequantized_dense_output": snapshot,
+                "dense_weight_alone_bytes": 16, "packed_buffers_alone_bytes": 8,
+            }, "latency": {name: timing for name in (
+                "dequantize_gpu_resident_packed", "dequantize_cpu_resident_packed_includes_h2d_copy",
+                "dense_linear_reference", "dequantize_then_linear_gpu_resident",
+            )}, "synthetic_test_only": True}
+
+
+@pytest.fixture
+def synthetic_nf4_cuda(nf4, monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "empty_cache", lambda: None)
+    monkeypatch.setattr(torch.version, "hip", None)
+    monkeypatch.setattr(nf4, "environment", lambda: {"synthetic_test_only": True})
+    monkeypatch.setattr(nf4, "run_correctness", lambda *a: {"passed": True})
+    monkeypatch.setattr(nf4, "cuda_triton_parity", lambda: {"ran": True, "passed": True, "status": "PASSED"})
+
+    def measured(shape, dtype, *args):
+        return _synthetic_nf4_row(shape, dtype)
+
+    monkeypatch.setattr(nf4, "_measure_one_cuda", measured)
+
+
+def _nf4_synthetic_main(nf4):
+    return nf4.main(["--require-cuda", "--skip-cpu-timing", "--cuda-shapes", "2x2", "--iters", "1", "--warmup", "0"])
+
+
+def test_nf4_all_requested_synthetic_measurements_must_succeed(nf4, synthetic_nf4_cuda, capsys):
+    assert _nf4_synthetic_main(nf4) == 0
+    report = _json_from(capsys)
+    assert report["status"] == "PASS_CORRECTNESS_AND_CUDA_MEASURED"
+    assert report["cuda"]["measurement_summary"] == {
+        "requested": 3, "measured": 3, "errors": 0, "skipped": 0, "invalid_rows": [], "complete": True,
+    }
+
+
+@pytest.mark.parametrize("failure_dtype", [torch.float16, torch.bfloat16, torch.float32, None])
+def test_nf4_caught_measurement_exceptions_cannot_pass(nf4, synthetic_nf4_cuda, monkeypatch, capsys, failure_dtype):
+    original = nf4._measure_one_cuda
+
+    def broken(shape, dtype, *args):
+        if failure_dtype is None or dtype == failure_dtype:
+            raise RuntimeError("injected CUDA measurement failure")
+        return original(shape, dtype, *args)
+
+    monkeypatch.setattr(nf4, "_measure_one_cuda", broken)
+    assert _nf4_synthetic_main(nf4) == 1
+    report = _json_from(capsys)
+    assert report["cpu_correctness"]["passed"] is True
+    assert report["status"] == "FAIL_CUDA_MEASUREMENTS"
+    assert report["cuda"]["measurement_summary"]["errors"] == (3 if failure_dtype is None else 1)
+    assert not report["cuda"]["measurement_summary"]["complete"]
+
+
+def test_nf4_top_level_measurement_error_emits_failed_json(nf4, synthetic_nf4_cuda, monkeypatch, capsys):
+    def fail(*args):
+        raise RuntimeError("probe unavailable")
+
+    monkeypatch.setattr(nf4, "measure_cuda", fail)
+    assert _nf4_synthetic_main(nf4) == 1
+    assert _json_from(capsys)["status"] == "FAIL_CUDA_MEASUREMENTS"
+
+
+def test_nf4_unsupported_dtype_is_visible_and_blocks_full_acceptance(nf4, synthetic_nf4_cuda, monkeypatch, capsys):
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: False)
+    assert _nf4_synthetic_main(nf4) == 2
+    report = _json_from(capsys)
+    assert report["status"] == "BLOCKED_INCOMPLETE_CUDA_MEASUREMENTS"
+    assert report["cuda"]["measurement_summary"]["skipped"] == 1
+    assert report["cuda"]["measurements"][1]["status"] == "SKIPPED_UNSUPPORTED"
+
+
+@pytest.mark.parametrize("measurements", [[], [{"shape": [2, 2], "dtype": "float32"}], [
+    _synthetic_nf4_row((2, 2), torch.float32),
+] * 3])
+def test_nf4_missing_unknown_or_duplicate_measurements_never_pass(nf4, synthetic_nf4_cuda, monkeypatch, capsys, measurements):
+    monkeypatch.setattr(nf4, "measure_cuda", lambda *args: measurements)
+    assert _nf4_synthetic_main(nf4) == 2
+    assert _json_from(capsys)["status"] == "BLOCKED_INCOMPLETE_CUDA_MEASUREMENTS"
+
+
+@pytest.mark.parametrize("parity,expected_code,expected_status", [
+    ({"ran": True, "passed": False, "status": "FAILED"}, 1, "FAIL_CUDA_PARITY"),
+    ({"ran": False, "status": "ERROR", "error": "launch failed"}, 1, "FAIL_CUDA_PARITY"),
+    ({"ran": False, "status": "SKIPPED_UNAVAILABLE"}, 2, "BLOCKED_CUDA_PARITY_UNAVAILABLE"),
+])
+def test_nf4_parity_failure_and_unavailable_are_not_passes(nf4, synthetic_nf4_cuda, monkeypatch, capsys,
+                                                         parity, expected_code, expected_status):
+    monkeypatch.setattr(nf4, "cuda_triton_parity", lambda: parity)
+    assert _nf4_synthetic_main(nf4) == expected_code
+    assert _json_from(capsys)["status"] == expected_status
+
+
+@pytest.mark.parametrize("args", [["--cuda-shapes", ""], ["--cuda-shapes", "0x4"], ["--cuda-shapes", "-1"],
+                                  ["--cuda-shapes", "2x2,"], ["--iters", "0"], ["--warmup", "-1"]])
+def test_nf4_invalid_measurement_configuration_fails_before_work(nf4, monkeypatch, args):
+    def unexpected():
+        raise AssertionError("invalid inputs reached environment/workload probe")
+
+    monkeypatch.setattr(nf4, "environment", unexpected)
+    with pytest.raises(SystemExit) as exc:
+        nf4.main(args)
+    assert exc.value.code == 2
+
+
+def test_nf4_non_cuda_backend_cannot_claim_cuda_acceptance(nf4, synthetic_nf4_cuda, monkeypatch, capsys):
+    monkeypatch.setattr(torch.version, "hip", "synthetic HIP")
+    assert _nf4_synthetic_main(nf4) == 2
+    report = _json_from(capsys)
+    assert report["status"] == "BLOCKED_NON_CUDA_BACKEND" and report["cuda"]["measurements"] is None
+
+
+@pytest.mark.parametrize("mode", ["success", "mismatch", "launch_error", "async_error"])
+def test_triton_probe_calls_kernel_directly_and_never_silent_fallback(nf4, monkeypatch, mode):
+    from types import SimpleNamespace
+    from hivemind.swarm import swarm_fabric as sf
+
+    calls = []
+
+    class SyntheticKernel:
+        def __getitem__(self, grid):
+            def launch(x, quantized, scales, n_cols, **kwargs):
+                calls.append(grid)
+                if mode == "launch_error":
+                    raise RuntimeError("injected Triton launch failure")
+                scale = x.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6) / 448.0
+                scales.copy_(scale)
+                quantized.copy_((x / scale).clamp(-448.0, 448.0))
+                if mode == "mismatch":
+                    quantized.zero_()
+            return launch
+
+    def no_fallback(*args):
+        raise AssertionError("must not call production wrapper with silent fallback")
+
+    def sync(*args):
+        if mode == "async_error":
+            raise RuntimeError("injected asynchronous kernel failure")
+
+    real_randn = torch.randn
+    monkeypatch.setattr(torch, "randn", lambda *a, **kw: real_randn(*a, **{**kw, "device": "cpu"}))
+    monkeypatch.setattr(torch.cuda, "synchronize", sync)
+    monkeypatch.setattr(sf, "_HAS_TRITON", True)
+    monkeypatch.setattr(sf, "triton", SimpleNamespace(next_power_of_2=lambda n: n), raising=False)
+    monkeypatch.setattr(sf, "_triton_fp8_quant_kernel", SyntheticKernel(), raising=False)
+    monkeypatch.setattr(sf, "compress_hidden_states_fp8", no_fallback)
+    result = nf4.cuda_triton_parity()
+    assert calls == [(64,)]
+    if mode in ("launch_error", "async_error"):
+        assert result["status"] == "ERROR" and result["ran"] is False
+        assert "passed" not in result
+    else:
+        assert result["ran"] is True and result["backend"] == "triton_direct_no_fallback"
+        assert result["passed"] is (mode == "success")
+
+
+def test_nf4_later_int4_error_preserves_prior_failures(nf4, monkeypatch):
+    count = 0
+
+    def fail_then_raise(*args):
+        nonlocal count
+        count += 1
+        if count == 2:
+            raise RuntimeError("injected later int4 failure")
+        return {"checks": {"injected_failure": False}, "metrics": {}}
+
+    monkeypatch.setattr(nf4, "check_int4_row_case", fail_then_raise)
+    result = nf4.run_correctness(0, quick=True)
+    assert not result["passed"] and not result["int4_row_path"]["available"]
+    assert result["summary"]["int4_row_failed"] == 1
+    assert result["int4_row_path"]["cases"][0]["passed"] is False
+
+
+def test_cpu_dry_run_forces_cpu_even_when_cuda_is_visible(pre, monkeypatch, capsys):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("CPU dry run reached a CUDA workload or hardware probe")
+
+    for name in ("synchronize", "empty_cache", "mem_get_info", "memory_allocated", "memory_reserved",
+                 "get_device_properties", "get_rng_state_all"):
+        monkeypatch.setattr(torch.cuda, name, forbidden)
+    real_build = pre.build_model
+    seen = []
+
+    def cpu_only(profile, dev, args, **kwargs):
+        assert dev.type == "cpu"
+        assert profile == "tiny" and args.tiny_mib == 1.0
+        seen.append(str(dev))
+        return real_build(profile, dev, args, **kwargs)
+
+    monkeypatch.setattr(pre, "build_model", cpu_only)
+    monkeypatch.setattr(pre, "nvidia_smi_process_memory", forbidden)
+    assert pre.main(["--functional-dry-run-cpu"]) == pre.EXIT_DRY_RUN
+    report = _json_from(capsys)
+    assert seen == ["cpu", "cpu", "cpu"]
+    assert report["environment"]["cuda_available"] is True
+    assert report["environment"]["device"] == "cpu"
+    assert report["status"] == "DRY_RUN_CPU_FUNCTIONAL_ONLY_NOT_ACCEPTANCE"
+    assert report["reference_bare_model_to_cpu"] is None
+    assert all(s["measurements"] is None for s in report["scenarios"])
+
+
+@pytest.mark.parametrize("name", ["main", "unrelated_live_cuda_tensor", "model_rejects_cpu_offload"])
+def test_unexpected_checkpoint_failure_is_not_functional_success(pre, no_cuda, monkeypatch, tmp_path, name):
+    import hivemind.core.diloco_inner as inner
+
+    real_run = inner.run_diloco_inner_loop
+
+    def missing_checkpoint(*args, **kwargs):
+        result = real_run(*args, **kwargs)
+        result.emergency_dump_path = None
+        result.emergency_checkpoint_error = "injected unexpected disk failure"
+        return result
+
+    monkeypatch.setattr(inner, "run_diloco_inner_loop", missing_checkpoint)
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    result = pre.run_scenario(name, torch.device("cpu"), args, checkpoint_dir=tmp_path / "ckpt")
+    assert not result["functional_passed"]
+    assert not result["functional_checks"]["checkpoint_saved_as_expected"]
+    assert not result["functional_checks"]["checkpoint_has_no_error"]
+
+
+def test_injected_checkpoint_failure_scenario_rejects_unexpected_success(pre, no_cuda, tmp_path):
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    result = pre.run_scenario("unwritable_but_injection_broken", torch.device("cpu"), args,
+                              checkpoint_dir=tmp_path / "writable", expect_checkpoint_failure=True)
+    assert not result["functional_passed"]
+    assert not result["functional_checks"]["checkpoint_failed_as_expected"]
+    assert not result["functional_checks"]["checkpoint_failure_is_visible"]
+
+
+@pytest.mark.parametrize("functional_ok,code", [(True, 0), (False, 1)])
+def test_preemption_synthetic_cuda_main_gates_functional_outcome(pre, monkeypatch, capsys, functional_ok, code):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.version, "hip", None)
+    monkeypatch.setattr(pre, "environment", lambda *a: {"synthetic_test_only": True})
+    monkeypatch.setattr(pre, "reference_offload_time", lambda *a: {"synthetic_test_only": True})
+
+    def synthetic_scenario(name, dev, args, **kwargs):
+        assert dev.type == "cuda"
+        assert kwargs.get("expect_checkpoint_failure", False) == (name == "checkpoint_dir_unwritable")
+        return {"scenario": name, "functional_passed": functional_ok, "synthetic_test_only": True}
+
+    monkeypatch.setattr(pre, "run_scenario", synthetic_scenario)
+    assert pre.main([]) == code
+    report = _json_from(capsys)
+    assert len(report["scenarios"]) == 4
+    assert report["status"] == ("MEASURED_ALL_FUNCTIONAL_PASSED" if functional_ok else "MEASURED_FUNCTIONAL_FAILURES")
+
+
+def test_preemption_execution_failure_emits_failed_json(pre, no_cuda, monkeypatch, capsys):
+    def fail(*args, **kwargs):
+        raise RuntimeError("injected scenario failure")
+
+    monkeypatch.setattr(pre, "run_scenario", fail)
+    assert pre.main(["--functional-dry-run-cpu"]) == 1
+    report = _json_from(capsys)
+    assert report["status"] == "FAIL_EXECUTION" and report["error"].endswith("injected scenario failure")
+
+
+def test_preemption_hip_blocks_cuda_acceptance_before_work(pre, monkeypatch, capsys):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.version, "hip", "synthetic HIP")
+    assert pre.main([]) == 2
+    assert _json_from(capsys)["status"] == "BLOCKED_NON_CUDA_BACKEND"
+
+
+@pytest.mark.parametrize("field,invalid", [("torch_rng_state", None), ("torch_rng_state", torch.ones(4)),
+                                          ("cuda_rng_states", None), ("cuda_rng_states", [torch.ones(4)])])
+def test_checkpoint_missing_or_invalid_rng_state_cannot_pass(pre, no_cuda, monkeypatch, tmp_path, field, invalid):
+    real_load = torch.load
+
+    def corrupt(*args, **kwargs):
+        payload = real_load(*args, **kwargs)
+        if invalid is None:
+            payload.pop(field)
+        else:
+            payload[field] = invalid
+        return payload
+
+    monkeypatch.setattr(torch, "load", corrupt)
+    args = pre.parse_args([])
+    args.profile, args.tiny_mib = "tiny", 1.0
+    result = pre.run_scenario("corrupt_rng", torch.device("cpu"), args, checkpoint_dir=tmp_path / "ckpt")
+    assert not result["functional_passed"]
+
+
+def test_cuda_checkpoint_requires_nonempty_rng_state_list(pre):
+    assert not pre._valid_cuda_rng_states([], required=True)
+    assert pre._valid_cuda_rng_states([], required=False)
+    assert not pre._valid_cuda_rng_states(None, required=False)
+    assert pre._valid_cuda_rng_states([torch.zeros(16, dtype=torch.uint8)], required=True)
+
+
+@pytest.mark.parametrize("row", [None, {"shape": None}, {"shape": [2, 2]},
+                                 {"shape": [2, 2], "dtype": "float16", "status": "MEASURED"}])
+def test_nf4_malformed_or_unmeasured_success_rows_fail_closed(nf4, synthetic_nf4_cuda, monkeypatch, capsys, row):
+    monkeypatch.setattr(nf4, "measure_cuda", lambda *a: [row, _synthetic_nf4_row((2, 2), torch.float32)])
+    assert _nf4_synthetic_main(nf4) == 1
+    report = _json_from(capsys)
+    assert report["status"] == "FAIL_CUDA_MEASUREMENTS"
+    assert report["cuda"]["measurement_summary"]["invalid_rows"] == [0]
+
+
+def test_nf4_nonfinite_timing_cannot_be_a_successful_measurement(nf4, synthetic_nf4_cuda, monkeypatch, capsys):
+    row = _synthetic_nf4_row((2, 2), torch.float16)
+    row["latency"]["dense_linear_reference"]["median"] = float("nan")
+    monkeypatch.setattr(nf4, "measure_cuda", lambda *a: [row])
+    assert _nf4_synthetic_main(nf4) == 1
+    assert _json_from(capsys)["status"] == "FAIL_CUDA_MEASUREMENTS"
