@@ -3,13 +3,14 @@
 
 Uses the real hivemind.swarm.quic_link servers. Run it ONLY inside an environment you own and are
 authorised to test. It generates an ephemeral CA + server certificate, writes the PUBLIC ca.pem for
-the sender, and logs one JSON line per received frame (size, short digest, integrity result).
+the sender, and logs one JSON line per received frame (size, full SHA-256 digest, integrity result).
 
     python tools/wan_acceptance/wan_link_receiver.py --bind 0.0.0.0 --quic-port 4433 --wss-port 4434 \
-        --out-dir wan_recv --duration 900
+        --out-dir wan_recv --duration 900 --seed 12345 --batches 20 --frames 8 --size 4096
 
-Nothing is opened to the internet by this script; router/firewall forwarding is the operator's
-separate, deliberate step in their own environment. The private key never touches disk except in a
+The default bind is loopback. Binding 0.0.0.0 exposes listeners on all interfaces,
+including public ones if present. Use only owner-authorized hosts and ports; router/firewall
+changes remain the operator's separate, deliberate step. The private key never touches disk except in a
 temporary file that is deleted as soon as the TLS context is loaded.
 """
 from __future__ import annotations
@@ -35,7 +36,7 @@ for extra in (HERE, REPO_ROOT / "src"):
 from cryptography.hazmat.primitives import serialization  # noqa: E402
 
 from hivemind.swarm.quic_link import LinkIdentity, QuicHiddenStateServer, WebSocketHiddenStateServer  # noqa: E402
-from wan_frames import verify_frame  # noqa: E402
+from wan_frames import FrameTracker, validate_plan, validate_seconds  # noqa: E402
 
 
 def server_tls_context(identity: LinkIdentity) -> ssl.SSLContext:
@@ -51,58 +52,72 @@ def server_tls_context(identity: LinkIdentity) -> ssl.SSLContext:
 
 
 async def amain(args: argparse.Namespace) -> int:
+    # A fresh directory prevents mixing runs or replacing a CA while another run is active.
     out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    identity = LinkIdentity.generate(args.server_name, days=args.cert_days)
-    (out_dir / "ca.pem").write_text(identity.ca_pem, encoding="ascii")
-    ca_sha256 = hashlib.sha256(identity.ca_certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
-    log = open(out_dir / "frames.jsonl", "w", encoding="utf-8", buffering=1)
+    out_dir.mkdir(parents=True, exist_ok=False)
+    tracker = FrameTracker(args.seed, args.batches, args.frames, args.size)
     counts: Counter = Counter()
+    quic = wss = None
+    started = False
+    log = open(out_dir / "frames.jsonl", "x", encoding="utf-8", buffering=1)
 
     def handler_for(transport: str):
         def handle(frame: bytes) -> None:
+            if tracker.received >= args.batches * args.frames + 1024:
+                counts["receive_limit_exceeded"] += 1
+                return
+            counts[f"{transport}_frames"] += 1
             try:
-                intact, batch, index = verify_frame(frame, args.seed)
-                counts[f"{transport}_frames"] += 1
-                counts[f"{transport}_intact" if intact else f"{transport}_corrupt"] += 1
-                log.write(json.dumps({
+                record = tracker.observe(frame)
+                record.update({
                     "t_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="milliseconds"),
-                    "t_mono": round(time.monotonic(), 6), "transport": transport, "bytes": len(frame),
-                    "batch": batch, "index": index, "intact": intact,
-                    "sha256_16": hashlib.sha256(frame).hexdigest()[:16]}) + "\n")
-            except Exception as exc:  # noqa: BLE001 - a raising handler would reset the connection
+                    "t_mono": round(time.monotonic(), 6), "transport": transport})
+                log.write(json.dumps(record) + "\n")
+            except Exception as exc:  # a handler failure must never produce acceptance
                 counts["handler_errors"] += 1
                 log.write(json.dumps({"handler_error": type(exc).__name__}) + "\n")
         return handle
 
-    quic = await QuicHiddenStateServer(identity, args.bind, args.quic_port, on_frame=handler_for("quic")).start()
-    wss = None
-    if args.wss_port is not None:
-        wss = await WebSocketHiddenStateServer(args.bind, args.wss_port, on_frame=handler_for("wss"),
-                                               ssl_context=server_tls_context(identity)).start()
-    print(json.dumps({"ready": True, "quic_udp_port": quic.port, "wss_tcp_port": wss.port if wss else None,
-                      "ca_pem_path": str(out_dir / "ca.pem"), "ca_sha256": ca_sha256,
-                      "server_name": args.server_name}), flush=True)
-    deadline = time.monotonic() + args.duration
     try:
+        identity = LinkIdentity.generate(args.server_name, days=args.cert_days)
+        (out_dir / "ca.pem").write_text(identity.ca_pem, encoding="ascii")
+        ca_sha256 = hashlib.sha256(identity.ca_certificate.public_bytes(serialization.Encoding.DER)).hexdigest()
+        quic = QuicHiddenStateServer(identity, args.bind, args.quic_port, on_frame=handler_for("quic"))
+        await quic.start()
+        if args.wss_port is not None:
+            wss = WebSocketHiddenStateServer(args.bind, args.wss_port, on_frame=handler_for("wss"),
+                                            ssl_context=server_tls_context(identity))
+            await wss.start()
+        started = True
+        print(json.dumps({"ready": True, "quic_udp_port": quic.port, "wss_tcp_port": wss.port if wss else None,
+                          "ca_pem_path": str(out_dir / "ca.pem"), "ca_sha256": ca_sha256,
+                          "server_name": args.server_name, "plan": tracker.summary()}), flush=True)
+        deadline = time.monotonic() + args.duration
         while time.monotonic() < deadline:
-            await asyncio.sleep(0.25)
+            if counts["receive_limit_exceeded"] or (args.stop_file and Path(args.stop_file).exists()):
+                break
+            await asyncio.sleep(0.05)
     except (KeyboardInterrupt, asyncio.CancelledError):
         pass
     finally:
-        summary = {
-            "counts": dict(counts), "quic_frames_received": quic.frames_received,
-            "quic_early_frames": quic.early_frames, "quic_handshakes": quic.handshakes,
-            "wss_frames_received": wss.frames_received if wss else None,
-            "note": "handshakes list is capped at the last 128 by the server; early_frames counts frames that arrived before handshake completion (0-RTT)",
-        }
-        (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-        quic.close()
+        # Stop listeners before taking the final snapshot or closing the evidence log.
+        if quic is not None:
+            quic.close()
         if wss is not None:
             await wss.close()
+        summary = {
+            **tracker.summary(), "counts": dict(counts),
+            "quic_frames_received": quic.frames_received if quic else 0,
+            "quic_early_frames": quic.early_frames if quic else 0,
+            "quic_handshakes": quic.handshakes if quic else [],
+            "wss_frames_received": wss.frames_received if wss else None,
+            "note": "Receiver acceptance is separate from transport count ACKs. Out-of-order intact unique frames are allowed. Handshake list capped at 128. No WAN or migration claim.",
+        }
+        summary["accepted"] = summary["accepted"] and started and not counts["handler_errors"] and not counts["receive_limit_exceeded"]
         log.close()
+        (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps({"summary": summary}), flush=True)
-    return 0
+    return 0 if summary["accepted"] else 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -112,10 +127,27 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--wss-port", type=int, default=None, help="TCP port for the TLS WebSocket fallback; omit to disable")
     ap.add_argument("--server-name", default="hivemind.local", help="certificate name the sender verifies")
     ap.add_argument("--cert-days", type=int, default=2)
-    ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--seed", type=int, required=True, help="fresh non-secret run identity shared with sender")
+    ap.add_argument("--batches", type=int, required=True)
+    ap.add_argument("--frames", type=int, required=True, help="expected frames per batch")
+    ap.add_argument("--size", type=int, required=True, help="expected full frame size in bytes")
+    ap.add_argument("--stop-file", help="stop cleanly when this local file appears; must not already exist")
     ap.add_argument("--duration", type=float, default=900.0, help="seconds to stay up")
     ap.add_argument("--out-dir", default="wan_recv")
-    return asyncio.run(amain(ap.parse_args(argv)))
+    args = ap.parse_args(argv)
+    try:
+        validate_plan(args.seed, args.batches, args.frames, args.size)
+        validate_seconds(args.duration, "duration", 86400)
+        if not 1 <= args.cert_days <= 7:
+            raise ValueError("cert-days must be 1..7")
+        for port in (args.quic_port, args.wss_port):
+            if port is not None and not 0 <= port <= 65535:
+                raise ValueError("receiver ports must be 0..65535")
+        if args.stop_file and Path(args.stop_file).exists():
+            raise ValueError("stop-file must not already exist")
+    except ValueError as exc:
+        ap.error(str(exc))
+    return asyncio.run(amain(args))
 
 
 if __name__ == "__main__":
