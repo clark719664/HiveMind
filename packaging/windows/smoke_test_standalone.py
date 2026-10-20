@@ -21,6 +21,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -34,11 +35,46 @@ STARTUP_TIMEOUT = 240.0
 class Recorder:
     def __init__(self) -> None:
         self.checks: list[dict] = []
+        self.observations: list[dict] = []
 
     def check(self, name: str, ok: bool, **evidence) -> bool:
         self.checks.append({"name": name, "passed": bool(ok), **evidence})
         print(f"[{'PASS' if ok else 'FAIL'}] {name} {json.dumps(evidence, default=str)[:300]}", flush=True)
         return ok
+
+    def observe(self, name: str, **evidence) -> None:
+        """Record behaviour that has no agreed expected result yet; never counted as pass or fail."""
+        self.observations.append({"name": name, **evidence})
+        print(f"[OBSERVED] {name} {json.dumps(evidence, default=str)[:300]}", flush=True)
+
+
+class ProxyRecorder:
+    """Stand-in HTTP(S) proxy that records each outbound attempt and then drops it."""
+
+    def __init__(self) -> None:
+        self.sock = socket.socket()
+        self.sock.bind(("127.0.0.1", 0))
+        self.sock.listen(16)
+        self.port = self.sock.getsockname()[1]
+        self.attempts: list[str] = []
+        threading.Thread(target=self._serve, daemon=True).start()
+
+    def _serve(self) -> None:
+        while True:
+            try:
+                conn, _ = self.sock.accept()
+            except OSError:
+                return
+            with conn:
+                conn.settimeout(2)
+                try:
+                    first = conn.recv(1024).split(b'\r\n', 1)[0].decode("latin-1")
+                except OSError:
+                    first = "<no request line>"
+                self.attempts.append(first)
+
+    def close(self) -> None:
+        self.sock.close()
 
 
 def tree_state(root: Path) -> dict[str, tuple[int, int]]:
@@ -51,15 +87,17 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
-def clean_env(local_appdata: Path) -> dict[str, str]:
+def clean_env(local_appdata: Path, proxy_port: int) -> dict[str, str]:
     sysroot = os.environ.get("SystemRoot", r"C:\Windows")
     keep = {"SystemRoot", "SystemDrive", "WINDIR", "COMSPEC", "PATHEXT", "TEMP", "TMP", "USERNAME",
             "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE", "OS"}
-    env = {k: v for k, v in os.environ.items() if k in keep}
+    # os.environ keys are upper-cased on Windows; dropping SYSTEMROOT breaks Winsock (WinError 10106).
+    keep = {k.upper() for k in keep}
+    env = {k: v for k, v in os.environ.items() if k.upper() in keep}
     env["PATH"] = os.pathsep.join([rf"{sysroot}\System32", sysroot, rf"{sysroot}\System32\Wbem"])
     env["LOCALAPPDATA"] = str(local_appdata)
     env["APPDATA"] = str(local_appdata.parent / "Roaming")
-    env["HTTP_PROXY"] = env["HTTPS_PROXY"] = env["http_proxy"] = env["https_proxy"] = "http://127.0.0.1:9"
+    env["HTTP_PROXY"] = env["HTTPS_PROXY"] = env["http_proxy"] = env["https_proxy"] = f"http://127.0.0.1:{proxy_port}"
     env["NO_PROXY"] = env["no_proxy"] = "127.0.0.1,localhost,::1"
     env["PYTHONIOENCODING"] = "utf-8"
     return env
@@ -177,7 +215,8 @@ def main() -> int:
     root = install_parent / APP
     exe = root / f"{APP}.exe"
     manifest = json.loads((root / "BUILD_MANIFEST.json").read_text(encoding="utf-8"))
-    env = clean_env(local_appdata)
+    proxy = ProxyRecorder()
+    env = clean_env(local_appdata, proxy.port)
     results: dict = {
         "zip": str(args.zip), "zip_sha256": hashlib.sha256(args.zip.read_bytes()).hexdigest(),
         "source_sha": manifest["source_sha"], "exe_sha256": manifest["exe_sha256"],
@@ -247,6 +286,8 @@ def main() -> int:
         status, body = http("POST", url + "api/scan-hf-shard", {"gamer_tag": "Smoke", "dataset_id": "sahil2801/CodeAlpaca-20k"}, timeout=120)
         rec.check("offline: dataset scan returns a response without hanging", status in (200, 500, 503), status=status, body_head=body[:300],
                   note="records behaviour only; whether it fell back to bundled/synthetic rows is visible in body")
+        rec.check("offline: no outbound HTTP(S) attempt reached the recording proxy", not proxy.attempts, attempts=proxy.attempts[:10],
+                  note="proxy env vars point at a local recorder; a direct connection that ignores proxy settings would not be seen")
         status, body = http("POST", url + "api/forge-lora-mission", {"gamer_tag": "Smoke", "real_training": False}, timeout=180)
         rec.check("forge (synthetic micro-forge) responds", status == 200, status=status, body_head=body[:200])
         if not args.skip_real_training:
@@ -317,6 +358,26 @@ def main() -> int:
         for inst in instances:
             inst.close()
 
+    shared_env = dict(env, HIVEMIND_DATA_DIR=str(base / "shared data"))
+    pa, pb = free_port(), free_port()
+    a_inst = Instance(exe, ["--no-browser", "--port", str(pa)], shared_env, logs, "shared_a")
+    a_url = a_inst.wait_url()
+    b_inst = Instance(exe, ["--no-browser", "--port", str(pb)], shared_env, logs, "shared_b")
+    b_url = b_inst.wait_url()
+    try:
+        stop_s = subprocess.run([str(exe), "--stop"], env=shared_env, cwd=str(logs), capture_output=True, encoding="utf-8",
+                                errors="replace", timeout=120, stdin=subprocess.DEVNULL)
+        time.sleep(5)
+        rec.observe("two instances sharing one data dir, then one --stop", a_url=a_url, b_url=b_url,
+                    a_exit=a_inst.proc.poll(), b_exit=b_inst.proc.poll(), stop_exit=stop_s.returncode,
+                    stop_stdout=stop_s.stdout.strip()[-300:], stop_stderr=stop_s.stderr.strip()[-300:],
+                    note="known launcher issue (shared stop/status files) pending the maintainer's fix; no expected result asserted")
+    finally:
+        a_inst.close()
+        b_inst.close()
+    results["proxy_attempts_total"] = list(proxy.attempts)
+    proxy.close()
+
     after = tree_state(root)
     changed = sorted(k for k in set(before) | set(after) if before.get(k) != after.get(k))
     rec.check("install directory unchanged by running the app", not changed, changed=changed[:20])
@@ -324,6 +385,7 @@ def main() -> int:
     rec.check("app wrote its files under per-user data dir", bool(written), sample=written[:15])
 
     results["checks"] = rec.checks
+    results["observations"] = rec.observations
     results["passed"] = sum(c["passed"] for c in rec.checks)
     results["failed"] = sum(not c["passed"] for c in rec.checks)
     results["logs_dir"] = str(logs)
