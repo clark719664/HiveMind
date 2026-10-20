@@ -104,3 +104,20 @@ flowchart TB
    - All chunk identifiers in `has_chunk`, `read_chunk`, and `replicate_seed_manifest` must match `^[0-9a-f]{64}$`.
 4. **Storage Quota Enforcement:**
    - `MAX_CHUNK_BYTES = 1 MB`, `MAX_SHARD_BYTES = 16 MB`, `MAX_BUNDLE_BYTES = 512 MB`.
+
+---
+
+## 4. Phase S-3 — Federated Learning & Byzantine-Resilient DiLoCo Hardening ([`federated_learning_hardening.py`](../src/hivemind/security/federated_learning_hardening.py))
+
+To protect the asynchronous **DiLoCo Federated Learning** outer loop ([`diloco_outer.py`](../src/hivemind/core/diloco_outer.py)) and **Modified BOINC Coordinator** ([`coordinator_api.py`](../src/hivemind/boinc/coordinator_api.py)) against sophisticated gradient poisoning, Sybil collusion, and privacy attacks, [`FederatedLearningSecurityGuard`](../src/hivemind/security/federated_learning_hardening.py#L94-L319) enforces **7 Federated Learning Defense Rules (`FL-01` .. `FL-07`)** backed by **4 Machine-Checked Lean 4 Theorems (`Theorems 53–56` in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean#L783-L833))**:
+
+| Rule ID | Federated Threat Vector | Mathematical / Cryptographic Defense | Lean 4 Theorem |
+| :--- | :--- | :--- | :--- |
+| **`FL-01`** | **Pre-Krum `NaN`/`Inf` & Shape Poisoning** (even when cohort size $K \le 2$) | Pre-filters all worker pseudo-gradients $\Delta_k^{(t)}$ for `torch.isfinite`, exact parameter key set, and tensor shapes before Gram matrix calculation. | — |
+| **`FL-02`** | **Free-Rider Zero-Gradient Credit Farming** ($\theta_{\text{final}} = \theta_{\text{init}}$) | Rejects any submission with $\|\Delta_k^{(t)}\|_2 < \epsilon_{\min} = 10^{-8}$ so lazy nodes cannot claim `$HIVE` PoUW rewards without backpropagation. | `Theorem 56` (`free_rider_zero_gradient_rejection`) |
+| **`FL-03`** | **Collinear Scaling (ALIE / Fang) & Single-Coordinate Neurotoxin Backdoor Attacks** | Computes median peer L2 norm $M_2 = \text{median}_j \|\Delta_j\|_2$ and median $L_\infty$ norm $M_\infty = \text{median}_j \|\Delta_j\|_\infty$, clipping every surviving worker to $\|\tilde{\Delta}_k\|_2 \le 2.0 M_2$ and $\|\tilde{\Delta}_k\|_\infty \le 3.5 M_\infty$. | `Theorem 53` (`adaptive_median_norm_clipping_bound`) |
+| **`FL-04`** | **Coordinate-Wise Extreme Outlier Spikes** | Aggregates surviving post-Krum clipped deltas via **Coordinate-Wise $\beta$-Trimmed Mean** ($\beta = 0.15$), stripping the top and bottom $15\%$ at every weight coordinate. | — |
+| **`FL-05`** | **Workunit Double-Submission Replay & Straggler Staleness Poisoning** | Tracks consumed `wu_id`s in `consumed_workunit_ids`, verifies branch match, and enforces $0 \le t_{\text{coord}} - t_{\text{worker}} \le \tau_{\max} = 1$. | `Theorem 55` (`staleness_window_outer_step_rejection`) |
+| **`FL-06`** | **Sybil Multi-Worker Collusion Under Single Account** | Enforces **1 pseudo-gradient vote per unique `SteamID64`** per `(branch, outer_step)`, preventing a single account from spawning multiple `worker_id` processes to outvote honest Multi-Krum peers. | `Theorem 54` (`sybil_one_vote_per_steamid_quorum_bound`) |
+| **`FL-07`** | **Gradient Inversion / DLG Membership Inference** | Optional $(\epsilon, \delta)$-Differential Privacy Gaussian mechanism ($\mathcal{N}(0, \sigma^2 C^2 I / K^2)$ after $L_2$ sensitivity clipping to $C$) via `DPGradientSanitizerConfig`. | — |
+

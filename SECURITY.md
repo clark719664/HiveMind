@@ -85,6 +85,11 @@ In addition to repository/PR protection, Project HiveMind enforces runtime secur
 4. **Pillar 4 — Content-Addressed Store (CAS) Hardening (`CAS-01`, `CAS-02`):**
    - Enforces `torch.load(..., weights_only=True)` and pre-load cryptographic `cid://sha256/expert-...` digest verification to eliminate Python `pickle` RCE.
    - Enforces strict path-traversal confinement (`../` blocked) and 64-hex SHA-256 chunk validation (`^[0-9a-f]{64}$`) with per-chunk (`1 MB`), per-shard (`16 MB`), and per-bundle (`512 MB`) disk quotas.
+5. **Phase S-3 — Federated Learning & Byzantine-Resilient DiLoCo Hardening (`FL-01` .. `FL-07`, [`federated_learning_hardening.py`](src/hivemind/security/federated_learning_hardening.py)):**
+   - **Pre-Krum Finiteness & Free-Rider Gate (`FL-01`, `FL-02`):** Quarantines `NaN`/`Inf`, shape-mismatched, and zero-gradient free-rider submissions ($\|\Delta_k\|_2 < 10^{-8}$) before Multi-Krum scoring (`Theorem 56`).
+   - **Adaptive Median-$L_2$ & Neurotoxin $L_\infty$ Clipping + Coordinate-Wise Trimmed Mean (`FL-03`, `FL-04`):** Neutralizes collinear norm-scaling attacks (`ALIE`/`Fang`) and single-parameter backdoor spikes by clipping $\|\tilde{\Delta}_k\|_2 \le 2.0 \cdot \text{median}_j \|\Delta_j\|_2$ (`Theorem 53`) and $\|\tilde{\Delta}_k\|_\infty \le 3.5 \cdot \text{median}_j \|\Delta_j\|_\infty$, followed by coordinate-wise $\beta$-trimmed mean aggregation.
+   - **Workunit Anti-Replay, Staleness & Sybil 1-Vote-Per-SteamID64 Gate (`FL-05`, `FL-06`):** Blocks replayed `wu_id`s, stale outer steps ($t_{\text{coord}} - t_{\text{worker}} > \tau_{\max}$, `Theorem 55`), and multi-worker Sybil collusion under a single `SteamID64` (`Theorem 54`).
+   - **DP-DiLoCo Gradient Privacy Sanitizer (`FL-07`):** Supports $(\epsilon, \delta)$-Differential Privacy Gaussian noise calibration to defend against gradient-inversion membership inference.
 
 ---
 

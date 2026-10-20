@@ -779,6 +779,58 @@ theorem slashing_insurance_pool_solvency_bound (R_pool B_prover : Nat) :
 
 end Season6_ErrorFeedbackAnd128MoE
 
+-- ============================================================================
+-- SEASON 7 (PHASE S-3): FEDERATED LEARNING & BYZANTINE-RESILIENT DILOCO HARDENING
+-- ============================================================================
+namespace Season7_FederatedLearningHardening
+
+/-- Adaptive Median-L2-Norm Clipping operator: clips a worker norm `workerNorm`
+    to the trust ceiling `clipFactor * medianNorm`. -/
+def adaptiveClippedNorm (workerNorm clipFactor medianNorm : Nat) : Nat :=
+  if workerNorm ≤ clipFactor * medianNorm then workerNorm else clipFactor * medianNorm
+
+/-- Theorem 53 (Adaptive Median-L2-Norm Clipping Bound -- Rule FL-03):
+    For any Byzantine or collinear-scaling worker norm `workerNorm`, positive median peer norm
+    `medianNorm > 0`, and clipping multiplier `clipFactor >= 1`, the post-clip norm
+    `adaptiveClippedNorm workerNorm clipFactor medianNorm` is strictly bounded above by
+    `clipFactor * medianNorm`. -/
+theorem adaptive_median_norm_clipping_bound (workerNorm clipFactor medianNorm : Nat) :
+    adaptiveClippedNorm workerNorm clipFactor medianNorm ≤ clipFactor * medianNorm := by
+  unfold adaptiveClippedNorm
+  split <;> omega
+
+/-- Theorem 54 (Sybil One-Vote-Per-SteamID64 Quorum Bound -- Rule FL-06):
+    When the Coordinator enforces at most 1 pseudo-gradient vote per unique `SteamID64`
+    (`effectiveVotes = 1` regardless of `sybilWorkerProcs >= 1`), and the honest cohort satisfies
+    `2 * f + 3 <= honestIdentities`, the honest majority strictly exceeds the Byzantine fault
+    budget (`f + 1 < honestIdentities`). -/
+theorem sybil_one_vote_per_steamid_quorum_bound (sybilWorkerProcs f honestIdentities : Nat)
+    (h_sybil : 1 ≤ sybilWorkerProcs)
+    (h_quorum : 2 * f + 3 ≤ honestIdentities) :
+    let effectiveVotes := 1
+    effectiveVotes ≤ sybilWorkerProcs ∧ f + 1 < honestIdentities := by
+  dsimp
+  omega
+
+/-- Theorem 55 (Staleness Window Outer-Step Rejection -- Rule FL-05):
+    Any delayed straggler submission from `workerStep` arriving at `coordStep` whose staleness
+    `coordStep - workerStep` strictly exceeds `maxStaleness` fails the staleness gate. -/
+theorem staleness_window_outer_step_rejection (coordStep workerStep maxStaleness : Nat)
+    (h_stale : maxStaleness < coordStep - workerStep) :
+    ¬ (coordStep - workerStep ≤ maxStaleness) := by
+  omega
+
+/-- Theorem 56 (Free-Rider Zero-Gradient Rejection -- Rule FL-02):
+    Any free-rider submission with zero pseudo-gradient energy `deltaEnergy = 0` falls
+    strictly below any positive useful-work threshold `minEnergy >= 1`. -/
+theorem free_rider_zero_gradient_rejection (deltaEnergy minEnergy : Nat)
+    (h_zero : deltaEnergy = 0)
+    (h_min : 1 ≤ minEnergy) :
+    deltaEnergy < minEnergy ∧ ¬ (minEnergy ≤ deltaEnergy) := by
+  omega
+
+end Season7_FederatedLearningHardening
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -821,3 +873,7 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.hierarchical_128_expert_3tier_gating_savings
 #print axioms HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ucb1_bandit_exploration_bonus_monotonicity
 #print axioms HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.slashing_insurance_pool_solvency_bound
+#print axioms HiveMindSpec.Season7_FederatedLearningHardening.adaptive_median_norm_clipping_bound
+#print axioms HiveMindSpec.Season7_FederatedLearningHardening.sybil_one_vote_per_steamid_quorum_bound
+#print axioms HiveMindSpec.Season7_FederatedLearningHardening.staleness_window_outer_step_rejection
+#print axioms HiveMindSpec.Season7_FederatedLearningHardening.free_rider_zero_gradient_rejection

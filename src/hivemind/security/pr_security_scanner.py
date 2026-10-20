@@ -712,6 +712,7 @@ class PRSecurityScanner:
             is_security_Rule_file = raw_fname in {
                 "src/hivemind/security/pr_security_scanner.py",
                 "src/hivemind/security/swarm_runtime_hardening.py",
+                "src/hivemind/security/federated_learning_hardening.py",
                 "tests/test_pr_security_scanner.py",
                 "tests/test_swarm_runtime_hardening.py",
                 "SECURITY.md",
@@ -850,6 +851,7 @@ class PRSecurityScanner:
         exempt_self_files = {
             "src/hivemind/security/pr_security_scanner.py",
             "src/hivemind/security/swarm_runtime_hardening.py",
+            "src/hivemind/security/federated_learning_hardening.py",
             "tests/test_pr_security_scanner.py",
             "tests/test_swarm_runtime_hardening.py",
         }

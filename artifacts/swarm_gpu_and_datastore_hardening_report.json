@@ -1,5 +1,5 @@
 {
-  "phase": "Phase S-2: Swarm GPU Training & Content-Addressed Data Store Runtime Hardening",
+  "phase": "Phase S-2 & S-3: Swarm GPU Training, Content-Addressed Data Store & Federated Learning Hardening",
   "overall_passed": true,
   "legitimate_checks": {
     "dataset_shard": {
@@ -37,8 +37,8 @@
       "metrics": {
         "num_tensors": 2,
         "total_params": 2048,
-        "max_abs_value": 0.071045,
-        "max_frobenius_norm": 0.646965
+        "max_abs_value": 0.071236,
+        "max_frobenius_norm": 0.663093
       }
     }
   },
@@ -108,5 +108,59 @@
       "message": "Invalid SHA-256 hex digest for chunk_hash: '../../malicious_chunk'.",
       "metrics": {}
     }
-  ]
+  ],
+  "federated_learning_hardening": {
+    "phase": "Phase S-3: Federated Learning & Byzantine-Resilient DiLoCo Hardening",
+    "overall_passed": true,
+    "outer_step_aggregated_norm": 0.8,
+    "accepted_workers": [
+      "honest-01",
+      "honest-02",
+      "honest-03"
+    ],
+    "rejected_workers": [
+      "free-rider-zero",
+      "nan-poisoner",
+      "collinear-scaler-10x"
+    ],
+    "envelopes_verified": {
+      "fl01_nan_poisoner_quarantined": true,
+      "fl02_free_rider_zero_rejected": true,
+      "fl03_collinear_10x_scaler_rejected_or_clipped": true,
+      "fl04_coordinate_trimmed_mean_active": true,
+      "fl05_workunit_replay_blocked": true,
+      "fl05_stale_outer_step_blocked": true,
+      "fl06_sybil_multi_worker_per_steamid_blocked": true,
+      "fl07_dp_diloco_gaussian_sanitizer_verified": true
+    },
+    "dp_audit_summary": {
+      "total_submitted_workers": 4,
+      "quarantined_pre_filter_workers": {},
+      "accepted_workers": [
+        "honest-01",
+        "honest-02",
+        "honest-03",
+        "honest-04"
+      ],
+      "clipped_workers": [],
+      "median_l2_norm": 0.8,
+      "l2_clip_ceiling": 1.6,
+      "median_linfty_norm": 0.05,
+      "linfty_clip_ceiling": 0.175,
+      "worker_raw_l2_norms": {
+        "honest-01": 0.8,
+        "honest-02": 0.84,
+        "honest-03": 0.76,
+        "honest-04": 0.8
+      },
+      "worker_post_clip_l2_norms": {
+        "honest-01": 0.8,
+        "honest-02": 0.84,
+        "honest-03": 0.76,
+        "honest-04": 0.8
+      },
+      "trimmed_mean_beta": 0.25,
+      "dp_noise_sigma_applied": 0.05
+    }
+  }
 }

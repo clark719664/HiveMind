@@ -31,6 +31,7 @@ from hivemind.core.btm_upcycle import ExpertBranchState, initialize_domain_branc
 from hivemind.core.compression import decompress_lora_delta
 from hivemind.core.diloco_inner import InnerLoopResult
 from hivemind.core.diloco_outer import DiLoCoOuterOptimizer, OuterStepResult
+from hivemind.security.federated_learning_hardening import FederatedLearningSecurityGuard
 
 
 @dataclass
@@ -88,6 +89,7 @@ class BOINCCoordinatorService:
             max_byzantine_f=1,
             cosine_sigma=config.cosine_outlier_sigma,
         )
+        self.fl_security_guard = FederatedLearningSecurityGuard()
         self.active_workunits: dict[str, BOINCWorkunit] = {}
         self.pending_branch_deltas: dict[str, dict[str, dict[str, torch.Tensor]]] = {
             dom: {} for dom in self.branches
@@ -181,7 +183,21 @@ class BOINCCoordinatorService:
         weight_decay: float = 0.01,
         micro_batch_size: int = 1,
     ) -> SpotCheckVerdict:
-        """Run 50-step segment spot-check validation, update reputation, and queue delta for Multi-Krum."""
+        """Run Phase S-3 federated envelope verification + 50-step segment spot-check validation, update reputation, and queue delta for Multi-Krum."""
+        branch_state = self.branches.get(workunit.branch_name)
+        coord_outer_step = (branch_state.outer_step + 1) if branch_state is not None else workunit.outer_step
+        self.fl_security_guard.verify_workunit_submission_envelope(
+            wu_id=workunit.wu_id,
+            expected_branch=workunit.branch_name,
+            submitted_branch=submission.branch_name,
+            coordinator_outer_step=coord_outer_step,
+            submitted_outer_step=submission.outer_step,
+            steam_id64=steam_id64,
+            worker_id=submission.worker_id,
+            steps_completed=submission.steps_completed,
+            expected_inner_steps=workunit.inner_steps_H,
+            preempted_by_daemon=submission.preempted_by_daemon,
+        )
         token_sequences = verify_and_load_parquet_shard(
             shard_path=workunit.data_shard_parquet,
             expected_sha256=workunit.shard_sha256,

@@ -655,9 +655,13 @@ def run_swarm_hardening_self_test(output_json_path: Optional[str] = None) -> Dic
     all_attacks_blocked = all(not atk["passed"] for atk in blocked_attacks)
     all_legit_passed = v_shard_ok.passed and v_gpu_ok.passed and v_tensor_ok.passed
 
+    from hivemind.security.federated_learning_hardening import run_federated_hardening_self_test
+
+    fl_report = run_federated_hardening_self_test()
+
     report = {
-        "phase": "Phase S-2: Swarm GPU Training & Content-Addressed Data Store Runtime Hardening",
-        "overall_passed": bool(all_legit_passed and all_attacks_blocked),
+        "phase": "Phase S-2 & S-3: Swarm GPU Training, Content-Addressed Data Store & Federated Learning Hardening",
+        "overall_passed": bool(all_legit_passed and all_attacks_blocked and fl_report.get("overall_passed")),
         "legitimate_checks": {
             "dataset_shard": v_shard_ok.to_dict(),
             "gpu_training_request": v_gpu_ok.to_dict(),
@@ -666,6 +670,7 @@ def run_swarm_hardening_self_test(output_json_path: Optional[str] = None) -> Dic
         "simulated_attacks_blocked_count": sum(1 for a in blocked_attacks if not a["passed"]),
         "simulated_attacks_total": len(blocked_attacks),
         "simulated_attacks": blocked_attacks,
+        "federated_learning_hardening": fl_report,
     }
 
     if output_json_path:

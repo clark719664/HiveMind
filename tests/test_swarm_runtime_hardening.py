@@ -297,3 +297,91 @@ def test_swarm_hardening_self_test_and_cli(tmp_path: Path) -> None:
     assert rc == 0
     cli_data = json.loads(cli_out.read_text(encoding="utf-8"))
     assert cli_data["overall_passed"] is True
+    assert cli_data["federated_learning_hardening"]["overall_passed"] is True
+
+
+def test_federated_learning_hardening_all_rules_and_edge_cases(tmp_path: Path) -> None:
+    from hivemind.core.diloco_outer import DiLoCoOuterOptimizer, filter_byzantine_deltas_multikrum
+    from hivemind.security import (
+        DPGradientSanitizerConfig,
+        FederatedLearningSecurityGuard,
+        run_federated_hardening_self_test,
+    )
+
+    fl_guard = FederatedLearningSecurityGuard()
+
+    # Empty worker_deltas error
+    with pytest.raises(ValueError, match="empty worker_deltas"):
+        fl_guard.sanitize_worker_deltas_pre_krum({})
+
+    # All workers quarantined in filter_byzantine_deltas_multikrum
+    with pytest.raises(ValueError, match="quarantined"):
+        filter_byzantine_deltas_multikrum(
+            {"w_zero": {"p": torch.zeros(4)}, "w_nan": {"p": torch.tensor([float("nan"), 1.0])}}
+        )
+
+    # Empty surviving_deltas in clip_and_aggregate_surviving_deltas
+    with pytest.raises(SwarmSecurityViolationError) as exc_empty:
+        fl_guard.clip_and_aggregate_surviving_deltas({})
+    assert exc_empty.value.rule_id == "FL-01"
+
+    # Key mismatch & shape mismatch in sanitize_worker_deltas_pre_krum
+    clean, quar = fl_guard.sanitize_worker_deltas_pre_krum(
+        {
+            "w_ok": {"p": torch.ones(4) * 0.1},
+            "w_bad_keys": {"other": torch.ones(4) * 0.1},
+            "w_bad_shape": {"p": torch.ones(8) * 0.1},
+        }
+    )
+    assert list(clean.keys()) == ["w_ok"]
+    assert "w_bad_keys" in quar and "w_bad_shape" in quar
+
+    # Adaptive Median-L2 + Neurotoxin L_infty clipping when K=3 (one worker has 20x spike on 1 coordinate)
+    spike_tensor = torch.ones(8) * 0.1
+    spike_tensor[0] = 50.0  # Neurotoxin single-coordinate backdoor spike
+    agg, rep = fl_guard.clip_and_aggregate_surviving_deltas(
+        {
+            "w1": {"p": torch.ones(8) * 0.1},
+            "w2": {"p": torch.ones(8) * 0.11},
+            "w_neurotoxin": {"p": spike_tensor},
+        },
+        dp_config=DPGradientSanitizerConfig(enabled=True, l2_sensitivity_clip_c=1.0, noise_multiplier_sigma=0.02),
+    )
+    assert "w_neurotoxin" in rep.clipped_workers
+    assert rep.worker_post_clip_l2_norms["w_neurotoxin"] <= rep.l2_clip_ceiling + 1e-4
+    assert float(agg["p"].abs().max().item()) < 1.0
+
+    # Branch mismatch & incomplete inner steps in verify_workunit_submission_envelope
+    with pytest.raises(SwarmSecurityViolationError) as exc_branch:
+        fl_guard.verify_workunit_submission_envelope(
+            wu_id="wu-b1",
+            expected_branch="Astro",
+            submitted_branch="WrongBranch",
+            coordinator_outer_step=1,
+            submitted_outer_step=1,
+            steam_id64="76561198000000099",
+            worker_id="w1",
+            steps_completed=10,
+            expected_inner_steps=10,
+        )
+    assert exc_branch.value.rule_id == "FL-05"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_inc:
+        fl_guard.verify_workunit_submission_envelope(
+            wu_id="wu-b2",
+            expected_branch="Astro",
+            submitted_branch="Astro",
+            coordinator_outer_step=1,
+            submitted_outer_step=1,
+            steam_id64="76561198000000099",
+            worker_id="w1",
+            steps_completed=2,
+            expected_inner_steps=10,
+            preempted_by_daemon=False,
+        )
+    assert exc_inc.value.rule_id == "FL-05"
+
+    fl_out = tmp_path / "fl_hardening.json"
+    fl_rep = run_federated_hardening_self_test(output_json_path=str(fl_out))
+    assert fl_rep["overall_passed"] is True
+    assert fl_out.exists()
