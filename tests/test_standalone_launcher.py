@@ -484,3 +484,21 @@ def test_server_failure_cleans_up_without_late_status_publication(tmp_path, monk
     with standalone._InstanceOwner(tmp_path) as replacement:
         standalone.time.sleep(0.1)
         assert standalone._read_status(tmp_path)["instance_id"] == replacement.instance_id
+
+
+def test_import_diagnostics_preserve_initial_and_secondary_tracebacks(caplog):
+    def importer(name):
+        if name == "uvicorn":
+            raise OSError("[WinError 10106] Winsock initialization failed")
+        raise NameError("base_events")
+
+    missing = standalone.find_missing_modules(("uvicorn", "fastapi"), importer=importer)
+    assert list(missing) == ["uvicorn", "fastapi"]
+    assert "WinError 10106" in missing["uvicorn"]
+    assert "base_events" in missing["fastapi"]
+    failures = [record for record in caplog.records if record.exc_info]
+    assert len(failures) == 2
+    assert failures[0].exc_info[0] is OSError
+    assert failures[1].exc_info[0] is NameError
+    assert "Winsock initialization failed" in caplog.text
+    assert "Traceback" in caplog.text

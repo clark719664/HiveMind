@@ -169,6 +169,9 @@ def find_missing_modules(
         try:
             importer(name)
         except Exception as exc:  # broken native DLLs raise OSError, not ImportError
+            # Preserve the first native/import failure before later imports can
+            # emit misleading secondary errors from partially loaded modules.
+            log.exception("Required component %s failed to import", name)
             missing[name] = f"{type(exc).__name__}: {exc}"
     return missing
 
