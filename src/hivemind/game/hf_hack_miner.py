@@ -23,7 +23,7 @@ import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -1954,14 +1954,15 @@ class ByteTokenizer:
         import torch
         max_length = kwargs.get("max_length", 128)
         raw_bytes = list(text.encode("utf-8"))[:max_length]
-        if len(raw_bytes) < 2:
-            raw_bytes = [ord("h"), ord("i")]
         ids = torch.tensor([raw_bytes], dtype=torch.long)
         return {"input_ids": ids, "attention_mask": torch.ones_like(ids)}
 
 
 def create_interactive_lora_micro_model(seed: int = 42) -> Any:
-    """Instantiate a fast causal LM with Rank-4 LoRA for interactive app training."""
+    """Build a random-initialized tiny LM for a local LoRA training smoke test.
+
+    This is not a pretrained domain expert or a validated bounty solution.
+    """
     import torch
     from transformers import GPT2Config, GPT2LMHeadModel
     from peft import LoraConfig, get_peft_model
@@ -2004,85 +2005,50 @@ def execute_interactive_lora_micro_forge(
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
 
     if real_training:
-        from hivemind.data.hf_real_trainer import train_tokenized_domain_adapter
+        import tempfile
+        from hivemind.data.hf_real_trainer import (
+            split_tokenized_corpus,
+            train_tokenized_domain_adapter,
+        )
 
         rows = fetch_season4_curated_corpus(contract.dataset_id, num_samples=16)
         if not rows:
             rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=16)
-        if not rows:
-            rows = [
-                f"// Domain {contract.domain_expert} verification block\npub fn verify_domain() -> bool {{ true }}",
-                f"// Domain {contract.domain_expert} execution block\npub fn run_domain() -> u32 {{ 42 }}",
-            ]
-        if len(rows) >= 4:
-            train_samples = rows[:-2]
-            heldout_samples = rows[-2:]
-        else:
-            train_samples = rows * 2
-            heldout_samples = rows
-
-        model = custom_model if custom_model is not None else create_interactive_lora_micro_model()
+        # Deduplicate after tokenization/truncation, before splitting. Repeated
+        # fixture rows and shared truncated prefixes are not independent data.
         tokenizer = custom_tokenizer if custom_tokenizer is not None else ByteTokenizer()
+        train_samples, heldout_samples = split_tokenized_corpus(
+            tokenizer, rows, max_length=128,
+        )
+        model = custom_model if custom_model is not None else create_interactive_lora_micro_model()
 
-        adapter_dir = ARTIFACTS_ROOT / "lora_adapters"
+        adapter_dir = (ARTIFACTS_ROOT / "lora_adapters").resolve()
         adapter_dir.mkdir(parents=True, exist_ok=True)
-        adapter_path = adapter_dir / f"{gamer_tag}_{contract.contract_id}.pt"
-
-        state, report = train_tokenized_domain_adapter(
-            model=model,
-            tokenizer=tokenizer,
-            samples=train_samples,
-            heldout_samples=heldout_samples,
-            steps=steps,
-            max_length=128,
-            learning_rate=learning_rate,
-            adapter_save_path=adapter_path,
-        )
-
-        init_loss = round(float(report["heldout_initial_loss"]), 4)
-        final_loss = round(float(report["heldout_final_loss"]), 4)
-        loss_drop_pct = round(float(report["heldout_loss_reduction_pct"]), 2)
-        lora_pts = int(round(max(0.0, loss_drop_pct) * 11.5))
-        bounty_pts = contract.base_bounty_pts + 220
-        total_pts = lora_pts + bounty_pts
-        hive_minted = 15.0
-
-        bridge = SteamworksSDKBridge()
-        rp = bridge.set_rich_presence(
-            steam_id64="76561198000000001",
-            persona_name=gamer_tag,
-            mission_name=f"{contract.mission_codename} ({contract.domain_expert})",
-            hive_balance=hive_minted,
-            total_points=total_pts,
-        )
-
-        report_path = ARTIFACTS_ROOT / "hf_hack_miner_game_report.json"
-        if report_path.exists() and not os.environ.get("PYTEST_CURRENT_TEST"):
-            data = json.loads(report_path.read_text(encoding="utf-8"))
-            for g in data.get("leaderboard", []):
-                if g.get("gamer_tag") == gamer_tag:
-                    g["lora_training_points"] = int(g.get("lora_training_points", 0)) + lora_pts
-                    g["solution_bounty_points"] = int(g.get("solution_bounty_points", 0)) + bounty_pts
-                    g["total_points"] = int(g.get("total_points", 0)) + total_pts
-                    g["hive_balance"] = round(float(g.get("hive_balance", 0.0)) + hive_minted, 4)
-                    g["bounties_solved"] = int(g.get("bounties_solved", 0)) + 1
-                    g["rich_presence_status"] = rp.status_string
-                    break
-            data["leaderboard"] = sorted(
-                data.get("leaderboard", []),
-                key=lambda x: (x.get("total_points", 0), x.get("best_loss_reduction_pct", 0.0)),
-                reverse=True,
+        # Neither display names nor contract text may become filesystem paths.
+        # Reserve an unpredictable, exclusive filename to avoid overwriting an
+        # existing adapter (or following a pre-created filename symlink).
+        with tempfile.NamedTemporaryFile(
+            prefix="adapter-", suffix=".pt", dir=adapter_dir, delete=False,
+        ) as artifact:
+            adapter_path = Path(artifact.name)
+        try:
+            _, report = train_tokenized_domain_adapter(
+                model=model,
+                tokenizer=tokenizer,
+                samples=train_samples,
+                heldout_samples=heldout_samples,
+                steps=steps,
+                max_length=128,
+                learning_rate=learning_rate,
+                adapter_save_path=adapter_path,
             )
-            report_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-            hud_state = Path(
-                data.get("free_steam_package", {}).get(
-                    "interactive_hud_html",
-                    str(CACHE_ROOT.parent / "steam_dist/HiveMind_Steam_FreeEdition/web_ui/index.html"),
-                )
-            ).parent / "live_leaderboard_state.json"
-            if hud_state.parent.exists():
-                hud_state.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        except Exception:
+            adapter_path.unlink(missing_ok=True)
+            raise
 
+        # A local optimizer/evaluation run is not a validator replay, solved
+        # bounty, ledger settlement, or useful pretrained domain expert. Leave
+        # leaderboards and Steam state untouched until those paths exist.
         return {
             "gamer_tag": gamer_tag,
             "contract_id": contract.contract_id,
@@ -2090,30 +2056,46 @@ def execute_interactive_lora_micro_forge(
             "dataset_id": contract.dataset_id,
             "domain_expert": contract.domain_expert,
             "season": contract.season,
-            "initial_loss": init_loss,
-            "final_loss": final_loss,
-            "loss_reduction_pct": loss_drop_pct,
-            "spot_check_passed": True,
+            "initial_loss": report["heldout_initial_loss"],
+            "final_loss": report["heldout_final_loss"],
+            "loss_reduction_pct": report["heldout_loss_reduction_pct"],
+            "spot_check_passed": False,
+            "spot_check_executed": False,
+            "validation_status": "not_run",
             "source": "causal_lm_lora_training",
             "training_executed": True,
-            "runtime_verified": True,
+            "training_scope": "local_text_training_smoke_test",
+            "model_kind": "randomly_initialized_tiny_gpt2" if custom_model is None else "caller_supplied_model",
+            "pretrained_model_verified": False,
+            "runtime_verified": False,
             "loss_is_simulated": False,
-            "rewards_simulated": False,
-            "heldout_evaluated": True,
-            "heldout_initial_loss": init_loss,
-            "heldout_final_loss": final_loss,
-            "heldout_loss_reduction_pct": loss_drop_pct,
-            "heldout_improved": report.get("heldout_improved", False),
+            "rewards_simulated": True,
+            "settlement_executed": False,
+            "reward_status": "not_awarded",
+            "heldout_evaluated": report["heldout_evaluated"],
+            "heldout_disjoint_verified": report["heldout_disjoint_verified"],
+            "training_sample_count": report["sample_count"],
+            "training_unique_token_count": report["training_unique_token_count"],
+            "heldout_sample_count": report["heldout_sample_count"],
+            "heldout_unique_token_count": report["heldout_unique_token_count"],
+            "training_samples_sha256": report["samples_sha256"],
+            "heldout_samples_sha256": report["heldout_samples_sha256"],
+            "heldout_initial_loss": report["heldout_initial_loss"],
+            "heldout_final_loss": report["heldout_final_loss"],
+            "heldout_loss_reduction_pct": report["heldout_loss_reduction_pct"],
+            "heldout_improved": report["heldout_improved"],
             "adapter_saved_path": str(adapter_path),
-            "adapter_reloaded_and_verified": report.get("adapter_reloaded_and_verified", True),
-            "steps_completed": report.get("steps_completed", steps),
-            "training_losses": report.get("training_losses", []),
-            "lora_pts_awarded": lora_pts,
-            "bounty_pts_awarded": bounty_pts,
-            "total_pts_awarded": total_pts,
-            "hive_minted": hive_minted,
-            "steam_rich_presence": rp.status_string,
-            "rich_presence_hmac": rp.rich_presence_hmac,
+            "adapter_reloaded_and_verified": report["adapter_reloaded_and_verified"],
+            "adapter_verification_method": report["adapter_verification_method"],
+            "adapter_fresh_model_reload_verified": report["adapter_fresh_model_reload_verified"],
+            "steps_completed": report["steps_completed"],
+            "training_losses": report["training_losses"],
+            "lora_pts_awarded": 0,
+            "bounty_pts_awarded": 0,
+            "total_pts_awarded": 0,
+            "hive_minted": 0.0,
+            "steam_rich_presence": None,
+            "rich_presence_hmac": None,
         }
 
     # Season 4 Missions 13-16 ship curated offline corpora (no Hugging Face round-trip required).
@@ -2228,5 +2210,6 @@ def execute_interactive_joined_campaign(
     report["source"] = "synthetic_benchmark"
     report["parallel_speedup_measured"] = False
     return report
+
 
 
