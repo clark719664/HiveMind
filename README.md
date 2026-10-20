@@ -177,6 +177,24 @@ Following the review, harmonization, and merge of all 5 Season 3 Community Pull 
   - `EU-West-Paris <-> EU-Central-Berlin` (`restricted_cone` $\leftrightarrow$ `port_restricted_cone`): **`0.2208 ms` direct 0-RTT UDP hole-punch**.
   - `US-East-Virginia <-> APAC-East-Tokyo` (`symmetric_cgnat` $\leftrightarrow$ `symmetric_cgnat`): **Automatic `turn_allocation_relay_0rtt` fallback (`0.1253 ms`)** + `100%` RFC 9001 monotonic nonce replay rejection.
 
+### 2.4 Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (`HM-S5-05` — [`artifacts/wan_quic_turn_fault_report.json`](artifacts/wan_quic_turn_fault_report.json))
+
+The real transports are replayed behind a **deterministic packet-loss / reordering / jitter proxy** (`nat_traversal.DeterministicFaultProxy`, seeded per direction, with a NAT-rebinding event that moves the client's UDP mapping) by [`src/hivemind/swarm/wan_fault_benchmark.py`](src/hivemind/swarm/wan_fault_benchmark.py) (`python scripts/run_wan_quic_turn_fault_benchmark.py`):
+
+| Fault Profile | Frame Delivery Latency p50 / p95 / p99 (ms) | `aioquic` 0-RTT Resume (early data accepted) | 0-RTT Resumption Latency (ms) | TURN Data / Channel Frames | TURN Re-Alloc After Rebind | libp2p WebSocket Fallback Frames | Strike-Register Rejection Rate | BBRv1 cwnd (bytes) / gain |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`0%` loss** | `7.66` / `21.84` / `23.55` | `YES` | `10.72` | `24` / `24` | `1` | `24` | `50%` | `14,400` / `1.2473` |
+| **`1%` loss** | `6.84` / `24.98` / `25.00` | `YES` | `11.40` | `24` / `24` | `1` | `24` | `50%` | `14,400` / `1.2470` |
+| **`3%` loss** | `7.05` / `22.11` / `23.19` | `YES` | `11.30` | `24` / `23` | `1` | `24` | `50%` | `14,400` / `1.1757` |
+| **`5%` loss** | `7.50` / `18.55` / `22.46` | `YES` | `16.81` | `21` / `21` | `1` | `24` | `50%` | `13,200` / `1.1509` |
+
+- **Real `aioquic` TLS 1.3 0-RTT (RFC 9001 §4.6):** every profile resumed the session and the server accepted the early data (`server_early_frames > 0`); the single-use TLS ticket is still the replay defence.
+- **Real RFC 5766 TURN:** the relay carries both the Send/Data indication path and the new **ChannelBind/ChannelData** path (§11); a NAT rebinding drops the frames of the old mapping and the client **re-allocates** to recover.
+- **Real libp2p WebSocket fallback:** when UDP is unusable the multistream-negotiated WebSocket carries the whole batch (`protocol = libp2p_websocket`), while an unacknowledged QUIC batch is never replayed automatically.
+- **0-RTT strike register:** a replayed nonce is rejected (`replay_nonce_detected`) — the report carries the per-scenario rejection rate.
+- **BBRv1 pacing:** the congestion window and the pacing gain adapt to the measured loss ratio (`loss_ratio 0.0 -> 0.0386`, cwnd `14,400 -> 13,200` bytes, gain `1.2473 -> 1.1509`).
+- **Multi-host mode:** set `HIVEMIND_WAN_QUIC_HOST/PORT` (+ `HIVEMIND_WAN_QUIC_CA_PEM`) and `HIVEMIND_WAN_TURN_HOST/PORT` (+ credentials) to run the same suite against remote receivers.
+
 ---
 
 ## 🎮 3. Hugging Face Hack-Miner & Free Steam RTX Tool (`v1.0.0` — Seasons 1, 2 & 3)
@@ -429,11 +447,12 @@ HiveMind/
 │   ├── data/                       # Season 3/4 Domain Expert QLoRA Trainer & CAS Publisher (PR #25)
 │   ├── boinc/                      # Deterministic CUDA Spot-Check Validator, Coordinator, ZK-OPoI v2 & OpenAI SSE Gateway
 │   ├── client/                     # Win32 Zero-Intrusion Daemon (<150ms Yield) & Steamworks SDK Bridge
-│   ├── swarm/                      # CAS Vault, $HIVE Ledger, aioquic 0-RTT, STUN/TURN NAT, Scientific Eval & HF Community Hub
+│   ├── swarm/                      # CAS Vault, $HIVE Ledger, aioquic 0-RTT, STUN/TURN NAT, WAN Fault Benchmark & HF Community Hub
 │   ├── game/                       # Hugging Face Hack-Miner (Missions 1-16), Raw WebGL 3D Globe & Live WS HUD (:8090)
 │   └── cli/                        # CLI Entrypoints (`deploy-steam-tool`, `play-hack-game`, `serve-hack-hud`, `run-poc`)
+├── scripts/                        # Benchmark Entrypoints (WAN QUIC/TURN Fault-Injection Suite, HM-S5-05)
 ├── steam_dist/
 │   └── HiveMind_Steam_FreeEdition/ # Packaged Free Steam RTX Tool & Hack-Miner v1.0.0 + Web HUD (:8090)
-├── artifacts/                      # Verified RTX 2070 Stress Suite, Scientific Swarm & HF Community Bundles
+├── artifacts/                      # Verified RTX 2070 Stress Suite, WAN Fault Report, Scientific Swarm & HF Community Bundles
 └── tests/                          # 240+ Automated Unit, Formal & Integration Test Suite (`pytest tests/ -v`)
 ```

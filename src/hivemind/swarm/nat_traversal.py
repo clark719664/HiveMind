@@ -1023,7 +1023,9 @@ class TurnRelayServer(StunServer):
             super().handle_datagram(data, addr)
         elif message.cls == INDICATION and message.method == SEND:
             self._on_send(message, addr)
-        elif message.cls == REQUEST and message.method in (ALLOCATE, REFRESH, CREATE_PERMISSION):
+        elif message.cls == REQUEST and message.method in (
+            ALLOCATE, REFRESH, CREATE_PERMISSION, CHANNEL_BIND
+        ):
             cache_key = (addr, message.method, message.transaction_id)
             cached = self._responses.get(cache_key)
             if cached is not None:
@@ -1221,3 +1223,304 @@ class TurnRelayServer(StunServer):
                 allocation.relay.sendto(payload, peer_addr)
             except OSError:
                 pass
+
+
+# ---------------------------------------------------------------------------
+# HM-S5-05: deterministic WAN fault injection (loss, reordering, jitter, rebinding)
+# ---------------------------------------------------------------------------
+
+MAX_HELD_PACKET_S = 0.05
+"""How long a reordered datagram may be held before it is released anyway."""
+
+
+@dataclass(frozen=True)
+class FaultProfile:
+    """A deterministic packet impairment applied by `DeterministicFaultProxy`.
+
+    The profile fully describes the impairment, so a benchmark run is reproducible: with the
+    same seed the proxy drops, delays and reorders the same datagrams in the same per-direction
+    order. Each direction draws from its own PRNG stream, so the decision sequence never
+    depends on how the two directions interleave in time.
+    """
+
+    loss_rate: float = 0.0
+    reorder_rate: float = 0.0
+    jitter_ms: float = 0.0
+    seed: int = 0
+    label: str = ""
+
+    def __post_init__(self) -> None:
+        for name, value in (("loss_rate", self.loss_rate), ("reorder_rate", self.reorder_rate)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError(f"{name} must be a number")
+            if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be a probability in [0, 1]")
+        if isinstance(self.jitter_ms, bool) or not isinstance(self.jitter_ms, (int, float)):
+            raise TypeError("jitter_ms must be a number")
+        if not math.isfinite(self.jitter_ms) or self.jitter_ms < 0:
+            raise ValueError("jitter_ms must be a finite, non-negative delay")
+        if isinstance(self.seed, bool) or not isinstance(self.seed, int):
+            raise TypeError("seed must be an integer")
+
+    def to_dict(self) -> Dict[str, object]:
+        """Plain-dict view of the profile (JSON friendly)."""
+        return {
+            "label": self.label,
+            "loss_rate": float(self.loss_rate),
+            "reorder_rate": float(self.reorder_rate),
+            "jitter_ms": float(self.jitter_ms),
+            "seed": int(self.seed),
+        }
+
+
+@dataclass
+class _HeldPacket:
+    """A datagram held back so that the next one overtakes it."""
+
+    data: bytes
+    delay_ms: float
+    deadline: float
+
+
+class DeterministicFaultProxy:
+    """A UDP relay that applies a deterministic loss/reorder/jitter profile to one path.
+
+    The client dials `client_address`; the proxy forwards every datagram to the upstream
+    server from a socket of its own and returns the replies. Impairments are drawn from a
+    seeded PRNG per direction:
+
+    - `loss_rate`: the datagram is dropped.
+    - `reorder_rate`: the datagram is held back and released after the next datagram of the
+      same direction, so the receiver observes the two swapped.
+    - `jitter_ms`: an extra delay drawn uniformly from `[0, jitter_ms]`.
+
+    `rebind()` models a NAT rebinding: the upstream socket is replaced by a socket with a new
+    port, so the server observes a new client address while the previous mapping stops
+    receiving replies, exactly like a rebinding NAT in front of the client.
+    """
+
+    def __init__(
+        self,
+        upstream: Address,
+        profile: Optional[FaultProfile] = None,
+        host: str = "127.0.0.1",
+    ) -> None:
+        self.upstream = upstream
+        self.profile = profile if profile is not None else FaultProfile()
+        self.host = host
+        self.rebinds = 0
+        self.dropped = 0
+        self.reordered = 0
+        self.forwarded = 0
+        self.held = 0
+        self._client_sock: Optional[socket.socket] = None
+        self._upstream_sock: Optional[socket.socket] = None
+        self._pending_upstream_sock: Optional[socket.socket] = None
+        self._client_addr: Optional[Address] = None
+        self._stop = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        self._lock = threading.Lock()
+        self._rng_up = random.Random(self.profile.seed)
+        self._rng_down = random.Random(self.profile.seed ^ 0x5F3759DF)
+        self._pending: List[Tuple[float, int, bytes, Address, socket.socket]] = []
+        self._sequence = itertools.count()
+        self._held: Dict[str, Optional[_HeldPacket]] = {"up": None, "down": None}
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+    def start(self) -> "DeterministicFaultProxy":
+        """Bind the sockets and start the relay thread."""
+        if self._thread is not None:
+            raise RuntimeError("fault proxy is already started")
+        self._client_sock = udp_socket((self.host, 0))
+        self._upstream_sock = udp_socket((self.host, 0))
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._serve, name="FaultProxy", daemon=True)
+        self._thread.start()
+        return self
+
+    def close(self) -> None:
+        """Stop the relay thread and release the sockets."""
+        self._stop.set()
+        thread, self._thread = self._thread, None
+        if thread is not None:
+            thread.join(timeout=2.0)
+        for attribute in ("_client_sock", "_upstream_sock", "_pending_upstream_sock"):
+            sock = getattr(self, attribute)
+            setattr(self, attribute, None)
+            if sock is not None:
+                try:
+                    sock.close()
+                except OSError:
+                    pass
+
+    def __enter__(self) -> "DeterministicFaultProxy":
+        return self.start()
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
+
+    # ------------------------------------------------------------------
+    # Addresses
+    # ------------------------------------------------------------------
+    @property
+    def client_address(self) -> Address:
+        """The address a client must dial to reach the upstream server through the proxy."""
+        if self._client_sock is None:
+            raise RuntimeError("fault proxy is not started")
+        return self._client_sock.getsockname()
+
+    @property
+    def upstream_address(self) -> Address:
+        """The address the upstream server sees as the client's (it changes on a rebinding)."""
+        if self._upstream_sock is None:
+            raise RuntimeError("fault proxy is not started")
+        return self._upstream_sock.getsockname()
+
+    def rebind(self) -> Address:
+        """Simulate a NAT rebinding and return the new server-visible client address."""
+        if self._client_sock is None:
+            raise RuntimeError("fault proxy is not started")
+        new_sock = udp_socket((self.host, 0))
+        with self._lock:
+            self._pending_upstream_sock = new_sock
+            self.rebinds += 1
+        return new_sock.getsockname()
+
+    # ------------------------------------------------------------------
+    # Relay loop
+    # ------------------------------------------------------------------
+    def _serve(self) -> None:
+        while not self._stop.is_set():
+            self._apply_pending_rebind()
+            socks = [sock for sock in (self._client_sock, self._upstream_sock) if sock is not None]
+            if not socks:
+                time.sleep(0.005)
+                continue
+            try:
+                ready, _, _ = select.select(socks, [], [], self._select_timeout())
+            except (OSError, ValueError):
+                continue
+            for sock in ready:
+                try:
+                    data, addr = sock.recvfrom(65535)
+                except OSError:
+                    continue
+                if sock is self._client_sock:
+                    self._forward("up", data, addr)
+                else:
+                    self._forward("down", data, addr)
+            self._flush()
+            self._release_expired()
+
+    def _apply_pending_rebind(self) -> None:
+        with self._lock:
+            new_sock = self._pending_upstream_sock
+            if new_sock is None:
+                return
+            self._pending_upstream_sock = None
+            old_sock = self._upstream_sock
+            self._upstream_sock = new_sock
+        if old_sock is not None:
+            try:
+                old_sock.close()
+            except OSError:
+                pass
+
+    def _select_timeout(self) -> float:
+        """Wait no longer than the next scheduled event (and never longer than 20 ms)."""
+        now = time.monotonic()
+        deadlines = [now + 0.02]
+        with self._lock:
+            if self._pending:
+                deadlines.append(self._pending[0][0])
+            for held in self._held.values():
+                if held is not None:
+                    deadlines.append(held.deadline)
+        return max(0.0, min(deadlines) - now)
+
+    def _decide(self, direction: str) -> Tuple[bool, bool, float]:
+        """Draw the impairment of the next datagram: `(drop, reorder, delay_ms)`."""
+        rng = self._rng_up if direction == "up" else self._rng_down
+        drop = rng.random() < self.profile.loss_rate
+        reorder = (not drop) and rng.random() < self.profile.reorder_rate
+        delay = rng.uniform(0.0, self.profile.jitter_ms) if self.profile.jitter_ms > 0 else 0.0
+        return drop, reorder, delay
+
+    def _forward(self, direction: str, data: bytes, addr: Address) -> None:
+        with self._lock:
+            drop, reorder, delay_ms = self._decide(direction)
+            if drop:
+                self.dropped += 1
+                return
+            if direction == "up":
+                out_sock, dest = self._upstream_sock, self.upstream
+                self._client_addr = addr
+            else:
+                out_sock, dest = self._client_sock, self._client_addr
+            if out_sock is None or dest is None:
+                return
+            held = self._held[direction]
+            if held is not None:
+                # The held datagram was overtaken: the current one goes out first and the
+                # held one follows it immediately.
+                self._held[direction] = None
+                current_due = time.monotonic() + max(0.0, delay_ms) / 1000.0
+                self._schedule(out_sock, dest, data, delay_ms, due=current_due)
+                self._schedule(out_sock, dest, held.data, held.delay_ms, due=current_due + 1e-6)
+                self.reordered += 1
+                return
+            if reorder:
+                self._held[direction] = _HeldPacket(
+                    data, delay_ms, time.monotonic() + MAX_HELD_PACKET_S
+                )
+                self.held += 1
+                return
+            self._schedule(out_sock, dest, data, delay_ms)
+
+    def _schedule(
+        self,
+        sock: socket.socket,
+        dest: Address,
+        data: bytes,
+        delay_ms: float,
+        due: Optional[float] = None,
+    ) -> None:
+        if due is None:
+            due = time.monotonic() + max(0.0, delay_ms) / 1000.0
+        heapq.heappush(self._pending, (due, next(self._sequence), data, dest, sock))
+
+    def _flush(self) -> None:
+        now = time.monotonic()
+        while self._pending and self._pending[0][0] <= now:
+            _, _, data, dest, sock = heapq.heappop(self._pending)
+            try:
+                sock.sendto(data, dest)
+                self.forwarded += 1
+            except OSError:
+                pass  # The socket was closed by a rebinding or by close().
+
+    def _release_expired(self) -> None:
+        now = time.monotonic()
+        with self._lock:
+            for direction, held in list(self._held.items()):
+                if held is None or held.deadline > now:
+                    continue
+                self._held[direction] = None
+                if direction == "up":
+                    out_sock, dest = self._upstream_sock, self.upstream
+                else:
+                    out_sock, dest = self._client_sock, self._client_addr
+                if out_sock is not None and dest is not None:
+                    self._schedule(out_sock, dest, held.data, held.delay_ms)
+
+    def stats(self) -> Dict[str, int]:
+        """Counters describing what the proxy did (dropped, reordered and forwarded datagrams)."""
+        return {
+            "dropped": int(self.dropped),
+            "reordered": int(self.reordered),
+            "held": int(self.held),
+            "forwarded": int(self.forwarded),
+            "rebinds": int(self.rebinds),
+        }
