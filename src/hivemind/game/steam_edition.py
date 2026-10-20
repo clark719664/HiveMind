@@ -501,6 +501,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       </select>
       <button class="btn btn-cyan" onclick="runInteractiveScan()">Scan HF Node &amp; Pin 16KB CAS Shard (+PTS)</button>
       <button class="btn" onclick="runInteractiveForge()">Simulate Season 2 QLoRA Forge (Game Points)</button>
+      <button class="btn btn-cyan" onclick="runRealLoraTraining()">Execute Real LoRA Training (Empirical Held-Out Validation)</button>
       <button class="btn btn-cyan" onclick="runRtxToolDiagnostic()">RTX Steam Tool v1.0.0 Live Diagnostic</button>
       <div class="terminal" id="scan-terminal">[READY] Click 'Scan HF Node & Pin 16KB CAS Shard', 'Forge Season 2 QLoRA Adapter', or 'RTX Steam Tool v1.0.0 Live Diagnostic' to test your RTX GPU and mine Hugging Face datasets.</div>
     </div>
@@ -731,6 +732,47 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
           `[LOCAL SIMULATION FORGE] ${{cid}} (${{ds}})\\n` +
           `[SIMULATED LOSS] 3.12 -> 0.74 (-76.3%) | Spot-Check: NOT RUN (demo fixture)\\n` +
           `[REWARD] +${{pts}} PTS & +15.0 $HIVE awarded to ${{gamer}}!`;
+      }}
+    }}
+
+    async function runRealLoraTraining() {{
+      const gamer = document.getElementById('scan-gamer').value;
+      const ds = document.getElementById('scan-dataset').value;
+      const dsToContract = {{
+        'sahil2801/CodeAlpaca-20k': 'CONTRACT-HF-01-CODEALPACA',
+        'qiaojin/PubMedQA': 'CONTRACT-HF-02-PUBMEDQA',
+        'openai/gsm8k': 'CONTRACT-HF-03-GSM8K',
+        'anon/rust-code-instructions': 'CONTRACT-HF-04-RUST-SYSTEMS',
+        'CyberNative/Code_Vulnerability_Security_DPO': 'CONTRACT-HF-05-CYBERSEC-AUDIT',
+        'CohereForAI/aya_collection': 'CONTRACT-HF-06-MULTILINGUAL-FR'
+      }};
+      const cid = dsToContract[ds] || 'CONTRACT-HF-04-RUST-SYSTEMS';
+      const term = document.getElementById('scan-terminal');
+      term.textContent = `[EXECUTING REAL LoRA TEXT-TRAINING] ${{cid}} on ${{ds}} for ${{gamer}}...`;
+      try {{
+        const resp = await fetch('/api/forge-lora-mission', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ gamer_tag: gamer, contract_id: cid, real_training: true }})
+        }});
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const res = await resp.json();
+        term.textContent =
+          `[REAL TEXT-TRAINING FORGE COMPLETE] ${{res.contract_id}} (${{res.domain_expert}})\\n` +
+          `[BACKEND] ${{res.source}} | Steps: ${{res.steps_completed}} | Runtime Verified: ${{res.runtime_verified}}\\n` +
+          `[HELDOUT LOSS] ${{res.heldout_initial_loss}} -> ${{res.heldout_final_loss}} (-${{res.loss_reduction_pct}}%) | Improved: ${{res.heldout_improved}}\\n` +
+          `[ADAPTER SAVED & RELOADED] ${{res.adapter_saved_path}} (Verified: ${{res.adapter_reloaded_and_verified}})\\n` +
+          `[STEAM RICH PRESENCE] ${{res.steam_rich_presence}}\\n` +
+          `[REWARD] +${{res.total_pts_awarded}} PTS & +${{res.hive_minted}} $HIVE awarded to ${{res.gamer_tag}}!`;
+        document.getElementById('rp-text').textContent = res.gamer_tag + ' -> "' + res.steam_rich_presence + '"';
+        const lbResp = await fetch('/api/leaderboard');
+        if (lbResp.ok) {{
+          const lbData = await lbResp.json();
+          GAME_DATA.leaderboard = lbData.leaderboard;
+          renderLeaderboard();
+        }}
+      }} catch (e) {{
+        term.textContent = `[REAL TRAINING ERROR] ` + e.message;
       }}
     }}
 
@@ -1383,7 +1425,12 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     def post_forge_lora_mission(payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:
         gamer_tag = str(payload.get("gamer_tag", "CyberValkyrie_FR"))
         contract_id = str(payload.get("contract_id", "CONTRACT-HF-04-RUST-SYSTEMS"))
-        return execute_interactive_lora_micro_forge(gamer_tag=gamer_tag, contract_id=contract_id)
+        real_training = bool(payload.get("real_training", False))
+        return execute_interactive_lora_micro_forge(
+            gamer_tag=gamer_tag,
+            contract_id=contract_id,
+            real_training=real_training,
+        )
 
     @app.post("/api/solve-bounty", response_class=JSONResponse)
     def post_solve_bounty(payload: Dict[str, Any] = Body(default={})) -> Dict[str, Any]:

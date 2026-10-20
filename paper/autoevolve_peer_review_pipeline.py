@@ -120,7 +120,14 @@ def _find_lean_compiler() -> str | None:
         compiler = shutil.which(str(Path.home() / ".elan" / "bin" / name))
         if compiler:
             return compiler
+    for candidate in (
+        Path(r"C:\dev\tools\lean\lean-4.33.0-rc2-windows\bin\lean.exe"),
+        Path(r"C:\dev\tools\lean\bin\lean.exe"),
+    ):
+        if candidate.is_file():
+            return str(candidate)
     return None
+
 
 
 def verify_lean4_specification() -> Dict[str, Any]:

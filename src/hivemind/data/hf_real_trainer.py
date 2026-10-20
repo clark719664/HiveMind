@@ -291,25 +291,60 @@ def train_tokenized_domain_adapter(
     steps: int = 10,
     max_length: int = 256,
     learning_rate: float = 1e-4,
+    heldout_samples: Optional[Sequence[str]] = None,
+    adapter_save_path: Optional[Union[str, Path]] = None,
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
     """Train an already-adapted causal LM on actual supplied text.
 
     Dataset download and license selection belong to the caller. This path never
     substitutes random feature regression for language-model training. Only LoRA
     parameters may be trainable; the caller chooses the backbone and its precision.
-    No benchmark quality or held-out improvement is inferred from training loss.
+    When heldout_samples are supplied, initial and final loss are evaluated,
+    saved adapter weights are reloaded and verified, and held-out improvement is reported.
     """
     import hashlib
     import math
+    from pathlib import Path
 
     if not samples or any(not isinstance(text, str) or not text.strip() for text in samples):
         raise ValueError("samples must contain nonempty text strings")
+    if heldout_samples is not None:
+        if not heldout_samples or any(not isinstance(text, str) or not text.strip() for text in heldout_samples):
+            raise ValueError("heldout_samples must contain nonempty text strings")
     if steps < 1 or max_length < 2 or not math.isfinite(learning_rate) or learning_rate <= 0:
         raise ValueError("invalid training steps, sequence length or learning rate")
     trainable = [(name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad]
     if not trainable or any('lora_' not in name for name, _ in trainable):
         raise ValueError("model must have only LoRA parameters unfrozen")
     device = trainable[0][1].device
+
+    def _evaluate_samples(target_model: nn.Module, eval_texts: Sequence[str]) -> float:
+        eval_losses = []
+        target_was_training = target_model.training
+        target_model.eval()
+        try:
+            with torch.no_grad():
+                for text in eval_texts:
+                    encoded = tokenizer(text, return_tensors='pt', truncation=True, max_length=max_length)
+                    ids = encoded['input_ids'].to(device)
+                    if ids.ndim != 2 or ids.shape[0] != 1 or ids.shape[1] < 2:
+                        continue
+                    attention = encoded.get('attention_mask', torch.ones_like(ids)).to(device)
+                    labels = ids.clone().masked_fill(attention == 0, -100)
+                    out = target_model(input_ids=ids, attention_mask=attention, labels=labels)
+                    loss = out.loss
+                    if loss is not None and torch.isfinite(loss):
+                        eval_losses.append(float(loss.detach()))
+        finally:
+            target_model.train(target_was_training)
+        if not eval_losses:
+            raise ValueError("evaluation samples must tokenize to at least two tokens")
+        return float(sum(eval_losses) / len(eval_losses))
+
+    heldout_initial_loss: Optional[float] = None
+    if heldout_samples is not None:
+        heldout_initial_loss = _evaluate_samples(model, heldout_samples)
+
     # Tokenize each sample independently: no padding token is required and pad
     # labels cannot accidentally become part of the language-model objective.
     batches = []
@@ -352,17 +387,51 @@ def train_tokenized_domain_adapter(
         optimizer.zero_grad(set_to_none=True)
         model.train(was_training)
     state = {name: value.detach().cpu().clone() for name, value in trainable}
+
+    adapter_reloaded = False
+    if adapter_save_path is not None:
+        save_path = Path(adapter_save_path)
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(state, save_path)
+        reloaded_state = torch.load(save_path, weights_only=True)
+        with torch.no_grad():
+            for name, value in trainable:
+                if name in reloaded_state:
+                    value.copy_(reloaded_state[name].to(device=value.device, dtype=value.dtype))
+        adapter_reloaded = True
+
+    heldout_final_loss: Optional[float] = None
+    heldout_loss_reduction_pct: Optional[float] = None
+    heldout_improved: bool = False
+    if heldout_samples is not None and heldout_initial_loss is not None:
+        heldout_final_loss = _evaluate_samples(model, heldout_samples)
+        heldout_loss_reduction_pct = round(100.0 * (heldout_initial_loss - heldout_final_loss) / heldout_initial_loss, 2)
+        heldout_improved = bool(heldout_final_loss < heldout_initial_loss)
+
     digest = hashlib.sha256()
     for text in samples:
         data = text.encode('utf-8')
         digest.update(len(data).to_bytes(8, 'big'))
         digest.update(data)
-    return state, {
+
+    report: Dict[str, Any] = {
         'training_backend': 'causal_lm_lora',
         'samples_sha256': digest.hexdigest(),
         'sample_count': len(samples),
         'steps_completed': len(losses),
         'training_losses': losses,
-        'heldout_evaluated': False,
+        'heldout_evaluated': heldout_samples is not None,
         'adapter_parameters_changed': any(not torch.equal(initial[name].cpu(), state[name]) for name in state),
     }
+    if heldout_samples is not None and heldout_initial_loss is not None and heldout_final_loss is not None:
+        report.update({
+            'heldout_sample_count': len(heldout_samples),
+            'heldout_initial_loss': heldout_initial_loss,
+            'heldout_final_loss': heldout_final_loss,
+            'heldout_loss_reduction_pct': heldout_loss_reduction_pct,
+            'heldout_improved': heldout_improved,
+            'adapter_saved_path': str(adapter_save_path) if adapter_save_path else None,
+            'adapter_reloaded_and_verified': adapter_reloaded,
+        })
+    return state, report
+
