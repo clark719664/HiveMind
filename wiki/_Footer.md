@@ -1,0 +1,1 @@
+**Project HiveMind (`v1.6.0`)** — *Decentralized Sparse MoE Training & Speculative Swarm Inference on Consumer Gaming GPUs* · `25/25` PRs Merged (`@xaviercallens`, `@clark719664`, `@pedromineo`, `@radialmonster`) · `40/40` Machine-Checked Lean 4 Theorems · `240+` Passing Tests.

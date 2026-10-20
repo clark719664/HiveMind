@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 560" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070b14"/>
+      <stop offset="50%" stop-color="#0d1424"/>
+      <stop offset="100%" stop-color="#090d1a"/>
+    </linearGradient>
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#0080ff"/>
+    </linearGradient>
+    <linearGradient id="purpleGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+    <linearGradient id="greenGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#fde047"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="560" rx="16" fill="url(#bg)" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Header -->
+  <text x="640" y="42" text-anchor="middle" fill="#00f0ff" font-family="Segoe UI, Ubuntu, sans-serif" font-size="23" font-weight="bold">
+    PROJECT HIVEMIND v1.6.0 — MULTI-COLLABORATOR ARCHITECTURE, WIKI &amp; SEASON 5 ROADMAP
+  </text>
+  <text x="640" y="66" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Ubuntu, sans-serif" font-size="13">
+    25/25 Community PRs Merged (@xaviercallens, @clark719664, @pedromineo, @radialmonster) | 40/40 Lean 4 Theorems | 240+ Automated Tests
+  </text>
+
+  <!-- Column 1: Completed Seasons 1-4 -->
+  <rect x="28" y="88" width="385" height="444" rx="12" fill="#0f172a" stroke="url(#greenGlow)" stroke-width="2"/>
+  <text x="220" y="116" text-anchor="middle" fill="#34d399" font-family="Segoe UI, Ubuntu, sans-serif" font-size="16" font-weight="bold">
+    DELIVERED: SEASONS 1–4 (WAVES 1–3)
+  </text>
+  <text x="220" y="136" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Ubuntu, sans-serif" font-size="12">
+    25/25 Pull Requests Merged | 100% CI &amp; Lean 4 Verified
+  </text>
+
+  <rect x="44" y="150" width="353" height="64" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+  <text x="56" y="170" fill="#34d399" font-family="Consolas, monospace" font-size="13" font-weight="bold">Wave 1 (PRs #6-#11) — Phase 2 Swarm Fabric</text>
+  <text x="56" y="188" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">@clark719664, @radialmonster: QUIC 0-RTT, 2-Slot DMA,</text>
+  <text x="56" y="204" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">Triton FP8, OpenAI SSE Proxy, Steamworks &amp; AppID Audit</text>
+
+  <rect x="44" y="224" width="353" height="64" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+  <text x="56" y="244" fill="#34d399" font-family="Consolas, monospace" font-size="13" font-weight="bold">Wave 2 (PRs #21-#25) — Season 3 Expansion</text>
+  <text x="56" y="262" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">@clark719664: WAN STUN/TURN, Triton INT4+FP8 MoE,</text>
+  <text x="56" y="278" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">Missions 9-12, 4-Domain CAS Trainer, 27 Lean 4 Proofs</text>
+
+  <rect x="44" y="298" width="353" height="64" rx="8" fill="#1e293b" stroke="#10b981" stroke-width="1"/>
+  <text x="56" y="318" fill="#34d399" font-family="Consolas, monospace" font-size="13" font-weight="bold">Wave 3A (PRs #32-#37) — Season 4 Bounties</text>
+  <text x="56" y="336" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">@pedromineo &amp; @clark719664: ROCm/MPS DMA, Super-Ring,</text>
+  <text x="56" y="352" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">ZK-OPoI v2 Merkle, Missions 13-16, SVD 32-Expert MoE</text>
+
+  <rect x="44" y="372" width="353" height="68" rx="8" fill="#1e293b" stroke="#00f0ff" stroke-width="1.5"/>
+  <text x="56" y="392" fill="#00f0ff" font-family="Consolas, monospace" font-size="13" font-weight="bold">Wave 3B (PRs #39-#42) — Hardened Real Stack</text>
+  <text x="56" y="410" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">@clark719664: Real aioquic 0-RTT &amp; RFC 5766 TURN Relay,</text>
+  <text x="56" y="426" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">Raw WebGL 3D Globe HUD, 40 Non-Circular Lean 4 Proofs</text>
+
+  <rect x="44" y="450" width="353" height="66" rx="8" fill="#172554" stroke="#60a5fa" stroke-width="1"/>
+  <text x="56" y="470" fill="#93c5fd" font-family="Consolas, monospace" font-size="13" font-weight="bold">HF Community Hub &amp; Guilds (v1.5.0–v1.6.0)</text>
+  <text x="56" y="488" fill="#e2e8f0" font-family="Segoe UI, sans-serif" font-size="11">@xaviercallens: 100% Peer Reuse Transfer, 4 Co-Op Raids,</text>
+  <text x="56" y="504" fill="#e2e8f0" font-family="Segoe UI, sans-serif" font-size="11">Portable PEFT Adapter Bundles &amp; 3 Swarm Mining Guilds</text>
+
+  <!-- Column 2: Collaborator Matrix & Project Wiki -->
+  <rect x="438" y="88" width="404" height="444" rx="12" fill="#0f172a" stroke="url(#cyanGlow)" stroke-width="2"/>
+  <text x="640" y="116" text-anchor="middle" fill="#00f0ff" font-family="Segoe UI, Ubuntu, sans-serif" font-size="16" font-weight="bold">
+    COLLABORATORS &amp; 7-PAGE PROJECT WIKI
+  </text>
+  <text x="640" y="136" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Ubuntu, sans-serif" font-size="12">
+    CODEOWNERS Co-Ownership + Live GitHub Wiki &amp; Discussions
+  </text>
+
+  <rect x="454" y="150" width="372" height="142" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
+  <text x="468" y="172" fill="#38bdf8" font-family="Consolas, monospace" font-size="13" font-weight="bold">Core Co-Owners (.github/CODEOWNERS)</text>
+  <text x="468" y="194" fill="#f8fafc" font-family="Consolas, monospace" font-size="12">• @xaviercallens  — Founder, Architecture &amp; Guilds</text>
+  <text x="468" y="216" fill="#f8fafc" font-family="Consolas, monospace" font-size="12">• @clark719664    — QUIC/TURN, MoE, WebGL &amp; Lean 4</text>
+  <text x="468" y="238" fill="#f8fafc" font-family="Consolas, monospace" font-size="12">• @pedromineo     — ROCm/MPS, Super-Ring &amp; ZK-OPoI</text>
+  <text x="468" y="260" fill="#f8fafc" font-family="Consolas, monospace" font-size="12">• @radialmonster  — Steam Ecosystem &amp; Prototype Docs</text>
+  <text x="468" y="280" fill="#94a3b8" font-family="Segoe UI, sans-serif" font-size="11">All 4 collaborators credited in Dual Leaderboard &amp; Guilds</text>
+
+  <rect x="454" y="304" width="372" height="212" rx="8" fill="#1e293b" stroke="#a855f7" stroke-width="1"/>
+  <text x="468" y="326" fill="#c084fc" font-family="Consolas, monospace" font-size="13" font-weight="bold">Synchronized GitHub Wiki (wiki/ + .wiki.git)</text>
+  <text x="468" y="348" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">1. Home.md (Quickstart &amp; Hall of Fame)</text>
+  <text x="468" y="368" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">2. Architecture-and-5-Layer-Stack.md</text>
+  <text x="468" y="388" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">3. Consumer-GPU-Node-Setup-and-Steam-Tool.md</text>
+  <text x="468" y="408" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">4. Sparse-MoE-Upcycling-and-SVD-Rank-Projection.md</text>
+  <text x="468" y="428" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">5. Byzantine-Defense-ZK-OPoI-and-Lean4-Proofs.md</text>
+  <text x="468" y="448" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">6. HF-Community-Hub-Guilds-and-Joined-Campaigns.md</text>
+  <text x="468" y="468" fill="#e2e8f0" font-family="Consolas, monospace" font-size="11.5">7. Season-5-Roadmap-and-Contributor-Guide.md</text>
+  <text x="468" y="496" fill="#fde047" font-family="Segoe UI, sans-serif" font-size="11" font-weight="bold">+ Live GitHub Discussions &amp; Season 5 Issue Bounties</text>
+
+  <!-- Column 3: Season 5 / Wave 4 Open Roadmap -->
+  <rect x="867" y="88" width="385" height="444" rx="12" fill="#0f172a" stroke="url(#goldGlow)" stroke-width="2"/>
+  <text x="1060" y="116" text-anchor="middle" fill="#fde047" font-family="Segoe UI, Ubuntu, sans-serif" font-size="16" font-weight="bold">
+    OPEN: SEASON 5 / WAVE 4 ROADMAP
+  </text>
+  <text x="1060" y="136" text-anchor="middle" fill="#94a3b8" font-family="Segoe UI, Ubuntu, sans-serif" font-size="12">
+    6 Distributed Tracks (HM-S5-01..06) | 15,000 $HIVE Pool
+  </text>
+
+  <rect x="883" y="150" width="353" height="54" rx="7" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="895" y="170" fill="#fde047" font-family="Consolas, monospace" font-size="12.5" font-weight="bold">HM-S5-01: Live HF Hub Push/Pull &amp; P2P Torrent</text>
+  <text x="895" y="188" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">1-Click huggingface_hub upload + BitTorrent/CAS seeding (+2.5K)</text>
+
+  <rect x="883" y="212" width="353" height="54" rx="7" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="895" y="232" fill="#fde047" font-family="Consolas, monospace" font-size="12.5" font-weight="bold">HM-S5-02: 64-Expert Hierarchical MoE &amp; KV-Paging</text>
+  <text x="895" y="250" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">FP8 KV-cache paging + 64-expert Top-2 routing in 8GB (+3.0K)</text>
+
+  <rect x="883" y="274" width="353" height="54" rx="7" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="895" y="294" fill="#fde047" font-family="Consolas, monospace" font-size="12.5" font-weight="bold">HM-S5-03: Interactive Bisection Fraud Game v3</text>
+  <text x="895" y="312" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">O(log L) binary search dispute + L2 $HIVE slash settlement (+2.5K)</text>
+
+  <rect x="883" y="336" width="353" height="54" rx="7" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="895" y="356" fill="#fde047" font-family="Consolas, monospace" font-size="12.5" font-weight="bold">HM-S5-04: Guild Wars Tournament &amp; Missions 17-20</text>
+  <text x="895" y="374" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">Cross-Guild Co-Op Raids, 3D WebGL Raid Arcs &amp; Matchmaking (+2.5K)</text>
+
+  <rect x="883" y="398" width="353" height="54" rx="7" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="895" y="418" fill="#fde047" font-family="Consolas, monospace" font-size="12.5" font-weight="bold">HM-S5-05: Multi-Host WAN QUIC Mesh Benchmark</text>
+  <text x="895" y="436" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">Cross-NAT aioquic 0-RTT + RFC 5766 TURN relay telemetry (+2.0K)</text>
+
+  <rect x="883" y="460" width="353" height="56" rx="7" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="895" y="480" fill="#fde047" font-family="Consolas, monospace" font-size="12.5" font-weight="bold">HM-S5-06: Lean 4 Season 5 Proofs (Theorems 41-46)</text>
+  <text x="895" y="498" fill="#cbd5e1" font-family="Segoe UI, sans-serif" font-size="11">Formal TIES sign-consensus, Guild synergy &amp; TURN bounds (+2.5K)</text>
+</svg>

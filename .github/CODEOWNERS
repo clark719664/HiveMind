@@ -2,13 +2,15 @@
 # Every Pull Request touching core cryptographic, VRAM, Lean 4, or consensus layers triggers review.
 
 *                                       @xaviercallens
-/src/hivemind/core/                     @xaviercallens
-/src/hivemind/boinc/                    @xaviercallens @clark719664
-/src/hivemind/swarm/                    @xaviercallens @clark719664
-/src/hivemind/client/                   @xaviercallens @clark719664
-/src/hivemind/game/                     @xaviercallens @clark719664 @radialmonster
-/steam_dist/                            @xaviercallens @radialmonster
-/docs/                                  @xaviercallens @radialmonster
-/lean4/                                 @xaviercallens
-/paper/                                 @xaviercallens
-/.github/                               @xaviercallens
+/src/hivemind/core/                     @xaviercallens @clark719664 @pedromineo
+/src/hivemind/data/                     @xaviercallens @clark719664 @pedromineo
+/src/hivemind/boinc/                    @xaviercallens @clark719664 @pedromineo
+/src/hivemind/swarm/                    @xaviercallens @clark719664 @pedromineo
+/src/hivemind/client/                   @xaviercallens @clark719664 @pedromineo
+/src/hivemind/game/                     @xaviercallens @clark719664 @pedromineo @radialmonster
+/steam_dist/                            @xaviercallens @clark719664 @radialmonster
+/docs/                                  @xaviercallens @clark719664 @pedromineo @radialmonster
+/wiki/                                  @xaviercallens @clark719664 @pedromineo @radialmonster
+/lean4/                                 @xaviercallens @clark719664 @pedromineo
+/paper/                                 @xaviercallens @clark719664 @pedromineo
+/.github/                               @xaviercallens @clark719664

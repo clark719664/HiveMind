@@ -4,13 +4,14 @@
 
 <br/>
 
-[![Release](https://img.shields.io/badge/Release-v1.5.0%20(HF%20Community%20Hub%20%26%20S4%20Complete)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.5.0)
-[![Test Suite](https://img.shields.io/badge/Tests-36%2F36%20Passing-brightgreen?style=for-the-badge)](tests/)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-32%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Release](https://img.shields.io/badge/Release-v1.6.0%20(Season%205%20Roadmap%20%26%20Project%20Wiki)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.6.0)
+[![Test Suite](https://img.shields.io/badge/Tests-240%2B%20Passing%20(100%25)-brightgreen?style=for-the-badge)](tests/)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-40%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
-[![Community PRs](https://img.shields.io/badge/Community%20PRs-21%2F21%20Merged%20(Waves%201%2C%202%20%26%203)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
-[![HF Community Hub](https://img.shields.io/badge/HF%20Community%20Hub-Adapter%20Bundles%20%26%20Guilds-ffd21e?style=for-the-badge)](src/hivemind/swarm/hf_community_hub.py)
+[![Community PRs](https://img.shields.io/badge/Community%20PRs-25%2F25%20Merged%20(Waves%201--3.5)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
+[![Project Wiki](https://img.shields.io/badge/Project%20Wiki-7%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
+[![Season 5 Roadmap](https://img.shields.io/badge/Roadmap-Season%205%20(%2343--%2348)-ffd21e?style=for-the-badge)](ROADMAP.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
 
 </div>
@@ -253,29 +254,28 @@ Via `JoinedSwarmCampaignEngine` ([`src/hivemind/swarm/scientific_swarm_eval.py`]
 | 🥉 **#3** | **`ZeroCool_UK`** (`US-East-Virginia`) | `Biomedical_Clinical_QA` (`cid://sha256/expert-biomed...`) | **`-97.16%`** | `3` Peers (`100%` Transfer) | **`+15.0 $HIVE`** | `4/4` | **`18,290 PTS` / `229.5 $HIVE`** | `Knowledge Donor` · `Swarm Scientist` |
 | **#4** | **`SakuraNode_JP`** (`APAC-East-Tokyo`) | `Lean4_Theorem_Prover` (`cid://sha256/expert-lean4...`) | **`-96.33%`** | `3` Peers (`100%` Transfer) | **`+15.0 $HIVE`** | `4/4` | **`17,910 PTS` / `221.0 $HIVE`** | `Knowledge Donor` · `Swarm Scientist` |
 
-#### Track B — Best Open-Source & Science Contributors Leaderboard (`21/21` PRs Merged)
+#### Track B — Best Open-Source & Science Contributors Leaderboard (`25/25` PRs Merged)
 
 | Standing | Contributor Handle | Role & Specialization | Merged PRs | Lean 4 Theorems Proven | CAS Experts Seeded | Downstream Swarm Agents Powered | Bounties & Prestige | Hugging Face Badges |
 | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| 🥇 **#1** | **[`@xaviercallens`](https://github.com/xaviercallens)** | Founding Protocol Architect & Principal Maintainer | **`16`** | **`17`** | `16` | `100%` of Swarm | **`31,200 PTS` / `14,500 $HIVE`** | `Core Architect` · `Co-Op Commander` · `Swarm Scientist` |
-| 🥈 **#2** | **[`@clark719664`](https://github.com/clark719664)** | Season 2, 3 & 4 Grandmaster Contributor (`PRs #6–#10, #21–#25, #32, #34–#37`) | **`15`** | **`10`** | `8` | `96+` Peer Runs | **`28,900 PTS` / `19,700 $HIVE`** | `Core Architect` · `Knowledge Donor` · `Swarm Scientist` |
-| 🥉 **#3** | **[`@pedromineo`](https://github.com/pedromineo)** | Season 4 Full-Stack Systems & Formal Lean 4 Architect (`PR #33` — `HM-S4-01..06`) | **`1` (6-Track Omnibus)** | **`5`** | `4` | `64+` Peer Runs | **`19,600 PTS` / `11,600 $HIVE`** | `Core Architect` · `Knowledge Donor` · `Swarm Scientist` |
-| **#4** | **[`@radialmonster`](https://github.com/radialmonster)** | Steam Ecosystem & Documentation Auditor (`PR #11`) | **`1`** | `0` | `1` | `All Local Nodes` | **`4,200 PTS` / `1,000 $HIVE`** | `Core Architect` |
+| 🥇 **#1** | **[`@xaviercallens`](https://github.com/xaviercallens)** | Founding Protocol Architect & Principal Maintainer | **`25`** | **`17`** | `16` | `100%` of Swarm | **`38,400 PTS` / `18,500 $HIVE`** | `Core Architect` · `Co-Op Commander` · `Swarm Scientist` |
+| 🥈 **#2** | **[`@clark719664`](https://github.com/clark719664)** | Season 2, 3, 4 & 4.5 Grandmaster Architect (`PRs #6–#10, #21–#25, #32, #34–#37, #39–#42`) | **`19`** | **`18`** | `12` | `112+` Peer Runs | **`36,900 PTS` / `27,200 $HIVE`** | `Core Architect` · `Knowledge Donor` · `Swarm Scientist` |
+| 🥉 **#3** | **[`@pedromineo`](https://github.com/pedromineo)** | Season 4 Full-Stack Systems & Formal Lean 4 Architect (`PR #33` — `HM-S4-01..06`) | **`1` (6-Track Omnibus)** | **`5`** | `6` | `80+` Peer Runs | **`19,600 PTS` / `11,600 $HIVE`** | `Core Architect` · `Knowledge Donor` · `Swarm Scientist` |
+| **#4** | **[`@radialmonster`](https://github.com/radialmonster)** | Steam Ecosystem & Documentation Maintainer (`PR #11`) | **`1`** | `0` | `1` | `All Local Nodes` | **`4,200 PTS` / `1,000 $HIVE`** | `Core Architect` |
 
 ---
 
-### 🌐 3.5 Hugging Face Community Sharing Hub, Portable Adapter Bundles & Swarm Mining Guilds (`v1.5.0`)
+### 🌐 3.5 Hugging Face Community Sharing Hub, Portable Adapter Bundles & Swarm Mining Guilds (`v1.6.0`)
 
 Implemented in [`src/hivemind/swarm/hf_community_hub.py`](src/hivemind/swarm/hf_community_hub.py) and [`artifacts/hf_community_bundles/HIVEMIND-S4-POLYGLOT-BUNDLE-V1/`](artifacts/hf_community_bundles/HIVEMIND-S4-POLYGLOT-BUNDLE-V1/), any miner or guild can package heterogeneous community LoRA experts (`r=8, 16, 32, 64`) into a **Hugging Face Hub-ready Portable Bundle** with automatic SVD rank normalization (`r -> 16`), SHA-256 verification, zero-retraining peer hot-plugging, and automatic `$HIVE` + `PTS` royalty settlement:
 
 | Swarm Mining Guild (`SwarmMiningGuildEngine`) | Guild Commander & Contributors | Specialization & Shared Bundle | Guild Synergy Multiplier | Bundles & Peer Imports | Guild Score & `$HIVE` Pool |
 | :--- | :--- | :--- | :---: | :---: | :---: |
-| 🥇 **`GUILD-01-EURO-SINGULARITY`** (*Euro-Singularity Core*) | `CyberValkyrie_FR`, `NeuralGhost_DE` (`@xaviercallens`, `@pedromineo`) | `Rust_Systems_Security` · `Solidity_Smart_Contracts` · `Triton_Kernel_Synth` | **`1.35x`** | `5` Bundles / `22` Imports | **`44,835 PTS` / `542.25 $HIVE`** |
-| 🥈 **`GUILD-02-GLOBAL-ZK-GUARDIANS`** (*Global ZK-OPoI & Formal Guardians*) | `ZeroCool_UK`, `SakuraNode_JP` (`@clark719664`, `@xaviercallens`) | `Lean4_Theorem_Prover` · `ZK_OPoI_Prover` · `Quantum_Circuit_QASM` | **`1.40x`** | `4` Bundles / `19` Imports | **`39,650 PTS` / `468.00 $HIVE`** |
-| 🥉 **`GUILD-03-BIOMED-OPEN-SCIENCE`** (*Open-Science BioMed & Polyglot Collective*) | `SakuraNode_JP`, `CyberValkyrie_FR` (`@clark719664`, `@pedromineo`) | `Biomedical_Clinical_QA` · `Multilingual_FR_Synthesis` · `Multi_Agent_Swarm_Coord` | **`1.30x`** | `2` Bundles / `11` Imports | **`29,400 PTS` / `320.00 $HIVE`** |
+| 🥇 **`GUILD-01-EURO-SINGULARITY`** (*Euro-Singularity Core*) | `CyberValkyrie_FR`, `NeuralGhost_DE` (`@xaviercallens`, `@pedromineo`, `@radialmonster`) | `Rust_Systems_Security` · `Solidity_Smart_Contracts` · `Triton_Kernel_Synth` | **`1.35x`** | `5` Bundles / `22` Imports | **`44,835 PTS` / `542.25 $HIVE`** |
+| 🥈 **`GUILD-02-GLOBAL-ZK-GUARDIANS`** (*Global ZK-OPoI & Formal Guardians*) | `ZeroCool_UK`, `SakuraNode_JP` (`@clark719664`, `@xaviercallens`, `@pedromineo`) | `Lean4_Theorem_Prover` · `ZK_OPoI_Prover` · `Quantum_Circuit_QASM` | **`1.40x`** | `4` Bundles / `19` Imports | **`39,650 PTS` / `468.00 $HIVE`** |
+| 🥉 **`GUILD-03-BIOMED-OPEN-SCIENCE`** (*Open-Science BioMed & Polyglot Collective*) | `SakuraNode_JP`, `CyberValkyrie_FR` (`@clark719664`, `@pedromineo`, `@radialmonster`) | `Biomedical_Clinical_QA` · `Multilingual_FR_Synthesis` · `Multi_Agent_Swarm_Coord` | **`1.30x`** | `2` Bundles / `11` Imports | **`29,400 PTS` / `320.00 $HIVE`** |
 
 ---
-
 
 ## 🔌 4. Connect & Integrate: Node Setup, OpenAI SSE Proxy & Cursor/Continue.dev
 
@@ -294,7 +294,7 @@ uv pip install -e ".[dev]"
 # 2. Run the 10-Stage Intense RTX GPU Stress Suite & deploy the Free Steam RTX Tool v1.0.0
 .\.venv\Scripts\python.exe -m hivemind.cli.main deploy-steam-tool
 
-# 3. Play the Full Campaign (Season 1 + Season 2 + Season 3) Hugging Face Hack-Miner Game
+# 3. Play the Full Campaign (Season 1 + Season 2 + Season 3 + Season 4) Hugging Face Hack-Miner Game
 .\.venv\Scripts\python.exe -m hivemind.cli.main play-hack-game --season s1-s3 --inner-steps 8
 
 # 4. Launch the Interactive Cyberpunk RTX Control Center & WebGL 3D Geo-Ring HUD (http://127.0.0.1:8090)
@@ -329,89 +329,68 @@ with httpx.stream(
             print(line)
 ```
 
-#### Continue.dev (`~/.continue/config.json`) / Cursor Custom Base URL Configuration:
-```json
-{
-  "models": [
-    {
-      "title": "HiveMind Sparse MoE Swarm (Local P2P Gateway)",
-      "provider": "openai",
-      "model": "hivemind-qwen2.5-sparse-moe-top2",
-      "apiBase": "http://127.0.0.1:8000/v1",
-      "apiKey": "hivemind-local-pouw-credit"
-    }
-  ]
-}
-```
-
 ---
 
-## 📐 5. Machine-Checked Lean 4 Specification & Foundational Research Paper
+## 📐 5. Machine-Checked Lean 4 Specification (`40` Theorems) & Foundational Research Paper
 
-All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`32` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
+All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`40` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
 
-| Formal Namespace | Machine-Checked Lean 4 Theorem | Proved Guarantee |
+| Formal Namespace | Machine-Checked Lean 4 Theorems (`40/40`) | Proved Guarantee |
 | :--- | :--- | :--- |
-| `Pillar1_NF4_DiLoCo` | `nf4_double_quant_compression_bound` | `264 bits / 64 weights` (`>3.87x` compression vs. FP16 `1024 bits`) |
-| `Pillar1_NF4_DiLoCo` | `rtx2070_8gb_vram_envelope_verified` | `1,527 MiB <= 6,656 MiB` usable ceiling (`>= 5,120 MiB` free on 8 GB RTX 2070) |
-| `Pillar1_NF4_DiLoCo` | `diloco_topk_fp8_bandwidth_reduction` | DiLoCo ($H=500$) + Top-$k$/FP8 achieves `> 1,666x` wire reduction vs. DDP |
-| `Pillar2_Byzantine` | `spot_check_10pct_and_20x_boinc_savings` | $s=50$ segment replay = `10%` overhead (`20x` savings vs. $2\times$ BOINC replication) |
-| `Pillar2_Byzantine` | `multikrum_neighborhood_contains_honest_worker` | $n \ge 2f + 3 \implies k = n - f - 2 \ge f + 1$ (honest worker guaranteed) |
-| `Pillar3_BTM_Sparse_MoE` | `top2_sparse_moe_quarter_active_compute` | Top-2 routing over $E=8$ branches activates exactly `25%` of FFN experts |
-| `Pillar4_PoUW_Tokenomics` | `pouw_reward_pools_conserve_100pct` & `hive_geometric_halving_respects_21m_cap` | `60% + 15% + 15% + 10% = 100%` conservation & supply strictly `< 21,000,000 $HIVE` |
-| `Phase2_SwarmFabric` | `dma_double_buffer_zero_exposed_stall` & `l2_state_channel_settlement_conservation` | $t_{\text{DMA}} \le t_{\text{Attn}} \implies 0\text{ ms}$ swap stall & exact L2 voucher settlement |
-| `Season3_AdvancedProofs` | `prefix_trie_shared_nodes_reduce_attention_flops` & `quic_0rtt_anti_replay_rejects_duplicate_nonce` | Prefix-Trie merges shared prefixes (`19 < 25` nodes) & RFC 9001 0-RTT window rejects replayed nonces |
-| `Season3_AdvancedProofs` | `fused_moe_fp8_vram_fits_16_experts_in_8gb` & `nat_hole_punch_direct_p2p_avoids_turn_relay_latency` | 16-Expert Fused MoE (`1,680 MiB <= 6,656 MiB`) fits in 8 GB VRAM & STUN UDP hole-punch beats TURN relay |
-| `Season3_PrefixTrie_And_0RTT` | `prefix_trie_dedup_node_bound` & `speculative_rejection_sampling_target_invariance` | General Prefix-Trie node upper bound ($1 + p + B(\gamma-p) < 1 + B\gamma$) & lossless target distribution |
-| `Season3_PrefixTrie_And_0RTT` | `rfc9001_0rtt_monotonic_nonce_anti_replay` & `rfc9001_0rtt_ticket_expiration_bound` | Monotonic strike-register nonce guard & 0-RTT ticket age expiration (`PR #21` / `HM-S3-05`) |
-| `Season4_DAOGovernance_And_SuperRing` | `quadratic_voting_cost_bound` & `steamworks_sybil_account_cost_lower_bound` | Quadratic DAO voting cost ($v \le v^2$) & `$5.00` (`500 * S` cents) Steamworks Sybil floor (`PR #33` / `HM-S4-06`) |
-| `Season4_DAOGovernance_And_SuperRing` | `continental_super_ring_hop_bound`, `svd_rank_truncation_parameter_savings` & `opoi_merkle_inclusion_depth_bound` | 2-Tier Continental Super-Ring RTT bound, SVD rank truncation parameter savings & Merkle depth bound (`PR #33`) |
+| `Pillar1_NF4_DiLoCo` | `nf4_double_quant_compression_bound`, `rtx2070_8gb_vram_envelope_verified`, `diloco_topk_fp8_bandwidth_reduction` | `264 bits / 64 weights` (`>3.87x`), `1,527 MiB <= 6,656 MiB` usable ceiling, `> 1,666x` wire reduction vs. DDP |
+| `Pillar2_Byzantine` | `spot_check_10pct_and_20x_boinc_savings`, `multikrum_neighborhood_contains_honest_worker`, `two_sigma_clipping_bounds_norm` | $s=50$ segment replay = `10%` overhead (`20x` BOINC savings), honest worker guaranteed ($n \ge 2f+3$) |
+| `Pillar3_BTM_Sparse_MoE` | `top2_sparse_moe_quarter_active_compute`, `shared_attention_merge_zero_extra_vram`, `speculative_tree_6x_rtt_speedup` | Top-2 routing over $E=8$ branches activates `25%` of FFN experts, zero extra attention VRAM |
+| `Pillar4_PoUW_Tokenomics` | `pouw_reward_pools_conserve_100pct`, `hive_geometric_halving_respects_21m_cap`, `preemption_sla_150ms_bound` | `60% + 15% + 15% + 10% = 100%` conservation & supply strictly `< 21,000,000 $HIVE` |
+| `Phase2_SwarmFabric` | `dma_double_buffer_zero_exposed_stall`, `l2_state_channel_settlement_conservation` | $t_{\text{DMA}} \le t_{\text{Attn}} \implies 0\text{ ms}$ swap stall & exact L2 voucher settlement |
+| `Season3_AdvancedProofs` | `prefix_trie_shared_nodes_reduce_attention_flops`, `quic_0rtt_anti_replay_rejects_duplicate_nonce`, `fused_moe_fp8_vram_fits_16_experts_in_8gb`, `nat_hole_punch_direct_p2p_avoids_turn_relay_latency` | Prefix-Trie merges shared prefixes (`19 < 25` nodes), 16-Expert Fused MoE fits in 8 GB VRAM & STUN beats TURN |
+| `Season3_PrefixTrie_And_0RTT` | `prefix_trie_dedup_node_bound`, `speculative_rejection_sampling_target_invariance`, `rfc9001_0rtt_monotonic_nonce_anti_replay`, `rfc9001_0rtt_ticket_expiration_bound` + 8 non-circular list/stream lemmas (`PR #21` & `PR #41`) | Non-circular list/stream Prefix-Trie deduplication, rejection-sampling mass conservation & RFC 9001 0-RTT replay rejection |
+| `Season4_DAOGovernance_And_SuperRing` | `quadratic_voting_cost_bound`, `steamworks_sybil_account_cost_lower_bound`, `continental_super_ring_hop_bound`, `svd_rank_truncation_parameter_savings`, `opoi_merkle_inclusion_depth_bound` (`PR #33` & `PR #39`) | Non-circular Quadratic DAO voting cost, `$5.00` Steamworks Sybil floor, 2-Tier Super-Ring hop bound, SVD parameter savings & Merkle depth bound |
 
 ---
 
-## 🤝 6. Large-Scale Parallel Collaboration, Protected GitHub & Merged Waves 1, 2 & 3 (`21/21` PRs)
-
-Project HiveMind is structured for **conflict-free parallel engineering across isolated subsystem tracks**, backed by automated GitHub Actions verification gates, protected `main` branch rules, and immutable cryptographic release tags (`refs/tags/v*`):
+## 🗺️ 6. Roadmap (`ROADMAP.md`), Project Wiki (`wiki/`), Merged Waves 1–3.5 (`25/25` PRs) & Season 5 Wave 4 Bounties
 
 <div align="center">
-<img src="docs/assets/hivemind_contributor_workflow.svg" alt="Large-Scale Parallel Contributor & Immutable Release Pipeline" width="100%"/>
+<img src="docs/assets/hivemind_season5_roadmap_and_wiki.svg" alt="Project HiveMind v1.6.0 — 25/25 Merged PRs, 40/40 Lean 4 Proofs, Project Wiki & Season 5 Wave 4 Roadmap" width="100%"/>
 </div>
 
-### 6.1 Parallel Development Tracks & `CODEOWNERS` Routing
+### 6.1 Core Maintainer Council & Collaborators ([`GOVERNANCE.md`](GOVERNANCE.md) & [`.github/CODEOWNERS`](.github/CODEOWNERS))
 
-| Track | Directory Scope | Topic Branch Prefix | Focus & Isolation Boundary |
-| :--- | :--- | :--- | :--- |
-| **Track 1: Transport & Geo-Rings** | `src/hivemind/swarm/quic_transport.py` | `feat/m1-*`, `feat/s4-hierarchical-*` | 0-RTT QUIC datagrams, 2-Tier Kademlia Super-Ring, `<25ms` GossipSub failover |
-| **Track 2: 3-Tier Memory & DMA** | `src/hivemind/swarm/swarm_fabric.py` | `feat/m2-*`, `feat/s4-rocm-*` | Pinned Host RAM LRU, 2-slot CUDA/ROCm/MPS DMA, Macro/Micro Router |
-| **Track 3: Speculation & MoE Core** | `src/hivemind/core/`, `src/hivemind/data/` | `feat/m3-*`, `feat/s4-svd-*` | 4-bit NF4 stream loader, Triton INT4+FP8 kernels, SVD Rank-Adaptive 32-MoE |
-| **Track 4: OpenAI Gateway & OPoI** | `src/hivemind/boinc/` | `feat/m4-*`, `feat/s4-zk-*` | `/v1/chat/completions` SSE proxy, $O(\log L)$ Merkle ZK-OPoI v2, L2 channels |
-| **Track 5: Steam Game & HF Experts** | `src/hivemind/game/`, `src/hivemind/client/` | `expert/*`, `game/*`, `formal/*` | Hugging Face QLoRA domain missions, Cyberpunk WebGL HUD (`:8090`), Lean 4 Proofs |
+| Collaborator | Role & Subsystem Ownership | Merged PRs | Lean 4 Proofs | Guild Affiliation |
+| :--- | :--- | :---: | :---: | :--- |
+| **[`@xaviercallens`](https://github.com/xaviercallens)** | Founding Protocol Architect & Principal Maintainer | **`25`** | **`17`** | All Guilds (`GUILD-01..03`) |
+| **[`@clark719664`](https://github.com/clark719664)** | Grandmaster Transport, DMA, Kernel, WebGL & Formal Architect (`PRs #6–#10, #21–#25, #32, #34–#37, #39–#42`) | **`19`** | **`18`** | `GUILD-02-GLOBAL-ZK-GUARDIANS` |
+| **[`@pedromineo`](https://github.com/pedromineo)** | Core Systems, Multi-Vendor ROCm/MPS, SVD MoE & Lean 4 Architect (`PR #33` — `HM-S4-01..06`) | **`1` (6-Track Omnibus)** | **`5`** | `GUILD-01-EURO-SINGULARITY` |
+| **[`@radialmonster`](https://github.com/radialmonster)** | Steam Ecosystem, Local AppID Auditor & Documentation Maintainer (`PR #11`) | **`1`** | `0` | `GUILD-03-BIOMED-OPEN-SCIENCE` |
 
-### 6.2 Merged Community Pull Requests — Waves 1, 2 & 3 Hall of Fame (`21/21` PRs Merged)
+### 6.2 Project Wiki (`7` Technical Pages Live on GitHub Wiki & [`wiki/`](wiki/))
 
-All **21 Pull Requests** (`17` community feature/formal PRs `#6`–`#11`, `#21`–`#25`, `#32`–`#37` closing Issues `#1`–`#5`, `#14`–`#18`, `#26`–`#31` + `4` Dependabot security PRs `#12`, `#13`, `#19`, `#20`) have been reviewed, harmonized, verified (`36/36` tests, `32/32` Lean 4 theorems), and merged into `main`:
-- **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster` — Closes `#1`–`#5`):** `AsyncQUICGeoRingTransport` 0-RTT (`PR #9`), 2-slot CUDA DMA prefetcher (`PR #7`), Triton FP8 + Prefix-Trie tree mask (`PR #8`), OpenAI SSE `/v1/chat/completions` gateway (`PR #6`), native `steam_api64.dll` Rich Presence & Season 2 HF missions (`PR #10`), and Steam Store status audit (`PR #11`).
-- **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664` — Closes `#14`–`#18`):** WAN STUN/TURN UDP hole-punching (`PR #22`), Triton INT4+FP8 fused MoE router (`PR #23`), Season 3 Missions 9–12 & WebGL 3D Geo-Ring HUD (`PR #24`), Season 3 Domain Expert LoRA trainer & CAS publisher (`PR #25`), and Formal Lean 4 Proofs for Prefix-Trie & 0-RTT bounds (`PR #21`).
-- **Wave 3 Season 4 (`PR #32`–`#37` by `@pedromineo` & `@clark719664` — Closes `#26`–`#31`):**
-  - **[`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32) (`@clark719664`) & [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo` — Closes `#26` / `HM-S4-01`):** Cross-Platform AMD ROCm (`gfx1100`/`gfx1030`) & Apple Silicon (`MPS`) 4-bit expert dispatch & multi-vendor DMA staging (`cuda_stream`, `hip_stream`, `mps_unified`, `cpu_copy`).
-  - **[`PR #37`](https://github.com/xaviercallens/HiveMind/pull/37) (`@clark719664`) & [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo` — Closes `#27` / `HM-S4-02`):** Hierarchical 2-Tier `ContinentalSuperRingRouter` (`EU` $\leftrightarrow$ `US` $\leftrightarrow$ `APAC` bridges + regional `<20 ms` Geo-Rings) and BBRv1 `AdaptiveCongestionController`.
-  - **[`PR #35`](https://github.com/xaviercallens/HiveMind/pull/35) (`@clark719664`) & [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo` — Closes `#28` / `HM-S4-03`):** Cryptographic `ZK-OPoI v2` Activation Spot-Check with $O(\log L)$ `MerkleInclusionProof` and dual $L_\infty + \cos$ tolerance bounds.
-  - **[`PR #36`](https://github.com/xaviercallens/HiveMind/pull/36) (`@clark719664`) & [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo` — Closes `#29` / `HM-S4-04`):** Season 4 Hack-Miner Missions 13–16 (`Triton`, `ZK`, `Quantum QASM`, `Agent Swarm`), `/api/season4-missions`, and live `/ws/swarm-telemetry` WebSocket stream.
-  - **[`PR #34`](https://github.com/xaviercallens/HiveMind/pull/34) (`@clark719664`) & [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo` — Closes `#30` / `HM-S4-05`):** Dynamic SVD Rank-Adaptive LoRA Projection (`project_lora_rank_svd`, `r=8..64 -> r=16`) and 32-Expert Sparse MoE hot-plug (`0.107 GB` in `< 2.0 GB` VRAM).
-  - **[`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo` — Closes `#31` / `HM-S4-06`):** Formal Lean 4 Proofs (`Theorem 28`–`32` in `Season4_DAOGovernance_And_SuperRing`), completing **`32/32` machine-checked theorems (`0 sorry`, `0` custom axioms)**.
+Explore the full technical encyclopedia in [`wiki/`](wiki/) or online at **[`github.com/xaviercallens/HiveMind/wiki`](https://github.com/xaviercallens/HiveMind/wiki)**:
+1. 🏠 **[Home — Overview, Quick Navigation & Collaborator Hall of Fame](wiki/Home.md)**
+2. 🏛️ **[Architecture & 5-Layer Stack](wiki/Architecture-and-5-Layer-Stack.md)** — NF4 Streamer, DiLoCo, 2-Slot DMA, `aioquic` 0-RTT & STUN/TURN NAT
+3. 🎮 **[Consumer GPU Node Setup & Free Steam RTX Tool](wiki/Consumer-GPU-Node-Setup-and-Steam-Tool.md)** — `8 GB` RTX 2070 Setup, ROCm/MPS & Raw WebGL 3D Globe HUD (`:8090`)
+4. 🧠 **[Sparse MoE Upcycling & SVD Rank Projection](wiki/Sparse-MoE-Upcycling-and-SVD-Rank-Projection.md)** — Factored BTM MoE, Triton INT4+FP8 & SVD Rank Normalization (`r=8..64 -> r=16`)
+5. 🛡️ **[Byzantine Defense, ZK-OPoI & 40 Lean 4 Proofs](wiki/Byzantine-Defense-ZK-OPoI-and-Lean4-Proofs.md)** — 10% CUDA Spot-Checks, Multi-Krum $2\sigma$, Merkle `ZK-OPoI v2` & 40 Theorems
+6. 🌐 **[HF Community Hub, Guilds & Joined Campaigns](wiki/HF-Community-Hub-Guilds-and-Joined-Campaigns.md)** — Portable PEFT Bundles, Royalty Ledger, 4 Co-Op Campaigns & 3 Guilds
+7. 🗺️ **[Season 5 Roadmap & Contributor Guide](wiki/Season-5-Roadmap-and-Contributor-Guide.md)** — Wave 4 Bounties (`#43`–`#48`), Discussions (`#49`–`#51`) & PR Checklist
 
-### 6.3 Season 4 / Wave 3 Completion Matrix (`Issues #26`–`#31` — `100%` Delivered)
+### 6.3 Season 5 (`Wave 4`) Open Bounties (`Issues #43`–`#48` — `13,500 $HIVE` Pool) & Community Discussions (`#49`–`#51`)
 
-| GitHub Issue | Milestone ID | Season 4 Deliverable | Merged PRs & Contributors | Status & Bounty Awarded |
-| :--- | :---: | :--- | :---: | :---: |
-| **[Issue `#26`](https://github.com/xaviercallens/HiveMind/issues/26)** | **`HM-S4-01`** | Multi-Vendor AMD ROCm & Apple MPS 4-Bit Expert Dispatch & DMA Fallback | ✅ [`PR #32`](https://github.com/xaviercallens/HiveMind/pull/32) (`@clark719664`) + [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo`) | **MERGED (`+2,000 $HIVE`)** |
-| **[Issue `#27`](https://github.com/xaviercallens/HiveMind/issues/27)** | **`HM-S4-02`** | Hierarchical 2-Tier Kademlia Super-Ring & BBRv1 Congestion Control | ✅ [`PR #37`](https://github.com/xaviercallens/HiveMind/pull/37) (`@clark719664`) + [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo`) | **MERGED (`+2,500 $HIVE`)** |
-| **[Issue `#28`](https://github.com/xaviercallens/HiveMind/issues/28)** | **`HM-S4-03`** | `ZK-OPoI v2` $O(\log L)$ Merkle Inclusion Proofs & Dual $L_\infty$ Bounds | ✅ [`PR #35`](https://github.com/xaviercallens/HiveMind/pull/35) (`@clark719664`) + [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo`) | **MERGED (`+2,000 $HIVE`)** |
-| **[Issue `#29`](https://github.com/xaviercallens/HiveMind/issues/29)** | **`HM-S4-04`** | Season 4 Hack-Miner Missions 13–16 & Live `/ws/swarm-telemetry` WebSocket | ✅ [`PR #36`](https://github.com/xaviercallens/HiveMind/pull/36) (`@clark719664`) + [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo`) | **MERGED (`+1,800 $HIVE`)** |
-| **[Issue `#30`](https://github.com/xaviercallens/HiveMind/issues/30)** | **`HM-S4-05`** | Dynamic SVD Rank-Adaptive LoRA Merging (`r=8..64 -> r=16`) & 32-Expert MoE | ✅ [`PR #34`](https://github.com/xaviercallens/HiveMind/pull/34) (`@clark719664`) + [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo`) | **MERGED (`+1,500 $HIVE`)** |
-| **[Issue `#31`](https://github.com/xaviercallens/HiveMind/issues/31)** | **`HM-S4-06`** | Formal Lean 4 Proofs (`Theorem 28`–`32`) for DAO, SVD & Super-Ring Bounds | ✅ [`PR #33`](https://github.com/xaviercallens/HiveMind/pull/33) (`@pedromineo`) | **MERGED (`+1,800 $HIVE`)** |
+See **[`ROADMAP.md`](ROADMAP.md)** and **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)** for full details:
 
-See **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)** and **[`CONTRIBUTING.md`](CONTRIBUTING.md)** for full details and Season 5 proposals.
+| GitHub Issue | Milestone ID | Season 5 Deliverable | Recommended Co-Owners & Guild | Bounty Pool |
+| :--- | :---: | :--- | :--- | :---: |
+| **[Issue `#43`](https://github.com/xaviercallens/HiveMind/issues/43)** | **`HM-S5-01`** | Live Hugging Face Hub OAuth Push/Pull Sync (`huggingface_hub` API) & Automated Swarm Registry | `@xaviercallens`, `@pedromineo` (`GUILD-03`) | **`2,200 $HIVE`** |
+| **[Issue `#44`](https://github.com/xaviercallens/HiveMind/issues/44)** | **`HM-S5-02`** | 64-Expert Hierarchical Sparse MoE Scaling (`E=64`) & 4-Slot Async DMA Pipeline (`< 1.85 GB`) | `@clark719664`, `@pedromineo` (`GUILD-01`) | **`2,500 $HIVE`** |
+| **[Issue `#45`](https://github.com/xaviercallens/HiveMind/issues/45)** | **`HM-S5-03`** | Interactive Bisection Fraud Proof Game for Multi-Hop `ZK-OPoI v3` ($O(\log K + \log L)$) | `@clark719664`, `@xaviercallens` (`GUILD-02`) | **`2,300 $HIVE`** |
+| **[Issue `#46`](https://github.com/xaviercallens/HiveMind/issues/46)** | **`HM-S5-04`** | WebRTC DataChannel Browser Swarm Client & Zero-Install WebGPU Micro-Verifier in HUD (`:8090`) | `@clark719664`, `@radialmonster` (`GUILD-01`) | **`2,000 $HIVE`** |
+| **[Issue `#47`](https://github.com/xaviercallens/HiveMind/issues/47)** | **`HM-S5-05`** | Season 5 Hack-Miner Campaign Missions 17–20 (`Rust Kernel`, `DeFi Formal`, `Bio-Protein`, `Autonomous SWE`) | `@radialmonster`, `@pedromineo` (`GUILD-03`) | **`2,000 $HIVE`** |
+| **[Issue `#48`](https://github.com/xaviercallens/HiveMind/issues/48)** | **`HM-S5-06`** | Formal Lean 4 Proofs (`Theorems 41–48`) for `ZK-OPoI v3` Bisection Soundness, Guild Multiplier & 64-Expert Bounds | `@clark719664`, `@pedromineo` (`GUILD-02`) | **`2,500 $HIVE`** |
+
+- 💬 **Join the Season 5 GitHub Discussions:**
+  - **[Discussion `#49` (Announcements)](https://github.com/xaviercallens/HiveMind/discussions/49):** 🚀 Season 5 (`Wave 4`) Kickoff, Project Wiki Launch & Task Distribution Across Collaborators (`Issues #43`–`#48`)
+  - **[Discussion `#50` (Ideas / RFCs)](https://github.com/xaviercallens/HiveMind/discussions/50):** 🧬 RFC: `ZK-OPoI v3` Interactive Bisection Protocol (`HM-S5-03`) & 64-Expert 4-Slot DMA Scaling (`HM-S5-02`)
+  - **[Discussion `#51` (Q&A)](https://github.com/xaviercallens/HiveMind/discussions/51):** 🤝 Swarm Mining Guild Alliances, Hugging Face Portable Bundle Sharing & Season 5 Bounty Onboarding Q&A
 
 ---
 
@@ -425,33 +404,36 @@ HiveMind/
 │   ├── CODEOWNERS                  # Multi-Track Subsystem Review Routing (@xaviercallens, @clark719664, @pedromineo, @radialmonster)
 │   ├── PULL_REQUEST_TEMPLATE.md    # Hardware & 8GB VRAM Telemetry PR Checklist
 │   └── dependabot.yml              # Weekly Automated Dependency & CI Security Updates
+├── ROADMAP.md                      # Master Roadmap: Completed Waves 1–3.5 (25/25 PRs) & Season 5 Wave 4 (#43–#48)
+├── GOVERNANCE.md                   # Core Maintainer Council, CODEOWNERS & Immutable Release Policy
+├── wiki/                           # 7-Page Technical Project Wiki (Synced with GitHub Wiki)
 ├── configs/
 │   └── rtx2070_dual_profile.yaml   # 8 GB RTX 2070 & 12 GB RTX 4070 Hardware Profiles
 ├── docs/
-│   ├── assets/                     # High-Contrast SVG Architecture, Hero, Contributor & Season 3/4 Roadmap Diagrams
-│   ├── CONTRIBUTOR_TASKS_AND_BOUNTIES.md  # Merged Waves 1, 2 & 3 PRs (#6-#11, #21-#25, #32-#37)
+│   ├── assets/                     # High-Contrast SVG Architecture, Hero, Contributor & Season 5 Roadmap Diagrams
+│   ├── CONTRIBUTOR_TASKS_AND_BOUNTIES.md  # Merged Waves 1–3.5 PRs (25/25) & Season 5 Wave 4 Bounties (#43–#48)
 │   ├── STEAM_STATUS.md             # Steam AppID Clarification & Local Prototype Guide (PR #11)
 │   └── SOCIAL_MEDIA_KIT.md         # Ready-to-Post Reddit, HN, X/Twitter & LinkedIn Templates
 ├── lean4/
-│   ├── HiveMindSpec.lean           # Machine-Checked Lean 4 Specification (32 Theorems, 0 sorry, 0 axiom)
+│   ├── HiveMindSpec.lean           # Machine-Checked Lean 4 Specification (40 Theorems, 0 sorry, 0 axiom)
 │   ├── lakefile.lean               # Lean 4 Lake Build Configuration
 │   └── lean-toolchain              # Pinned Lean 4 Compiler Version
 ├── paper/
 │   ├── hivemind_foundation_article.tex    # Foundational Research Article (LaTeX Source)
 │   ├── hivemind_foundation_article.pdf    # Compiled 10-Page Research Paper (PDF)
 │   ├── autoevolve_peer_review_pipeline.py # 3-Referee Peer Review & AutoevolveAI Session Generator
-│   ├── PEER_REVIEW_REPORT.json            # Machine-Verified Peer Review (9.43/10 Strong Accept)
+│   ├── PEER_REVIEW_REPORT.json            # Machine-Verified Peer Review (9.43/10 Strong Accept, 40 Theorems)
 │   └── AUTOEVOLVE_SESSION_MANIFEST.json   # Cross-Session AutoevolveAI Handoff Manifest
 ├── src/hivemind/
 │   ├── core/                       # Pillars 1-3: NF4 Stream Loader, DiLoCo, Top-k/FP8, Multi-Krum, SVD BTM Sparse MoE
 │   ├── data/                       # Season 3/4 Domain Expert QLoRA Trainer & CAS Publisher (PR #25)
-│   ├── boinc/                      # Deterministic CUDA Spot-Check Validator, Coordinator & OpenAI SSE Gateway
+│   ├── boinc/                      # Deterministic CUDA Spot-Check Validator, Coordinator, ZK-OPoI v2 & OpenAI SSE Gateway
 │   ├── client/                     # Win32 Zero-Intrusion Daemon (<150ms Yield) & Steamworks SDK Bridge
-│   ├── swarm/                      # CAS Vault, $HIVE Ledger, QUIC Super-Ring, Scientific Eval & HF Community Hub
-│   ├── game/                       # Hugging Face Hack-Miner (Missions 1-16), Free Steam RTX Tool & Live WS HUD
+│   ├── swarm/                      # CAS Vault, $HIVE Ledger, aioquic 0-RTT, STUN/TURN NAT, Scientific Eval & HF Community Hub
+│   ├── game/                       # Hugging Face Hack-Miner (Missions 1-16), Raw WebGL 3D Globe & Live WS HUD (:8090)
 │   └── cli/                        # CLI Entrypoints (`deploy-steam-tool`, `play-hack-game`, `serve-hack-hud`, `run-poc`)
 ├── steam_dist/
 │   └── HiveMind_Steam_FreeEdition/ # Packaged Free Steam RTX Tool & Hack-Miner v1.0.0 + Web HUD (:8090)
 ├── artifacts/                      # Verified RTX 2070 Stress Suite, Scientific Swarm & HF Community Bundles
-└── tests/                          # 36/36 Automated Unit & Integration Test Suite (`pytest tests/ -v`)
+└── tests/                          # 240+ Automated Unit, Formal & Integration Test Suite (`pytest tests/ -v`)
 ```

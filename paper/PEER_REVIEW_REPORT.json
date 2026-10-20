@@ -1,7 +1,7 @@
 {
   "manuscript_title": "Project HiveMind: Byzantine-Resilient Decentralized Sparse Mixture-of-Experts Training and Speculative Swarm Inference on 8 GB Consumer Gaming GPUs",
   "version": "2.1.0",
-  "timestamp_utc": "2026-10-20T07:26:45Z",
+  "timestamp_utc": "2026-10-20T07:45:04Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,

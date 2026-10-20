@@ -169,8 +169,8 @@ def verify_lean4_specification() -> Dict[str, Any]:
                 cwd=LEAN4_SPEC_PATH.parent,
                 capture_output=True,
                 text=True,
-                encoding=chr(34)+chr(117)+chr(116)+chr(102)+chr(45)+chr(56)+chr(34),
-                errors=chr(34)+chr(114)+chr(101)+chr(112)+chr(108)+chr(97)+chr(99)+chr(101)+chr(34),
+                encoding="utf-8",
+                errors="replace",
                 timeout=120,
                 check=False,
             )
