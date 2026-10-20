@@ -123,6 +123,8 @@ def main() -> int:
     sh([*pip, "install", "--upgrade", "pip==25.2"], env=env)
     sh([*pip, "install", "--extra-index-url", TORCH_CPU_INDEX, "-c", CONSTRAINTS,
         REPO, "pyinstaller", "pyinstaller-hooks-contrib"], env=env)
+    # A reused venv already holds hivemind 1.1.0, so pip would skip the rebuilt source without this.
+    sh([*pip, "install", "--no-deps", "--force-reinstall", REPO], env=env)
     sh([*pip, "check"], env=env)
     freeze = sh([*pip, "freeze", "--all"], env=env, capture_output=True).stdout.splitlines()
 
