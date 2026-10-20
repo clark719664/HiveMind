@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23070b14'/%3E%3Cpath d='M8 7v18m16-18v18M8 16h16' fill='none' stroke='%2300f0ff' stroke-width='4'/%3E%3C/svg%3E" />
   <title>HiveMind: Neural Breach // Hugging Face Hack-Miner (Free Steam Edition)</title>
   <style>
     :root {
@@ -21,6 +22,7 @@
       font-family: 'Consolas', 'Courier New', monospace;
       background: radial-gradient(circle at top right, #131c38, var(--bg));
       color: var(--text);
+      overflow-wrap: anywhere;
     }
     .header {
       border: 2px solid var(--border);
@@ -34,6 +36,7 @@
       flex-wrap: wrap;
       gap: 12px;
     }
+    .header > div { min-width: 0; max-width: 100%; }
     .title {
       font-size: 1.45rem;
       font-weight: bold;
@@ -41,6 +44,8 @@
       text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
     }
     .badge {
+      display: inline-block;
+      max-width: 100%;
       background: var(--green);
       color: #051014;
       padding: 6px 14px;
@@ -50,11 +55,12 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
       gap: 18px;
       margin-top: 20px;
     }
     .card {
+      min-width: 0;
       background: var(--panel);
       border: 1px solid rgba(0, 240, 255, 0.4);
       border-radius: 8px;
@@ -68,6 +74,12 @@
       border-bottom: 1px solid rgba(252, 238, 9, 0.3);
       padding-bottom: 8px;
     }
+    .table-scroll {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .table-scroll:focus-visible { outline: 2px solid var(--border); outline-offset: 2px; }
+    #leaderboard-table { min-width: 900px; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -81,6 +93,8 @@
     th { color: var(--border); }
     .crown { color: var(--yellow); font-weight: bold; }
     .btn {
+      max-width: calc(100% - 6px);
+      overflow-wrap: anywhere;
       background: linear-gradient(90deg, var(--accent), #7928ca);
       color: white;
       border: none;
@@ -153,6 +167,7 @@
   <div class="grid">
     <div class="card" style="grid-column: 1 / -1;">
       <h2>GLOBAL STEAMWORKS LEADERBOARD — BEST HUGGING FACE MINER &amp; SWARM CONTRIBUTION (SEASON 1 + 2)</h2>
+      <div class="table-scroll" role="region" aria-label="Leaderboard, scroll horizontally to view all columns" tabindex="0">
       <table id="leaderboard-table">
         <thead>
           <tr>
@@ -169,6 +184,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">
@@ -211,7 +227,7 @@
       </select>
       <button class="btn btn-cyan" onclick="runInteractiveScan()">Scan HF Node &amp; Pin 16KB CAS Shard (+PTS)</button>
       <button class="btn" onclick="runInteractiveForge()">Simulate Season 2 QLoRA Forge (Game Points)</button>
-      <button class="btn btn-cyan" onclick="runRealLoraTraining()">Execute Real LoRA Training (Empirical Held-Out Validation)</button>
+      <button class="btn btn-cyan" onclick="runRealLoraTraining()">Run Local LoRA Smoke Test (Random-Init Model)</button>
       <button class="btn btn-cyan" onclick="runRtxToolDiagnostic()">RTX Steam Tool v1.0.0 Live Diagnostic</button>
       <div class="terminal" id="scan-terminal">[READY] Click 'Scan HF Node & Pin 16KB CAS Shard', 'Forge Season 2 QLoRA Adapter', or 'RTX Steam Tool v1.0.0 Live Diagnostic' to test your RTX GPU and mine Hugging Face datasets.</div>
     </div>
@@ -2497,29 +2513,24 @@
       };
       const cid = dsToContract[ds] || 'CONTRACT-HF-04-RUST-SYSTEMS';
       const term = document.getElementById('scan-terminal');
-      term.textContent = `[EXECUTING REAL LoRA TEXT-TRAINING] ${cid} on ${ds} for ${gamer}...`;
+      term.textContent = `[RUNNING LOCAL LoRA SMOKE TEST] ${cid} on ${ds} for ${gamer}...`;
       try {
         const resp = await fetch('/api/forge-lora-mission', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ gamer_tag: gamer, contract_id: cid, real_training: true })
         });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const res = await resp.json();
+        if (!resp.ok) throw new Error(res.detail || ('HTTP ' + resp.status));
         term.textContent =
-          `[REAL TEXT-TRAINING FORGE COMPLETE] ${res.contract_id} (${res.domain_expert})\n` +
-          `[BACKEND] ${res.source} | Steps: ${res.steps_completed} | Runtime Verified: ${res.runtime_verified}\n` +
-          `[HELDOUT LOSS] ${res.heldout_initial_loss} -> ${res.heldout_final_loss} (-${res.loss_reduction_pct}%) | Improved: ${res.heldout_improved}\n` +
-          `[ADAPTER SAVED & RELOADED] ${res.adapter_saved_path} (Verified: ${res.adapter_reloaded_and_verified})\n` +
-          `[STEAM RICH PRESENCE] ${res.steam_rich_presence}\n` +
-          `[REWARD] +${res.total_pts_awarded} PTS & +${res.hive_minted} $HIVE awarded to ${res.gamer_tag}!`;
-        document.getElementById('rp-text').textContent = res.gamer_tag + ' -> "' + res.steam_rich_presence + '"';
-        const lbResp = await fetch('/api/leaderboard');
-        if (lbResp.ok) {
-          const lbData = await lbResp.json();
-          GAME_DATA.leaderboard = lbData.leaderboard;
-          renderLeaderboard();
-        }
+          `[LOCAL TEXT-TRAINING COMPLETE] ${res.contract_id} (${res.domain_expert})\n` +
+          `[MODEL] ${res.model_kind} | Scope: ${res.training_scope}\n` +
+          `[BACKEND] ${res.source} | Steps: ${res.steps_completed}\n` +
+          `[DISJOINT HOLDOUT] ${res.heldout_disjoint_verified} | Train: ${res.training_sample_count} | Holdout: ${res.heldout_sample_count}\n` +
+          `[HELDOUT LOSS] ${res.heldout_initial_loss} -> ${res.heldout_final_loss} | Reduction: ${res.loss_reduction_pct}% | Improved: ${res.heldout_improved}\n` +
+          `[ADAPTER ROUND-TRIP] ${res.adapter_saved_path} (Verified: ${res.adapter_reloaded_and_verified})\n` +
+          `[VALIDATION] ${res.validation_status} | Certified: ${res.runtime_verified}\n` +
+          `[REWARDS] ${res.reward_status}: ${res.total_pts_awarded} PTS, ${res.hive_minted} HIVE | Settlement executed: ${res.settlement_executed}`;
       } catch (e) {
         term.textContent = `[REAL TRAINING ERROR] ` + e.message;
       }

@@ -91,6 +91,79 @@ INIT_SCRIPT = r"""
 })();
 """
 
+
+# Opt-in diagnostic only: these observers/wrappers never change HUD handlers or
+# state, but their logging overhead can affect timing. Rendered angles are the
+# actual shader uniform submissions, not access to the renderer's private state.
+TRACE_SCRIPT = r"""
+(() => {
+  const trace = window.__hudInteractionTrace = {
+    limit: 10000, dropped: 0, records: [], context_epoch: 0, rendered_angles: null,
+  };
+  let context = null;
+  const uniforms = new WeakMap();
+  const state = () => {
+    const canvas = document.getElementById('webgl-georing-canvas');
+    const box = canvas && canvas.getBoundingClientRect();
+    const evidence = window.__hudEvidence;
+    return {
+      context_epoch: trace.context_epoch,
+      context_lost: context ? context.isContextLost() : null,
+      last_rendered_angles: trace.rendered_angles,
+      raf_run: evidence ? evidence.raf.run : null,
+      draws: evidence ? evidence.draws.georing : null,
+      scroll: [window.scrollX, window.scrollY],
+      focus: document.activeElement && document.activeElement.id,
+      visibility: document.visibilityState,
+      canvas_box: box ? [box.x, box.y, box.width, box.height] : null,
+    };
+  };
+  const record = (type, details = {}) => {
+    if (trace.records.length >= trace.limit) { trace.dropped++; return; }
+    trace.records.push({ t: performance.now(), type, ...details, ...state() });
+  };
+  trace.mark = label => record('marker', { label });
+  for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel',
+      'gotpointercapture', 'lostpointercapture', 'keydown', 'focus', 'blur',
+      'scroll', 'resize', 'visibilitychange', 'webglcontextlost', 'webglcontextrestored']) {
+    for (const capture of [true, false]) window.addEventListener(type, event => {
+      const target = event.target;
+      if (type.startsWith('webgl') && capture) trace.context_epoch++;
+      record(type, {
+        phase: capture ? 'capture' : 'bubble',
+        target: target === window ? 'window' : target === document ? 'document' : target && (target.id || target.tagName),
+        pointer_id: event.pointerId, x: event.clientX, y: event.clientY,
+        buttons: event.buttons, key: event.key, default_prevented: event.defaultPrevented,
+        target_has_capture: event.pointerId !== undefined && target && target.hasPointerCapture
+          ? target.hasPointerCapture(event.pointerId) : null,
+      });
+    }, capture);
+  }
+  for (const ctor of [window.WebGLRenderingContext, window.WebGL2RenderingContext]) {
+    if (!ctor) continue;
+    const getUniformLocation = ctor.prototype.getUniformLocation;
+    ctor.prototype.getUniformLocation = function (program, name) {
+      const location = getUniformLocation.call(this, program, name);
+      if (this.canvas && this.canvas.id === 'webgl-georing-canvas' && location && name === 'angles') {
+        context = this;
+        uniforms.set(location, true);
+      }
+      return location;
+    };
+    const uniform2f = ctor.prototype.uniform2f;
+    ctor.prototype.uniform2f = function (location, yaw, pitch) {
+      const result = uniform2f.call(this, location, yaw, pitch);
+      if (this.canvas && this.canvas.id === 'webgl-georing-canvas' && uniforms.has(location)) {
+        context = this;
+        trace.rendered_angles = [yaw, pitch];
+        record('rendered_angles');
+      }
+      return result;
+    };
+  }
+})();
+"""
+
 GPU_TEXT_JS = r"""
 () => {
   const out = [];
@@ -362,6 +435,7 @@ class Evidence:
         self.console: dict[str, list] = {k: [] for k in (
             'console', 'pageerror', 'init_script_errors', 'unhandled_rejections', 'requestfailed', 'http_error_responses')}
         self.ws: list[dict] = []
+        self.interaction_traces: list[dict] = []
         self.recorder = Recorder(scratch / 'frames')
         self.shots: dict[str, str] = {}
 
@@ -394,6 +468,9 @@ class Evidence:
         data = page.evaluate('() => ({ errors: window.__hudEvidence.errors, rejections: window.__hudEvidence.rejections })')
         self.console['init_script_errors'] += [dict(e, page=label) for e in data['errors']]
         self.console['unhandled_rejections'] += [dict(r, page=label) for r in data['rejections']]
+        if self.args.trace_events:
+            trace = page.evaluate('() => ({ limit: window.__hudInteractionTrace.limit, dropped: window.__hudInteractionTrace.dropped, records: window.__hudInteractionTrace.records })')
+            self.interaction_traces.append(dict(trace, page=label))
 
     def save_png(self, name: str, png: bytes) -> None:
         (self.out / name).write_bytes(png)
@@ -426,7 +503,13 @@ def canvas_box(page) -> dict:
     return page.locator(CANVAS).bounding_box()
 
 
+def trace_mark(page, ev, label: str) -> None:
+    if ev and ev.args.trace_events:
+        page.evaluate('label => window.__hudInteractionTrace.mark(label)', label)
+
+
 def drag(page, ev: Evidence | None, dx: float, dy: float, caption: str = '') -> None:
+    trace_mark(page, ev, f'drag start: {caption or "probe"}, dx={dx}, dy={dy}')
     box = canvas_box(page)
     cx, cy = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
     page.mouse.move(cx, cy)
@@ -435,6 +518,7 @@ def drag(page, ev: Evidence | None, dx: float, dy: float, caption: str = '') -> 
         page.mouse.move(cx + dx * i / 4, cy + dy * i / 4, steps=5)
         if ev and caption:
             ev.recorder.capture(page, f'{caption} ({i}/4)')
+        trace_mark(page, ev, f'drag segment {i}/4 complete')
     page.mouse.up()
     wait_frames(page)
 
@@ -536,7 +620,7 @@ def run(args) -> int:
             gpu_ctx.close()
 
             context = browser.new_context(viewport={'width': 1280, 'height': 800})
-            context.add_init_script(INIT_SCRIPT)
+            context.add_init_script(INIT_SCRIPT + (TRACE_SCRIPT if args.trace_events else ''))
             page = context.new_page()
             ev.attach(page, 'hud')
             run_hud(page, url, ev, results)
@@ -544,7 +628,7 @@ def run(args) -> int:
 
             for (w, h), dpr in DPR_CASES:
                 ctx = browser.new_context(viewport={'width': w, 'height': h}, device_scale_factor=dpr)
-                ctx.add_init_script(INIT_SCRIPT)
+                ctx.add_init_script(INIT_SCRIPT + (TRACE_SCRIPT if args.trace_events else ''))
                 p2 = ctx.new_page()
                 ev.attach(p2, f'dpr{dpr}')
                 p2.goto(url, wait_until='load')
@@ -716,6 +800,7 @@ def context_loss(page, ev: Evidence, results: dict, nodes: list[dict]) -> None:
     listeners_pre = page.evaluate(LISTENERS_JS)
     cycles = []
     for cycle in (1, 2):
+        trace_mark(page, ev, f'context-loss cycle {cycle} start')
         lost_c0 = counters(page)
         page.evaluate("() => { const gl = document.getElementById('webgl-georing-canvas').getContext('webgl');"
                       " window.__loseExt = gl.getExtension('WEBGL_lose_context'); window.__loseExt.loseContext(); }")
@@ -930,6 +1015,15 @@ def finish(ev: Evidence, results: dict, server: SourceServer | None) -> None:
     results['screenshots'] = sorted(ev.shots)
     results['console_counts'] = {k: len(v) for k, v in con.items()}
     scrubbers = build_scrubbers()
+    if ev.args.trace_events:
+        results['interaction_trace'] = {
+            'file': 'interaction_trace.json',
+            'records': sum(len(trace['records']) for trace in ev.interaction_traces),
+            'dropped': sum(trace['dropped'] for trace in ev.interaction_traces),
+            'limitation': 'Diagnostic logging may affect timing. Angles are shader submissions, not private renderer state.',
+        }
+        (ev.out / 'interaction_trace.json').write_text(
+            json.dumps(scrub(ev.interaction_traces, scrubbers), indent=2), encoding='utf-8')
     (ev.out / 'results.json').write_text(json.dumps(scrub(results, scrubbers), indent=2), encoding='utf-8')
     (ev.out / 'console.json').write_text(json.dumps(scrub(con, scrubbers), indent=2), encoding='utf-8')
     print(json.dumps(summary), flush=True)
@@ -940,6 +1034,7 @@ def main() -> int:
     parser.add_argument('--url', help='HUD URL to test; omit to launch the source server')
     parser.add_argument('--server-python', help='interpreter with HiveMind deps used to launch the source server')
     parser.add_argument('--channel', default='msedge', choices=['msedge', 'chrome'])
+    parser.add_argument('--trace-events', action='store_true', help='Record bounded pointer/capture, rendered-angle, frame and context diagnostics for the full sequence')
     parser.add_argument('--headless', action='store_true', help='headless mode (may use a software renderer)')
     parser.add_argument('--out', help='output folder (default docs/evidence/browser/<sha12>)')
     parser.add_argument('--source-tree', help='serve from this exported tree (e.g. a git archive of an older commit)')

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict
 
@@ -295,6 +296,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23070b14'/%3E%3Cpath d='M8 7v18m16-18v18M8 16h16' fill='none' stroke='%2300f0ff' stroke-width='4'/%3E%3C/svg%3E" />
   <title>HiveMind: Neural Breach // Hugging Face Hack-Miner (Free Steam Edition)</title>
   <style>
     :root {{
@@ -313,6 +315,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       font-family: 'Consolas', 'Courier New', monospace;
       background: radial-gradient(circle at top right, #131c38, var(--bg));
       color: var(--text);
+      overflow-wrap: anywhere;
     }}
     .header {{
       border: 2px solid var(--border);
@@ -326,6 +329,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       flex-wrap: wrap;
       gap: 12px;
     }}
+    .header > div {{ min-width: 0; max-width: 100%; }}
     .title {{
       font-size: 1.45rem;
       font-weight: bold;
@@ -333,6 +337,8 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
     }}
     .badge {{
+      display: inline-block;
+      max-width: 100%;
       background: var(--green);
       color: #051014;
       padding: 6px 14px;
@@ -342,11 +348,12 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     }}
     .grid {{
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
       gap: 18px;
       margin-top: 20px;
     }}
     .card {{
+      min-width: 0;
       background: var(--panel);
       border: 1px solid rgba(0, 240, 255, 0.4);
       border-radius: 8px;
@@ -360,6 +367,12 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       border-bottom: 1px solid rgba(252, 238, 9, 0.3);
       padding-bottom: 8px;
     }}
+    .table-scroll {{
+      max-width: 100%;
+      overflow-x: auto;
+    }}
+    .table-scroll:focus-visible {{ outline: 2px solid var(--border); outline-offset: 2px; }}
+    #leaderboard-table {{ min-width: 900px; }}
     table {{
       width: 100%;
       border-collapse: collapse;
@@ -373,6 +386,8 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     th {{ color: var(--border); }}
     .crown {{ color: var(--yellow); font-weight: bold; }}
     .btn {{
+      max-width: calc(100% - 6px);
+      overflow-wrap: anywhere;
       background: linear-gradient(90deg, var(--accent), #7928ca);
       color: white;
       border: none;
@@ -445,6 +460,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
   <div class="grid">
     <div class="card" style="grid-column: 1 / -1;">
       <h2>GLOBAL STEAMWORKS LEADERBOARD — BEST HUGGING FACE MINER &amp; SWARM CONTRIBUTION (SEASON 1 + 2)</h2>
+      <div class="table-scroll" role="region" aria-label="Leaderboard, scroll horizontally to view all columns" tabindex="0">
       <table id="leaderboard-table">
         <thead>
           <tr>
@@ -461,6 +477,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         </thead>
         <tbody></tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">
@@ -1015,9 +1032,34 @@ Gamers compete on the **Global Steamworks Leaderboard** across 4 cryptographic p
 """
 
 
+def _generate_standalone_hud_launcher(data_dir: Path, *, campaign: bool = False) -> str:
+    """Point generated launchers at this frozen executable, including custom data roots."""
+    def quote_path(value: str) -> str:
+        # Batch expands percent variables even inside quotes. Delayed expansion
+        # is disabled below so exclamation marks in real user paths stay literal.
+        if any(character in value for character in ('"', '\r', '\n')):
+            raise ValueError("Invalid Windows launcher path")
+        trailing_slashes = len(value) - len(value.rstrip('\\'))
+        return '"' + value.replace('%', '%%') + '\\' * trailing_slashes + '"'
+
+    executable = quote_path(sys.executable)
+    data = quote_path(str(data_dir))
+    note = ("echo The standalone build supports the HUD; the CLI campaign requires the source distribution.\n"
+            "echo Opening the standalone HUD instead.\n") if campaign else ""
+    return ("@echo off\nsetlocal DisableDelayedExpansion\nchcp 65001 >nul\n"
+            "title HiveMind standalone HUD\n" + note +
+            f"if not exist {executable} (\n"
+            "    echo The original HiveMindHUD.exe was moved or removed. Launch it from the extracted distribution.\n"
+            "    pause\n    exit /b 1\n)\n"
+            f"{executable} --data-dir {data}\n"
+            "exit /b %errorlevel%\n")
+
+
 def build_free_steam_edition_package(
     game_report: Dict[str, Any] | None = None,
     output_root: Path | None = None,
+    *,
+    standalone_data_dir: Path | None = None,
 ) -> Dict[str, Any]:
     """Build the Free-to-Play Steam Edition package (`steam_dist/HiveMind_Steam_FreeEdition`)."""
     if game_report is None:
@@ -1157,6 +1199,8 @@ if exist ".venv\\Scripts\\python.exe" (
 )
 pause
 """
+    if standalone_data_dir is not None:
+        bat_content = _generate_standalone_hud_launcher(standalone_data_dir, campaign=True)
     launcher_path = pkg_dir / "Launch_HiveMind_HackMiner.bat"
     launcher_path.write_text(bat_content, encoding="utf-8")
 
@@ -1174,6 +1218,8 @@ if exist ".venv\\Scripts\\python.exe" (
 )
 pause
 """
+    if standalone_data_dir is not None:
+        hud_bat_content = _generate_standalone_hud_launcher(standalone_data_dir)
     hud_launcher_path = pkg_dir / "Launch_HiveMind_WebHUD.bat"
     hud_launcher_path.write_text(hud_bat_content, encoding="utf-8")
 
@@ -1207,7 +1253,11 @@ pause
     }
 
 
-def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> Any:
+def create_hack_miner_fastapi_app(
+    game_report: Dict[str, Any] | None = None,
+    *,
+    standalone_data_dir: Path | None = None,
+) -> Any:
     """Create a FastAPI server serving the Interactive Cyberpunk Hack-Miner HUD and Live REST API."""
     import torch
     from fastapi import Body, FastAPI, HTTPException, WebSocket
@@ -1228,7 +1278,9 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         execute_interactive_lora_micro_forge,
     )
 
-    pkg_info = build_free_steam_edition_package(game_report=game_report)
+    pkg_info = build_free_steam_edition_package(
+        game_report=game_report, standalone_data_dir=standalone_data_dir,
+    )
     hud_path = Path(pkg_info["interactive_hud_html"])
     state_path = hud_path.parent / "live_leaderboard_state.json"
     manifest_path = Path(pkg_info["steam_store_manifest"])

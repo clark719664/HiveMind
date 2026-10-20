@@ -553,7 +553,7 @@ def _run_configured(
 
         from hivemind.game.steam_edition import create_hack_miner_fastapi_app
 
-        app = create_hack_miner_fastapi_app()
+        app = create_hack_miner_fastapi_app(standalone_data_dir=data_dir if is_frozen() else None)
         server = uvicorn.Server(uvicorn.Config(app, log_level="info", lifespan="on"))
     except Exception as exc:
         sock.close()
