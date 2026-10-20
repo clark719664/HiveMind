@@ -1,0 +1,1952 @@
+{
+  "schema": "hivemind.hud_browser_evidence/v1",
+  "generated_utc": "2026-10-20T01:15:24Z",
+  "commit": {
+    "sha": "107d328d97d3666ff6d20d4555a1db5e93516501",
+    "sha12": "107d328d97d3",
+    "harness_head": "107d328d97d3666ff6d20d4555a1db5e93516501",
+    "branch": "fix/opus-browser-evidence",
+    "source_tree": "worktree",
+    "dirty_paths_at_start": []
+  },
+  "limitations": [],
+  "target": {
+    "mode": "external_url",
+    "url": "http://127.0.0.1:8471/"
+  },
+  "browser": {
+    "channel": "msedge",
+    "version": "155.0.4283.62",
+    "headless": false,
+    "playwright": "1.63.0",
+    "extra_launch_args": []
+  },
+  "gpu_page": {
+    "attempts": [
+      {
+        "url": "edge://gpu",
+        "ok": true
+      }
+    ],
+    "graphics_feature_status": [
+      "Canvas: Hardware accelerated",
+      "Direct Rendering Display Compositor: Disabled",
+      "Compositing: Hardware accelerated",
+      "Multiple Raster Threads: Enabled",
+      "OpenGL: Enabled",
+      "Rasterization: Hardware accelerated",
+      "Raw Draw: Disabled",
+      "Skia Graphite: Disabled",
+      "TreesInViz: Disabled",
+      "Video Decode: Hardware accelerated",
+      "Video Encode: Hardware accelerated",
+      "WebGL: Hardware accelerated",
+      "WebGPU: Hardware accelerated",
+      "WebNN: Disabled"
+    ],
+    "gpu_lines": [
+      "GPU0 : VENDOR= 0x1002, DEVICE=0x7480 [AMD Radeon RX 7600], SUBSYS=0x0e371002, REV=207, LUID={0,84265}, DRIVER_VENDOR=AMD, DRIVER_VERSION=32.0.31041.1004 *ACTIVE*",
+      "GPU1 : VENDOR= 0x1414, DEVICE=0x008c [Microsoft Basic Render Driver], LUID={0,94514}, DRIVER_VERSION=10.0.26100.9711",
+      "GL_VENDOR : Google Inc. (AMD)",
+      "GL_RENDERER : ANGLE (AMD, AMD Radeon RX 7600 (0x00007480) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.31041.1004)",
+      "GL_VERSION : OpenGL ES 3.0 (ANGLE 2.1.48257 git hash: 21c0f7a0f5af)"
+    ],
+    "webgl_line": "WebGL: Hardware accelerated",
+    "lines_scanned": 1023
+  },
+  "webgl_caveat_probe": {
+    "fail_if_major_performance_caveat_context": true
+  },
+  "time_to_ready_seconds": 0.14,
+  "navigator": {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "platform": "Win32",
+    "hardware_concurrency": 16,
+    "ua_full_version_list": [
+      {
+        "brand": "Microsoft Edge",
+        "version": "155.0.4283.62"
+      },
+      {
+        "brand": "Chromium",
+        "version": "155.0.8059.85"
+      },
+      {
+        "brand": "Not(A:Brand",
+        "version": "24.0.0.0"
+      }
+    ]
+  },
+  "webgl": {
+    "available": true,
+    "vendor": "WebKit",
+    "renderer": "WebKit WebGL",
+    "unmasked_vendor": "Google Inc. (AMD)",
+    "unmasked_renderer": "ANGLE (AMD, AMD Radeon RX 7600 (0x00007480) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "debug_renderer_info_available": true,
+    "version": "WebGL 1.0 (OpenGL ES 2.0 Chromium)",
+    "glsl": "WebGL GLSL ES 1.0 (OpenGL ES GLSL ES 1.0 Chromium)",
+    "context_attributes": {
+      "alpha": false,
+      "antialias": true,
+      "depth": true,
+      "desynchronized": false,
+      "failIfMajorPerformanceCaveat": false,
+      "powerPreference": "default",
+      "premultipliedAlpha": true,
+      "preserveDrawingBuffer": false,
+      "stencil": false,
+      "xrCompatible": false
+    },
+    "lose_context_available": true,
+    "extension_count": 35
+  },
+  "context_loss_cycles": [
+    {
+      "cycle": 1,
+      "terminal_while_lost": "[WEBGL CONTEXT LOST] Drawing paused; waiting for browser recovery.",
+      "is_context_lost": true,
+      "counters_lose_event": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "counters_while_lost_during_input": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "lost_canvas_stats": {
+        "analysed_size": [
+          1175,
+          309
+        ],
+        "non_background_pixels": 363075,
+        "non_background_fraction": 1.0,
+        "luma_std": 1.4,
+        "unique_colors": 63,
+        "grid_color_pixels": 0,
+        "links_color_pixels": 0,
+        "nodes_color_pixels": 0,
+        "content_bbox_wh": [
+          1175,
+          309
+        ],
+        "content_bbox_aspect": 3.8026
+      },
+      "lost_canvas_diff_during_input": {
+        "changed_pixels": 0,
+        "changed_fraction": 0.0,
+        "mean_abs_diff": 0.0
+      },
+      "restored_stats": {
+        "analysed_size": [
+          1175,
+          309
+        ],
+        "non_background_pixels": 8702,
+        "non_background_fraction": 0.02397,
+        "luma_std": 8.489,
+        "unique_colors": 25,
+        "grid_color_pixels": 5325,
+        "links_color_pixels": 152,
+        "nodes_color_pixels": 275,
+        "content_bbox_wh": [
+          237,
+          239
+        ],
+        "content_bbox_aspect": 0.9916
+      },
+      "restored_vs_pre_loss": {
+        "changed_pixels": 0,
+        "changed_fraction": 0.0,
+        "mean_abs_diff": 0.0
+      },
+      "idle_counters_pre": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "idle_counters_post": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "listeners_pre": {
+        "#webgl-georing-canvas pointerdown": 1,
+        "#webgl-georing-canvas pointermove": 1,
+        "#webgl-georing-canvas pointerup": 1,
+        "#webgl-georing-canvas pointercancel": 1,
+        "#webgl-georing-canvas lostpointercapture": 1,
+        "#webgl-georing-canvas keydown": 1,
+        "#webgl-georing-canvas webglcontextlost": 1,
+        "#webgl-georing-canvas webglcontextrestored": 1,
+        "#georing-refresh click": 1,
+        "#georing-reset click": 1,
+        "#georing-node change": 1,
+        "window resize": 1,
+        "window pagehide": 1,
+        "window __playwright_global_listeners_check__": 1,
+        "window mousemove": 1,
+        "window pointerdown": 1,
+        "window pointerup": 1,
+        "window touchstart": 1,
+        "window touchend": 1,
+        "window touchcancel": 1,
+        "window mousedown": 1,
+        "window mouseup": 1,
+        "window click": 1,
+        "window auxclick": 1,
+        "window dblclick": 1,
+        "window contextmenu": 1
+      },
+      "listeners_post": {
+        "#webgl-georing-canvas pointerdown": 1,
+        "#webgl-georing-canvas pointermove": 1,
+        "#webgl-georing-canvas pointerup": 1,
+        "#webgl-georing-canvas pointercancel": 1,
+        "#webgl-georing-canvas lostpointercapture": 1,
+        "#webgl-georing-canvas keydown": 1,
+        "#webgl-georing-canvas webglcontextlost": 1,
+        "#webgl-georing-canvas webglcontextrestored": 1,
+        "#georing-refresh click": 1,
+        "#georing-reset click": 1,
+        "#georing-node change": 1,
+        "window resize": 1,
+        "window pagehide": 1,
+        "window __playwright_global_listeners_check__": 1,
+        "window mousemove": 1,
+        "window pointerdown": 1,
+        "window pointerup": 1,
+        "window touchstart": 1,
+        "window touchend": 1,
+        "window touchcancel": 1,
+        "window mousedown": 1,
+        "window mouseup": 1,
+        "window click": 1,
+        "window auxclick": 1,
+        "window dblclick": 1,
+        "window contextmenu": 1
+      },
+      "drag_counters_pre": {
+        "raf_requested": 20,
+        "raf_run": 20,
+        "raf_cancelled": 0,
+        "draws": 60,
+        "listeners": 0
+      },
+      "drag_counters_post": {
+        "raf_requested": 20,
+        "raf_run": 20,
+        "raf_cancelled": 0,
+        "draws": 60,
+        "listeners": 0
+      },
+      "drag_post_vs_drag_pre": {
+        "changed_pixels": 0,
+        "changed_fraction": 0.0,
+        "mean_abs_diff": 0.0
+      },
+      "drag_post_vs_double_drag_control": {
+        "changed_pixels": 14974,
+        "changed_fraction": 0.04124,
+        "mean_abs_diff": 1.7199
+      },
+      "drag_pre_vs_double_drag_control": {
+        "changed_pixels": 14974,
+        "changed_fraction": 0.04124,
+        "mean_abs_diff": 1.7199
+      },
+      "post_restore_click_selection_ok": true,
+      "post_restore_selector_text": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nUS-East-Virginia | seti-node-virginia-03\nExample RTT: 2.15 ms | direct_udp_hole_punch_0rtt\nExperts: Mathematical_Reasoning, Multilingual_FR_Synthesis, Dynamic_16Expert_MoE_Router"
+    },
+    {
+      "cycle": 2,
+      "terminal_while_lost": "[WEBGL CONTEXT LOST] Drawing paused; waiting for browser recovery.",
+      "is_context_lost": true,
+      "counters_lose_event": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "counters_while_lost_during_input": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "lost_canvas_stats": {
+        "analysed_size": [
+          1175,
+          309
+        ],
+        "non_background_pixels": 363075,
+        "non_background_fraction": 1.0,
+        "luma_std": 1.4,
+        "unique_colors": 63,
+        "grid_color_pixels": 0,
+        "links_color_pixels": 0,
+        "nodes_color_pixels": 0,
+        "content_bbox_wh": [
+          1175,
+          309
+        ],
+        "content_bbox_aspect": 3.8026
+      },
+      "lost_canvas_diff_during_input": {
+        "changed_pixels": 0,
+        "changed_fraction": 0.0,
+        "mean_abs_diff": 0.0
+      },
+      "restored_stats": {
+        "analysed_size": [
+          1175,
+          309
+        ],
+        "non_background_pixels": 8702,
+        "non_background_fraction": 0.02397,
+        "luma_std": 8.489,
+        "unique_colors": 25,
+        "grid_color_pixels": 5325,
+        "links_color_pixels": 152,
+        "nodes_color_pixels": 275,
+        "content_bbox_wh": [
+          237,
+          239
+        ],
+        "content_bbox_aspect": 0.9916
+      },
+      "restored_vs_pre_loss": {
+        "changed_pixels": 0,
+        "changed_fraction": 0.0,
+        "mean_abs_diff": 0.0
+      },
+      "idle_counters_pre": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "idle_counters_post": {
+        "raf_requested": 0,
+        "raf_run": 0,
+        "raf_cancelled": 0,
+        "draws": 0,
+        "listeners": 0
+      },
+      "listeners_pre": {
+        "#webgl-georing-canvas pointerdown": 1,
+        "#webgl-georing-canvas pointermove": 1,
+        "#webgl-georing-canvas pointerup": 1,
+        "#webgl-georing-canvas pointercancel": 1,
+        "#webgl-georing-canvas lostpointercapture": 1,
+        "#webgl-georing-canvas keydown": 1,
+        "#webgl-georing-canvas webglcontextlost": 1,
+        "#webgl-georing-canvas webglcontextrestored": 1,
+        "#georing-refresh click": 1,
+        "#georing-reset click": 1,
+        "#georing-node change": 1,
+        "window resize": 1,
+        "window pagehide": 1,
+        "window __playwright_global_listeners_check__": 1,
+        "window mousemove": 1,
+        "window pointerdown": 1,
+        "window pointerup": 1,
+        "window touchstart": 1,
+        "window touchend": 1,
+        "window touchcancel": 1,
+        "window mousedown": 1,
+        "window mouseup": 1,
+        "window click": 1,
+        "window auxclick": 1,
+        "window dblclick": 1,
+        "window contextmenu": 1
+      },
+      "listeners_post": {
+        "#webgl-georing-canvas pointerdown": 1,
+        "#webgl-georing-canvas pointermove": 1,
+        "#webgl-georing-canvas pointerup": 1,
+        "#webgl-georing-canvas pointercancel": 1,
+        "#webgl-georing-canvas lostpointercapture": 1,
+        "#webgl-georing-canvas keydown": 1,
+        "#webgl-georing-canvas webglcontextlost": 1,
+        "#webgl-georing-canvas webglcontextrestored": 1,
+        "#georing-refresh click": 1,
+        "#georing-reset click": 1,
+        "#georing-node change": 1,
+        "window resize": 1,
+        "window pagehide": 1,
+        "window __playwright_global_listeners_check__": 1,
+        "window mousemove": 1,
+        "window pointerdown": 1,
+        "window pointerup": 1,
+        "window touchstart": 1,
+        "window touchend": 1,
+        "window touchcancel": 1,
+        "window mousedown": 1,
+        "window mouseup": 1,
+        "window click": 1,
+        "window auxclick": 1,
+        "window dblclick": 1,
+        "window contextmenu": 1
+      },
+      "drag_counters_pre": {
+        "raf_requested": 20,
+        "raf_run": 20,
+        "raf_cancelled": 0,
+        "draws": 60,
+        "listeners": 0
+      },
+      "drag_counters_post": {
+        "raf_requested": 5,
+        "raf_run": 5,
+        "raf_cancelled": 0,
+        "draws": 15,
+        "listeners": 0
+      },
+      "drag_post_vs_drag_pre": {
+        "changed_pixels": 15464,
+        "changed_fraction": 0.04259,
+        "mean_abs_diff": 1.7644
+      },
+      "drag_post_vs_double_drag_control": {
+        "changed_pixels": 14153,
+        "changed_fraction": 0.03898,
+        "mean_abs_diff": 1.6124
+      },
+      "drag_pre_vs_double_drag_control": {
+        "changed_pixels": 14974,
+        "changed_fraction": 0.04124,
+        "mean_abs_diff": 1.7199
+      },
+      "post_restore_click_selection_ok": true,
+      "post_restore_selector_text": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nUS-East-Virginia | seti-node-virginia-03\nExample RTT: 2.15 ms | direct_udp_hole_punch_0rtt\nExperts: Mathematical_Reasoning, Multilingual_FR_Synthesis, Dynamic_16Expert_MoE_Router"
+    }
+  ],
+  "resize_cases": [
+    {
+      "label": "1280x800@dpr1",
+      "backing_settled": true,
+      "geometry": {
+        "dpr": 1,
+        "border_box": [
+          1187,
+          320
+        ],
+        "content_box": [
+          1185,
+          318
+        ],
+        "backing": [
+          1185,
+          318
+        ],
+        "dataset_rendered": "true",
+        "page_scroll_width": 1265,
+        "page_client_width": 1265
+      },
+      "effective_ratio": 1,
+      "page_horizontal_overflow_px": 0,
+      "overflowing_elements": [],
+      "backing_expected_from_content_box": [
+        1185,
+        318
+      ],
+      "backing_matches_content_box_x_ratio": true,
+      "backing_minus_content_box_x_ratio": [
+        0,
+        0
+      ],
+      "pixel_stats": {
+        "analysed_size": [
+          1175,
+          309
+        ],
+        "non_background_pixels": 8702,
+        "non_background_fraction": 0.02397,
+        "luma_std": 8.489,
+        "unique_colors": 25,
+        "grid_color_pixels": 5325,
+        "links_color_pixels": 152,
+        "nodes_color_pixels": 275,
+        "content_bbox_wh": [
+          237,
+          239
+        ],
+        "content_bbox_aspect": 0.9916
+      },
+      "globe_bbox_aspect": 0.9916,
+      "status": "pass"
+    },
+    {
+      "label": "1024x768@dpr1",
+      "backing_settled": true,
+      "geometry": {
+        "dpr": 1,
+        "border_box": [
+          931,
+          320
+        ],
+        "content_box": [
+          929,
+          318
+        ],
+        "backing": [
+          929,
+          318
+        ],
+        "dataset_rendered": "true",
+        "page_scroll_width": 1009,
+        "page_client_width": 1009
+      },
+      "effective_ratio": 1,
+      "page_horizontal_overflow_px": 0,
+      "overflowing_elements": [],
+      "backing_expected_from_content_box": [
+        929,
+        318
+      ],
+      "backing_matches_content_box_x_ratio": true,
+      "backing_minus_content_box_x_ratio": [
+        0,
+        0
+      ],
+      "pixel_stats": {
+        "analysed_size": [
+          919,
+          309
+        ],
+        "non_background_pixels": 8702,
+        "non_background_fraction": 0.03064,
+        "luma_std": 9.572,
+        "unique_colors": 25,
+        "grid_color_pixels": 5325,
+        "links_color_pixels": 152,
+        "nodes_color_pixels": 275,
+        "content_bbox_wh": [
+          237,
+          239
+        ],
+        "content_bbox_aspect": 0.9916
+      },
+      "globe_bbox_aspect": 0.9916,
+      "status": "pass"
+    },
+    {
+      "label": "800x600@dpr1",
+      "backing_settled": true,
+      "geometry": {
+        "dpr": 1,
+        "border_box": [
+          707,
+          320
+        ],
+        "content_box": [
+          705,
+          318
+        ],
+        "backing": [
+          705,
+          318
+        ],
+        "dataset_rendered": "true",
+        "page_scroll_width": 785,
+        "page_client_width": 785
+      },
+      "effective_ratio": 1,
+      "page_horizontal_overflow_px": 0,
+      "overflowing_elements": [],
+      "backing_expected_from_content_box": [
+        705,
+        318
+      ],
+      "backing_matches_content_box_x_ratio": true,
+      "backing_minus_content_box_x_ratio": [
+        0,
+        0
+      ],
+      "pixel_stats": {
+        "analysed_size": [
+          695,
+          309
+        ],
+        "non_background_pixels": 8702,
+        "non_background_fraction": 0.04052,
+        "luma_std": 10.963,
+        "unique_colors": 25,
+        "grid_color_pixels": 5325,
+        "links_color_pixels": 152,
+        "nodes_color_pixels": 275,
+        "content_bbox_wh": [
+          237,
+          239
+        ],
+        "content_bbox_aspect": 0.9916
+      },
+      "globe_bbox_aspect": 0.9916,
+      "status": "pass"
+    },
+    {
+      "label": "412x915@dpr1",
+      "backing_settled": true,
+      "geometry": {
+        "dpr": 1,
+        "border_box": [
+          362,
+          320
+        ],
+        "content_box": [
+          360,
+          318
+        ],
+        "backing": [
+          360,
+          318
+        ],
+        "dataset_rendered": "true",
+        "page_scroll_width": 607,
+        "page_client_width": 397
+      },
+      "effective_ratio": 1,
+      "page_horizontal_overflow_px": 210,
+      "overflowing_elements": [
+        {
+          "element": "th",
+          "right": 434,
+          "width": 54
+        },
+        {
+          "element": "th",
+          "right": 488,
+          "width": 54
+        },
+        {
+          "element": "th",
+          "right": 603,
+          "width": 114
+        },
+        {
+          "element": "tbody",
+          "right": 603,
+          "width": 568
+        },
+        {
+          "element": "div.card",
+          "right": 416,
+          "width": 400
+        },
+        {
+          "element": "div.card",
+          "right": 416,
+          "width": 400
+        }
+      ],
+      "backing_expected_from_content_box": [
+        360,
+        318
+      ],
+      "backing_matches_content_box_x_ratio": true,
+      "backing_minus_content_box_x_ratio": [
+        0,
+        0
+      ],
+      "pixel_stats": {
+        "analysed_size": [
+          350,
+          309
+        ],
+        "non_background_pixels": 8702,
+        "non_background_fraction": 0.08046,
+        "luma_std": 15.135,
+        "unique_colors": 24,
+        "grid_color_pixels": 5363,
+        "links_color_pixels": 149,
+        "nodes_color_pixels": 267,
+        "content_bbox_wh": [
+          237,
+          239
+        ],
+        "content_bbox_aspect": 0.9916
+      },
+      "globe_bbox_aspect": 0.9916,
+      "status": "pass"
+    },
+    {
+      "label": "412x915@dpr2",
+      "backing_settled": true,
+      "geometry": {
+        "dpr": 2,
+        "border_box": [
+          362,
+          320
+        ],
+        "content_box": [
+          360,
+          318
+        ],
+        "backing": [
+          720,
+          636
+        ],
+        "dataset_rendered": "true",
+        "page_scroll_width": 607,
+        "page_client_width": 397
+      },
+      "effective_ratio": 2,
+      "page_horizontal_overflow_px": 210,
+      "overflowing_elements": [
+        {
+          "element": "th",
+          "right": 434,
+          "width": 54
+        },
+        {
+          "element": "th",
+          "right": 488,
+          "width": 54
+        },
+        {
+          "element": "th",
+          "right": 603,
+          "width": 114
+        },
+        {
+          "element": "tbody",
+          "right": 603,
+          "width": 568
+        },
+        {
+          "element": "div.card",
+          "right": 416,
+          "width": 400
+        },
+        {
+          "element": "div.card",
+          "right": 416,
+          "width": 400
+        }
+      ],
+      "backing_expected_from_content_box": [
+        720,
+        636
+      ],
+      "backing_matches_content_box_x_ratio": true,
+      "backing_minus_content_box_x_ratio": [
+        0,
+        0
+      ],
+      "pixel_stats": {
+        "analysed_size": [
+          700,
+          618
+        ],
+        "non_background_pixels": 19195,
+        "non_background_fraction": 0.04437,
+        "luma_std": 13.145,
+        "unique_colors": 25,
+        "grid_color_pixels": 11054,
+        "links_color_pixels": 394,
+        "nodes_color_pixels": 1299,
+        "content_bbox_wh": [
+          472,
+          477
+        ],
+        "content_bbox_aspect": 0.9895
+      },
+      "globe_bbox_aspect": 0.9895,
+      "status": "pass"
+    },
+    {
+      "label": "412x915@dpr3",
+      "backing_settled": true,
+      "geometry": {
+        "dpr": 3,
+        "border_box": [
+          362,
+          320
+        ],
+        "content_box": [
+          360,
+          318
+        ],
+        "backing": [
+          720,
+          636
+        ],
+        "dataset_rendered": "true",
+        "page_scroll_width": 607,
+        "page_client_width": 397
+      },
+      "effective_ratio": 2,
+      "page_horizontal_overflow_px": 210,
+      "overflowing_elements": [
+        {
+          "element": "th",
+          "right": 434,
+          "width": 54
+        },
+        {
+          "element": "th",
+          "right": 488,
+          "width": 54
+        },
+        {
+          "element": "th",
+          "right": 603,
+          "width": 114
+        },
+        {
+          "element": "tbody",
+          "right": 603,
+          "width": 568
+        },
+        {
+          "element": "div.card",
+          "right": 416,
+          "width": 400
+        },
+        {
+          "element": "div.card",
+          "right": 416,
+          "width": 400
+        }
+      ],
+      "backing_expected_from_content_box": [
+        720,
+        636
+      ],
+      "backing_matches_content_box_x_ratio": true,
+      "backing_minus_content_box_x_ratio": [
+        0,
+        0
+      ],
+      "pixel_stats": {
+        "analysed_size": [
+          1050,
+          927
+        ],
+        "non_background_pixels": 50414,
+        "non_background_fraction": 0.05179,
+        "luma_std": 12.257,
+        "unique_colors": 1479,
+        "grid_color_pixels": 29614,
+        "links_color_pixels": 230,
+        "nodes_color_pixels": 2674,
+        "content_bbox_wh": [
+          708,
+          716
+        ],
+        "content_bbox_aspect": 0.9888
+      },
+      "globe_bbox_aspect": 0.9888,
+      "status": "pass"
+    }
+  ],
+  "generated_tracked_paths_after_run": [],
+  "recording": {
+    "file": "hud_key_sequence.mp4",
+    "frames": 29,
+    "fps": 3,
+    "crf": 30,
+    "bytes": 155917
+  },
+  "summary": {
+    "pass": 18,
+    "fail": 5
+  },
+  "checks": [
+    {
+      "id": "hardware_acceleration",
+      "name": "WebGL renderer is a hardware GPU and the GPU page reports WebGL hardware accelerated",
+      "status": "pass",
+      "evidence": {
+        "renderer": "ANGLE (AMD, AMD Radeon RX 7600 (0x00007480) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+        "software_renderer_marker_found": false,
+        "gpu_page_webgl_line": "WebGL: Hardware accelerated",
+        "fail_if_major_performance_caveat_context_created": true,
+        "rule": "claimed only if renderer is not SwiftShader/WARP/Basic Render AND the GPU page WebGL line says Hardware accelerated"
+      }
+    },
+    {
+      "id": "initial_render",
+      "name": "Initial render produces non-blank pixels with grid, link and node colours",
+      "status": "pass",
+      "evidence": {
+        "pixel_stats": {
+          "analysed_size": [
+            1175,
+            309
+          ],
+          "non_background_pixels": 8702,
+          "non_background_fraction": 0.02397,
+          "luma_std": 8.489,
+          "unique_colors": 25,
+          "grid_color_pixels": 5325,
+          "links_color_pixels": 152,
+          "nodes_color_pixels": 275,
+          "content_bbox_wh": [
+            237,
+            239
+          ],
+          "content_bbox_aspect": 0.9916
+        },
+        "geometry": {
+          "dpr": 1,
+          "border_box": [
+            1187,
+            320
+          ],
+          "content_box": [
+            1185,
+            318
+          ],
+          "backing": [
+            1185,
+            318
+          ],
+          "dataset_rendered": "true",
+          "page_scroll_width": 1265,
+          "page_client_width": 1265
+        },
+        "terminal_text": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.",
+        "note": "dataset.rendered is recorded in geometry for context only and is not used as evidence"
+      }
+    },
+    {
+      "id": "node_selection_selector",
+      "name": "Node selector (#georing-node change) updates #georing-terminal",
+      "status": "pass",
+      "evidence": {
+        "options": [
+          [
+            "-1",
+            "Select an example node"
+          ],
+          [
+            "0",
+            "EU-West-Paris"
+          ],
+          [
+            "1",
+            "EU-Central-Berlin"
+          ],
+          [
+            "2",
+            "US-East-Virginia"
+          ],
+          [
+            "3",
+            "APAC-East-Tokyo"
+          ]
+        ],
+        "selected_value": "0",
+        "expected_node_id": "seti-node-paris-01",
+        "terminal_before": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.",
+        "terminal_after": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nEU-West-Paris | seti-node-paris-01\nExample RTT: 1.42 ms | direct_udp_hole_punch_0rtt\nExperts: Python_Systems_Code, Rust_Systems_Security, Cross_Continent_QUIC_Relay",
+        "canvas_diff_after_selection": {
+          "changed_pixels": 0,
+          "changed_fraction": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "note": "selection only changes the terminal text; the canvas does not highlight the selected node"
+      }
+    },
+    {
+      "id": "node_selection_click",
+      "name": "Clicking a projected node on the canvas selects it",
+      "status": "pass",
+      "evidence": {
+        "target_index": 3,
+        "click_xy": [
+          540.9,
+          291.4
+        ],
+        "expected_node_id": "seti-node-tokyo-04",
+        "selector_value_after": "3",
+        "terminal_before": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.",
+        "terminal_after": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nAPAC-East-Tokyo | seti-node-tokyo-04\nExample RTT: 3.12 ms | turn_allocation_relay_0rtt\nExperts: Sovereign_Swarm_DAO_Governor, Lean4_Theorem_Prover, Solidity_Smart_Contracts"
+      }
+    },
+    {
+      "id": "drag_rotation",
+      "name": "Pointer drag (150, 40) rotates the globe (pixel diff)",
+      "status": "pass",
+      "evidence": {
+        "diff_before_vs_after": {
+          "changed_pixels": 15502,
+          "changed_fraction": 0.0427,
+          "mean_abs_diff": 1.7311
+        },
+        "counters_delta": {
+          "raf_requested": 8,
+          "raf_run": 8,
+          "raf_cancelled": 0,
+          "draws": 24,
+          "listeners": 0
+        },
+        "after_stats": {
+          "analysed_size": [
+            1175,
+            309
+          ],
+          "non_background_pixels": 8548,
+          "non_background_fraction": 0.02354,
+          "luma_std": 8.453,
+          "unique_colors": 24,
+          "grid_color_pixels": 5214,
+          "links_color_pixels": 160,
+          "nodes_color_pixels": 284,
+          "content_bbox_wh": [
+            237,
+            240
+          ],
+          "content_bbox_aspect": 0.9875
+        }
+      }
+    },
+    {
+      "id": "keyboard_rotation",
+      "name": "Arrow keys on the focused canvas rotate the globe (handler found in JS: canvas keydown)",
+      "status": "pass",
+      "evidence": {
+        "implemented": true,
+        "focused_element": "webgl-georing-canvas",
+        "keys": [
+          "ArrowRight",
+          "ArrowRight",
+          "ArrowRight",
+          "ArrowRight",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowUp",
+          "ArrowUp"
+        ],
+        "diff_before_vs_after": {
+          "changed_pixels": 16829,
+          "changed_fraction": 0.04635,
+          "mean_abs_diff": 1.9313
+        },
+        "counters_delta": {
+          "raf_requested": 3,
+          "raf_run": 3,
+          "raf_cancelled": 0,
+          "draws": 9,
+          "listeners": 0
+        },
+        "page_scroll_y_before_after": [
+          1241,
+          1241
+        ]
+      }
+    },
+    {
+      "id": "reset_view",
+      "name": "#georing-reset restores the default view",
+      "status": "pass",
+      "evidence": {
+        "diff_reset_vs_default": {
+          "changed_pixels": 0,
+          "changed_fraction": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "diff_reset_vs_rotated": {
+          "changed_pixels": 16829,
+          "changed_fraction": 0.04635,
+          "mean_abs_diff": 1.9313
+        }
+      }
+    },
+    {
+      "id": "reload_rerender",
+      "name": "Page reload re-renders the same default view",
+      "status": "pass",
+      "evidence": {
+        "pixel_stats": {
+          "analysed_size": [
+            1175,
+            309
+          ],
+          "non_background_pixels": 8702,
+          "non_background_fraction": 0.02397,
+          "luma_std": 8.489,
+          "unique_colors": 25,
+          "grid_color_pixels": 5325,
+          "links_color_pixels": 152,
+          "nodes_color_pixels": 275,
+          "content_bbox_wh": [
+            237,
+            239
+          ],
+          "content_bbox_aspect": 0.9916
+        },
+        "diff_vs_initial": {
+          "changed_pixels": 0,
+          "changed_fraction": 0.0,
+          "mean_abs_diff": 0.0
+        },
+        "terminal_text": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details."
+      }
+    },
+    {
+      "id": "post_restore_click_selection_cycle1",
+      "name": "Cycle 1: canvas click selection works after restore",
+      "status": "pass",
+      "evidence": {
+        "target_index": 3,
+        "click_xy": [
+          540.9,
+          291.4
+        ],
+        "expected_node_id": "seti-node-tokyo-04",
+        "selector_value_after": "3",
+        "terminal_before": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.",
+        "terminal_after": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nAPAC-East-Tokyo | seti-node-tokyo-04\nExample RTT: 3.12 ms | turn_allocation_relay_0rtt\nExperts: Sovereign_Swarm_DAO_Governor, Lean4_Theorem_Prover, Solidity_Smart_Contracts"
+      }
+    },
+    {
+      "id": "post_restore_click_selection_cycle2",
+      "name": "Cycle 2: canvas click selection works after restore",
+      "status": "pass",
+      "evidence": {
+        "target_index": 3,
+        "click_xy": [
+          540.9,
+          291.4
+        ],
+        "expected_node_id": "seti-node-tokyo-04",
+        "selector_value_after": "3",
+        "terminal_before": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.",
+        "terminal_after": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nAPAC-East-Tokyo | seti-node-tokyo-04\nExample RTT: 3.12 ms | turn_allocation_relay_0rtt\nExperts: Sovereign_Swarm_DAO_Governor, Lean4_Theorem_Prover, Solidity_Smart_Contracts"
+      }
+    },
+    {
+      "id": "context_loss_pause",
+      "name": "loseContext(): paused UI text shown, zero rAF callbacks and zero drawArrays during input",
+      "status": "pass",
+      "evidence": {
+        "cycles": [
+          {
+            "cycle": 1,
+            "terminal_while_lost": "[WEBGL CONTEXT LOST] Drawing paused; waiting for browser recovery.",
+            "is_context_lost": true,
+            "counters_while_lost_during_input": {
+              "raf_requested": 0,
+              "raf_run": 0,
+              "raf_cancelled": 0,
+              "draws": 0,
+              "listeners": 0
+            },
+            "lost_canvas_stats": {
+              "analysed_size": [
+                1175,
+                309
+              ],
+              "non_background_pixels": 363075,
+              "non_background_fraction": 1.0,
+              "luma_std": 1.4,
+              "unique_colors": 63,
+              "grid_color_pixels": 0,
+              "links_color_pixels": 0,
+              "nodes_color_pixels": 0,
+              "content_bbox_wh": [
+                1175,
+                309
+              ],
+              "content_bbox_aspect": 3.8026
+            },
+            "lost_canvas_diff_during_input": {
+              "changed_pixels": 0,
+              "changed_fraction": 0.0,
+              "mean_abs_diff": 0.0
+            }
+          },
+          {
+            "cycle": 2,
+            "terminal_while_lost": "[WEBGL CONTEXT LOST] Drawing paused; waiting for browser recovery.",
+            "is_context_lost": true,
+            "counters_while_lost_during_input": {
+              "raf_requested": 0,
+              "raf_run": 0,
+              "raf_cancelled": 0,
+              "draws": 0,
+              "listeners": 0
+            },
+            "lost_canvas_stats": {
+              "analysed_size": [
+                1175,
+                309
+              ],
+              "non_background_pixels": 363075,
+              "non_background_fraction": 1.0,
+              "luma_std": 1.4,
+              "unique_colors": 63,
+              "grid_color_pixels": 0,
+              "links_color_pixels": 0,
+              "nodes_color_pixels": 0,
+              "content_bbox_wh": [
+                1175,
+                309
+              ],
+              "content_bbox_aspect": 3.8026
+            },
+            "lost_canvas_diff_during_input": {
+              "changed_pixels": 0,
+              "changed_fraction": 0.0,
+              "mean_abs_diff": 0.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "context_restore_resume",
+      "name": "restoreContext(): rendering resumes with the same view as before loss",
+      "status": "pass",
+      "evidence": {
+        "cycles": [
+          {
+            "cycle": 1,
+            "restored_stats": {
+              "analysed_size": [
+                1175,
+                309
+              ],
+              "non_background_pixels": 8702,
+              "non_background_fraction": 0.02397,
+              "luma_std": 8.489,
+              "unique_colors": 25,
+              "grid_color_pixels": 5325,
+              "links_color_pixels": 152,
+              "nodes_color_pixels": 275,
+              "content_bbox_wh": [
+                237,
+                239
+              ],
+              "content_bbox_aspect": 0.9916
+            },
+            "restored_vs_pre_loss": {
+              "changed_pixels": 0,
+              "changed_fraction": 0.0,
+              "mean_abs_diff": 0.0
+            }
+          },
+          {
+            "cycle": 2,
+            "restored_stats": {
+              "analysed_size": [
+                1175,
+                309
+              ],
+              "non_background_pixels": 8702,
+              "non_background_fraction": 0.02397,
+              "luma_std": 8.489,
+              "unique_colors": 25,
+              "grid_color_pixels": 5325,
+              "links_color_pixels": 152,
+              "nodes_color_pixels": 275,
+              "content_bbox_wh": [
+                237,
+                239
+              ],
+              "content_bbox_aspect": 0.9916
+            },
+            "restored_vs_pre_loss": {
+              "changed_pixels": 0,
+              "changed_fraction": 0.0,
+              "mean_abs_diff": 0.0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_duplicate_loops",
+      "name": "No duplicate animation loop after restore (on-demand renderer: idle rAF stays 0; 3 draws per frame)",
+      "status": "fail",
+      "evidence": {
+        "cycles": [
+          {
+            "cycle": 1,
+            "idle_counters_pre": {
+              "raf_requested": 0,
+              "raf_run": 0,
+              "raf_cancelled": 0,
+              "draws": 0,
+              "listeners": 0
+            },
+            "idle_counters_post": {
+              "raf_requested": 0,
+              "raf_run": 0,
+              "raf_cancelled": 0,
+              "draws": 0,
+              "listeners": 0
+            },
+            "drag_counters_pre": {
+              "raf_requested": 20,
+              "raf_run": 20,
+              "raf_cancelled": 0,
+              "draws": 60,
+              "listeners": 0
+            },
+            "drag_counters_post": {
+              "raf_requested": 20,
+              "raf_run": 20,
+              "raf_cancelled": 0,
+              "draws": 60,
+              "listeners": 0
+            }
+          },
+          {
+            "cycle": 2,
+            "idle_counters_pre": {
+              "raf_requested": 0,
+              "raf_run": 0,
+              "raf_cancelled": 0,
+              "draws": 0,
+              "listeners": 0
+            },
+            "idle_counters_post": {
+              "raf_requested": 0,
+              "raf_run": 0,
+              "raf_cancelled": 0,
+              "draws": 0,
+              "listeners": 0
+            },
+            "drag_counters_pre": {
+              "raf_requested": 20,
+              "raf_run": 20,
+              "raf_cancelled": 0,
+              "draws": 60,
+              "listeners": 0
+            },
+            "drag_counters_post": {
+              "raf_requested": 5,
+              "raf_run": 5,
+              "raf_cancelled": 0,
+              "draws": 15,
+              "listeners": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_duplicate_handlers",
+      "name": "No duplicate handlers after restore (listener registrations unchanged; same drag gives same rotation, not 2x)",
+      "status": "fail",
+      "evidence": {
+        "cycles": [
+          {
+            "cycle": 1,
+            "listeners_pre": {
+              "#webgl-georing-canvas pointerdown": 1,
+              "#webgl-georing-canvas pointermove": 1,
+              "#webgl-georing-canvas pointerup": 1,
+              "#webgl-georing-canvas pointercancel": 1,
+              "#webgl-georing-canvas lostpointercapture": 1,
+              "#webgl-georing-canvas keydown": 1,
+              "#webgl-georing-canvas webglcontextlost": 1,
+              "#webgl-georing-canvas webglcontextrestored": 1,
+              "#georing-refresh click": 1,
+              "#georing-reset click": 1,
+              "#georing-node change": 1,
+              "window resize": 1,
+              "window pagehide": 1,
+              "window __playwright_global_listeners_check__": 1,
+              "window mousemove": 1,
+              "window pointerdown": 1,
+              "window pointerup": 1,
+              "window touchstart": 1,
+              "window touchend": 1,
+              "window touchcancel": 1,
+              "window mousedown": 1,
+              "window mouseup": 1,
+              "window click": 1,
+              "window auxclick": 1,
+              "window dblclick": 1,
+              "window contextmenu": 1
+            },
+            "listeners_post": {
+              "#webgl-georing-canvas pointerdown": 1,
+              "#webgl-georing-canvas pointermove": 1,
+              "#webgl-georing-canvas pointerup": 1,
+              "#webgl-georing-canvas pointercancel": 1,
+              "#webgl-georing-canvas lostpointercapture": 1,
+              "#webgl-georing-canvas keydown": 1,
+              "#webgl-georing-canvas webglcontextlost": 1,
+              "#webgl-georing-canvas webglcontextrestored": 1,
+              "#georing-refresh click": 1,
+              "#georing-reset click": 1,
+              "#georing-node change": 1,
+              "window resize": 1,
+              "window pagehide": 1,
+              "window __playwright_global_listeners_check__": 1,
+              "window mousemove": 1,
+              "window pointerdown": 1,
+              "window pointerup": 1,
+              "window touchstart": 1,
+              "window touchend": 1,
+              "window touchcancel": 1,
+              "window mousedown": 1,
+              "window mouseup": 1,
+              "window click": 1,
+              "window auxclick": 1,
+              "window dblclick": 1,
+              "window contextmenu": 1
+            },
+            "drag_post_vs_drag_pre": {
+              "changed_pixels": 0,
+              "changed_fraction": 0.0,
+              "mean_abs_diff": 0.0
+            },
+            "drag_post_vs_double_drag_control": {
+              "changed_pixels": 14974,
+              "changed_fraction": 0.04124,
+              "mean_abs_diff": 1.7199
+            },
+            "drag_pre_vs_double_drag_control": {
+              "changed_pixels": 14974,
+              "changed_fraction": 0.04124,
+              "mean_abs_diff": 1.7199
+            }
+          },
+          {
+            "cycle": 2,
+            "listeners_pre": {
+              "#webgl-georing-canvas pointerdown": 1,
+              "#webgl-georing-canvas pointermove": 1,
+              "#webgl-georing-canvas pointerup": 1,
+              "#webgl-georing-canvas pointercancel": 1,
+              "#webgl-georing-canvas lostpointercapture": 1,
+              "#webgl-georing-canvas keydown": 1,
+              "#webgl-georing-canvas webglcontextlost": 1,
+              "#webgl-georing-canvas webglcontextrestored": 1,
+              "#georing-refresh click": 1,
+              "#georing-reset click": 1,
+              "#georing-node change": 1,
+              "window resize": 1,
+              "window pagehide": 1,
+              "window __playwright_global_listeners_check__": 1,
+              "window mousemove": 1,
+              "window pointerdown": 1,
+              "window pointerup": 1,
+              "window touchstart": 1,
+              "window touchend": 1,
+              "window touchcancel": 1,
+              "window mousedown": 1,
+              "window mouseup": 1,
+              "window click": 1,
+              "window auxclick": 1,
+              "window dblclick": 1,
+              "window contextmenu": 1
+            },
+            "listeners_post": {
+              "#webgl-georing-canvas pointerdown": 1,
+              "#webgl-georing-canvas pointermove": 1,
+              "#webgl-georing-canvas pointerup": 1,
+              "#webgl-georing-canvas pointercancel": 1,
+              "#webgl-georing-canvas lostpointercapture": 1,
+              "#webgl-georing-canvas keydown": 1,
+              "#webgl-georing-canvas webglcontextlost": 1,
+              "#webgl-georing-canvas webglcontextrestored": 1,
+              "#georing-refresh click": 1,
+              "#georing-reset click": 1,
+              "#georing-node change": 1,
+              "window resize": 1,
+              "window pagehide": 1,
+              "window __playwright_global_listeners_check__": 1,
+              "window mousemove": 1,
+              "window pointerdown": 1,
+              "window pointerup": 1,
+              "window touchstart": 1,
+              "window touchend": 1,
+              "window touchcancel": 1,
+              "window mousedown": 1,
+              "window mouseup": 1,
+              "window click": 1,
+              "window auxclick": 1,
+              "window dblclick": 1,
+              "window contextmenu": 1
+            },
+            "drag_post_vs_drag_pre": {
+              "changed_pixels": 15464,
+              "changed_fraction": 0.04259,
+              "mean_abs_diff": 1.7644
+            },
+            "drag_post_vs_double_drag_control": {
+              "changed_pixels": 14153,
+              "changed_fraction": 0.03898,
+              "mean_abs_diff": 1.6124
+            },
+            "drag_pre_vs_double_drag_control": {
+              "changed_pixels": 14974,
+              "changed_fraction": 0.04124,
+              "mean_abs_diff": 1.7199
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "post_restore_interaction",
+      "name": "Selector and canvas-click selection plus drag work after restore",
+      "status": "fail",
+      "evidence": {
+        "selector_text_after_restore": [
+          "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nUS-East-Virginia | seti-node-virginia-03\nExample RTT: 2.15 ms | direct_udp_hole_punch_0rtt\nExperts: Mathematical_Reasoning, Multilingual_FR_Synthesis, Dynamic_16Expert_MoE_Router",
+          "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.\nUS-East-Virginia | seti-node-virginia-03\nExample RTT: 2.15 ms | direct_udp_hole_punch_0rtt\nExperts: Mathematical_Reasoning, Multilingual_FR_Synthesis, Dynamic_16Expert_MoE_Router"
+        ]
+      }
+    },
+    {
+      "id": "telemetry_ws_fixture",
+      "name": "WebSocket /ws/swarm-telemetry frames are labelled source=demo_fixture",
+      "status": "pass",
+      "evidence": {
+        "websocket_urls": [
+          "ws://127.0.0.1:8471/ws/swarm-telemetry"
+        ],
+        "connections": 2,
+        "frames_received": 20,
+        "unparsable_frames": 0,
+        "sources": [
+          "demo_fixture"
+        ],
+        "seq_range": [
+          0,
+          16
+        ],
+        "first_frame_sample": {
+          "stream": "swarm-telemetry",
+          "source": "demo_fixture",
+          "seq": 0,
+          "num_nodes": 4,
+          "active_ring_peers": 4,
+          "mean_ring_rtt_ms": 1.42,
+          "compute_backend": "cpu"
+        },
+        "statement": "A WebSocket connection to the local HUD server is NOT evidence of live distributed peers; these frames are server-generated demo fixtures."
+      }
+    },
+    {
+      "id": "rest_topology_fixture",
+      "name": "REST /api/georing-topology reports source=demo_fixture, live_peer_discovery=false",
+      "status": "pass",
+      "evidence": {
+        "in_page_response": {
+          "source": "demo_fixture",
+          "live_peer_discovery": false,
+          "nodes": 4,
+          "ring_links": 4,
+          "node_ids": [
+            "seti-node-paris-01",
+            "seti-node-berlin-02",
+            "seti-node-virginia-03",
+            "seti-node-tokyo-04"
+          ]
+        },
+        "independent_request": {
+          "source": "demo_fixture",
+          "live_peer_discovery": false
+        }
+      }
+    },
+    {
+      "id": "ui_fixture_labels",
+      "name": "UI labels the globe and telemetry as demo fixture / simulated",
+      "status": "pass",
+      "evidence": {
+        "card_heading": "INTERACTIVE WEBGL GEO-RING // DEMO FIXTURE",
+        "canvas_aria_label": "Demo Geo-Ring topology. Drag or use arrow keys to rotate.",
+        "georing_terminal": "[DEMO FIXTURE] 4 nodes / 4 links. Static example topology; no live peer discovery or measured RTT.\nDrag or use arrow keys to rotate. Click a node or use the node selector for details.",
+        "telemetry_terminal": "[SIMULATED TELEMETRY] seq 16 | 2026-10-20T01:15:48Z | stream=swarm-telemetry\n[SEASON 4] 4 contracts | active: CONTRACT-HF-13-TRITON-KERNEL-SYNTH (Triton_Kernel_Synth)\n[SWARM RING] 4 nodes | 4 peers | mean RTT 1.79 ms\n[THROUGHPUT] 32 tok/s | mined 30600 $HIVE\n[LEADER] n/a | 0 PTS | 0.0000 $HIVE"
+      }
+    },
+    {
+      "id": "resize",
+      "name": "Resize: backing store = content box x min(DPR,2), non-blank, undistorted globe at every size",
+      "status": "pass",
+      "evidence": {
+        "cases": [
+          {
+            "label": "1280x800@dpr1",
+            "status": "pass",
+            "geometry": {
+              "dpr": 1,
+              "border_box": [
+                1187,
+                320
+              ],
+              "content_box": [
+                1185,
+                318
+              ],
+              "backing": [
+                1185,
+                318
+              ],
+              "dataset_rendered": "true",
+              "page_scroll_width": 1265,
+              "page_client_width": 1265
+            },
+            "backing_expected_from_content_box": [
+              1185,
+              318
+            ],
+            "backing_minus_content_box_x_ratio": [
+              0,
+              0
+            ],
+            "globe_bbox_aspect": 0.9916
+          },
+          {
+            "label": "1024x768@dpr1",
+            "status": "pass",
+            "geometry": {
+              "dpr": 1,
+              "border_box": [
+                931,
+                320
+              ],
+              "content_box": [
+                929,
+                318
+              ],
+              "backing": [
+                929,
+                318
+              ],
+              "dataset_rendered": "true",
+              "page_scroll_width": 1009,
+              "page_client_width": 1009
+            },
+            "backing_expected_from_content_box": [
+              929,
+              318
+            ],
+            "backing_minus_content_box_x_ratio": [
+              0,
+              0
+            ],
+            "globe_bbox_aspect": 0.9916
+          },
+          {
+            "label": "800x600@dpr1",
+            "status": "pass",
+            "geometry": {
+              "dpr": 1,
+              "border_box": [
+                707,
+                320
+              ],
+              "content_box": [
+                705,
+                318
+              ],
+              "backing": [
+                705,
+                318
+              ],
+              "dataset_rendered": "true",
+              "page_scroll_width": 785,
+              "page_client_width": 785
+            },
+            "backing_expected_from_content_box": [
+              705,
+              318
+            ],
+            "backing_minus_content_box_x_ratio": [
+              0,
+              0
+            ],
+            "globe_bbox_aspect": 0.9916
+          },
+          {
+            "label": "412x915@dpr1",
+            "status": "pass",
+            "geometry": {
+              "dpr": 1,
+              "border_box": [
+                362,
+                320
+              ],
+              "content_box": [
+                360,
+                318
+              ],
+              "backing": [
+                360,
+                318
+              ],
+              "dataset_rendered": "true",
+              "page_scroll_width": 607,
+              "page_client_width": 397
+            },
+            "backing_expected_from_content_box": [
+              360,
+              318
+            ],
+            "backing_minus_content_box_x_ratio": [
+              0,
+              0
+            ],
+            "globe_bbox_aspect": 0.9916
+          },
+          {
+            "label": "412x915@dpr2",
+            "status": "pass",
+            "geometry": {
+              "dpr": 2,
+              "border_box": [
+                362,
+                320
+              ],
+              "content_box": [
+                360,
+                318
+              ],
+              "backing": [
+                720,
+                636
+              ],
+              "dataset_rendered": "true",
+              "page_scroll_width": 607,
+              "page_client_width": 397
+            },
+            "backing_expected_from_content_box": [
+              720,
+              636
+            ],
+            "backing_minus_content_box_x_ratio": [
+              0,
+              0
+            ],
+            "globe_bbox_aspect": 0.9895
+          },
+          {
+            "label": "412x915@dpr3",
+            "status": "pass",
+            "geometry": {
+              "dpr": 3,
+              "border_box": [
+                362,
+                320
+              ],
+              "content_box": [
+                360,
+                318
+              ],
+              "backing": [
+                720,
+                636
+              ],
+              "dataset_rendered": "true",
+              "page_scroll_width": 607,
+              "page_client_width": 397
+            },
+            "backing_expected_from_content_box": [
+              720,
+              636
+            ],
+            "backing_minus_content_box_x_ratio": [
+              0,
+              0
+            ],
+            "globe_bbox_aspect": 0.9888
+          }
+        ],
+        "note": "DPR is capped at 2 by the renderer (Math.min(devicePixelRatio, 2)); the 3x case checks that cap"
+      }
+    },
+    {
+      "id": "console_clean",
+      "name": "No console errors, page errors or unhandled rejections during the whole run",
+      "status": "fail",
+      "evidence": {
+        "console_errors": 1,
+        "console_warnings": 0,
+        "pageerrors": 0,
+        "init_script_errors": 0,
+        "unhandled_rejections": 0,
+        "webgl_console_messages": 0,
+        "resource_load_errors": [
+          {
+            "page": "hud",
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+            "url": "http://127.0.0.1:8471/favicon.ico",
+            "line": 0
+          }
+        ],
+        "http_error_responses": [],
+        "requestfailed": 0
+      }
+    },
+    {
+      "id": "no_script_errors",
+      "name": "No JavaScript errors: console errors other than resource loads, pageerror, window error, unhandledrejection",
+      "status": "pass",
+      "evidence": {
+        "script_console_errors": [],
+        "pageerrors": [],
+        "init_script_errors": [],
+        "unhandled_rejections": []
+      }
+    },
+    {
+      "id": "page_no_horizontal_overflow",
+      "name": "Whole HUD page has no horizontal scroll at the tested sizes (outside the Geo-Ring card)",
+      "status": "fail",
+      "evidence": {
+        "overflowing_cases": [
+          {
+            "label": "412x915@dpr1",
+            "overflow_px": 210,
+            "elements": [
+              {
+                "element": "th",
+                "right": 434,
+                "width": 54
+              },
+              {
+                "element": "th",
+                "right": 488,
+                "width": 54
+              },
+              {
+                "element": "th",
+                "right": 603,
+                "width": 114
+              },
+              {
+                "element": "tbody",
+                "right": 603,
+                "width": 568
+              },
+              {
+                "element": "div.card",
+                "right": 416,
+                "width": 400
+              },
+              {
+                "element": "div.card",
+                "right": 416,
+                "width": 400
+              }
+            ]
+          },
+          {
+            "label": "412x915@dpr2",
+            "overflow_px": 210,
+            "elements": [
+              {
+                "element": "th",
+                "right": 434,
+                "width": 54
+              },
+              {
+                "element": "th",
+                "right": 488,
+                "width": 54
+              },
+              {
+                "element": "th",
+                "right": 603,
+                "width": 114
+              },
+              {
+                "element": "tbody",
+                "right": 603,
+                "width": 568
+              },
+              {
+                "element": "div.card",
+                "right": 416,
+                "width": 400
+              },
+              {
+                "element": "div.card",
+                "right": 416,
+                "width": 400
+              }
+            ]
+          },
+          {
+            "label": "412x915@dpr3",
+            "overflow_px": 210,
+            "elements": [
+              {
+                "element": "th",
+                "right": 434,
+                "width": 54
+              },
+              {
+                "element": "th",
+                "right": 488,
+                "width": 54
+              },
+              {
+                "element": "th",
+                "right": 603,
+                "width": 114
+              },
+              {
+                "element": "tbody",
+                "right": 603,
+                "width": 568
+              },
+              {
+                "element": "div.card",
+                "right": 416,
+                "width": 400
+              },
+              {
+                "element": "div.card",
+                "right": 416,
+                "width": 400
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "no_webgl_console_messages",
+      "name": "No WebGL warnings/errors in the console (e.g. stale objects after restore)",
+      "status": "pass",
+      "evidence": {
+        "messages": []
+      }
+    }
+  ],
+  "screenshots": [
+    "01_initial_canvas.png",
+    "02_after_drag_canvas.png",
+    "03_before_context_loss_canvas.png",
+    "04_context_lost_card.png",
+    "05_after_restore_canvas.png",
+    "06_resize_412x915_dpr1_canvas.png",
+    "06_resize_412x915_dpr2_canvas.png",
+    "06_resize_412x915_dpr3_canvas.png"
+  ],
+  "console_counts": {
+    "console": 1,
+    "pageerror": 0,
+    "init_script_errors": 0,
+    "unhandled_rejections": 0,
+    "requestfailed": 0,
+    "http_error_responses": 0
+  }
+}

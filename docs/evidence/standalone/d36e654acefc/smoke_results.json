@@ -1,0 +1,308 @@
+{
+  "zip": "build\\standalone\\HiveMindHUD-d36e654acefc-win64-cpu.zip",
+  "zip_sha256": "61c9975b2089db84e425506b6e6337c99d423da67e024f9637df59442fe2ce58",
+  "source_sha": "d36e654acefc104cdb70149a0dc1a7c47fe96f46",
+  "exe_sha256": "a5636490d4d2841ee6446ef5a6f9a4f4daf03194d2fc1725e1111900c28c34c6",
+  "install_dir": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\Hive Mind Smoke Ünïcødé 测试\\HiveMindHUD",
+  "scope": "smoke test on build machine; NOT clean-machine acceptance",
+  "capabilities": {
+    "torch_version": "2.6.0+cpu",
+    "torch_cuda_build": null,
+    "compute_backend": "cpu",
+    "gpu_features": "unsupported in this build (CPU-only PyTorch; CUDA/NF4 kernels, VRAM preemption timing and DMA paths are not exercised)",
+    "steamworks": "steam_api64.dll not bundled; Steam features are local HMAC simulation only",
+    "lean_compiler": "not found on PATH; formal proof checking unavailable",
+    "telemetry_source": "demo_fixture (no live peer discovery)",
+    "frozen": true,
+    "install_dir": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\Hive Mind Smoke Ünïcødé 测试\\HiveMindHUD",
+    "data_dir": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind",
+    "log_file": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\logs\\hud-launcher.log",
+    "writable_roots": {
+      "PROJECT_ROOT": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\cache",
+      "CACHE_ROOT": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\cache",
+      "ARTIFACTS_ROOT": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\artifacts"
+    },
+    "environment": {
+      "HIVEMIND_CACHE_DIR": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\cache",
+      "HIVEMIND_ARTIFACTS_DIR": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\artifacts",
+      "HF_HOME": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\cache\\huggingface",
+      "HF_HUB_OFFLINE": "1"
+    }
+  },
+  "real_training_response": {
+    "gamer_tag": "Smoke",
+    "contract_id": "CONTRACT-HF-04-RUST-SYSTEMS",
+    "mission_codename": "Operation: Zero-Copy Borrow-Checker",
+    "dataset_id": "anon/rust-code-instructions",
+    "domain_expert": "Rust_Systems_Security",
+    "season": 2,
+    "initial_loss": 5.524170398712158,
+    "final_loss": 5.521108627319336,
+    "loss_reduction_pct": 0.06,
+    "spot_check_passed": false,
+    "spot_check_executed": false,
+    "validation_status": "not_run",
+    "source": "causal_lm_lora_training",
+    "training_executed": true,
+    "training_scope": "local_text_training_smoke_test",
+    "model_kind": "randomly_initialized_tiny_gpt2",
+    "pretrained_model_verified": false,
+    "runtime_verified": false,
+    "loss_is_simulated": false,
+    "rewards_simulated": true,
+    "settlement_executed": false,
+    "reward_status": "not_awarded",
+    "heldout_evaluated": true,
+    "heldout_disjoint_verified": true,
+    "training_sample_count": 2,
+    "training_unique_token_count": 2,
+    "heldout_sample_count": 1,
+    "heldout_unique_token_count": 1,
+    "training_samples_sha256": "f1a489f8ee7be1f9edb221f5b20e27725d8e2eac26d6af4aaf73a8731aaadf04",
+    "heldout_samples_sha256": "a9a3a07540654f21d493c9022634bdf7fb1b763c397f957a8a1a1fac3497d38c",
+    "heldout_initial_loss": 5.524170398712158,
+    "heldout_final_loss": 5.521108627319336,
+    "heldout_loss_reduction_pct": 0.06,
+    "heldout_improved": true,
+    "adapter_saved_path": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\artifacts\\lora_adapters\\adapter-5uah2oee.pt",
+    "adapter_reloaded_and_verified": true,
+    "adapter_verification_method": "exact_state_dict_round_trip",
+    "adapter_fresh_model_reload_verified": false,
+    "steps_completed": 8,
+    "training_losses": [
+      5.525886058807373,
+      5.550775051116943,
+      5.525181293487549,
+      5.5501627922058105,
+      5.524343013763428,
+      5.549378395080566,
+      5.523314952850342,
+      5.548399925231934
+    ],
+    "lora_pts_awarded": 0,
+    "bounty_pts_awarded": 0,
+    "total_pts_awarded": 0,
+    "hive_minted": 0.0,
+    "steam_rich_presence": null,
+    "rich_presence_hmac": null
+  },
+  "proxy_attempts_total": [
+    "CONNECT datasets-server.huggingface.co:443 HTTP/1.0"
+  ],
+  "checks": [
+    {
+      "name": "no python or git on PATH",
+      "passed": true,
+      "path": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem"
+    },
+    {
+      "name": "install path has spaces and non-ASCII",
+      "passed": true,
+      "path": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\Hive Mind Smoke Ünïcødé 测试\\HiveMindHUD"
+    },
+    {
+      "name": "--check exits 0 with JSON",
+      "passed": true,
+      "exit_code": 0,
+      "stderr_tail": ""
+    },
+    {
+      "name": "--check reports frozen CPU build",
+      "passed": true,
+      "compute_backend": "cpu",
+      "gpu_features": "unsupported in this build (CPU-only PyTorch; CUDA/NF4 kernels, VRAM preemption timing and DMA paths are not exercised)"
+    },
+    {
+      "name": "data dir resolves to per-user LOCALAPPDATA",
+      "passed": true,
+      "data_dir": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind"
+    },
+    {
+      "name": "writable roots outside install dir",
+      "passed": true,
+      "writable_roots": {
+        "PROJECT_ROOT": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\cache",
+        "CACHE_ROOT": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\cache",
+        "ARTIFACTS_ROOT": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\User Ü\\AppData\\Local\\HiveMind\\artifacts"
+      }
+    },
+    {
+      "name": "non-loopback bind refused without --allow-network",
+      "passed": true,
+      "exit_code": 2,
+      "stderr_tail": "ERROR: Refusing to bind 0.0.0.0: the HUD is unauthenticated. Use a loopback address, or pass --allow-network if you understand it will be reachable from your network.\n"
+    },
+    {
+      "name": "server starts and announces URL",
+      "passed": true,
+      "url": "http://127.0.0.1:59762/",
+      "startup_seconds": 5.0,
+      "stderr_tail": "pported in this build (CPU-only PyTorch; CUDA/NF4 kernels, VRAM preemption timing and DMA paths are not exercised)\n2026-10-19 21:14:27,347 INFO hivemind.standalone: steamworks: steam_api64.dll not bundled; Steam features are local HMAC simulation only\n2026-10-19 21:14:27,347 INFO hivemind.standalone: lean_compiler: not found on PATH; formal proof checking unavailable\n2026-10-19 21:14:27,347 INFO hivemind.standalone: telemetry_source: demo_fixture (no live peer discovery)\nINFO:     Started server process [17012]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\n"
+    },
+    {
+      "name": "only loopback listeners",
+      "passed": true,
+      "listeners": [
+        "127.0.0.1:59762"
+      ]
+    },
+    {
+      "name": "GET / serves HUD HTML from bundle",
+      "passed": true,
+      "status": 200,
+      "bytes": 48136
+    },
+    {
+      "name": "topology labelled demo fixture",
+      "passed": true,
+      "status": 200,
+      "source": "demo_fixture",
+      "nodes": 4
+    },
+    {
+      "name": "rtx-tool-status reports no CUDA",
+      "passed": true,
+      "status": 200,
+      "cuda_available": false,
+      "gpu_backend": "cpu",
+      "torch_version": "2.6.0+cpu"
+    },
+    {
+      "name": "WebSocket telemetry frame labelled demo fixture",
+      "passed": true,
+      "source": "demo_fixture",
+      "keys": [
+        "active_mission",
+        "active_ring_peers",
+        "best_miner_champion",
+        "compute_backend",
+        "hive_minted_total",
+        "leaderboard",
+        "mean_ring_rtt_ms",
+        "mission_ids",
+        "missions",
+        "nodes",
+        "num_nodes",
+        "ring_links"
+      ]
+    },
+    {
+      "name": "offline: shard scan on supplied rows",
+      "passed": true,
+      "status": 200,
+      "body_head": "{\"gamer_tag\":\"Smoke\",\"dataset_id\":\"sahil2801/CodeAlpaca-20k\",\"shard_cid\":\"cid://sha256/b86ed5631a61c2f7f3f2aefb8291eee9\",\"shard_size_bytes\":16384,\"shard_signal_score\":0.1345,\"merkle_pos_verified\":true"
+    },
+    {
+      "name": "offline: dataset scan returns a response without hanging",
+      "passed": true,
+      "status": 200,
+      "body_head": "{\"gamer_tag\":\"Smoke\",\"dataset_id\":\"sahil2801/CodeAlpaca-20k\",\"shard_cid\":\"cid://sha256/897a66447b98809630327d4193c93df8\",\"shard_size_bytes\":16384,\"shard_signal_score\":0.99,\"merkle_pos_verified\":true,\"challenged_chunk_index\":24,\"merkle_root\":\"e5fabbbb659219ee98e43b0e356ff7bcfa08700f5c7d6b97e1a9a7c3cf",
+      "note": "records behaviour only; whether it fell back to bundled/synthetic rows is visible in body"
+    },
+    {
+      "name": "offline: no outbound HTTP(S) attempt reached the recording proxy",
+      "passed": false,
+      "attempts": [
+        "CONNECT datasets-server.huggingface.co:443 HTTP/1.0"
+      ],
+      "note": "proxy env vars point at a local recorder; a direct connection that ignores proxy settings would not be seen"
+    },
+    {
+      "name": "forge (synthetic micro-forge) responds",
+      "passed": true,
+      "status": 200,
+      "body_head": "{\"gamer_tag\":\"Smoke\",\"contract_id\":\"CONTRACT-HF-04-RUST-SYSTEMS\",\"mission_codename\":\"Operation: Zero-Copy Borrow-Checker\",\"dataset_id\":\"anon/rust-code-instructions\",\"domain_expert\":\"Rust_Systems_Secur"
+    },
+    {
+      "name": "forge real_training returns a structured result (200 trained or 422 validation refusal), no server error",
+      "passed": true,
+      "status": 200,
+      "outcome": "trained",
+      "seconds": 0.1,
+      "body_head": "{\"gamer_tag\":\"Smoke\",\"contract_id\":\"CONTRACT-HF-04-RUST-SYSTEMS\",\"mission_codename\":\"Operation: Zero-Copy Borrow-Checker\",\"dataset_id\":\"anon/rust-code-instructions\",\"domain_expert\":\"Rust_Systems_Security\",\"season\":2,\"initial_loss\":5.524170398712158,\"final_loss\":5.521108627319336,\"loss_reduction_pct\":0.06,\"spot_check_passed\":false,\"spot_check_executed\":false,\"validation_status\":\"not_run\",\"source\":\"causal_lm_lora_training\",\"training_executed\":true,\"training_scope\":\"local_text_training_smoke_test\",\"model_kind\":\"randomly_initialized_tiny_gpt2\",\"pretrained_model_verified\":false,\"runtime_verified\":f",
+      "note": "byte-level micro model trained on bundled fixture rows; not evidence of model quality or accepted work"
+    },
+    {
+      "name": "second instance on same explicit port exits 3",
+      "passed": true,
+      "exit_code": 3,
+      "stderr_tail": "emind.standalone: telemetry_source: demo_fixture (no live peer discovery)\nERROR: Port 59762 on 127.0.0.1 is already in use (Only one usage of each socket address (protocol/network address/port) is normally permitted). Close the other program or HiveMind window, or pass --port 0 to pick a free port.\n"
+    },
+    {
+      "name": "default port busy -> falls back to a free loopback port",
+      "passed": true,
+      "url": "http://127.0.0.1:53615/",
+      "port_8090_held_by_test": true
+    },
+    {
+      "name": "fallback instance stops via --stop",
+      "passed": true,
+      "stop_exit": 0,
+      "server_exit": 0
+    },
+    {
+      "name": "graceful shutdown via --stop",
+      "passed": true,
+      "stop_exit": 0,
+      "server_exit": 0,
+      "seconds": 1.3,
+      "stop_stdout": "HiveMind HUD stopped."
+    },
+    {
+      "name": "status file removed after shutdown",
+      "passed": true
+    },
+    {
+      "name": "no processes left running from install dir",
+      "passed": true,
+      "leftovers": []
+    },
+    {
+      "name": "port released after shutdown",
+      "passed": true,
+      "port": 59762
+    },
+    {
+      "name": "install directory unchanged by running the app",
+      "passed": true,
+      "changed": []
+    },
+    {
+      "name": "app wrote its files under per-user data dir",
+      "passed": true,
+      "sample": [
+        "artifacts/lora_adapters/adapter-5uah2oee.pt",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/Launch_HiveMind_HackMiner.bat",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/Launch_HiveMind_WebHUD.bat",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/README_FREE_STEAM_EDITION.md",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/steam_appid.txt",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/steam_cloud/steam_remote_storage_profiles.json",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/steam_store_manifest.json",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/steamworks_sdk/app_build_3133700.vdf",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/steamworks_sdk/depot_build_3133701.vdf",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/steamworks_sdk/steam_leaderboards_and_achievements.json",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/web_ui/index.html",
+        "cache/steam_dist/HiveMind_Steam_FreeEdition/web_ui/live_leaderboard_state.json",
+        "cache/swarm_store/dataset_shards/CodeAlpaca_20k_shard_8868_897a66447b98.json",
+        "cache/swarm_store/dataset_shards/CodeAlpaca_20k_shard_8868_b86ed5631a61.json",
+        "cache/swarm_store/hf_subsets/anon_rust_code_instructions_12.json"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "name": "two instances sharing one data dir, then one --stop",
+      "a_url": "http://127.0.0.1:53622/",
+      "b_url": "http://127.0.0.1:53623/",
+      "a_exit": 0,
+      "b_exit": null,
+      "stop_exit": 0,
+      "stop_stdout": "HiveMind HUD stopped.",
+      "stop_stderr": "",
+      "note": "known launcher issue (shared stop/status files) pending the maintainer's fix; no expected result asserted"
+    }
+  ],
+  "passed": 26,
+  "failed": 1,
+  "logs_dir": "%USERPROFILE%\\AppData\\Local\\Temp\\hm-smoke-dbdwl4wx\\logs"
+}

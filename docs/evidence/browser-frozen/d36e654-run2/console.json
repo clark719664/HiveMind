@@ -1,0 +1,16 @@
+{
+  "console": [
+    {
+      "page": "hud",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "url": "http://127.0.0.1:8471/favicon.ico",
+      "line": 0
+    }
+  ],
+  "pageerror": [],
+  "init_script_errors": [],
+  "unhandled_rejections": [],
+  "requestfailed": [],
+  "http_error_responses": []
+}
