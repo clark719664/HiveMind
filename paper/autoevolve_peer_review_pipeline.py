@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -23,8 +24,18 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if Path('D:/.elan').exists():
+    os.environ.setdefault('ELAN_HOME', 'D:/.elan')
 LEAN4_SPEC_PATH = PROJECT_ROOT / "lean4" / "HiveMindSpec.lean"
 PAPER_DIR = PROJECT_ROOT / "paper"
+
+
+def _rel(path: Path) -> str:
+    """Repo-relative POSIX path, so reports never record a contributor's local folders."""
+    try:
+        return path.resolve().relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return path.name
 TEX_PATH = PAPER_DIR / "hivemind_foundation_article.tex"
 PDF_PATH = PAPER_DIR / "hivemind_foundation_article.pdf"
 PEER_REVIEW_JSON = PAPER_DIR / "PEER_REVIEW_REPORT.json"
@@ -113,6 +124,11 @@ def _lean_theorem_inventory(source: str) -> tuple[list[str], list[str]]:
 
 
 def _find_lean_compiler() -> str | None:
+    configured = os.environ.get("LEAN_BIN")
+    if configured:
+        compiler = shutil.which(configured)
+        if compiler:
+            return compiler
     compiler = shutil.which("lean")
     if compiler:
         return compiler
@@ -153,6 +169,8 @@ def verify_lean4_specification() -> Dict[str, Any]:
                 cwd=LEAN4_SPEC_PATH.parent,
                 capture_output=True,
                 text=True,
+                encoding=chr(34)+chr(117)+chr(116)+chr(102)+chr(45)+chr(56)+chr(34),
+                errors=chr(34)+chr(114)+chr(101)+chr(112)+chr(108)+chr(97)+chr(99)+chr(101)+chr(34),
                 timeout=120,
                 check=False,
             )
@@ -186,14 +204,14 @@ def verify_lean4_specification() -> Dict[str, Any]:
         failures.append("No compiler axiom output was captured")
     verified = compiler_executed and compiler_rc == 0 and not failures
     return {
-        "spec_file": str(LEAN4_SPEC_PATH),
+        "spec_file": _rel(LEAN4_SPEC_PATH),
         "spec_sha256": hashlib.sha256(code.encode("utf-8")).hexdigest(),
         "theorem_count": len(qualified_names),
         "theorems": [name.rsplit(".", 1)[-1] for name in qualified_names],
         "qualified_theorems": qualified_names,
         "sorry_count": sorry_hits,
         "user_axiom_count": axiom_hits,
-        "compiler_binary": compiler,
+        "compiler_binary": Path(compiler).name if compiler else None,
         "compiler_executed": compiler_executed,
         "compiler_return_code": compiler_rc,
         "print_axioms_log": output,
@@ -290,8 +308,8 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
         "manuscript_title": "Project HiveMind: Byzantine-Resilient Decentralized Sparse Mixture-of-Experts Training and Speculative Swarm Inference on 8 GB Consumer Gaming GPUs",
         "version": "2.1.0",
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "tex_path": str(TEX_PATH),
-        "pdf_path": str(PDF_PATH),
+        "tex_path": _rel(TEX_PATH),
+        "pdf_path": _rel(PDF_PATH),
         "pdf_exists": PDF_PATH.exists(),
         "lean4_verification": lean_audit,
         "empirical_telemetry_verified": {
@@ -312,16 +330,16 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
         "version": "2.1.0",
-        "workspace_root": str(PROJECT_ROOT),
+        "workspace_root": ".",
         "autoevolve_env_path": r"D:\xdev\AutoevolveAI_env",
         "artifacts_and_entrypoints": {
-            "lean4_specification": str(LEAN4_SPEC_PATH),
-            "foundation_article_tex": str(TEX_PATH),
-            "foundation_article_pdf": str(PDF_PATH),
-            "peer_review_report_json": str(PEER_REVIEW_JSON),
-            "contributor_bounties_doc": str(PROJECT_ROOT / "docs" / "CONTRIBUTOR_TASKS_AND_BOUNTIES.md"),
-            "swarm_fabric_module": str(PROJECT_ROOT / "src" / "hivemind" / "swarm" / "swarm_fabric.py"),
-            "steam_hack_miner_module": str(PROJECT_ROOT / "src" / "hivemind" / "game" / "hf_hack_miner.py"),
+            "lean4_specification": _rel(LEAN4_SPEC_PATH),
+            "foundation_article_tex": _rel(TEX_PATH),
+            "foundation_article_pdf": _rel(PDF_PATH),
+            "peer_review_report_json": _rel(PEER_REVIEW_JSON),
+            "contributor_bounties_doc": _rel(PROJECT_ROOT / "docs" / "CONTRIBUTOR_TASKS_AND_BOUNTIES.md"),
+            "swarm_fabric_module": _rel(PROJECT_ROOT / "src" / "hivemind" / "swarm" / "swarm_fabric.py"),
+            "steam_hack_miner_module": _rel(PROJECT_ROOT / "src" / "hivemind" / "game" / "hf_hack_miner.py"),
         },
         "evolutionary_loop_protocol": {
             "step_1_mutate": "Select an open task from `HM-M1-01` .. `HM-M5-02` in `docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`.",

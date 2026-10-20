@@ -1244,7 +1244,7 @@ def test_s4_02_hierarchical_continental_super_ring_routing() -> None:
     assert w_lossy.cwnd_packets <= w_clean.cwnd_packets
 
 
-def test_s4_03_zk_opoi_merkle_inclusion_and_dual_bound_audit() -> None:
+def test_s4_03_opoi_merkle_inclusion_and_dual_bound_audit() -> None:
     from hivemind.swarm.swarm_fabric import OptimisticProofOfInferenceAuditor
 
     torch.manual_seed(11)

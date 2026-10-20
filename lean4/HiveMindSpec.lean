@@ -538,30 +538,33 @@ end Season3_PrefixTrie_And_0RTT
 
 namespace Season4_DAOGovernance_And_SuperRing
 
-/-- Theorem 28 (Quadratic DAO voting cost): casting `votes ≥ 1` costs `votes * votes`,
-    which is at least the number of votes. -/
-theorem quadratic_voting_cost_bound
-    (votes cost : Nat)
-    (h_votes : 1 ≤ votes)
-    (h_cost : cost = votes * votes) :
-    votes ≤ cost := by
-  have h_mul : votes * 1 ≤ votes * votes := Nat.mul_le_mul_left votes h_votes
-  omega
+/-- Theorem 28 (Quadratic DAO voting cost): under quadratic pricing (`cost = votes²`),
+    a voter never pays less than the number of votes cast. -/
+theorem quadratic_voting_cost_bound (votes : Nat) :
+    votes ≤ votes * votes := by
+  cases votes with
+  | zero => simp
+  | succ k => exact Nat.le_mul_of_pos_left (k + 1) (Nat.succ_pos k)
 
-/-- Theorem 29 (Steamworks Sybil account floor): `S` fake identities cost at least
-    `500 * S` cents, the published `$5.00` account-creation price. -/
-theorem steamworks_sybil_account_cost_lower_bound
-    (fakeIdentities costCents : Nat)
-    (h_cost : costCents = 500 * fakeIdentities) :
-    500 * fakeIdentities ≤ costCents := by
-  omega
+/-- Theorem 29 (Steamworks Sybil account floor): if every fake identity costs at least
+    500 cents, then any set of fake identities costs at least `500 * count`. -/
+theorem steamworks_sybil_account_cost_lower_bound (costsCents : List Nat)
+    (h_floor : ∀ c ∈ costsCents, 500 ≤ c) :
+    500 * costsCents.length ≤ costsCents.sum := by
+  induction costsCents with
+  | nil => simp
+  | cons c cs ih =>
+    have hc : 500 ≤ c := h_floor c (by simp)
+    have hcs : 500 * cs.length ≤ cs.sum := ih (fun x hx => h_floor x (by simp [hx]))
+    simp only [List.length_cons, List.sum_cons]
+    omega
 
-/-- Theorem 30 (2-tier continental hop): a cross-continent delivery is the sum of the
-    source regional RTT, the bridge RTT, and the remote regional RTT. -/
-theorem continental_super_ring_hop_bound
-    (regionalRtt bridgeRtt remoteRegionalRtt total : Nat)
-    (h_total : total = regionalRtt + bridgeRtt + remoteRegionalRtt) :
-    regionalRtt + bridgeRtt + remoteRegionalRtt = total := by
+/-- Theorem 30 (2-tier continental hop): `ContinentalSuperRingRouter.route` prices a
+    cross-continent delivery as `src + max src dst + dst`. That total is never below the
+    two regional legs and never above twice their sum. -/
+theorem continental_super_ring_hop_bound (srcRtt dstRtt : Nat) :
+    srcRtt + dstRtt ≤ srcRtt + max srcRtt dstRtt + dstRtt ∧
+      srcRtt + max srcRtt dstRtt + dstRtt ≤ 2 * (srcRtt + dstRtt) := by
   omega
 
 /-- Theorem 31 (SVD rank truncation saves parameters): a strictly smaller target rank
@@ -570,17 +573,44 @@ theorem svd_rank_truncation_parameter_savings
     (rTarget rSource dIn dOut : Nat)
     (h_rank : rTarget < rSource)
     (h_dims : 1 ≤ dIn + dOut) :
-    rTarget * (dIn + dOut) < rSource * (dIn + dOut) := by
-  exact Nat.mul_lt_mul_of_pos_right h_rank h_dims
+    rTarget * (dIn + dOut) < rSource * (dIn + dOut) :=
+  Nat.mul_lt_mul_of_pos_right h_rank h_dims
 
-/-- Theorem 32 (Merkle inclusion depth): a sibling path never needs more hashes than
-    there are other leaves. -/
-theorem opoi_merkle_inclusion_depth_bound
-    (leafCount proofDepth : Nat)
-    (h_leaves : 1 ≤ leafCount)
-    (h_depth : proofDepth + 1 ≤ leafCount) :
-    proofDepth ≤ leafCount - 1 := by
-  omega
+/-- Number of sibling hashes in an inclusion proof built by
+    `OptimisticProofOfInferenceAuditor.build_merkle_inclusion_proof`: each level pads an odd
+    count by duplicating the last leaf, so `n` nodes become `(n + 1) / 2` parents. -/
+def merkleDepth : Nat → Nat
+  | 0 => 0
+  | 1 => 0
+  | n + 2 => merkleDepth ((n + 3) / 2) + 1
+decreasing_by omega
+
+/-- Theorem 32 (Merkle inclusion depth): a proof for `n ≥ 1` leaves never carries more
+    sibling hashes than there are other leaves. -/
+theorem opoi_merkle_inclusion_depth_bound (n : Nat) :
+    merkleDepth n ≤ n - 1 := by
+  match n with
+  | 0 => simp [merkleDepth]
+  | 1 => simp [merkleDepth]
+  | k + 2 =>
+    have ih := opoi_merkle_inclusion_depth_bound ((k + 3) / 2)
+    simp only [merkleDepth]
+    omega
+decreasing_by omega
+
+/-- Theorem 33 (Merkle inclusion depth is logarithmic): the proof depth `d` for `n` leaves
+    satisfies `n ≤ 2 ^ d`, i.e. `d = ⌈log₂ n⌉` sibling hashes suffice. -/
+theorem opoi_merkle_inclusion_depth_logarithmic (n : Nat) :
+    n ≤ 2 ^ merkleDepth n ∨ n = 0 := by
+  match n with
+  | 0 => simp
+  | 1 => simp [merkleDepth]
+  | k + 2 =>
+    have ih := opoi_merkle_inclusion_depth_logarithmic ((k + 3) / 2)
+    left
+    simp only [merkleDepth, Nat.pow_succ]
+    omega
+decreasing_by omega
 
 end Season4_DAOGovernance_And_SuperRing
 
@@ -613,3 +643,4 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound
 #print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings
 #print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound
+#print axioms HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic

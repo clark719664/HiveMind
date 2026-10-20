@@ -62,6 +62,26 @@ def test_missing_compiler_is_blocked_not_machine_checked(lean_spec, monkeypatch)
         proof.require_machine_checked(result)
 
 
+def test_lean_bin_override_takes_precedence(monkeypatch) -> None:
+    monkeypatch.setenv("LEAN_BIN", "/configured/bin/lean")
+    monkeypatch.setattr(proof.shutil, "which", lambda name: name)
+    assert proof._find_lean_compiler() == "/configured/bin/lean"
+
+
+def test_missing_lean_bin_falls_back_to_path(monkeypatch) -> None:
+    monkeypatch.setenv("LEAN_BIN", "/missing/lean")
+    monkeypatch.setattr(proof.shutil, "which", lambda name: "/path/bin/lean" if name == "lean" else None)
+    assert proof._find_lean_compiler() == "/path/bin/lean"
+
+
+def test_audit_paths_remain_portable(lean_spec, monkeypatch) -> None:
+    mock_compiler(monkeypatch, compiler_output(lean_spec))
+    result = proof.verify_lean4_specification()
+    assert result["spec_file"] == "HiveMindSpec.lean"
+    assert result["compiler_binary"] == "lean"
+    assert proof._rel(proof.PROJECT_ROOT / "paper" / "PEER_REVIEW_REPORT.json") == "paper/PEER_REVIEW_REPORT.json"
+
+
 @pytest.mark.parametrize("failure", ["nonzero", "empty", "incomplete", "sorryAx", "customAxiom", "Lean.ofReduceBool"])
 def test_bad_compiler_evidence_fails_closed(lean_spec, monkeypatch, failure: str) -> None:
     names = lean_spec[:-1] if failure == "incomplete" else lean_spec
