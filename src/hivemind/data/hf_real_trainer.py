@@ -9,8 +9,9 @@ and hot-plugs them into `UpcycledSparseMoEModel`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -283,6 +284,156 @@ def train_and_publish_season3_domain_experts(
     }
 
 
+def _tokenize_text_samples(
+    tokenizer: Any,
+    samples: Sequence[str],
+    *,
+    max_length: int,
+    label: str,
+) -> List[Tuple[torch.Tensor, torch.Tensor]]:
+    """Validate every example and retain exactly the tokens used for training."""
+    if isinstance(samples, (str, bytes)) or not samples or any(
+        not isinstance(text, str) or not text.strip() for text in samples
+    ):
+        raise ValueError(f"{label} must contain nonempty text strings")
+    batches = []
+    for index, text in enumerate(samples):
+        encoded = tokenizer(text, return_tensors="pt", truncation=True, max_length=max_length)
+        if not isinstance(encoded, Mapping):
+            raise ValueError(f"{label}[{index}] tokenizer must return an input mapping")
+        ids = encoded.get("input_ids")
+        if (
+            not isinstance(ids, torch.Tensor)
+            or ids.ndim != 2
+            or ids.shape[0] != 1
+            or not 2 <= ids.shape[1] <= max_length
+            or ids.dtype not in (torch.int32, torch.int64)
+            or (ids < 0).any()
+        ):
+            raise ValueError(f"{label}[{index}] must tokenize to at least two valid tokens within max_length")
+        attention = encoded.get("attention_mask", torch.ones_like(ids))
+        if (
+            not isinstance(attention, torch.Tensor)
+            or attention.shape != ids.shape
+            or attention.is_complex()
+        ):
+            raise ValueError(f"{label}[{index}] attention mask shape must match tokens")
+        if not torch.all((attention == 0) | (attention == 1)) or int(attention.sum()) < 2:
+            raise ValueError(f"{label}[{index}] must have a binary attention mask and two visible tokens")
+        batches.append((ids.detach().cpu().long().clone(), attention.detach().cpu().long().clone()))
+    return batches
+
+
+def _visible_token_signature(batch: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[int, ...]:
+    ids, attention = batch
+    # Conservatively treat masked/padded variants of the same text as duplicates.
+    return tuple(ids[attention.bool()].tolist())
+
+
+def _is_token_prefix(prefix: Tuple[int, ...], sequence: Tuple[int, ...]) -> bool:
+    return len(prefix) <= len(sequence) and sequence[:len(prefix)] == prefix
+
+
+def split_tokenized_corpus(
+    tokenizer: Any,
+    samples: Sequence[str],
+    *,
+    max_length: int = 256,
+    heldout_fraction: float = 0.2,
+) -> Tuple[List[str], List[str]]:
+    """Deterministically split unique, model-visible examples without leakage.
+
+    Keep the first occurrence of each exact text/token sequence, then drop any
+    sequence that is a strict prefix of a longer example. Retain the resulting
+    maximal sequences in original corpus order. Reserve the last fraction for
+    evaluation, with at least one non-prefix example on either side. Invalid or
+    insufficient data fails closed; a shorter copy is not an independent holdout.
+    """
+    import math
+
+    if isinstance(max_length, bool) or not isinstance(max_length, int) or max_length < 2:
+        raise ValueError("max_length must be an integer of at least two")
+    if not math.isfinite(heldout_fraction) or not 0 < heldout_fraction < 1:
+        raise ValueError("heldout_fraction must be between zero and one")
+    batches = _tokenize_text_samples(tokenizer, samples, max_length=max_length, label="samples")
+    seen_texts = set()
+    unique_by_tokens = {}
+    for text, batch in zip(samples, batches):
+        signature = _visible_token_signature(batch)
+        if text in seen_texts or signature in unique_by_tokens:
+            continue
+        seen_texts.add(text)
+        unique_by_tokens[signature] = text
+    # In lexicographic order a strict prefix immediately precedes one of its
+    # descendants. Remove shorter copies, without changing retained sample order.
+    ordered_signatures = sorted(unique_by_tokens)
+    shorter_prefixes = {
+        left for left, right in zip(ordered_signatures, ordered_signatures[1:])
+        if _is_token_prefix(left, right)
+    }
+    unique = [text for signature, text in unique_by_tokens.items() if signature not in shorter_prefixes]
+    if len(unique) < 2:
+        raise ValueError("corpus must contain at least two distinct non-prefix model-visible token sequences")
+    holdout_count = min(len(unique) - 1, max(1, math.ceil(len(unique) * heldout_fraction)))
+    return unique[:-holdout_count], unique[-holdout_count:]
+
+
+def _trainable_lora_parameters(model: nn.Module) -> List[Tuple[str, nn.Parameter]]:
+    trainable = [(name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad]
+    if not trainable or any("lora_" not in name for name, _ in trainable):
+        raise ValueError("model must have only LoRA parameters unfrozen")
+    return trainable
+
+
+def _read_validated_adapter_state(
+    path: Union[str, Path],
+    expected: Dict[str, torch.Tensor],
+) -> Dict[str, torch.Tensor]:
+    state = torch.load(path, map_location="cpu", weights_only=True)
+    if not isinstance(state, dict) or set(state) != set(expected):
+        raise ValueError("adapter checkpoint keys must exactly match the model's trainable LoRA parameters")
+    for name, reference in expected.items():
+        value = state[name]
+        if (
+            not isinstance(value, torch.Tensor)
+            or value.shape != reference.shape
+            or value.dtype != reference.dtype
+            or not torch.isfinite(value).all()
+        ):
+            raise ValueError(f"adapter checkpoint has invalid shape, dtype or values for {name}")
+    return state
+
+
+def load_tokenized_adapter_state(model: nn.Module, path: Union[str, Path]) -> Dict[str, torch.Tensor]:
+    """Load a complete checkpoint into an identically configured LoRA model.
+
+    All keys, shapes, dtypes and finite values are checked before changing any
+    parameters. This loads adapter weights only; callers must supply the matching
+    base model and tokenizer. The saved file does not authenticate that backbone.
+    """
+    trainable = _trainable_lora_parameters(model)
+    state = _read_validated_adapter_state(path, dict(trainable))
+    _copy_adapter_state(trainable, state)
+    return state
+
+
+def _copy_adapter_state(
+    trainable: Sequence[Tuple[str, nn.Parameter]], state: Dict[str, torch.Tensor]
+) -> None:
+    original = {name: value.detach().clone() for name, value in trainable}
+    try:
+        with torch.no_grad():
+            for name, value in trainable:
+                value.copy_(state[name].to(device=value.device))
+            if any(not torch.equal(value.detach().cpu(), state[name]) for name, value in trainable):
+                raise ValueError("loaded adapter parameters differ from the checkpoint")
+    except Exception:
+        with torch.no_grad():
+            for name, value in trainable:
+                value.copy_(original[name])
+        raise
+
+
 def train_tokenized_domain_adapter(
     model: nn.Module,
     tokenizer: Any,
@@ -294,90 +445,109 @@ def train_tokenized_domain_adapter(
     heldout_samples: Optional[Sequence[str]] = None,
     adapter_save_path: Optional[Union[str, Path]] = None,
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
-    """Train an already-adapted causal LM on actual supplied text.
+    """Train only the unfrozen LoRA weights of a causal LM on supplied text.
 
-    Dataset download and license selection belong to the caller. This path never
-    substitutes random feature regression for language-model training. Only LoRA
-    parameters may be trainable; the caller chooses the backbone and its precision.
-    When heldout_samples are supplied, initial and final loss are evaluated,
-    saved adapter weights are reloaded and verified, and held-out improvement is reported.
+    Held-out examples must be disjoint both as exact strings and as model-visible
+    token sequences after truncation, including strict prefix copies in either
+    direction. Every example and every evaluation loss is
+    validated; invalid data never silently reduces the evaluation set. Checkpoint
+    verification is an exact adapter-state round trip, not a fresh-backbone reload
+    or evidence of generalization beyond this small evaluation corpus.
     """
     import hashlib
     import math
-    from pathlib import Path
+    import os
+    import tempfile
 
-    if not samples or any(not isinstance(text, str) or not text.strip() for text in samples):
-        raise ValueError("samples must contain nonempty text strings")
-    if heldout_samples is not None:
-        if not heldout_samples or any(not isinstance(text, str) or not text.strip() for text in heldout_samples):
-            raise ValueError("heldout_samples must contain nonempty text strings")
-    if steps < 1 or max_length < 2 or not math.isfinite(learning_rate) or learning_rate <= 0:
+    if (
+        isinstance(steps, bool) or not isinstance(steps, int) or steps < 1
+        or isinstance(max_length, bool) or not isinstance(max_length, int) or max_length < 2
+        or not math.isfinite(learning_rate) or learning_rate <= 0
+    ):
         raise ValueError("invalid training steps, sequence length or learning rate")
-    trainable = [(name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad]
-    if not trainable or any('lora_' not in name for name, _ in trainable):
-        raise ValueError("model must have only LoRA parameters unfrozen")
+    trainable = _trainable_lora_parameters(model)
     device = trainable[0][1].device
+    batches = _tokenize_text_samples(tokenizer, samples, max_length=max_length, label="samples")
+    train_signatures = {_visible_token_signature(batch) for batch in batches}
+    heldout_batches = None
+    if heldout_samples is not None:
+        heldout_batches = _tokenize_text_samples(
+            tokenizer, heldout_samples, max_length=max_length, label="heldout_samples"
+        )
+        if set(samples).intersection(heldout_samples):
+            raise ValueError("training and heldout samples overlap as exact text")
+        heldout_signatures = {_visible_token_signature(batch) for batch in heldout_batches}
+        if train_signatures.intersection(heldout_signatures):
+            raise ValueError("training and heldout samples overlap as model-visible tokens after truncation")
+        if any(
+            _is_token_prefix(train, heldout) or _is_token_prefix(heldout, train)
+            for train in train_signatures for heldout in heldout_signatures
+        ):
+            raise ValueError("training and heldout samples overlap as model-visible token prefixes")
 
-    def _evaluate_samples(target_model: nn.Module, eval_texts: Sequence[str]) -> float:
+    def evaluate(eval_batches: Sequence[Tuple[torch.Tensor, torch.Tensor]]) -> float:
         eval_losses = []
-        target_was_training = target_model.training
-        target_model.eval()
+        target_was_training = model.training
+        model.eval()
         try:
             with torch.no_grad():
-                for text in eval_texts:
-                    encoded = tokenizer(text, return_tensors='pt', truncation=True, max_length=max_length)
-                    ids = encoded['input_ids'].to(device)
-                    if ids.ndim != 2 or ids.shape[0] != 1 or ids.shape[1] < 2:
-                        continue
-                    attention = encoded.get('attention_mask', torch.ones_like(ids)).to(device)
+                for index, (ids, attention) in enumerate(eval_batches):
+                    ids, attention = ids.to(device), attention.to(device)
                     labels = ids.clone().masked_fill(attention == 0, -100)
-                    out = target_model(input_ids=ids, attention_mask=attention, labels=labels)
-                    loss = out.loss
-                    if loss is not None and torch.isfinite(loss):
-                        eval_losses.append(float(loss.detach()))
+                    loss = model(input_ids=ids, attention_mask=attention, labels=labels).loss
+                    if not isinstance(loss, torch.Tensor) or loss.ndim != 0 or not torch.isfinite(loss):
+                        raise ValueError(f"heldout_samples[{index}] returned a nonfinite or nonscalar loss")
+                    eval_losses.append(float(loss.detach()))
         finally:
-            target_model.train(target_was_training)
-        if not eval_losses:
-            raise ValueError("evaluation samples must tokenize to at least two tokens")
+            model.train(target_was_training)
         return float(sum(eval_losses) / len(eval_losses))
 
-    heldout_initial_loss: Optional[float] = None
-    if heldout_samples is not None:
-        heldout_initial_loss = _evaluate_samples(model, heldout_samples)
-
-    # Tokenize each sample independently: no padding token is required and pad
-    # labels cannot accidentally become part of the language-model objective.
-    batches = []
-    for text in samples:
-        encoded = tokenizer(text, return_tensors='pt', truncation=True, max_length=max_length)
-        ids = encoded['input_ids']
-        if ids.ndim != 2 or ids.shape[0] != 1 or ids.shape[1] < 2:
-            raise ValueError("every sample must tokenize to at least two tokens")
-        attention = encoded.get('attention_mask', torch.ones_like(ids))
-        if attention.shape != ids.shape:
-            raise ValueError("attention mask shape must match tokens")
-        batches.append((ids.to(device), attention.to(device)))
+    # All tokenization, leakage checks and baseline evaluation precede optimizer
+    # construction and the first weight update.
+    heldout_initial_loss = evaluate(heldout_batches) if heldout_batches is not None else None
     initial = {name: value.detach().clone() for name, value in trainable}
     was_training = model.training
     optimizer = torch.optim.AdamW([value for _, value in trainable], lr=learning_rate)
     losses = []
+    adapter_verified = False
+    heldout_final_loss = None
+    temporary_path = None
     try:
         model.train()
         for index in range(steps):
             ids, attention = batches[index % len(batches)]
+            ids, attention = ids.to(device), attention.to(device)
             labels = ids.clone().masked_fill(attention == 0, -100)
             optimizer.zero_grad(set_to_none=True)
-            result = model(input_ids=ids, attention_mask=attention, labels=labels)
-            loss = result.loss
-            if loss is None or loss.ndim != 0 or not torch.isfinite(loss):
+            loss = model(input_ids=ids, attention_mask=attention, labels=labels).loss
+            if not isinstance(loss, torch.Tensor) or loss.ndim != 0 or not torch.isfinite(loss):
                 raise ValueError("model returned a nonfinite or nonscalar loss")
             loss.backward()
-            norm = torch.nn.utils.clip_grad_norm_([value for _, value in trainable], 1.0,
-                                                 error_if_nonfinite=True)
+            torch.nn.utils.clip_grad_norm_([value for _, value in trainable], 1.0, error_if_nonfinite=True)
             optimizer.step()
             if any(not torch.isfinite(value).all() for _, value in trainable):
                 raise ValueError("optimizer produced nonfinite adapter parameters")
             losses.append(float(loss.detach()))
+        state = {name: value.detach().cpu().clone() for name, value in trainable}
+        if heldout_batches is not None:
+            heldout_final_loss = evaluate(heldout_batches)
+        if adapter_save_path is not None:
+            save_path = Path(adapter_save_path)
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            # Publish only a verified complete file; a failed write/check leaves
+            # any previous checkpoint untouched.
+            with tempfile.NamedTemporaryFile(
+                dir=save_path.parent, prefix=save_path.name + ".", suffix=".tmp", delete=False
+            ) as handle:
+                temporary_path = Path(handle.name)
+            torch.save(state, temporary_path)
+            reloaded = _read_validated_adapter_state(temporary_path, state)
+            if any(not torch.equal(state[name], reloaded[name]) for name in state):
+                raise ValueError("saved adapter checkpoint differs from trained weights")
+            _copy_adapter_state(trainable, reloaded)
+            os.replace(temporary_path, save_path)
+            temporary_path = None
+            adapter_verified = True
     except Exception:
         with torch.no_grad():
             for name, value in trainable:
@@ -386,52 +556,48 @@ def train_tokenized_domain_adapter(
     finally:
         optimizer.zero_grad(set_to_none=True)
         model.train(was_training)
-    state = {name: value.detach().cpu().clone() for name, value in trainable}
-
-    adapter_reloaded = False
-    if adapter_save_path is not None:
-        save_path = Path(adapter_save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(state, save_path)
-        reloaded_state = torch.load(save_path, weights_only=True)
-        with torch.no_grad():
-            for name, value in trainable:
-                if name in reloaded_state:
-                    value.copy_(reloaded_state[name].to(device=value.device, dtype=value.dtype))
-        adapter_reloaded = True
-
-    heldout_final_loss: Optional[float] = None
-    heldout_loss_reduction_pct: Optional[float] = None
-    heldout_improved: bool = False
-    if heldout_samples is not None and heldout_initial_loss is not None:
-        heldout_final_loss = _evaluate_samples(model, heldout_samples)
-        heldout_loss_reduction_pct = round(100.0 * (heldout_initial_loss - heldout_final_loss) / heldout_initial_loss, 2)
-        heldout_improved = bool(heldout_final_loss < heldout_initial_loss)
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
     digest = hashlib.sha256()
     for text in samples:
-        data = text.encode('utf-8')
-        digest.update(len(data).to_bytes(8, 'big'))
+        data = text.encode("utf-8")
+        digest.update(len(data).to_bytes(8, "big"))
         digest.update(data)
-
     report: Dict[str, Any] = {
-        'training_backend': 'causal_lm_lora',
-        'samples_sha256': digest.hexdigest(),
-        'sample_count': len(samples),
-        'steps_completed': len(losses),
-        'training_losses': losses,
-        'heldout_evaluated': heldout_samples is not None,
-        'adapter_parameters_changed': any(not torch.equal(initial[name].cpu(), state[name]) for name in state),
+        "training_backend": "causal_lm_lora",
+        "samples_sha256": digest.hexdigest(),
+        "sample_count": len(samples),
+        "training_unique_token_count": len(train_signatures),
+        "heldout_unique_token_count": (
+            len({_visible_token_signature(batch) for batch in heldout_batches})
+            if heldout_batches is not None else 0
+        ),
+        "heldout_disjoint_verified": heldout_batches is not None,
+        "steps_completed": len(losses),
+        "training_losses": losses,
+        "heldout_evaluated": heldout_batches is not None,
+        "adapter_parameters_changed": any(not torch.equal(initial[name].cpu(), state[name]) for name in state),
+        "adapter_saved_path": str(adapter_save_path) if adapter_save_path is not None else None,
+        "adapter_reloaded_and_verified": adapter_verified,
+        "adapter_verification_method": "exact_state_dict_round_trip" if adapter_verified else None,
+        "adapter_fresh_model_reload_verified": False,
     }
-    if heldout_samples is not None and heldout_initial_loss is not None and heldout_final_loss is not None:
+    if heldout_initial_loss is not None and heldout_final_loss is not None:
+        heldout_digest = hashlib.sha256()
+        for text in heldout_samples:
+            data = text.encode("utf-8")
+            heldout_digest.update(len(data).to_bytes(8, "big"))
+            heldout_digest.update(data)
         report.update({
-            'heldout_sample_count': len(heldout_samples),
-            'heldout_initial_loss': heldout_initial_loss,
-            'heldout_final_loss': heldout_final_loss,
-            'heldout_loss_reduction_pct': heldout_loss_reduction_pct,
-            'heldout_improved': heldout_improved,
-            'adapter_saved_path': str(adapter_save_path) if adapter_save_path else None,
-            'adapter_reloaded_and_verified': adapter_reloaded,
+            "heldout_samples_sha256": heldout_digest.hexdigest(),
+            "heldout_sample_count": len(heldout_batches),
+            "heldout_initial_loss": heldout_initial_loss,
+            "heldout_final_loss": heldout_final_loss,
+            "heldout_loss_reduction_pct": (
+                round(100.0 * (heldout_initial_loss - heldout_final_loss) / heldout_initial_loss, 2)
+                if heldout_initial_loss > 0 else None
+            ),
+            "heldout_improved": heldout_final_loss < heldout_initial_loss,
         })
     return state, report
-
