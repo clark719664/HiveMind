@@ -551,3 +551,91 @@ def test_gpu_execution_circuit_breaker_and_inner_loop_protection(tmp_path: Path)
         for k in ok_res.theta_final
     )
     assert max_diff < 1e-6
+
+
+def test_phase_s5_25_vector_attack_simulation_and_ledger_ring_guardrails(tmp_path: Path) -> None:
+    from hivemind.security import (
+        SwarmGuardrailAttackSimulator,
+        run_guardrail_attack_simulation,
+    )
+    from hivemind.swarm.inference_ring import RegionalDHTSwarmRing, SwarmPeerNode
+    from hivemind.swarm.ledger import HiveSwarmLedger, StorageProofReceipt, WorkReceipt
+
+    sim_out = tmp_path / "guardrail_sim_25.json"
+    rep = run_guardrail_attack_simulation(output_json_path=str(sim_out))
+    assert rep["overall_passed"] is True
+    assert rep["attacks_blocked_count"] == 25
+    assert rep["attacks_simulated_total"] == 25
+    assert rep["block_rate_pct"] == 100.0
+    assert sim_out.exists()
+
+    # Additional Ledger guardrail edge cases (LEDGER-01 .. LEDGER-04)
+    ledger = HiveSwarmLedger()
+    ledger.credit_reward("consumer-1", 20.0)
+    with pytest.raises(SwarmSecurityViolationError) as exc_rate:
+        ledger.settle_swarm_inference("consumer-1", ["prov-1"], "Astro", verified_tokens=10, rtt_speedup=2.0, rate_per_token=-0.5)
+    assert exc_rate.value.rule_id == "LEDGER-01"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_empty_prov:
+        ledger.settle_swarm_inference("consumer-1", [], "Astro", verified_tokens=10, rtt_speedup=2.0)
+    assert exc_empty_prov.value.rule_id == "LEDGER-01"
+
+    ledger.slashed_registry.append("slashed-prov")
+    with pytest.raises(SwarmSecurityViolationError) as exc_slashed_prov:
+        ledger.settle_swarm_inference("consumer-1", ["slashed-prov"], "Astro", verified_tokens=10, rtt_speedup=2.0)
+    assert exc_slashed_prov.value.rule_id == "LEDGER-01"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_empty_node:
+        ledger.credit_reward("   ", 5.0)
+    assert exc_empty_node.value.rule_id == "LEDGER-02"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_cap:
+        ledger.credit_reward("whale-node", 25_000_000.0)
+    assert exc_cap.value.rule_id == "LEDGER-04"
+
+    bad_work = WorkReceipt(
+        node_id="neg-flops-miner",
+        steam_id64="76561198000000055",
+        branch_name="Astro",
+        flops_contributed=-10.0,
+        cosine_alignment=0.9,
+        spot_check_passed=True,
+        multikrum_accepted=True,
+        delta_sha256="b" * 64,
+    )
+    with pytest.raises(SwarmSecurityViolationError) as exc_flops:
+        ledger.mine_pouw_block(1, "cid://sha256/exp", [bad_work], [], ["val-1"])
+    assert exc_flops.value.rule_id == "LEDGER-03"
+
+    bad_storage = StorageProofReceipt(
+        node_id="neg-bytes-seeder",
+        shard_cid="cid://sha256/shard",
+        challenged_chunk_index=0,
+        merkle_proof_hash="c" * 64,
+        bytes_stored=-1024,
+        verified=True,
+    )
+    with pytest.raises(SwarmSecurityViolationError) as exc_bytes:
+        ledger.mine_pouw_block(1, "cid://sha256/exp", [], [bad_storage], ["val-1"])
+    assert exc_bytes.value.rule_id == "LEDGER-03"
+
+    # Additional RegionalDHTSwarmRing edge cases (RING-01, RING-02)
+    ring = RegionalDHTSwarmRing(region="EU-West-Paris", max_ping_ms=25.0)
+    assert ring.register_peer(
+        SwarmPeerNode("", "76561198000000001", "EU-West-Paris", 10.0, 8.0, "Astro", (0, 4))
+    ) is False
+    assert ring.register_peer(
+        SwarmPeerNode("low-vram", "76561198000000001", "EU-West-Paris", 10.0, 2.0, "Astro", (0, 4))
+    ) is False
+    assert ring.register_peer(
+        SwarmPeerNode("high-jitter", "76561198000000001", "EU-West-Paris", 10.0, 8.0, "Astro", (0, 4), jitter_ms=55.0)
+    ) is False
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_max_tok:
+        ring.run_speculative_inference(None, None, torch.tensor([[1, 2]]), max_new_tokens=9999, draft_gamma=5)  # type: ignore[arg-type]
+    assert exc_max_tok.value.rule_id == "RING-02"
+
+    with pytest.raises(SwarmSecurityViolationError) as exc_empty_prompt:
+        ring.run_speculative_inference(None, None, torch.tensor([], dtype=torch.long), max_new_tokens=10, draft_gamma=5)  # type: ignore[arg-type]
+    assert exc_empty_prompt.value.rule_id == "RING-02"
+

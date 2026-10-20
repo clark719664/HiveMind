@@ -657,17 +657,20 @@ def run_swarm_hardening_self_test(output_json_path: Optional[str] = None) -> Dic
 
     from hivemind.security.federated_learning_hardening import run_federated_hardening_self_test
     from hivemind.security.gpu_execution_circuit_breaker import run_gpu_circuit_breaker_self_test
+    from hivemind.security.guardrail_attack_simulator import run_guardrail_attack_simulation
 
     fl_report = run_federated_hardening_self_test()
     gpu_cb_report = run_gpu_circuit_breaker_self_test()
+    red_team_report = run_guardrail_attack_simulation()
 
     report = {
-        "phase": "Phase S-2, S-3 & S-4: Swarm GPU Training, Data Store, Federated Learning & Hardware Circuit-Breaker Hardening",
+        "phase": "Phase S-2..S-5: Swarm GPU Training, Data Store, Federated Learning, Hardware Circuit-Breaker & 25-Vector Guardrail Simulation",
         "overall_passed": bool(
             all_legit_passed
             and all_attacks_blocked
             and fl_report.get("overall_passed")
             and gpu_cb_report.get("overall_passed")
+            and red_team_report.get("overall_passed")
         ),
         "legitimate_checks": {
             "dataset_shard": v_shard_ok.to_dict(),
@@ -679,6 +682,7 @@ def run_swarm_hardening_self_test(output_json_path: Optional[str] = None) -> Dic
         "simulated_attacks": blocked_attacks,
         "federated_learning_hardening": fl_report,
         "gpu_hardware_circuit_breaker": gpu_cb_report,
+        "guardrail_attack_simulation_25_vectors": red_team_report,
     }
 
     if output_json_path:

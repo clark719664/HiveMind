@@ -95,6 +95,11 @@ In addition to repository/PR protection, Project HiveMind enforces runtime secur
    - **PSU TDP & Laptop Battery Guard (`HW-02`):** Preempts federated GPU execution when running on battery power or when GPU power draw exceeds `92%` of board TDP.
    - **VRAM Ceiling & Windows WDDM TDR Watchdog (`HW-03`):** Enforces `5,950 MB` active VRAM ceiling, `95%` system RAM ceiling, $B \times L \le 2,048$ micro-batch token bound, and `1.50s` per-step latency watchdog (`500 ms` below the `2.00s` Windows WDDM TDR driver reset timeout, `Theorem 58`).
    - **Deterministic Gradient Clipping & `NaN` Early Abort (`HW-04`, `HW-05`):** Enforces `clip_grad_norm_(max_norm=1.0)` across worker and validator inner loops, aborts immediately on `NaN`/`Inf` or diverged loss (`Theorem 60`), and enforces a `300.0s` workunit wall-clock deadline.
+7. **Phase S-5 — PoUW Ledger, P2P Inference Ring, Coordinator Gateway & 25-Vector Attack Simulator (`LEDGER-01`..`04`, `RING-01`..`02`, `COORD-01`..`02`, [`guardrail_attack_simulator.py`](src/hivemind/security/guardrail_attack_simulator.py)):**
+   - **PoUW Ledger Anti-Inflation & Supply Cap (`LEDGER-01` .. `LEDGER-04`):** Blocks negative token/fee balance inflation (`Theorem 61`), bars slashed Byzantine nodes from rewards/fees, deduplicates per-block receipts, and enforces the `21,000,000 $HIVE` cap (`Theorem 62`).
+   - **P2P Inference Ring & Speculative Decoding Guard (`RING-01`, `RING-02`):** Rejects spoofed negative-ping (`<= 0 ms`) and high-packet-loss (`> 15%`) peers (`Theorem 63`), bounds `draft_gamma in [1, 16]` (`Theorem 64`), and verifies finiteness of MoE verification logits.
+   - **Coordinator & Gateway Prompt Guard (`COORD-01`, `COORD-02`):** Blocks path-traversal worker IDs and screens `/v1/chat/completions` prompts against sleeper-agent triggers and payment extortion.
+   - **25-Vector Automated Red-Team Simulator (`SwarmGuardrailAttackSimulator`):** Simulates 25 synthetic attack scenarios across Layers S-1 through S-5 and verifies a `100%` (`25 / 25`) block rate.
 
 ---
 

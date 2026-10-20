@@ -32,6 +32,10 @@ from hivemind.core.compression import decompress_lora_delta
 from hivemind.core.diloco_inner import InnerLoopResult
 from hivemind.core.diloco_outer import DiLoCoOuterOptimizer, OuterStepResult
 from hivemind.security.federated_learning_hardening import FederatedLearningSecurityGuard
+from hivemind.security.swarm_runtime_hardening import (
+    SwarmSecurityViolationError,
+    SwarmTrainingAndStoreGuard,
+)
 
 
 @dataclass
@@ -103,6 +107,18 @@ class BOINCCoordinatorService:
         worker_id: str,
         is_non_limited: bool = True,
     ) -> NodeReputationRecord:
+        clean_sid = str(steam_id64).strip()
+        clean_wid = str(worker_id).strip()
+        if (
+            not clean_sid
+            or not clean_wid
+            or any(tok in clean_sid or tok in clean_wid for tok in ("..", "/", "\\", "\x00"))
+        ):
+            raise SwarmSecurityViolationError(
+                "COORD-01",
+                "INVALID_NODE_IDENTITY_OR_PATH_INJECTION",
+                f"Invalid or path-traversal node identity: steam_id64='{steam_id64}', worker_id='{worker_id}'.",
+            )
         if not is_non_limited:
             raise PermissionError(
                 f"Steam account {steam_id64} is Limited (< $5 spent). Sybil defense blocks WU assignment."
@@ -330,11 +346,28 @@ def create_coordinator_fastapi_app(coordinator: BOINCCoordinatorService) -> Fast
         )
 
         messages = payload.get("messages", [])
-        user_prompt = (
+        user_prompt = str(
             messages[-1].get("content", "Hello Swarm")
             if messages and isinstance(messages[-1], dict)
-            else str(payload.get("prompt", "Hello Swarm"))
+            else payload.get("prompt", "Hello Swarm")
         )
+        # Rule COORD-02: Screen gateway prompts against oversized DoS, sleeper-agent backdoor triggers, and payment solicitation
+        if len(user_prompt) > 8192:
+            raise HTTPException(
+                status_code=400,
+                detail="[COORD-02] Prompt exceeds 8,192-character gateway safety limit.",
+            )
+        gateway_guard = SwarmTrainingAndStoreGuard(min_entropy_bits=0.0)
+        prompt_verdict = gateway_guard.validate_dataset_shard(
+            "OpenAI_Gateway_Prompt",
+            [user_prompt if len(user_prompt) >= 8 else f"{user_prompt}        "],
+            raise_on_violation=False,
+        )
+        if not prompt_verdict.passed:
+            raise HTTPException(
+                status_code=400,
+                detail=f"[COORD-02:{prompt_verdict.rule_id}] {prompt_verdict.message}",
+            )
         model_name = str(payload.get("model", "hivemind-qwen2.5-sparse-moe-top2"))
         probe = execute_interactive_bounty_probe(
             gamer_tag=str(payload.get("user", "CyberValkyrie_FR")),

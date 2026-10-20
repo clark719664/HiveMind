@@ -1,10 +1,11 @@
-"""Project HiveMind — Repository, Pull Request, Runtime Swarm, Federated Learning & GPU Hardware Security Package.
+"""Project HiveMind — Repository, Pull Request, Runtime Swarm, Federated Learning, GPU Hardware & Red-Team Guardrail Security Package.
 
 Provides:
 1. Automated 5-Layer Pull Request & Repository Security Scanner (`pr_security_scanner.py`)
 2. Phase S-2 Swarm GPU Training & Content-Addressed Data Store Runtime Hardening (`swarm_runtime_hardening.py`)
 3. Phase S-3 Federated Learning & Byzantine-Resilient DiLoCo Hardening (`federated_learning_hardening.py`)
 4. Phase S-4 Federated GPU Execution & Hardware Safety Circuit-Breaker (`gpu_execution_circuit_breaker.py`)
+5. Phase S-5 25-Vector End-to-End Multi-Layer Attack Simulation & Guardrail Verification (`guardrail_attack_simulator.py`)
 """
 
 from hivemind.security.federated_learning_hardening import (
@@ -19,6 +20,11 @@ from hivemind.security.gpu_execution_circuit_breaker import (
     GPUHardwareTelemetry,
     query_live_gpu_hardware_telemetry,
     run_gpu_circuit_breaker_self_test,
+)
+from hivemind.security.guardrail_attack_simulator import (
+    SimulatedAttackScenarioResult,
+    SwarmGuardrailAttackSimulator,
+    run_guardrail_attack_simulation,
 )
 from hivemind.security.pr_security_scanner import (
     PRSecurityAuditResult,
@@ -46,6 +52,8 @@ __all__ = [
     "PRSecurityScanner",
     "SecurityFinding",
     "SecuritySeverity",
+    "SimulatedAttackScenarioResult",
+    "SwarmGuardrailAttackSimulator",
     "SwarmHardeningVerdict",
     "SwarmSecurityViolationError",
     "SwarmTrainingAndStoreGuard",
@@ -54,5 +62,6 @@ __all__ = [
     "run_cli_security_scan",
     "run_federated_hardening_self_test",
     "run_gpu_circuit_breaker_self_test",
+    "run_guardrail_attack_simulation",
     "run_swarm_hardening_self_test",
 ]
