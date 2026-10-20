@@ -6,7 +6,7 @@ server you point it at must be one you operate or are explicitly allowed to use;
 built-in default server. TURN credentials come from TURN_USERNAME / TURN_PASSWORD, never argv.
 
     stun   --server HOST:PORT [--server HOST2:PORT]   # server-reflexive address + RFC 5780 mapping class
-    punch  --local-port N --peer IP:PORT --session TEXT   # simultaneous UDP hole punch, run on BOTH sides
+    punch  --local-port N --peer IP:PORT --session TEXT   # standalone socket probe; NOT WAN acceptance
     turn-listen --server HOST:PORT [--peer-ip IP]     # allocate a relay, print it, wait for one datagram
     turn-send   --server HOST:PORT --relay-peer IP:PORT --payload TEXT
 
@@ -47,12 +47,12 @@ def cmd_stun(args) -> int:
     try:
         if len(args.server) >= 2:
             mapping = nt.classify_nat_mapping(sock, args.server, timeout=args.timeout)
-            emit({"command": "stun", "behaviour": mapping.behaviour, "nat_type": mapping.nat_type,
+            emit({"command": "stun", "socket_closed_after_result": True, "mapping_reusable_for_punch": False, "behaviour": mapping.behaviour, "nat_type": mapping.nat_type,
                   "hole_punchable": mapping.hole_punchable, "local": mapping.local, "mapped": mapping.mapped,
                   "servers": mapping.servers, "rtt_ms": mapping.rtt_ms}, args.redact)
         else:
             result = nt.stun_binding(sock, args.server[0], timeout=args.timeout)
-            emit({"command": "stun", "behaviour": "unknown (needs two STUN servers to classify mapping)",
+            emit({"command": "stun", "socket_closed_after_result": True, "mapping_reusable_for_punch": False, "behaviour": "unknown (needs two STUN servers to classify mapping)",
                   "local": result.local, "mapped": result.mapped, "server": result.server,
                   "rtt_ms": result.rtt_ms}, args.redact)
     finally:
@@ -67,7 +67,8 @@ def cmd_punch(args) -> int:
                                    timeout=args.punch_timeout)
         emit({"command": "punch", "succeeded": result.succeeded, "peer": result.peer, "rtt_ms": result.rtt_ms,
               "probes_sent": result.probes_sent,
-              "note": "both sides must run this at the same time with each other's mapped address and the same --session"},
+              "wan_acceptance": "UNSUPPORTED",
+              "note": "standalone socket probe only; do not use a mapping from a closed STUN socket. No same-live-socket discovery/signaling flow is implemented"},
              args.redact)
         return 0 if result.succeeded else 1
     finally:

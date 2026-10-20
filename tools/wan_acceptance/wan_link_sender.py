@@ -9,8 +9,9 @@ uncertain and never claims connection migration (each batch opens a fresh UDP so
 
     python tools/wan_acceptance/wan_link_sender.py --host <receiver address> --quic-port 4433 \
         --wss-port 4434 --ca wan_recv/ca.pem --expect-ca-sha256 <value printed by the receiver> \
-        --batches 20 --frames 8 --size 4096 --interval 2 --out wan_send.jsonl
+        --seed 12345 --batches 20 --frames 8 --size 4096 --interval 2 --out wan_send.jsonl
 
+A transport ACK is not receiver acceptance; reconcile receiver evidence separately.
 Exit code: 0 every batch acknowledged; 1 at least one batch failed; 2 bad arguments / CA mismatch.
 """
 from __future__ import annotations
@@ -34,7 +35,7 @@ for extra in (HERE, REPO_ROOT / "src"):
 from hivemind.swarm.quic_link import (  # noqa: E402
     DeliveryUncertainError, LinkEndpoint, RemoteHiddenStateLink,
 )
-from wan_frames import make_frame  # noqa: E402
+from wan_frames import make_frame, validate_plan, validate_seconds  # noqa: E402
 
 
 def utc_now() -> str:
@@ -52,30 +53,36 @@ async def amain(args: argparse.Namespace) -> int:
     endpoint = LinkEndpoint(args.host, args.quic_port, ca_pem, server_name=args.server_name, websocket_url=websocket_url)
     link = RemoteHiddenStateLink(endpoint, timeout=args.timeout)
     failures = 0
-    out = open(args.out, "w", encoding="utf-8", buffering=1)
-    for batch in range(args.batches):
-        frames = [make_frame(args.seed, batch, i, args.size) for i in range(args.frames)]
-        record = {"batch": batch, "t_utc": utc_now(), "frames_sent": len(frames), "bytes": sum(map(len, frames))}
-        started = time.perf_counter()
-        try:
-            run = await link.send_frames(frames)
-            record.update({
-                "ok": run.frames_delivered == len(frames), "transport": run.protocol,
-                "frames_delivered": run.frames_delivered, "session_resumed": run.session_resumed,
-                "early_data_accepted": run.early_data_accepted, "fallback_reason": run.fallback_reason,
-                "elapsed_s": round(run.elapsed_s, 4)})
-        except DeliveryUncertainError as exc:
-            record.update({"ok": False, "error": "DeliveryUncertainError", "detail": str(exc), "not_replayed": True,
-                           "elapsed_s": round(time.perf_counter() - started, 4)})
-        except Exception as exc:  # noqa: BLE001 - recorded, then the run continues so recovery is visible
-            record.update({"ok": False, "error": type(exc).__name__, "detail": str(exc)[:200],
-                           "elapsed_s": round(time.perf_counter() - started, 4)})
-        failures += 0 if record["ok"] else 1
-        out.write(json.dumps(record) + "\n")
-        print(json.dumps(record), flush=True)
-        if batch + 1 < args.batches:
-            await asyncio.sleep(args.interval)
-    out.close()
+    out = open(args.out, "x", encoding="utf-8", buffering=1)
+    try:
+        for batch in range(args.batches):
+            frames = [make_frame(args.seed, batch, i, args.size) for i in range(args.frames)]
+            record = {"batch": batch, "t_utc": utc_now(), "frames_sent": len(frames), "bytes": sum(map(len, frames)),
+                      "seed": args.seed, "batches": args.batches, "frame_bytes": args.size,
+                      "frame_sha256": [hashlib.sha256(frame).hexdigest() for frame in frames]}
+            started = time.perf_counter()
+            try:
+                run = await link.send_frames(frames)
+                record.update({
+                    "ok": run.frames_delivered == len(frames), "transport": run.protocol,
+                    "frames_delivered": run.frames_delivered, "session_resumed": run.session_resumed,
+                    "early_data_accepted": run.early_data_accepted, "fallback_reason": run.fallback_reason,
+                    "transport_elapsed_s": round(run.elapsed_s, 4)})
+            except DeliveryUncertainError as exc:
+                record.update({"ok": False, "error": "DeliveryUncertainError", "detail": str(exc), "not_replayed": True,
+                               "elapsed_s": round(time.perf_counter() - started, 4)})
+            except Exception as exc:  # noqa: BLE001 - recorded, then the run continues so recovery is visible
+                record.update({"ok": False, "error": type(exc).__name__, "detail": str(exc)[:200],
+                               "elapsed_s": round(time.perf_counter() - started, 4)})
+            record["elapsed_s"] = round(time.perf_counter() - started, 4)
+            record["acceptance"] = "UNVERIFIED: transport ACK only; reconcile receiver artifacts"
+            failures += 0 if record["ok"] else 1
+            out.write(json.dumps(record) + "\n")
+            print(json.dumps(record), flush=True)
+            if batch + 1 < args.batches:
+                await asyncio.sleep(args.interval)
+    finally:
+        out.close()
     print(json.dumps({"summary": {"batches": args.batches, "failed": failures}}), flush=True)
     return 1 if failures else 0
 
@@ -93,9 +100,21 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--size", type=int, default=4096)
     ap.add_argument("--interval", type=float, default=1.0)
     ap.add_argument("--timeout", type=float, default=3.0)
-    ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--seed", type=int, required=True, help="fresh non-secret run identity, shared with receiver")
     ap.add_argument("--out", default="wan_send.jsonl")
-    return asyncio.run(amain(ap.parse_args(argv)))
+    args = ap.parse_args(argv)
+    try:
+        validate_plan(args.seed, args.batches, args.frames, args.size)
+        validate_seconds(args.interval, "interval", 60, allow_zero=True)
+        validate_seconds(args.timeout, "timeout", 300)
+        if args.batches * (args.timeout * 2 + args.interval) > 86400:
+            raise ValueError("run's maximum send/wait budget must not exceed one day")
+        for port in (args.quic_port, args.wss_port):
+            if port is not None and not 1 <= port <= 65535:
+                raise ValueError("sender ports must be 1..65535")
+    except ValueError as exc:
+        ap.error(str(exc))
+    return asyncio.run(amain(args))
 
 
 if __name__ == "__main__":
