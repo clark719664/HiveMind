@@ -23,18 +23,22 @@ class Element {
   constructor() { this.listeners = {}; this.dataset = {}; this.children = []; this.width = 920; this.height = 320; this.value = '-1'; }
   addEventListener(name, fn) { this.listeners[name] = fn; }
   getBoundingClientRect() { return { left: 0, top: 0, width: this.cssWidth || 920, height: 320 }; }
+  get clientWidth() { return (this.cssWidth || 920) - 2; }
+  get clientHeight() { return 318; }
+  get clientLeft() { return 1; }
+  get clientTop() { return 1; }
   setPointerCapture() {}
   replaceChildren(...items) { this.children = items; }
   add(item) { this.children.push(item); }
 }
 const ids = Object.fromEntries(['webgl-georing-canvas','georing-terminal','georing-refresh','georing-reset','georing-node'].map(id=>[id,new Element()]));
 const canvas = ids['webgl-georing-canvas'], terminal = ids['georing-terminal'];
-let lost = false, draws = 0, uploads = 0, requests = 0, frameId = 0, angleValues = [];
+let lost = false, draws = 0, uploads = 0, requests = 0, frameId = 0, angleValues = [], generation = 0, staleDeletes = 0;
 const frames = new Map(), timers = new Map(), windowEvents = {};
 const gl = { VERTEX_SHADER:1, FRAGMENT_SHADER:2, COMPILE_STATUS:3, LINK_STATUS:4, ARRAY_BUFFER:5, STATIC_DRAW:6, LINES:7, POINTS:8, COLOR_BUFFER_BIT:16, DEPTH_BUFFER_BIT:32, DEPTH_TEST:9, FLOAT:10,
  createShader:()=>({}), shaderSource(){}, compileShader(){}, getShaderParameter:()=>input.mode !== 'shader_error', getShaderInfoLog:()=> 'fixture shader error', deleteShader(){},
- createProgram:()=>({}), attachShader(){}, linkProgram(){}, getProgramParameter:()=>true, deleteProgram(){}, getAttribLocation:()=>0, getUniformLocation:()=>({}),
- createBuffer:()=>({}), bindBuffer(){}, bufferData(){uploads++}, deleteBuffer(){}, isContextLost:()=>lost,
+ createProgram:()=>({generation}), attachShader(){}, linkProgram(){}, getProgramParameter:()=>true, deleteProgram(o){if(o.generation!==generation)staleDeletes++}, getAttribLocation:()=>0, getUniformLocation:()=>({}),
+ createBuffer:()=>({generation}), bindBuffer(){}, bufferData(){uploads++}, deleteBuffer(o){if(o.generation!==generation)staleDeletes++}, isContextLost:()=>lost,
  viewport(){}, clearColor(){}, clear(){}, useProgram(){}, enable(){}, uniform2f(loc,x,y){angleValues.push([x,y])}, uniform1f(){}, enableVertexAttribArray(){}, vertexAttribPointer(){}, uniform4fv(){}, uniform1i(){}, drawArrays(){draws++}
 };
 canvas.getContext=()=>input.mode === 'no_webgl' ? null : gl;
@@ -71,10 +75,15 @@ function flush(){for(const [id,fn] of [...frames]){frames.delete(id);fn()}}
    canvas.listeners.pointermove({clientX:60,clientY:20});canvas.listeners.pointerup({clientX:60,clientY:20});flush();
    assert.notDeepEqual(angleValues.at(-1),original);
    canvas.listeners.keydown({key:'ArrowRight',preventDefault(){}});flush();
-   canvas.cssWidth=600;windowEvents.resize();flush();assert.equal(canvas.width,600);
-   lost=true;canvas.listeners.webglcontextlost({preventDefault(){}});assert.match(terminal.textContent,/CONTEXT LOST/);const count=draws;
+   canvas.cssWidth=600;windowEvents.resize();flush();
+   assert.deepEqual([canvas.width,canvas.height],[598,318],'backing store must match the content box, not the border box');
+   context.window.devicePixelRatio=3;windowEvents.resize();flush();
+   assert.deepEqual([canvas.width,canvas.height],[1196,636],'device pixel ratio is capped at 2');
+   context.window.devicePixelRatio=1;windowEvents.resize();flush();
+   lost=true;generation++;canvas.listeners.webglcontextlost({preventDefault(){}});assert.match(terminal.textContent,/CONTEXT LOST/);const count=draws;
    flush();assert.equal(draws,count);
    lost=false;canvas.listeners.webglcontextrestored();flush();assert.ok(draws>count);assert.match(terminal.textContent,/DEMO FIXTURE/);
+   assert.equal(staleDeletes,0,'objects from the lost context must not be deleted on the restored context');
    windowEvents.pagehide({persisted:false});const final=draws;windowEvents.resize();flush();assert.equal(draws,final);
  }
  assert.equal(timers.size,0,'fetch timeout must be cleared');
