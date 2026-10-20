@@ -1,0 +1,13 @@
+{
+  "target_name": "Repository Audit (DecentralizedAI)",
+  "passed": true,
+  "blocked_merge": false,
+  "risk_score": 0,
+  "critical_count": 0,
+  "high_count": 0,
+  "medium_count": 0,
+  "scanned_files_count": 80,
+  "functional_lines_added": 0,
+  "summary": "Repository Audit (DecentralizedAI): PASSED (0 blocking findings) | Scanned files=80, Functional lines added=0",
+  "findings": []
+}

@@ -13,6 +13,7 @@
 [![Project Wiki](https://img.shields.io/badge/Project%20Wiki-8%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
 [![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..05%20(--62.1%25%20Loss)-ffd21e?style=for-the-badge)](docs/SWARM_STRATEGY_IMPROVEMENTS.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
+[![PR Security Gate](https://img.shields.io/badge/5--Layer%20PR%20Security-Anti--Boubou%20%26%20Anti--Extortion%20Active-ef4444?style=for-the-badge)](SECURITY.md)
 
 </div>
 
@@ -27,6 +28,8 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 > [!IMPORTANT]
 > **⚖️ Binding Legal Notice — No Money Involved & Reciprocal Compute-Power Retribution ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
 > **Project HiveMind is a non-commercial, voluntary open-source scientific project. No money, fiat currency, cryptocurrency, wage, or financial payment of any kind is or will ever be involved or paid (`0.00 EUR / USD`).** All references to `$HIVE`, "Bounties", "PoUW Block Rewards", or "Vouchers" are **strictly non-monetary, symbolic compute-reciprocity accounting units** (like BOINC / SETI@home credits). Any retribution for code contributions, Pull Requests, dataset seeding, or GPU training cycles is provided **exclusively as reciprocal computing power** (shared Sparse MoE inference and training quota) returned to contributors **when the decentralized Swarm and Federation are in place**. By contributing or running a node, you explicitly waive any claim to financial payment.
+>
+> **??? Automated 5-Layer PR Security & Anti-Code-Boubou Gate ([`SECURITY.md`](SECURITY.md)):** Every Pull Request is automatically scanned before merge by [`PRSecurityScanner`](src/hivemind/security/pr_security_scanner.py) (`hivemind scan-pr-security` & [`.github/workflows/pr_security_gate.yml`](.github/workflows/pr_security_gate.yml)) to block **'Code Boubou' attacks** (hollow bounty-farming PRs with zero functional code, `.coverage`/`.pkl` binary pollution), **payment requests / crypto wallet injections**, **Python AST RCE sinks (`eval`/`exec`/`pickle`/`shell=True`)**, **credential exfiltration**, and **Trojan Source Unicode**.
 
 > [!NOTE]
 > **Steam Integration & Local Prototype Status ([`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md)):** The `HiveMind: Neural Breach` Free Steam RTX Tool & Hack-Miner package in [`steam_dist/HiveMind_Steam_FreeEdition/`](steam_dist/HiveMind_Steam_FreeEdition/) runs locally from this repository using your `.venv` Python environment, dynamic `steam_api64.dll` probing with headless HMAC fallback, and local JSON/VDF manifests. The legacy test constant `3133700` belongs to another product on the public Steam Store; see [`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md) (contributed in `PR #11` by `@radialmonster`).

@@ -1,16 +1,20 @@
-# Project HiveMind — Multi-Track Architecture & Subsystem Code Owners
-# Every Pull Request touching core cryptographic, VRAM, Lean 4, or consensus layers triggers review.
+# Project HiveMind — Multi-Track Architecture, Security & Subsystem Code Owners
+# Every Pull Request touching core cryptographic, security, legal, VRAM, Lean 4, or consensus layers triggers review.
 
-*                                       @xaviercallens
-/src/hivemind/core/                     @xaviercallens @clark719664 @pedromineo
-/src/hivemind/data/                     @xaviercallens @clark719664 @pedromineo
-/src/hivemind/boinc/                    @xaviercallens @clark719664 @pedromineo
-/src/hivemind/swarm/                    @xaviercallens @clark719664 @pedromineo
-/src/hivemind/client/                   @xaviercallens @clark719664 @pedromineo
-/src/hivemind/game/                     @xaviercallens @clark719664 @pedromineo @radialmonster
-/steam_dist/                            @xaviercallens @clark719664 @radialmonster
-/docs/                                  @xaviercallens @clark719664 @pedromineo @radialmonster
-/wiki/                                  @xaviercallens @clark719664 @pedromineo @radialmonster
-/lean4/                                 @xaviercallens @clark719664 @pedromineo
-/paper/                                 @xaviercallens @clark719664 @pedromineo
-/.github/                               @xaviercallens @clark719664
+*                                               @xaviercallens
+/SECURITY.md                                    @xaviercallens
+/LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md    @xaviercallens
+/GOVERNANCE.md                                  @xaviercallens
+/.github/                                       @xaviercallens
+/src/hivemind/security/                         @xaviercallens
+/src/hivemind/core/                             @xaviercallens @clark719664 @pedromineo
+/src/hivemind/data/                             @xaviercallens @clark719664 @pedromineo
+/src/hivemind/boinc/                            @xaviercallens @clark719664 @pedromineo
+/src/hivemind/swarm/                            @xaviercallens @clark719664 @pedromineo
+/src/hivemind/client/                           @xaviercallens @clark719664 @pedromineo
+/src/hivemind/game/                             @xaviercallens @clark719664 @pedromineo @radialmonster
+/steam_dist/                                    @xaviercallens @clark719664 @radialmonster
+/docs/                                          @xaviercallens @clark719664 @pedromineo @radialmonster
+/wiki/                                          @xaviercallens @clark719664 @pedromineo @radialmonster
+/lean4/                                         @xaviercallens @clark719664 @pedromineo
+/paper/                                         @xaviercallens @clark719664 @pedromineo

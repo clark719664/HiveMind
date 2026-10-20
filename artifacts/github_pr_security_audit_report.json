@@ -1,0 +1,514 @@
+{
+  "repository": "xaviercallens/HiveMind",
+  "github_security_features": {
+    "private_vulnerability_reporting_enabled": true,
+    "dependabot_vulnerability_alerts_enabled": true,
+    "dependabot_automated_security_fixes_enabled": true,
+    "security_and_analysis": {
+      "secret_scanning": {
+        "status": "enabled"
+      },
+      "secret_scanning_push_protection": {
+        "status": "enabled"
+      },
+      "dependabot_security_updates": {
+        "status": "enabled"
+      },
+      "secret_scanning_non_provider_patterns": {
+        "status": "disabled"
+      },
+      "secret_scanning_validity_checks": {
+        "status": "disabled"
+      }
+    }
+  },
+  "current_repository_tree_audit": {
+    "target_name": "Repository Audit (DecentralizedAI)",
+    "passed": true,
+    "blocked_merge": false,
+    "risk_score": 0,
+    "critical_count": 0,
+    "high_count": 0,
+    "medium_count": 0,
+    "scanned_files_count": 81,
+    "functional_lines_added": 0,
+    "summary": "Repository Audit (DecentralizedAI): PASSED (0 blocking findings) | Scanned files=81, Functional lines added=0",
+    "findings": []
+  },
+  "historical_pull_request_audits": [
+    {
+      "pr_number": 62,
+      "title": "fix: [Season 6 Bounty HM-S6-06] 95%+ Unit & Integration Test Coverage Gate & Multi-Stage GitHub Actions CI/CD Pipeline (+2,500 $HIVE) (resolves #61)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-20T15:31:16Z",
+      "audit": {
+        "target_name": "PR #62 (fix: [Season 6 Bounty HM-S6-06] 95%+ Unit & Integration Test Coverage Gate & Multi-Stage GitHub Actions CI/CD Pipeline (+2,500 $HIVE) (resolves #61))",
+        "passed": false,
+        "blocked_merge": true,
+        "risk_score": 200,
+        "critical_count": 2,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 2,
+        "functional_lines_added": 0,
+        "summary": "PR #62 (fix: [Season 6 Bounty HM-S6-06] 95%+ Unit & Integration Test Coverage Gate & Multi-Stage GitHub Actions CI/CD Pipeline (+2,500 $HIVE) (resolves #61)): BLOCKED (2 findings, risk_score=200) | Scanned files=2, Functional lines added=0",
+        "findings": [
+          {
+            "rule_id": "CB-01",
+            "category": "FORBIDDEN_BINARY_OR_CACHE_ARTIFACT",
+            "severity": "CRITICAL",
+            "file_path": ".coverage",
+            "line_number": 1,
+            "description": "Forbidden binary, cache, or executable artifact `.coverage` included in PR ('Code Boubou' binary/cache pollution vector).",
+            "evidence_snippet": "File: .coverage (status=added, additions=0)",
+            "remediation": "Remove binary/cache files (`.coverage`, `.pkl`, `.exe`, `.dll`, `__pycache__`) from git tracking."
+          },
+          {
+            "rule_id": "CB-02",
+            "category": "HOLLOW_BOUNTY_FARMING_CODE_BOUBOU",
+            "severity": "CRITICAL",
+            "file_path": "PR#62",
+            "line_number": 1,
+            "description": "Code Boubou Attack Detected: PR #62 claims to resolve an issue/bounty but modifies ZERO functional files in `src/hivemind/`, `lean4/`, or `tests/`.",
+            "evidence_snippet": "Title: fix: [Season 6 Bounty HM-S6-06] 95%+ Unit & Integration Test Coverage Gate & Multi-Stage GitHub Actions CI/CD Pipeline ( | Functional files touched: 0",
+            "remediation": "A PR claiming an issue or bounty closure must include real, tested functional code in `src/hivemind/`, `lean4/`, and `tests/`."
+          }
+        ]
+      }
+    },
+    {
+      "pr_number": 55,
+      "title": "fix: [Season 5 Bounty HM-S5-01] Live Hugging Face Hub Push/Pull Sync & Multi-Peer CAS Chunk Seeding (+2,500 $HIVE) (resolves #43)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-20T14:20:30Z",
+      "audit": {
+        "target_name": "PR #55 (fix: [Season 5 Bounty HM-S5-01] Live Hugging Face Hub Push/Pull Sync & Multi-Peer CAS Chunk Seeding (+2,500 $HIVE) (resolves #43))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 2,
+        "functional_lines_added": 395,
+        "summary": "PR #55 (fix: [Season 5 Bounty HM-S5-01] Live Hugging Face Hub Push/Pull Sync & Multi-Peer CAS Chunk Seeding (+2,500 $HIVE) (resolves #43)): PASSED (0 blocking findings) | Scanned files=2, Functional lines added=395",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 54,
+      "title": "fix: [Season 5 Bounty HM-S5-02] 64-Expert Hierarchical Sparse MoE & FP8 Paged KV-Cache in <2.2 GB VRAM (+3,000 $HIVE) (resolves #44)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-20T14:20:30Z",
+      "audit": {
+        "target_name": "PR #54 (fix: [Season 5 Bounty HM-S5-02] 64-Expert Hierarchical Sparse MoE & FP8 Paged KV-Cache in <2.2 GB VRAM (+3,000 $HIVE) (resolves #44))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 1,
+        "functional_lines_added": 15,
+        "summary": "PR #54 (fix: [Season 5 Bounty HM-S5-02] 64-Expert Hierarchical Sparse MoE & FP8 Paged KV-Cache in <2.2 GB VRAM (+3,000 $HIVE) (resolves #44)): PASSED (0 blocking findings) | Scanned files=1, Functional lines added=15",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 53,
+      "title": "fix: [Season 5 Bounty HM-S5-04] Guild Wars Co-Op Tournament, Missions 17-20 & 3D WebGL Raid Arcs (+2,500 $HIVE) (resolves #46)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-20T14:20:30Z",
+      "audit": {
+        "target_name": "PR #53 (fix: [Season 5 Bounty HM-S5-04] Guild Wars Co-Op Tournament, Missions 17-20 & 3D WebGL Raid Arcs (+2,500 $HIVE) (resolves #46))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 7,
+        "functional_lines_added": 1417,
+        "summary": "PR #53 (fix: [Season 5 Bounty HM-S5-04] Guild Wars Co-Op Tournament, Missions 17-20 & 3D WebGL Raid Arcs (+2,500 $HIVE) (resolves #46)): PASSED (0 blocking findings) | Scanned files=7, Functional lines added=1417",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 52,
+      "title": "fix: [Season 5 Bounty HM-S5-05] Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (+2,000 $HIVE) (resolves #47)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-20T14:20:30Z",
+      "audit": {
+        "target_name": "PR #52 (fix: [Season 5 Bounty HM-S5-05] Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (+2,000 $HIVE) (resolves #47))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 8,
+        "functional_lines_added": 1863,
+        "summary": "PR #52 (fix: [Season 5 Bounty HM-S5-05] Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (+2,000 $HIVE) (resolves #47)): PASSED (0 blocking findings) | Scanned files=8, Functional lines added=1863",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 42,
+      "title": "feat(game): real WebGL 3D Geo-Ring topology HUD (#24)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-20T07:46:34Z",
+      "audit": {
+        "target_name": "PR #42 (feat(game): real WebGL 3D Geo-Ring topology HUD (#24))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 5,
+        "functional_lines_added": 506,
+        "summary": "PR #42 (feat(game): real WebGL 3D Geo-Ring topology HUD (#24)): PASSED (0 blocking findings) | Scanned files=5, Functional lines added=506",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 41,
+      "title": "fix(lean4): prove the Season 3 (#21) theorems about the actual protocols",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-20T07:46:33Z",
+      "audit": {
+        "target_name": "PR #41 (fix(lean4): prove the Season 3 (#21) theorems about the actual protocols)",
+        "passed": false,
+        "blocked_merge": true,
+        "risk_score": 200,
+        "critical_count": 2,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 7,
+        "functional_lines_added": 276,
+        "summary": "PR #41 (fix(lean4): prove the Season 3 (#21) theorems about the actual protocols): BLOCKED (2 findings, risk_score=200) | Scanned files=7, Functional lines added=276",
+        "findings": [
+          {
+            "rule_id": "CB-04",
+            "category": "PROTECTED_GOVERNANCE_OR_WORKFLOW_TAMPERING",
+            "severity": "CRITICAL",
+            "file_path": ".github/workflows/ci_swarm_tests.yml",
+            "line_number": 1,
+            "description": "Unauthorized modification to protected governance/CI file `.github/workflows/ci_swarm_tests.yml` by non-owner `@clark719664`.",
+            "evidence_snippet": "Modified protected path: .github/workflows/ci_swarm_tests.yml",
+            "remediation": "Revert changes to `.github/workflows/`, `CODEOWNERS`, `SECURITY.md`, and `LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`."
+          },
+          {
+            "rule_id": "CB-04",
+            "category": "PROTECTED_GOVERNANCE_OR_WORKFLOW_TAMPERING",
+            "severity": "CRITICAL",
+            "file_path": ".github/workflows/immutable_release.yml",
+            "line_number": 1,
+            "description": "Unauthorized modification to protected governance/CI file `.github/workflows/immutable_release.yml` by non-owner `@clark719664`.",
+            "evidence_snippet": "Modified protected path: .github/workflows/immutable_release.yml",
+            "remediation": "Revert changes to `.github/workflows/`, `CODEOWNERS`, `SECURITY.md`, and `LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`."
+          }
+        ]
+      }
+    },
+    {
+      "pr_number": 40,
+      "title": "feat(swarm): real QUIC 0-RTT transport and real STUN/TURN NAT traversal (#9, #22)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-20T07:46:34Z",
+      "audit": {
+        "target_name": "PR #40 (feat(swarm): real QUIC 0-RTT transport and real STUN/TURN NAT traversal (#9, #22))",
+        "passed": false,
+        "blocked_merge": true,
+        "risk_score": 100,
+        "critical_count": 1,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 12,
+        "functional_lines_added": 3500,
+        "summary": "PR #40 (feat(swarm): real QUIC 0-RTT transport and real STUN/TURN NAT traversal (#9, #22)): BLOCKED (1 findings, risk_score=100) | Scanned files=12, Functional lines added=3500",
+        "findings": [
+          {
+            "rule_id": "CB-04",
+            "category": "PROTECTED_GOVERNANCE_OR_WORKFLOW_TAMPERING",
+            "severity": "CRITICAL",
+            "file_path": ".github/workflows/ci_swarm_tests.yml",
+            "line_number": 1,
+            "description": "Unauthorized modification to protected governance/CI file `.github/workflows/ci_swarm_tests.yml` by non-owner `@clark719664`.",
+            "evidence_snippet": "Modified protected path: .github/workflows/ci_swarm_tests.yml",
+            "remediation": "Revert changes to `.github/workflows/`, `CODEOWNERS`, `SECURITY.md`, and `LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`."
+          }
+        ]
+      }
+    },
+    {
+      "pr_number": 39,
+      "title": "fix(lean4,pipeline): non-circular Season 4 theorems; never report unchecked proofs as verified",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-20T07:46:34Z",
+      "audit": {
+        "target_name": "PR #39 (fix(lean4,pipeline): non-circular Season 4 theorems; never report unchecked proofs as verified)",
+        "passed": false,
+        "blocked_merge": true,
+        "risk_score": 200,
+        "critical_count": 2,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 11,
+        "functional_lines_added": 198,
+        "summary": "PR #39 (fix(lean4,pipeline): non-circular Season 4 theorems; never report unchecked proofs as verified): BLOCKED (2 findings, risk_score=200) | Scanned files=11, Functional lines added=198",
+        "findings": [
+          {
+            "rule_id": "CB-04",
+            "category": "PROTECTED_GOVERNANCE_OR_WORKFLOW_TAMPERING",
+            "severity": "CRITICAL",
+            "file_path": ".github/workflows/ci_swarm_tests.yml",
+            "line_number": 1,
+            "description": "Unauthorized modification to protected governance/CI file `.github/workflows/ci_swarm_tests.yml` by non-owner `@clark719664`.",
+            "evidence_snippet": "Modified protected path: .github/workflows/ci_swarm_tests.yml",
+            "remediation": "Revert changes to `.github/workflows/`, `CODEOWNERS`, `SECURITY.md`, and `LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`."
+          },
+          {
+            "rule_id": "CB-04",
+            "category": "PROTECTED_GOVERNANCE_OR_WORKFLOW_TAMPERING",
+            "severity": "CRITICAL",
+            "file_path": ".github/workflows/immutable_release.yml",
+            "line_number": 1,
+            "description": "Unauthorized modification to protected governance/CI file `.github/workflows/immutable_release.yml` by non-owner `@clark719664`.",
+            "evidence_snippet": "Modified protected path: .github/workflows/immutable_release.yml",
+            "remediation": "Revert changes to `.github/workflows/`, `CODEOWNERS`, `SECURITY.md`, and `LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`."
+          }
+        ]
+      }
+    },
+    {
+      "pr_number": 37,
+      "title": "fix: [Season 4 Bounty HM-S4-02] Hierarchical 2-Tier Kademlia Super-Ring (Continental Bridge -> Regional <20ms Geo-Ring) & Adaptive Congestion Control (+2,500 $HIVE) (resolves #27)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-19T20:10:32Z",
+      "audit": {
+        "target_name": "PR #37 (fix: [Season 4 Bounty HM-S4-02] Hierarchical 2-Tier Kademlia Super-Ring (Continental Bridge -> Regional <20ms Geo-Ring) & Adaptive Congestion Control (+2,500 $HIVE) (resolves #27))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 2,
+        "functional_lines_added": 646,
+        "summary": "PR #37 (fix: [Season 4 Bounty HM-S4-02] Hierarchical 2-Tier Kademlia Super-Ring (Continental Bridge -> Regional <20ms Geo-Ring) & Adaptive Congestion Control (+2,500 $HIVE) (resolves #27)): PASSED (0 blocking findings) | Scanned files=2, Functional lines added=646",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 36,
+      "title": "fix: [Season 4 Bounty HM-S4-04] Season 4 Hack-Miner Campaign (Missions 13-16: Triton Kernel, ZK Prover, Quantum QASM, Agent Swarm) & Live WebSocket HUD (+1,800 $HIVE) (resolves #29)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-19T20:10:32Z",
+      "audit": {
+        "target_name": "PR #36 (fix: [Season 4 Bounty HM-S4-04] Season 4 Hack-Miner Campaign (Missions 13-16: Triton Kernel, ZK Prover, Quantum QASM, Agent Swarm) & Live WebSocket HUD (+1,800 $HIVE) (resolves #29))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 5,
+        "functional_lines_added": 431,
+        "summary": "PR #36 (fix: [Season 4 Bounty HM-S4-04] Season 4 Hack-Miner Campaign (Missions 13-16: Triton Kernel, ZK Prover, Quantum QASM, Agent Swarm) & Live WebSocket HUD (+1,800 $HIVE) (resolves #29)): PASSED (0 blocking findings) | Scanned files=5, Functional lines added=431",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 35,
+      "title": "fix: [Season 4 Bounty HM-S4-03] Zero-Knowledge / Deterministic Activation Spot-Check v2 (ZK-OPoI) with Layer-Wise Merkle + L-Infinity Bounds (+2,000 $HIVE) (resolves #28)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-19T20:10:32Z",
+      "audit": {
+        "target_name": "PR #35 (fix: [Season 4 Bounty HM-S4-03] Zero-Knowledge / Deterministic Activation Spot-Check v2 (ZK-OPoI) with Layer-Wise Merkle + L-Infinity Bounds (+2,000 $HIVE) (resolves #28))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 1,
+        "functional_lines_added": 215,
+        "summary": "PR #35 (fix: [Season 4 Bounty HM-S4-03] Zero-Knowledge / Deterministic Activation Spot-Check v2 (ZK-OPoI) with Layer-Wise Merkle + L-Infinity Bounds (+2,000 $HIVE) (resolves #28)): PASSED (0 blocking findings) | Scanned files=1, Functional lines added=215",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 34,
+      "title": "fix: [Season 4 Bounty HM-S4-05] Dynamic SVD Rank-Adaptive LoRA Merging (r=8..64 -> r=16) & 32-Expert Sparse MoE Scaling in <2.0 GB VRAM (+1,500 $HIVE) (resolves #30)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-19T20:10:33Z",
+      "audit": {
+        "target_name": "PR #34 (fix: [Season 4 Bounty HM-S4-05] Dynamic SVD Rank-Adaptive LoRA Merging (r=8..64 -> r=16) & 32-Expert Sparse MoE Scaling in <2.0 GB VRAM (+1,500 $HIVE) (resolves #30))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 5,
+        "functional_lines_added": 694,
+        "summary": "PR #34 (fix: [Season 4 Bounty HM-S4-05] Dynamic SVD Rank-Adaptive LoRA Merging (r=8..64 -> r=16) & 32-Expert Sparse MoE Scaling in <2.0 GB VRAM (+1,500 $HIVE) (resolves #30)): PASSED (0 blocking findings) | Scanned files=5, Functional lines added=694",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 33,
+      "title": "feat(season4): Season 4 bounties HM-S4-01 through HM-S4-06",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-19T20:10:32Z",
+      "audit": {
+        "target_name": "PR #33 (feat(season4): Season 4 bounties HM-S4-01 through HM-S4-06)",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 13,
+        "functional_lines_added": 479,
+        "summary": "PR #33 (feat(season4): Season 4 bounties HM-S4-01 through HM-S4-06): PASSED (0 blocking findings) | Scanned files=13, Functional lines added=479",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 32,
+      "title": "fix: [Season 4 Bounty HM-S4-01] Cross-Platform AMD ROCm (gfx1100/gfx1030) & Apple Silicon (MPS) 4-Bit Expert Dispatch & DMA Fallback (+2,000 $HIVE) (resolves #26)",
+      "author": "pedromineo",
+      "state": "closed",
+      "merged_at": "2026-10-19T20:10:32Z",
+      "audit": {
+        "target_name": "PR #32 (fix: [Season 4 Bounty HM-S4-01] Cross-Platform AMD ROCm (gfx1100/gfx1030) & Apple Silicon (MPS) 4-Bit Expert Dispatch & DMA Fallback (+2,000 $HIVE) (resolves #26))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 5,
+        "functional_lines_added": 171,
+        "summary": "PR #32 (fix: [Season 4 Bounty HM-S4-01] Cross-Platform AMD ROCm (gfx1100/gfx1030) & Apple Silicon (MPS) 4-Bit Expert Dispatch & DMA Fallback (+2,000 $HIVE) (resolves #26)): PASSED (0 blocking findings) | Scanned files=5, Functional lines added=171",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 25,
+      "title": "feat(moe): add Season 3 domain expert LoRA adapters and Top-k FP8 CAS registry (#17)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-19T16:23:44Z",
+      "audit": {
+        "target_name": "PR #25 (feat(moe): add Season 3 domain expert LoRA adapters and Top-k FP8 CAS registry (#17))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 4,
+        "functional_lines_added": 423,
+        "summary": "PR #25 (feat(moe): add Season 3 domain expert LoRA adapters and Top-k FP8 CAS registry (#17)): PASSED (0 blocking findings) | Scanned files=4, Functional lines added=423",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 24,
+      "title": "feat(game): add Season 3 campaign missions (9-12) & WebGL 3D Geo-Ring HUD (#16)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-19T16:23:44Z",
+      "audit": {
+        "target_name": "PR #24 (feat(game): add Season 3 campaign missions (9-12) & WebGL 3D Geo-Ring HUD (#16))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 4,
+        "functional_lines_added": 216,
+        "summary": "PR #24 (feat(game): add Season 3 campaign missions (9-12) & WebGL 3D Geo-Ring HUD (#16)): PASSED (0 blocking findings) | Scanned files=4, Functional lines added=216",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 23,
+      "title": "feat(swarm): add Triton INT4 + FP8 fused MoE router kernel & benchmark (#15)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-19T16:23:44Z",
+      "audit": {
+        "target_name": "PR #23 (feat(swarm): add Triton INT4 + FP8 fused MoE router kernel & benchmark (#15))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 2,
+        "functional_lines_added": 202,
+        "summary": "PR #23 (feat(swarm): add Triton INT4 + FP8 fused MoE router kernel & benchmark (#15)): PASSED (0 blocking findings) | Scanned files=2, Functional lines added=202",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 22,
+      "title": "feat(quic): add multi-node WAN NAT traversal with STUN/TURN & UDP hole punching (#14)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-19T16:23:44Z",
+      "audit": {
+        "target_name": "PR #22 (feat(quic): add multi-node WAN NAT traversal with STUN/TURN & UDP hole punching (#14))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 2,
+        "functional_lines_added": 174,
+        "summary": "PR #22 (feat(quic): add multi-node WAN NAT traversal with STUN/TURN & UDP hole punching (#14)): PASSED (0 blocking findings) | Scanned files=2, Functional lines added=174",
+        "findings": []
+      }
+    },
+    {
+      "pr_number": 21,
+      "title": "formal(lean4): prove prefix-trie speculative acceptance & RFC 9001 0-RTT bounds (#18)",
+      "author": "clark719664",
+      "state": "closed",
+      "merged_at": "2026-10-19T16:23:44Z",
+      "audit": {
+        "target_name": "PR #21 (formal(lean4): prove prefix-trie speculative acceptance & RFC 9001 0-RTT bounds (#18))",
+        "passed": true,
+        "blocked_merge": false,
+        "risk_score": 0,
+        "critical_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "scanned_files_count": 2,
+        "functional_lines_added": 98,
+        "summary": "PR #21 (formal(lean4): prove prefix-trie speculative acceptance & RFC 9001 0-RTT bounds (#18)): PASSED (0 blocking findings) | Scanned files=2, Functional lines added=98",
+        "findings": []
+      }
+    }
+  ]
+}

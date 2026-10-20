@@ -1,0 +1,138 @@
+name: HiveMind 5-Layer PR Security & Anti-Code-Boubou Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-security-gate:
+    name: "5-Layer PR Security Scanner (Anti-Code-Boubou, Anti-Payment-Extortion, AST & Secret Gate)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      PYTHONPATH: "src:."
+
+    steps:
+      - name: Checkout Repository with Full History for Diff Analysis
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run 5-Layer Pull Request & Repository Security Audit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          from hivemind.security.pr_security_scanner import PRSecurityScanner
+
+          scanner = PRSecurityScanner()
+          event_name = os.environ.get("EVENT_NAME", "")
+          event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
+
+          # 1. Audit full repository tree
+          repo_result = scanner.audit_repository(".")
+          print("=== Repository Security Audit ===")
+          print(json.dumps(repo_result.to_dict(), indent=2))
+
+          pr_result = None
+          if event_name == "pull_request" and event_path and Path(event_path).exists():
+              event_data = json.loads(Path(event_path).read_text(encoding="utf-8"))
+              pr_obj = event_data.get("pull_request", {})
+              pr_number = pr_obj.get("number", "unknown")
+              pr_title = pr_obj.get("title") or ""
+              pr_body = pr_obj.get("body") or ""
+              author = (pr_obj.get("user") or {}).get("login") or "unknown"
+              base_sha = os.environ.get("BASE_SHA") or pr_obj.get("base", {}).get("sha")
+              head_sha = os.environ.get("HEAD_SHA") or pr_obj.get("head", {}).get("sha")
+
+              changed_files = []
+              if base_sha and head_sha:
+                  diff_stat = subprocess.check_output(
+                      ["git", "diff", "--name-status", f"{base_sha}...{head_sha}"],
+                      text=True,
+                  )
+                  for line in diff_stat.splitlines():
+                      if not line.strip():
+                          continue
+                      parts = line.split("\t")
+                      status_code = parts[0][0].upper()
+                      fname = parts[-1]
+                      status_map = {"A": "added", "M": "modified", "D": "removed", "R": "modified"}
+                      status = status_map.get(status_code, "modified")
+                      patch = subprocess.check_output(
+                          ["git", "diff", f"{base_sha}...{head_sha}", "--", fname],
+                          text=True,
+                          errors="replace",
+                      )
+                      additions = sum(
+                          1 for ln in patch.splitlines() if ln.startswith("+") and not ln.startswith("+++")
+                      )
+                      content = None
+                      fpath = Path(fname)
+                      if fpath.exists() and fpath.is_file():
+                          try:
+                              content = fpath.read_text(encoding="utf-8", errors="replace")
+                          except OSError:
+                              content = None
+                      changed_files.append(
+                          {
+                              "filename": fname,
+                              "status": status,
+                              "additions": additions,
+                              "patch": patch,
+                              "content": content,
+                          }
+                      )
+
+              pr_result = scanner.audit_pull_request(
+                  pr_number=pr_number,
+                  pr_title=pr_title,
+                  pr_body=pr_body,
+                  author=author,
+                  changed_files=changed_files,
+              )
+              print("=== Pull Request Security Audit ===")
+              print(json.dumps(pr_result.to_dict(), indent=2))
+
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as sf:
+                  sf.write("## 🛡️ Project HiveMind 5-Layer PR & Repository Security Gate\n\n")
+                  sf.write(f"- **Repository Tree Scan:** `{'PASSED' if repo_result.passed else 'BLOCKED'}` (`{repo_result.scanned_files_count}` files scanned, `{len(repo_result.findings)}` findings)\n")
+                  if pr_result is not None:
+                      sf.write(f"- **Pull Request Scan:** `{'PASSED' if pr_result.passed else 'BLOCKED'}` (`{pr_result.scanned_files_count}` changed files, `{pr_result.functional_lines_added}` functional lines added, Risk Score `{pr_result.risk_score}`)\n")
+                      if pr_result.findings:
+                          sf.write("\n### 🚨 Blocking Security Findings\n\n")
+                          sf.write("| Rule | Severity | Category | File | Description |\n")
+                          sf.write("| :--- | :---: | :--- | :--- | :--- |\n")
+                          for f in pr_result.findings:
+                              sf.write(f"| `{f.rule_id}` | **{f.severity.value}** | `{f.category}` | `{f.file_path}:{f.line_number}` | {f.description} |\n")
+
+          if not repo_result.passed or (pr_result is not None and not pr_result.passed):
+              sys.exit(1)
+          PY

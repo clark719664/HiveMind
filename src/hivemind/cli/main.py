@@ -271,6 +271,14 @@ def main(argv: list[str] | None = None) -> int:
     p_deploy.add_argument("--udp-packets", type=int, default=100, help="Number of UDP 0-RTT hidden-state packets")
     p_deploy.add_argument("--hotplug-experts", type=int, default=12, help="Number of Sparse MoE experts to hot-plug")
 
+    p_sec = sub.add_parser(
+        "scan-pr-security",
+        help="Run 5-Layer PR & Repository Security Scanner (Anti-Code-Boubou, Anti-Payment-Extortion, AST & Secret Audit)",
+    )
+    p_sec.add_argument("--root", default=".", help="Repository root directory to scan")
+    p_sec.add_argument("--pr-json", default=None, help="Optional path to PR metadata/files JSON payload to audit")
+    p_sec.add_argument("--output-json", default=None, help="Optional path to write JSON audit report")
+
     args = parser.parse_args(argv)
     if args.command == "hardware-check":
         return cmd_hardware_check()
@@ -378,10 +386,16 @@ def main(argv: list[str] | None = None) -> int:
         deploy_info = deploy_free_steam_rtx_tool_v1(stress_report=stress_rep)
         console.print(json.dumps(deploy_info, indent=2))
         return 0
+    if args.command == "scan-pr-security":
+        from hivemind.security.pr_security_scanner import run_cli_security_scan
+
+        return run_cli_security_scan(
+            root_path=args.root,
+            pr_json_path=args.pr_json,
+            output_json_path=args.output_json,
+        )
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
