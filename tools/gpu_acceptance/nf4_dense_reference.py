@@ -14,11 +14,12 @@ What this does and does not establish
 
 Usage (from the repository root, with the project's Python):
 
-    python tools/gpu_acceptance/nf4_dense_reference.py                 # CPU correctness only
+    python tools/gpu_acceptance/nf4_dense_reference.py                 # CPU checks; CUDA measurements if available
     python tools/gpu_acceptance/nf4_dense_reference.py --out nf4.json
     python tools/gpu_acceptance/nf4_dense_reference.py --require-cuda   # acceptance run; exit 2 if no CUDA
 
-Exit codes: 0 correctness passed; 1 correctness failed; 2 --require-cuda but CUDA missing.
+Exit codes: 0 requested checks/measurements passed; 1 a check or measurement failed;
+2 CUDA required but unavailable, a non-CUDA backend, or incomplete CUDA measurements.
 """
 
 from __future__ import annotations
@@ -43,7 +44,7 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 NO_CUDA_MESSAGE = "CUDA unavailable: GPU memory/latency measurements NOT performed"
 
 # QLoRA / bitsandbytes published 16-level NormalFloat table, typed here so the reference does
@@ -422,6 +423,7 @@ def _measure_one_cuda(shape, dtype, warmup: int, iters: int, dev) -> dict:
         latency["dequantize_then_linear_gpu_resident"] = _cuda_time_ms(
             lambda: F.linear(x, dequantize_tensor_nf4(gpu_state, dtype=dtype, device=dev)), warmup, iters)
     rec["latency"] = latency
+    rec["status"] = "MEASURED"
     return rec
 
 
@@ -430,37 +432,59 @@ def measure_cuda(shapes, dtypes, warmup: int, iters: int, device: str = "cuda:0"
     results = []
     for shape in shapes:
         for dtype in dtypes:
-            if not dtype_supported(dtype, device):
-                results.append({"shape": list(shape), "dtype": str(dtype), "skipped": "dtype unsupported on this device"})
-                continue
+            row = {"shape": list(shape), "dtype": str(dtype).replace("torch.", "")}
+            # Capability skips are explicit. Probe/allocation failures are errors, not
+            # unsupported dtypes silently removed from the requested matrix.
             try:
-                results.append(_measure_one_cuda(shape, dtype, warmup, iters, dev))
+                if dtype == torch.bfloat16 and not torch.cuda.is_bf16_supported():
+                    row.update(status="SKIPPED_UNSUPPORTED", skipped="bfloat16 unsupported on this device")
+                else:
+                    row = _measure_one_cuda(shape, dtype, warmup, iters, dev)
+                gc.collect()
+                torch.cuda.empty_cache()
             except Exception as exc:  # noqa: BLE001
-                results.append({"shape": list(shape), "dtype": str(dtype), "error": f"{type(exc).__name__}: {exc}"})
-            gc.collect()
-            torch.cuda.empty_cache()
+                row.update(status="ERROR", error=f"{type(exc).__name__}: {exc}")
+            results.append(row)
     return results
 
 
+def _triton_fp8_no_fallback(sf, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Launch the actual kernel directly; the production wrapper can silently fall back."""
+    n_rows, n_cols = x.shape
+    quantized = torch.empty_like(x)
+    scales = torch.empty((n_rows, 1), device=x.device, dtype=torch.float32)
+    sf._triton_fp8_quant_kernel[(n_rows,)](
+        x, quantized, scales, n_cols, BLOCK_SIZE=sf.triton.next_power_of_2(n_cols)
+    )
+    torch.cuda.synchronize(x.device)  # surface asynchronous launch failures before claiming it ran
+    return quantized.to(torch.float8_e4m3fn), scales.to(torch.float16)
+
+
 def cuda_triton_parity() -> dict:
-    """On CUDA only: Triton FP8 quant kernel vs the PyTorch formula it replaces."""
+    """On CUDA only: actual Triton FP8 kernel vs PyTorch, without a fallback route."""
     try:
         from hivemind.swarm import swarm_fabric as sf
     except Exception as exc:  # noqa: BLE001
-        return {"ran": False, "reason": f"import failed: {type(exc).__name__}: {exc}"}
+        return {"ran": False, "status": "ERROR", "error": f"import failed: {type(exc).__name__}: {exc}"}
     out = {"ran": False, "triton_importable": bool(sf._HAS_TRITON),
            "note": "_triton_fused_int4_fp8_moe_router_kernel is defined but never launched anywhere in src/."}
     if not sf._HAS_TRITON:
-        out["reason"] = "triton not importable; compress_hidden_states_fp8 uses the PyTorch path"
+        out.update(status="SKIPPED_UNAVAILABLE", reason="triton not importable; kernel parity was not tested")
         return out
-    x = torch.randn(64, 256, device="cuda", dtype=torch.float32)
-    packet = sf.compress_hidden_states_fp8(x)
-    absmax = x.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
-    scale = absmax / 448.0
-    expected = (x / scale).clamp(-448.0, 448.0).to(torch.float8_e4m3fn)
-    mismatch = (packet.fp8_data.view(torch.uint8) != expected.view(torch.uint8)).float().mean().item()
-    out.update({"ran": True, "fp8_byte_mismatch_fraction": mismatch,
-                "scale_max_abs_diff": float((packet.absmax_scale.float() - scale.half().float()).abs().max())})
+    try:
+        x = torch.randn(64, 256, device="cuda", dtype=torch.float32)
+        fp8_data, actual_scale = _triton_fp8_no_fallback(sf, x)
+        absmax = x.abs().amax(dim=-1, keepdim=True).clamp_min(1e-6)
+        scale = absmax / 448.0
+        expected = (x / scale).clamp(-448.0, 448.0).to(torch.float8_e4m3fn)
+        mismatch = (fp8_data.view(torch.uint8) != expected.view(torch.uint8)).float().mean().item()
+        scale_diff = float((actual_scale.float() - scale.half().float()).abs().max())
+        out.update(ran=True, backend="triton_direct_no_fallback", fp8_byte_mismatch_fraction=mismatch,
+                   scale_max_abs_diff=scale_diff, passed=mismatch == 0.0 and scale_diff == 0.0,
+                   tolerances={"fp8_byte_mismatch_fraction": 0.0, "scale_max_abs_diff": 0.0})
+        out["status"] = "PASSED" if out["passed"] else "FAILED"
+    except Exception as exc:  # noqa: BLE001
+        out.update(status="ERROR", error=f"{type(exc).__name__}: {exc}")
     return out
 
 
@@ -550,7 +574,8 @@ def run_correctness(seed: int, quick: bool, verbose: bool = False) -> dict:
                                 "dtype": str(dtype).replace("torch.", ""), "passed": all(res["checks"].values())})
                     int4["cases"].append(res)
     except Exception as exc:  # noqa: BLE001
-        int4 = {"available": False, "reason": f"{type(exc).__name__}: {exc}", "cases": []}
+        # Preserve earlier failed cases; an incomplete path is never a passing suite.
+        int4.update(available=False, reason=f"{type(exc).__name__}: {exc}")
 
     failed = [c for c in cases if not c["passed"]]
     int4_failed = [c for c in int4["cases"] if not c["passed"]]
@@ -573,12 +598,83 @@ def run_correctness(seed: int, quick: bool, verbose: bool = False) -> dict:
             "half_max_code_gap": round(0.5 * MAX_CODE_GAP, 6),
             "half_max_code_gap_note": "pure code-rounding error is <= this fraction of the block scale; larger ratios come only from absmax clamping or dtype rounding and are covered by the gated analytic bound",
         },
-        "passed": not failed and not int4_failed,
+        "passed": not failed and not int4_failed and int4["available"],
     }
 
 
 def parse_shapes(text: str) -> list[tuple[int, ...]]:
-    return [tuple(int(d) for d in item.lower().split("x")) for item in text.split(",") if item]
+    try:
+        shapes = [tuple(int(d) for d in item.lower().split("x")) for item in text.split(",")]
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("shapes must be comma-separated positive dimensions, e.g. 64x64,128") from exc
+    if not shapes or any(not shape or any(d <= 0 for d in shape) for shape in shapes):
+        raise argparse.ArgumentTypeError("every CUDA shape must have positive dimensions")
+    return shapes
+
+
+def _valid_measurement_payload(row: dict) -> bool:
+    """A success label alone is not evidence that the measurement completed."""
+    def number(value):
+        return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and value >= 0
+
+    scalar_keys = ("quantize_peak_allocated_over_baseline_bytes", "dequantize_peak_allocated_over_pre_call_bytes",
+                   "dense_output_bytes")
+    memory = row.get("memory_bytes_torch_allocator")
+    latency = row.get("latency")
+    if not all(number(row.get(key)) for key in scalar_keys) or not isinstance(memory, dict) or not isinstance(latency, dict):
+        return False
+    for key in ("baseline", "original_dense_weight_resident", "plus_packed_buffers_on_gpu", "plus_dequantized_dense_output"):
+        snapshot = memory.get(key)
+        if not isinstance(snapshot, dict) or not all(number(snapshot.get(k)) for k in (
+            "allocated_bytes", "reserved_bytes", "device_free_bytes", "device_total_bytes"
+        )):
+            return False
+    if not all(number(memory.get(key)) for key in ("dense_weight_alone_bytes", "packed_buffers_alone_bytes")):
+        return False
+    required = ["dequantize_gpu_resident_packed", "dequantize_cpu_resident_packed_includes_h2d_copy"]
+    if len(row["shape"]) == 2:
+        required += ["dense_linear_reference", "dequantize_then_linear_gpu_resident"]
+    for name in required:
+        timing = latency.get(name)
+        if not isinstance(timing, dict) or timing.get("unit") != "ms (torch.cuda.Event)":
+            return False
+        if not all(number(timing.get(k)) for k in ("warmup_iters", "iters", "median", "p95", "min")):
+            return False
+        if timing["iters"] <= 0:
+            return False
+    return True
+
+
+def cuda_measurement_summary(measurements: list[dict], shapes, dtypes) -> dict:
+    """Fail closed unless each requested shape/dtype has one complete measurement."""
+    expected = [(tuple(shape), str(dtype).replace("torch.", "")) for shape in shapes for dtype in dtypes]
+    actual, invalid_rows = [], []
+    errors = measured = skipped = 0
+    if not isinstance(measurements, list):
+        measurements = [measurements]
+    for index, row in enumerate(measurements):
+        if not isinstance(row, dict):
+            invalid_rows.append(index)
+            errors += 1
+            continue
+        shape, dtype = row.get("shape"), row.get("dtype")
+        identity_valid = (isinstance(shape, (list, tuple)) and bool(shape)
+                          and all(isinstance(d, int) and not isinstance(d, bool) and d > 0 for d in shape)
+                          and isinstance(dtype, str))
+        if identity_valid:
+            actual.append((tuple(shape), dtype))
+        if row.get("status") == "ERROR" or row.get("error"):
+            errors += 1
+        elif not identity_valid or (row.get("status") == "MEASURED" and not _valid_measurement_payload(row)):
+            invalid_rows.append(index)
+            errors += 1
+        elif row.get("status") == "MEASURED":
+            measured += 1
+        elif row.get("status") == "SKIPPED_UNSUPPORTED":
+            skipped += 1
+    complete = bool(expected) and sorted(actual) == sorted(expected) and measured == len(expected) and errors == 0
+    return {"requested": len(expected), "measured": measured, "errors": errors,
+            "skipped": skipped, "invalid_rows": invalid_rows, "complete": complete}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -586,13 +682,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", help="also write the JSON report to this path")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--quick", action="store_true", help="fewer shapes/kinds (used by the unit tests)")
-    ap.add_argument("--require-cuda", action="store_true", help="acceptance mode: exit 2 if CUDA is unavailable")
-    ap.add_argument("--cuda-shapes", default="4096x4096,11008x4096", help="comma list for GPU measurements")
+    ap.add_argument("--require-cuda", action="store_true", help="acceptance mode: exit 2 if CUDA is unavailable or measurements are incomplete")
+    ap.add_argument("--cuda-shapes", type=parse_shapes, default="4096x4096,11008x4096", help="comma list for GPU measurements")
     ap.add_argument("--warmup", type=int, default=10)
     ap.add_argument("--iters", type=int, default=50)
     ap.add_argument("--skip-cpu-timing", action="store_true")
     ap.add_argument("--verbose", action="store_true", help="keep full checks/metrics for passing cases")
     args = ap.parse_args(argv)
+    if args.warmup < 0 or args.iters <= 0:
+        ap.error("--warmup must be nonnegative and --iters must be positive")
 
     cuda = torch.cuda.is_available()
     report: dict = {"tool": "nf4_dense_reference", "schema_version": SCHEMA_VERSION, "environment": environment(),
@@ -602,6 +700,13 @@ def main(argv: list[str] | None = None) -> int:
                         "Correctness of decode says nothing about memory residency; see cuda.memory_bytes_torch_allocator when CUDA ran.",
                         "swarm_fabric.pack_int4_nf4_weights is a uniform signed-int4 per-row scheme, not the NF4 codebook.",
                     ]}
+    if cuda and getattr(torch.version, "hip", None):
+        report["status"] = "BLOCKED_NON_CUDA_BACKEND"
+        report["cpu_correctness"] = None
+        report["cuda"] = {"available": False, "measurements": None,
+                          "message": "ROCm/HIP uses torch.cuda APIs but is not CUDA acceptance evidence."}
+        _emit(report, args.out)
+        return 2
     if not cuda:
         print(NO_CUDA_MESSAGE, file=sys.stderr)
         report["cuda"] = {"available": False, "message": NO_CUDA_MESSAGE, "measurements": None}
@@ -614,19 +719,42 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_cpu_timing:
         report["cpu_wall_clock_timings"] = cpu_wall_clock(3 if args.quick else 5)
     if cuda:
-        dtypes = [d for d in (torch.float16, torch.bfloat16, torch.float32) if dtype_supported(d, "cuda")]
+        dtypes = (torch.float16, torch.bfloat16, torch.float32)
+        try:
+            measurements = measure_cuda(args.cuda_shapes, dtypes, args.warmup, args.iters)
+        except Exception as exc:  # noqa: BLE001
+            measurements = [{"status": "ERROR", "error": f"{type(exc).__name__}: {exc}"}]
+        try:
+            parity = cuda_triton_parity()
+        except Exception as exc:  # noqa: BLE001
+            parity = {"ran": False, "status": "ERROR", "error": f"{type(exc).__name__}: {exc}"}
         report["cuda"] = {
             "available": True,
-            "measurements": measure_cuda(parse_shapes(args.cuda_shapes), dtypes, args.warmup, args.iters),
-            "triton_fp8_parity": cuda_triton_parity(),
+            "measurements": measurements,
+            "measurement_summary": cuda_measurement_summary(measurements, args.cuda_shapes, dtypes),
+            "triton_fp8_parity": parity,
             "memory_note": "torch allocator bytes, not process-level nvidia-smi; record driver/CUDA context overhead separately.",
         }
-    passed = report["cpu_correctness"]["passed"]
-    report["status"] = (
-        ("PASS_CORRECTNESS_AND_CUDA_MEASURED" if cuda else "PASS_CORRECTNESS_ONLY_NO_CUDA") if passed else "FAIL_CORRECTNESS"
-    )
+    if not report["cpu_correctness"]["passed"]:
+        status, code = "FAIL_CORRECTNESS", 1
+    elif cuda:
+        summary = report["cuda"]["measurement_summary"]
+        parity = report["cuda"]["triton_fp8_parity"]
+        if summary["errors"]:
+            status, code = "FAIL_CUDA_MEASUREMENTS", 1
+        elif parity.get("error") or (parity.get("ran") and parity.get("passed") is not True):
+            status, code = "FAIL_CUDA_PARITY", 1
+        elif not summary["complete"]:
+            status, code = "BLOCKED_INCOMPLETE_CUDA_MEASUREMENTS", 2
+        elif not parity.get("ran"):
+            status, code = "BLOCKED_CUDA_PARITY_UNAVAILABLE", 2
+        else:
+            status, code = "PASS_CORRECTNESS_AND_CUDA_MEASURED", 0
+    else:
+        status, code = "PASS_CORRECTNESS_ONLY_NO_CUDA", 0
+    report["status"] = status
     _emit(report, args.out)
-    return 0 if passed else 1
+    return code
 
 
 def _emit(report: dict, out: str | None) -> None:
