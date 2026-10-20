@@ -1,0 +1,5439 @@
+{
+  "browser": "155.0.4283.62",
+  "url": "http://127.0.0.1:8473/",
+  "summary": {
+    "fresh/none": {
+      "trials": 10,
+      "truncated": 0,
+      "cancel_or_lost_capture": 0
+    },
+    "fresh/card_screenshot": {
+      "trials": 10,
+      "truncated": 0,
+      "cancel_or_lost_capture": 0
+    },
+    "fresh/page_screenshot": {
+      "trials": 10,
+      "truncated": 0,
+      "cancel_or_lost_capture": 0
+    },
+    "restored/none": {
+      "trials": 10,
+      "truncated": 0,
+      "cancel_or_lost_capture": 0
+    },
+    "restored/card_screenshot": {
+      "trials": 10,
+      "truncated": 0,
+      "cancel_or_lost_capture": 0
+    },
+    "restored/page_screenshot": {
+      "trials": 10,
+      "truncated": 0,
+      "cancel_or_lost_capture": 0
+    }
+  },
+  "trials": [
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 355.10000002384186,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 355.39999997615814,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 355.39999997615814,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 359.89999997615814,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 495.30000001192093,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 495.30000001192093,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 0
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 569.5,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 569.6000000238419,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 569.6999999880791,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 575.1999999880791,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 710.3999999761581,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 710.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 1
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 784.8000000119209,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 785,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 785,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 790.5,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 926.1000000238419,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 926.1999999880791,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 2
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 1000.3000000119209,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 1000.3999999761581,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 1000.3999999761581,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 1005.8000000119209,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 1141.1000000238419,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 1141.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 3
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 1215.6000000238419,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 1215.699999988079,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 1215.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 1221,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 1363.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 1363.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 4
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 1437.8999999761581,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 1438,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 1438.1000000238419,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 1443.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 1578.3999999761581,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 1578.3999999761581,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 5
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 1653,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 1653,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 1653.1000000238419,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 1658.6000000238419,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 1793.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 1793.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 6
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 1882.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 1882.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 1882.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 1887.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 2023.1000000238419,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 2023.1000000238419,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 7
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 2097.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 2097.600000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 2097.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 2103,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 2237.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 2237.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 8
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1390,
+        1390,
+        1390,
+        1390
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 2312.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 2313,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 2313,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 2318.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 2453.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 2453.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1390
+        }
+      ],
+      "after_context_restore": false,
+      "index": 9
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 57.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1,
+        "scroll": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 2528.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 217.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "blur",
+          "at": 2528.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "focus",
+          "at": 2528.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1390
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 2533.5,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 219.015625,
+          "buttons": 1,
+          "scrollY": 1390
+        },
+        {
+          "t": "pointerup",
+          "at": 2884.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 2884.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 257.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 0
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 2958.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 2959,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 2959.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 2964.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 3293.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 3293.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 1
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 3368.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 3368.399999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 3368.5,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 3373.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 3705.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 3705.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 2
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 3778.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 3778.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 3778.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 3783.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 4113,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 4113,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 3
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 4190.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 4191,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 4191.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 4193.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 4537.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 4537.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 4
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 4611.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 4611.600000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 4611.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 4617,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 4948,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 4948.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 5
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 5021.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 5021.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 5021.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 5026.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 5350.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 5350.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 6
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 5431,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 5431.100000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 5431.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 5436.5,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 5771.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 5771.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 7
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 5847.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 5847.800000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 5847.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 5853.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 6184,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 6184.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 8
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 6257.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 6257.5,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 6257.5,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 6262.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 6587.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 6587.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 9
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 6660.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 6660.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 6660.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 6665.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 6922.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 6922.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 0
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 6993.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 6993.600000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 6993.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 6999,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 7257.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 7257.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 1
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 7327,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 7327.100000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 7327.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 7334.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 7584,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 7584,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 2
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 7653.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 7653.399999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 7653.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 7658.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 7920.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 7920.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 3
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 7993.5,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 7993.600000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 7993.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 7999.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 8249.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 8249.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 4
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 8326.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 8327,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 8327,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 8332.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 8583.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 8583.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 5
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 8653.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 8653.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 8653.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 8658.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 8910.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 8910.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 6
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 8980.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 8980.100000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 8980.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 8985.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 9234.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 9234.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 7
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 9313.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 9313.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 9313.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 9318.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 9576.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 9576.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 8
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 9646.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 9646.800000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 9646.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 9651.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 9900.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 9900.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": false,
+      "index": 9
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 9986.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 9986.800000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 9986.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 9992.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 10128.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 10128.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 0
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 10215.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 10216,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 10216,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 10221.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 10356.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 10356.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 1
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 10445,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 10445.100000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 10445.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 10450.5,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 10585.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 10585.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 2
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 10674.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 10674.199999988079,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 10674.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 10679.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 10814.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 10814.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 3
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 10903.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 10903.699999988079,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 10903.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 10908.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 11043.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 11043.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 4
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 11132.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 11132.5,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 11132.5,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 11138.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 11273,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 11273,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 5
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 11369.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 11369.899999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 11370,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 11374.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 11509.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 11509.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 6
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 11598,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 11598.100000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 11598.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 11603.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 11738.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 11738.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 7
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 11827,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 11827,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 11827.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 11832.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 11967.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 11967.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 8
+    },
+    {
+      "mode": "none",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 12056.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 12056.199999988079,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 12056.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 12061.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 12197.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 12197.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 9
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 12285.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 12286,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 12286.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 12290.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 12628.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 12628.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 0
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 12717.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 12717.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 12717.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 12721.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 13086.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 13086.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 1
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 13174.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 13174.699999988079,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 13174.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 13179.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 13511.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 13511.199999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 2
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 13599.5,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 13599.600000023842,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 13599.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 13603.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 13974,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 13974.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 3
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 14073.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 14073.300000011921,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 14073.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 14075.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 14478.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 14478.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 4
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 14563.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 14563.899999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 14564,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 14568.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 14929.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 14929.699999988079,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 5
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 15017.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 15017.199999988079,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 15017.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 15020.300000011921,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 15393.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 15393.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 6
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 15493.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 15493.899999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 15493.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 15499.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 15863.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 15863.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 7
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 15953.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 15954,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 15954.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 15957.800000011921,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 16320.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 16320.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 8
+    },
+    {
+      "mode": "card_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 16404.19999998808,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 16404.399999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 16404.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 16409.19999998808,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 16767.69999998808,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 16767.80000001192,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 9
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 16856.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 16856.5,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 16856.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 16860.69999998808,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 17128,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 17128.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 0
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 17232.30000001192,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 17232.399999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 17232.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 17235.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 17515.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 17515.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 1
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 17598.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 17599,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 17599.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 17603.69999998808,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 17862.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 17862.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 2
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 17945.69999998808,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 17945.69999998808,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 17945.80000001192,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 17950.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 18238.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 18239,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 3
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 18341.30000001192,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 18341.5,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 18341.5,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 18346.80000001192,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 18615.80000001192,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 18615.80000001192,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 4
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 18702.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 18703,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 18703,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 18707.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 18965.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 18965.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 5
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 19057.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 19057.19999998808,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 19057.19999998808,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 19062,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 19313.30000001192,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 19313.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 6
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 19396.899999976158,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 19397,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 19397.100000023842,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 19402.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 19656.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 19656.69999998808,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 7
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 19744.30000001192,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 19744.399999976158,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 19744.399999976158,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 19749.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 20000.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 20000.5,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 8
+    },
+    {
+      "mode": "page_screenshot",
+      "canvas_moves": 21,
+      "rafs": 20,
+      "truncated": false,
+      "box_before": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "box_after": {
+        "x": 39,
+        "y": 99.015625,
+        "width": 1187,
+        "height": 320
+      },
+      "scrollY_after_segments": [
+        1348,
+        1348,
+        1348,
+        1348
+      ],
+      "event_counts": {
+        "blur": 1,
+        "focus": 1,
+        "gotpointercapture": 1,
+        "lostpointercapture": 1,
+        "pointerdown": 1,
+        "pointerup": 1
+      },
+      "events": [
+        {
+          "t": "pointerdown",
+          "at": 20084.19999998808,
+          "target": "webgl-georing-canvas",
+          "x": 632.5,
+          "y": 259.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "blur",
+          "at": 20084.19999998808,
+          "target": "georing-reset",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "focus",
+          "at": 20084.30000001192,
+          "target": "webgl-georing-canvas",
+          "x": null,
+          "y": null,
+          "buttons": null,
+          "scrollY": 1348
+        },
+        {
+          "t": "gotpointercapture",
+          "at": 20089.80000001192,
+          "target": "webgl-georing-canvas",
+          "x": 640,
+          "y": 261.015625,
+          "buttons": 1,
+          "scrollY": 1348
+        },
+        {
+          "t": "pointerup",
+          "at": 20346.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        },
+        {
+          "t": "lostpointercapture",
+          "at": 20346.600000023842,
+          "target": "webgl-georing-canvas",
+          "x": 782.5,
+          "y": 299.015625,
+          "buttons": 0,
+          "scrollY": 1348
+        }
+      ],
+      "after_context_restore": true,
+      "index": 9
+    }
+  ]
+}
