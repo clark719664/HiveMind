@@ -1,0 +1,72 @@
+{
+  "console": [
+    {
+      "page": "hud",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "url": "http://127.0.0.1:57060/favicon.ico",
+      "line": 0
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 702
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 702
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 702
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 704
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 702
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 702
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 702
+    },
+    {
+      "page": "hud",
+      "type": "warning",
+      "text": "WebGL: INVALID_OPERATION: delete: object does not belong to this context",
+      "url": "http://127.0.0.1:57060/",
+      "line": 704
+    }
+  ],
+  "pageerror": [],
+  "init_script_errors": [],
+  "unhandled_rejections": [],
+  "requestfailed": [],
+  "http_error_responses": []
+}
