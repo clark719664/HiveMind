@@ -155,10 +155,9 @@ _GEORING_WEBGL_SCRIPT = r"""
   function draw() {
     frame = 0;
     if (!ready || disposed || gl.isContextLost()) return;
-    const rect = canvas.getBoundingClientRect();
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(1, Math.round(rect.width * ratio));
-    const height = Math.max(1, Math.round(rect.height * ratio));
+    const width = Math.max(1, Math.round(canvas.clientWidth * ratio));
+    const height = Math.max(1, Math.round(canvas.clientHeight * ratio));
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     gl.viewport(0, 0, width, height);
     gl.clearColor(0.02, 0.03, 0.07, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -179,6 +178,8 @@ _GEORING_WEBGL_SCRIPT = r"""
   }
   function pick(event) {
     const rect = canvas.getBoundingClientRect();
+    const left = rect.left + canvas.clientLeft, top = rect.top + canvas.clientTop;
+    const width = canvas.clientWidth, height = canvas.clientHeight;
     let closest = 22, found = -1;
     nodes.forEach((node, index) => {
       const [x, y, z] = node.xyz;
@@ -187,8 +188,8 @@ _GEORING_WEBGL_SCRIPT = r"""
       const ry = Math.cos(pitch) * y - Math.sin(pitch) * rz;
       const depth = Math.sin(pitch) * y + Math.cos(pitch) * rz;
       const zoom = 1.25 / (1.7 - depth * 0.3);
-      const px = rect.left + rect.width / 2 + rx * zoom * rect.height / 2;
-      const py = rect.top + rect.height / 2 - ry * zoom * rect.height / 2;
+      const px = left + width / 2 + rx * zoom * height / 2;
+      const py = top + height / 2 - ry * zoom * height / 2;
       const distance = Math.hypot(event.clientX - px, event.clientY - py);
       if (distance < closest) { closest = distance; found = index; }
     });
@@ -261,6 +262,7 @@ _GEORING_WEBGL_SCRIPT = r"""
   });
   canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault(); ready = false; drag = null;
+    buffers = []; program = null;
     if (frame) cancelAnimationFrame(frame); frame = 0;
     canvas.dataset.rendered = 'false';
     message('[WEBGL CONTEXT LOST] Drawing paused; waiting for browser recovery.');
