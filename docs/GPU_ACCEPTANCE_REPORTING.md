@@ -44,7 +44,8 @@ about the unused fused INT4/FP8 router kernel.
 `preemption_measure.py --functional-dry-run-cpu` always selects CPU, including
 when CUDA is visible. It uses the CPU default model sizes, skips the live CUDA
 bystander scenario, emits no preemption latency/VRAM measurements, and exits 3
-on functional success or 1 on failure. A dry run is never acceptance evidence.
+on functional success, 1 on failure, or 2 if host-RAM admission is blocked.
+A dry run is never acceptance evidence.
 
 Without the dry-run flag, missing CUDA and ROCm/HIP are blocked (exit 2). A CUDA
 run exits 0 only when its functional checks pass; scenario exceptions emit
@@ -57,3 +58,26 @@ The manual hardware/session checks and limitations in
 [GPU_PREEMPTION_VALIDATION.md](GPU_PREEMPTION_VALIDATION.md) still apply. A passing
 script does not establish a fixed deadline, complete VRAM release, reliable
 Windows hooks, or trajectory-equivalent optimizer resume.
+
+### Host-RAM admission
+
+Before any scenario model/bystander allocation, and before the initial CUDA
+property probe, the tool requires known, valid available-host-RAM telemetry and
+a conservative budget. Missing/invalid telemetry returns
+`BLOCKED_HOST_RAM_UNKNOWN`; insufficient memory returns
+`BLOCKED_INSUFFICIENT_HOST_RAM`. Both exit 2 and do not begin the blocked model
+allocation. Each later scenario and the bare-offload reference recheck admission.
+No force/ignore-RAM override is provided.
+
+The budget is four times an arithmetic upper bound on model storage, plus
+256 MiB headroom and any bystander allocation. The bound uses eight-byte elements,
+LoRA parameters, and deliberately overestimates Qwen2's tied embeddings and
+grouped-query projections. It constructs no model or tensor. Reports record the
+estimate, budget, telemetry snapshot, and admission outcome. Small real CPU
+profiles are tested against the bound; unknown/insufficient-memory regressions
+forbid model allocation and GPU probes.
+
+This is an admission estimate, not measured peak RAM or a memory reservation.
+Other processes can change availability after a check. Free memory or reduce the
+explicit model profile before retrying a blocked run; do not treat missing RAM
+telemetry as permission to continue. It does not establish physical GPU results.
