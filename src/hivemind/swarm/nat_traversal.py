@@ -22,8 +22,12 @@ Only IPv4 transport is used for sockets; IPv6 addresses are still encoded and de
 from __future__ import annotations
 
 import hashlib
+import heapq
 import hmac
 import ipaddress
+import itertools
+import math
+import random
 import secrets
 import select
 import socket
@@ -48,6 +52,7 @@ REFRESH = 0x004
 SEND = 0x006
 DATA = 0x007
 CREATE_PERMISSION = 0x008
+CHANNEL_BIND = 0x009
 
 REQUEST = 0b00
 INDICATION = 0b01
@@ -58,7 +63,9 @@ MAPPED_ADDRESS = 0x0001
 USERNAME = 0x0006
 MESSAGE_INTEGRITY = 0x0008
 ERROR_CODE = 0x0009
+CHANNEL_NUMBER = 0x000C
 LIFETIME = 0x000D
+CHANNEL_LIFETIME = 0x000F
 XOR_PEER_ADDRESS = 0x0012
 DATA_ATTR = 0x0013
 REALM = 0x0014
@@ -68,6 +75,13 @@ REQUESTED_TRANSPORT = 0x0019
 XOR_MAPPED_ADDRESS = 0x0020
 SOFTWARE = 0x8022
 FINGERPRINT = 0x8028
+
+CHANNEL_NUMBER_MIN = 0x4000
+"""Lowest TURN channel number (RFC 5766 §11.3: the two most significant bits are 01)."""
+CHANNEL_NUMBER_MAX = 0x7FFF
+CHANNEL_DATA_FLAG = 0x40
+"""ChannelData messages start with the two bits 01, unlike STUN messages (00)."""
+CHANNEL_HEADER = struct.Struct("!HH")
 
 UDP_PROTOCOL_NUMBER = 17
 SOFTWARE_NAME = "HiveMind STUN/TURN"
@@ -158,6 +172,33 @@ def _address_family(value: bytes) -> int:
     if expected is None or len(value) != expected:
         raise StunError("invalid STUN address family or length")
     return family
+
+
+def is_channel_data(data: bytes) -> bool:
+    """True when `data` is a ChannelData message rather than a STUN message (RFC 5766 §11.4)."""
+    return len(data) >= CHANNEL_HEADER.size and bool(data[0] & CHANNEL_DATA_FLAG) and not data[0] & 0x80
+
+
+def encode_channel_data(channel_number: int, payload: bytes) -> bytes:
+    """Serialise a ChannelData message: channel number, length and the application data."""
+    if isinstance(channel_number, bool) or not isinstance(channel_number, int):
+        raise TypeError("TURN channel number must be an integer")
+    if not 0 <= channel_number <= 0xFFFF:
+        raise ValueError("TURN channel number must fit in 16 bits")
+    if len(payload) > 0xFFFF:
+        raise ValueError("TURN channel payload exceeds the 16-bit length field")
+    return CHANNEL_HEADER.pack(channel_number, len(payload)) + payload
+
+
+def decode_channel_data(data: bytes) -> Tuple[int, bytes]:
+    """Parse a ChannelData message into `(channel_number, payload)`."""
+    if not is_channel_data(data):
+        raise StunError("not a ChannelData message")
+    channel_number, length = CHANNEL_HEADER.unpack_from(data, 0)
+    payload = data[CHANNEL_HEADER.size : CHANNEL_HEADER.size + length]
+    if len(payload) != length:
+        raise StunError("truncated ChannelData message")
+    return channel_number, payload
 
 
 def encode_error_code(code: int, reason: str) -> bytes:
@@ -539,7 +580,11 @@ def udp_hole_punch(
 
 
 class TurnClient:
-    """RFC 5766 TURN client over UDP using long-term credentials."""
+    """RFC 5766 TURN client over UDP using long-term credentials.
+
+    Besides the Send/Data indication path the client can bind a channel to a peer
+    (RFC 5766 §11.2) and then exchange ChannelData messages (§11.4) with it.
+    """
 
     def __init__(
         self,
@@ -561,10 +606,26 @@ class TurnClient:
         self.relayed: Optional[Address] = None
         self.mapped: Optional[Address] = None
         self.lifetime = 0
+        self.channels: Dict[Address, int] = {}
+        """Channels bound by this client, keyed by the peer transport address."""
+        self._channel_peers: Dict[int, Address] = {}
         self._inbox: List[Tuple[Address, bytes]] = []
 
     def _on_other(self, data: bytes, addr: Address) -> None:
+        self._handle_datagram(data, addr)
+
+    def _handle_datagram(self, data: bytes, addr: Address) -> None:
+        """Absorb one datagram: a ChannelData message or a STUN Data indication."""
         if addr != self.server:
+            return
+        if is_channel_data(data):
+            try:
+                channel_number, payload = decode_channel_data(data)
+            except StunError:
+                return
+            peer = self._channel_peers.get(channel_number)
+            if peer is not None and len(self._inbox) < MAX_PENDING_INDICATIONS:
+                self._inbox.append((peer, payload))
             return
         try:
             message = StunMessage.decode(data)
@@ -688,8 +749,35 @@ class TurnClient:
         indication.add(DATA_ATTR, payload)
         self.sock.sendto(indication.encode(fingerprint=True), self.server)
 
+    def bind_channel(self, peer: Address, lifetime: int = 600) -> int:
+        """Bind a channel to `peer` (RFC 5766 §11.2) and return the channel number.
+
+        A bound channel lets both sides exchange ChannelData messages without wrapping every
+        payload in a STUN Data indication.
+        """
+        message = self._request(
+            CHANNEL_BIND,
+            [(XOR_PEER_ADDRESS, lambda txid: encode_xor_address(peer, txid))],
+        )
+        number = message.get(CHANNEL_NUMBER)
+        if number is None or len(number) != 2:
+            raise StunError("ChannelBind success carried no CHANNEL-NUMBER")
+        channel_number = struct.unpack("!H", number)[0]
+        if not CHANNEL_NUMBER_MIN <= channel_number <= CHANNEL_NUMBER_MAX:
+            raise StunError("TURN server allocated an out-of-range channel number")
+        self.channels[peer] = channel_number
+        self._channel_peers[channel_number] = peer
+        return channel_number
+
+    def send_channel(self, peer: Address, payload: bytes) -> None:
+        """Send `payload` to `peer` over the channel bound to it (RFC 5766 §11.4)."""
+        channel_number = self.channels.get(peer)
+        if channel_number is None:
+            raise StunError("no TURN channel is bound to that peer")
+        self.sock.sendto(encode_channel_data(channel_number, payload), self.server)
+
     def recv_from(self, timeout: float = 2.0) -> Tuple[Address, bytes]:
-        """Wait for the next Data indication and return `(peer, payload)`."""
+        """Wait for the next relayed payload and return `(peer, payload)`."""
         deadline = time.monotonic() + timeout
         while not self._inbox:
             remaining = deadline - time.monotonic()
@@ -714,6 +802,8 @@ class TurnClient:
             pass
         finally:
             self.relayed = None
+            self.channels.clear()
+            self._channel_peers.clear()
             if self._owns_socket:
                 self.sock.close()
 
@@ -802,11 +892,23 @@ class _Allocation:
         return self.permissions.get(ip, 0.0) > time.monotonic()
 
 
+@dataclass
+class _Channel:
+    """A channel bound between an allocation and one peer (RFC 5766 §11)."""
+
+    number: int
+    peer: Address
+    allocation: _Allocation
+    expires: float
+
+
 class TurnRelayServer(StunServer):
     """Minimal RFC 5766 TURN relay (UDP allocations, permissions, Send/Data indications).
 
     Also answers Binding requests, like production TURN servers do. Intended for HiveMind nodes
-    that volunteer as relays; channels (ChannelBind) and TCP allocations are not implemented.
+    that volunteer as relays; TCP allocations are not implemented, but channels are:
+    `ChannelBind` (RFC 5766 §11.2) allocates a channel number and `ChannelData` (§11.4)
+    carries the payload without a STUN wrapper.
     For a wildcard bind, the relay address defaults to the interface used to reach the client.
     Set `advertised_ip` explicitly when a NAT forwards the relay's UDP ports to a public address.
     """
@@ -819,6 +921,7 @@ class TurnRelayServer(StunServer):
         realm: str = "hivemind.local",
         max_lifetime: int = 3600,
         advertised_ip: Optional[str] = None,
+        channel_lifetime: int = 600,
     ) -> None:
         if advertised_ip is not None:
             advertised_ip = self._validate_relay_ip(advertised_ip)
@@ -826,9 +929,13 @@ class TurnRelayServer(StunServer):
         self.users = dict(users)
         self.realm = realm
         self.max_lifetime = max_lifetime
+        self.channel_lifetime = int(channel_lifetime)
         self.nonce = secrets.token_hex(16).encode("ascii")
         self.allocations: Dict[Address, _Allocation] = {}
         self._by_relay: Dict[socket.socket, _Allocation] = {}
+        self.channels: Dict[int, _Channel] = {}
+        """Bound channels, keyed by their channel number."""
+        self._channel_by_peer: Dict[Tuple[Address, Address], int] = {}
         self.advertised_ip = advertised_ip
         self._responses: OrderedDict[
             Tuple[Address, int, bytes], Tuple[float, bytes, bytes]
@@ -849,6 +956,8 @@ class TurnRelayServer(StunServer):
             allocation.relay.close()
         self.allocations.clear()
         self._by_relay.clear()
+        self.channels.clear()
+        self._channel_by_peer.clear()
         self._responses.clear()
         super()._close_sockets()
 
@@ -857,6 +966,9 @@ class TurnRelayServer(StunServer):
         for client, allocation in list(self.allocations.items()):
             if allocation.expires <= now:
                 self._release(client)
+        for number, channel in list(self.channels.items()):
+            if channel.expires <= now:
+                self._release_channel(number)
         while self._responses and next(iter(self._responses.values()))[0] <= now:
             self._responses.popitem(last=False)
 
@@ -865,6 +977,14 @@ class TurnRelayServer(StunServer):
         if allocation is not None:
             self._by_relay.pop(allocation.relay, None)
             allocation.relay.close()
+            for number, channel in list(self.channels.items()):
+                if channel.allocation is allocation:
+                    self._release_channel(number)
+
+    def _release_channel(self, number: int) -> None:
+        channel = self.channels.pop(number, None)
+        if channel is not None:
+            self._channel_by_peer.pop((channel.allocation.client, channel.peer), None)
 
     def _on_readable(self, sock: socket.socket) -> None:
         if sock is self.sock:
@@ -877,15 +997,24 @@ class TurnRelayServer(StunServer):
             return
         if allocation is None or not allocation.permits(peer[0]):
             return  # RFC 5766 §10.3: drop data from peers without a permission
-        indication = StunMessage(DATA, INDICATION)
-        indication.add(XOR_PEER_ADDRESS, encode_xor_address(peer, indication.transaction_id))
-        indication.add(DATA_ATTR, payload)
+        channel_number = self._channel_by_peer.get((allocation.client, peer))
+        channel = self.channels.get(channel_number) if channel_number is not None else None
+        if channel is not None and channel.expires > time.monotonic():
+            message = encode_channel_data(channel.number, payload)
+        else:
+            indication = StunMessage(DATA, INDICATION)
+            indication.add(XOR_PEER_ADDRESS, encode_xor_address(peer, indication.transaction_id))
+            indication.add(DATA_ATTR, payload)
+            message = indication.encode(fingerprint=True)
         try:
-            self.sock.sendto(indication.encode(fingerprint=True), allocation.client)
+            self.sock.sendto(message, allocation.client)
         except OSError:
             pass  # An oversized peer datagram or unreachable client must not stop the relay.
 
     def handle_datagram(self, data: bytes, addr: Address) -> None:
+        if is_channel_data(data):
+            self._on_channel_data(data, addr)
+            return
         try:
             message = StunMessage.decode(data)
         except StunError:
@@ -950,6 +1079,7 @@ class TurnRelayServer(StunServer):
             ALLOCATE: self._allocate,
             REFRESH: self._refresh,
             CREATE_PERMISSION: self._create_permission,
+            CHANNEL_BIND: self._channel_bind,
         }[request.method]
         response = handler(request, addr, user)
         if response is not None:
@@ -1026,6 +1156,58 @@ class TurnRelayServer(StunServer):
             return self._error_response(request, 443, "Peer Address Family Mismatch")
         allocation.permissions[peer_ip] = time.monotonic() + PERMISSION_LIFETIME_S
         return StunMessage(CREATE_PERMISSION, SUCCESS, request.transaction_id)
+
+    def _channel_bind(self, request: StunMessage, addr: Address, user: str) -> Optional[StunMessage]:
+        """Bind a channel to a peer (RFC 5766 §11.2)."""
+        allocation = self.allocations.get(addr)
+        if allocation is None:
+            return self._error_response(request, 437, "Allocation Mismatch")
+        if allocation.username != user:
+            return self._error_response(request, 441, "Wrong Credentials")
+        peer = request.get(XOR_PEER_ADDRESS)
+        if peer is None:
+            return self._error_response(request, 400, "Bad Request")
+        peer_addr = decode_xor_address(peer, request.transaction_id)
+        if ipaddress.ip_address(peer_addr[0]).version != 4:
+            return self._error_response(request, 443, "Peer Address Family Mismatch")
+        existing = self._channel_by_peer.get((addr, peer_addr))
+        if existing is not None and existing in self.channels:
+            # RFC 5766 §11.2: a peer may have at most one bound channel.
+            return self._error_response(request, 400, "Channel Already Bound")
+        number = self._next_channel_number()
+        if number is None:
+            return self._error_response(request, 508, "Insufficient Capacity")
+        lifetime = min(self.channel_lifetime, self.max_lifetime)
+        self.channels[number] = _Channel(number, peer_addr, allocation, time.monotonic() + lifetime)
+        self._channel_by_peer[(addr, peer_addr)] = number
+        response = StunMessage(CHANNEL_BIND, SUCCESS, request.transaction_id)
+        response.add(CHANNEL_NUMBER, struct.pack("!H", number))
+        response.add(CHANNEL_LIFETIME, struct.pack("!I", lifetime))
+        return response
+
+    def _next_channel_number(self) -> Optional[int]:
+        for number in range(CHANNEL_NUMBER_MIN, CHANNEL_NUMBER_MAX + 1):
+            if number not in self.channels:
+                return number
+        return None
+
+    def _on_channel_data(self, data: bytes, addr: Address) -> None:
+        """Relay a ChannelData message to the peer the channel is bound to (RFC 5766 §11.4)."""
+        try:
+            number, payload = decode_channel_data(data)
+        except StunError:
+            return
+        channel = self.channels.get(number)
+        if channel is None or channel.expires <= time.monotonic():
+            return
+        if channel.allocation.client != addr:
+            return  # Only the allocation owner may use its channel.
+        if not channel.allocation.permits(channel.peer[0]):
+            return  # RFC 5766 §10.3: drop data from peers without a permission.
+        try:
+            channel.allocation.relay.sendto(payload, channel.peer)
+        except OSError:
+            pass
 
     def _on_send(self, indication: StunMessage, addr: Address) -> None:
         allocation = self.allocations.get(addr)
