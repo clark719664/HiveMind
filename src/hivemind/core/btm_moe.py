@@ -1,4 +1,4 @@
-"""Season 3 (`HM-S3-04`) & Season 4 (`HM-S4-05`) BTM Sparse MoE Domain Expert Registry.
+"""Season 3 (`HM-S3-04`), Season 4 (`HM-S4-05`) & Season 5 (`HM-S5-02`) BTM Sparse MoE.
 
 Re-exports the core Branch-Train-Merge (`btm_upcycle`) primitives and provides
 `Season3DomainExpertRegistry` for managing and routing specialized domain QLoRA
@@ -10,6 +10,20 @@ LoRA projection that compresses higher-rank community adapters (`r=32`, `r=64`) 
 zero-pads lower-rank ones (`r=8`) onto a single canonical rank (`r=16`), so that
 16-32 heterogeneous community experts can be hot-plugged into one unified
 `UpcycledSparseMoEModel` inside a `< 2.0 GB` VRAM budget.
+
+Season 5 (`HM-S5-02`) adds the **64-Expert 2-Level Hierarchical Sparse MoE**:
+
+- `HierarchicalMoERouter`: a `G_macro -> G_micro` router over `8` macro-domains x
+  `8` micro-experts (`E = 64`) that selects the **Top-2 micro-experts inside the
+  winning macro-cluster**. It implements the exact `TopKMoERouter` contract
+  (`forward(hidden_states) -> (routing_weights, selected_experts, aux_loss)`) and
+  returns **global** expert indices, so it is a drop-in replacement inside
+  `SparseMoEMLPBlock`.
+- `hotplug_hierarchical_experts` / `build_hierarchical_sparse_moe`: hot-plug 64
+  heterogeneous community adapters (all SVD-projected onto the canonical `r=16`)
+  and install the hierarchical router, keeping the whole model inside the
+  `< 2.2 GB` VRAM ceiling enforced by the FP8 paged KV-cache of
+  `hivemind.swarm.swarm_fabric`.
 """
 
 from __future__ import annotations
@@ -18,6 +32,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Tuple
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 from hivemind.core.btm_upcycle import (
     ExpertBranchState,
