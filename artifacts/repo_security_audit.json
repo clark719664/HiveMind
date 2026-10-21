@@ -6,8 +6,8 @@
   "critical_count": 0,
   "high_count": 0,
   "medium_count": 0,
-  "scanned_files_count": 83,
+  "scanned_files_count": 88,
   "functional_lines_added": 0,
-  "summary": "Repository Audit (DecentralizedAI): PASSED (0 blocking findings) | Scanned files=83, Functional lines added=0",
+  "summary": "Repository Audit (DecentralizedAI): PASSED (0 blocking findings) | Scanned files=88, Functional lines added=0",
   "findings": []
 }
