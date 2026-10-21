@@ -1028,6 +1028,110 @@ theorem sparsify_strict_contraction (keep : List Bool) (x : List Int)
   have := sparsify_energy_split keep x h_len
   omega
 
+/-- Error feedback where the carried residual first passes through an arbitrary map `D`
+    (stale-step decay, norm clipping, or both). Returns (final residual, total sent,
+    total removed by `D`). -/
+def efRunCarry (C D : Int → Int) : Int → List Int → Int × Int × Int
+  | residual, [] => (residual, 0, 0)
+  | residual, delta :: rest =>
+    let corrected := delta + D residual
+    let r := efRunCarry C D (corrected - C corrected) rest
+    (r.1, C corrected + r.2.1, (residual - D residual) + r.2.2)
+
+/-- Theorem 68 (Error-Feedback Conservation Under Decay and Clipping):
+    with any compressor `C` and any carry map `D`, total sent plus final residual equals
+    initial residual plus every delta, minus exactly what `D` removed. With `D = id`
+    nothing is removed and this is Theorem 65. -/
+theorem ef_conservation_with_carry_map (C D : Int → Int) (residual0 : Int) (deltas : List Int) :
+    (efRunCarry C D residual0 deltas).2.1 + (efRunCarry C D residual0 deltas).1 =
+      residual0 + deltas.sum - (efRunCarry C D residual0 deltas).2.2 := by
+  induction deltas generalizing residual0 with
+  | nil => simp [efRunCarry]
+  | cons d rest ih =>
+    have h := ih (d + D residual0 - C (d + D residual0))
+    simp only [efRunCarry, List.sum_cons] at h ⊢
+    omega
+
+def keptSum : List Bool → List Nat → Nat
+  | true :: ks, s :: ss => s + keptSum ks ss
+  | false :: ks, _ :: ss => keptSum ks ss
+  | _, _ => 0
+
+def droppedSum : List Bool → List Nat → Nat
+  | true :: ks, _ :: ss => droppedSum ks ss
+  | false :: ks, s :: ss => s + droppedSum ks ss
+  | _, _ => 0
+
+def keptCount : List Bool → Nat
+  | [] => 0
+  | true :: ks => keptCount ks + 1
+  | false :: ks => keptCount ks
+
+/-- Every kept squared magnitude is at least `t` and every dropped one at most `t`:
+    the defining property of a Top-k mask, with `t` its k-th largest value. -/
+def thresholdMask (t : Nat) : List Bool → List Nat → Prop
+  | true :: ks, s :: ss => t ≤ s ∧ thresholdMask t ks ss
+  | false :: ks, s :: ss => s ≤ t ∧ thresholdMask t ks ss
+  | _, _ => True
+
+theorem keptCount_le_length (keep : List Bool) : keptCount keep ≤ keep.length := by
+  induction keep with
+  | nil => simp [keptCount]
+  | cons k ks ih => cases k <;> simp [keptCount] <;> omega
+
+theorem threshold_bounds (t : Nat) (keep : List Bool) (s : List Nat)
+    (h_len : keep.length = s.length) (h : thresholdMask t keep s) :
+    keptCount keep * t ≤ keptSum keep s ∧
+      droppedSum keep s ≤ (s.length - keptCount keep) * t := by
+  induction s generalizing keep with
+  | nil => cases keep <;> simp_all [keptCount, keptSum, droppedSum]
+  | cons x xs ih =>
+    cases keep with
+    | nil => simp at h_len
+    | cons k ks =>
+      have hl : ks.length = xs.length := by simpa using h_len
+      have hc := keptCount_le_length ks
+      cases k with
+      | true =>
+        obtain ⟨hx, hrest⟩ := h
+        have ⟨h1, h2⟩ := ih ks hl hrest
+        simp only [keptCount, keptSum, droppedSum, List.length_cons]
+        constructor
+        · rw [Nat.add_mul]; omega
+        · have : xs.length + 1 - (keptCount ks + 1) = xs.length - keptCount ks := by omega
+          rw [this]; exact h2
+      | false =>
+        obtain ⟨hx, hrest⟩ := h
+        have ⟨h1, h2⟩ := ih ks hl hrest
+        simp only [keptCount, keptSum, droppedSum, List.length_cons]
+        constructor
+        · exact h1
+        · have : xs.length + 1 - keptCount ks = (xs.length - keptCount ks) + 1 := by omega
+          rw [this, Nat.add_mul]; omega
+
+/-- Theorem 69 (Top-k Contraction Rate):
+    for a threshold (Top-k) mask over `d` coordinates keeping `k` of them, the carried
+    energy satisfies `d * residual ≤ (d - k) * input`, i.e. Top-k keeps at least a `k/d`
+    share of the energy. Stated over per-coordinate squared magnitudes. -/
+theorem topk_contraction_rate (t : Nat) (keep : List Bool) (s : List Nat)
+    (h_len : keep.length = s.length) (h : thresholdMask t keep s) :
+    s.length * droppedSum keep s ≤
+      (s.length - keptCount keep) * (droppedSum keep s + keptSum keep s) := by
+  have ⟨hk, hd⟩ := threshold_bounds t keep s h_len h
+  have hkd : keptCount keep ≤ s.length := h_len ▸ keptCount_le_length keep
+  generalize keptCount keep = k at hk hd hkd ⊢
+  generalize droppedSum keep s = R at hk hd ⊢
+  generalize keptSum keep s = K at hk hd ⊢
+  generalize s.length = d at hk hd hkd ⊢
+  have step1 : k * R ≤ (d - k) * K := by
+    calc k * R ≤ k * ((d - k) * t) := Nat.mul_le_mul_left k hd
+      _ = (d - k) * (k * t) := by rw [← Nat.mul_assoc, Nat.mul_comm k (d - k), Nat.mul_assoc]
+      _ ≤ (d - k) * K := Nat.mul_le_mul_left (d - k) hk
+  have split : d * R = k * R + (d - k) * R := by
+    rw [← Nat.add_mul]; congr 1; omega
+  rw [split, Nat.mul_add]
+  omega
+
 end Season6_ErrorFeedbackModel
 
 end HiveMindSpec
@@ -1090,3 +1194,7 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le
 #print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split
 #print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_with_carry_map
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate

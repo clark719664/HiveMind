@@ -14,6 +14,8 @@ MODEL_THEOREMS = (
     "sparsify_residual_energy_le",
     "sparsify_energy_split",
     "sparsify_strict_contraction",
+    "ef_conservation_with_carry_map",
+    "topk_contraction_rate",
 )
 
 
