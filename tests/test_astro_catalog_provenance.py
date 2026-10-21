@@ -125,3 +125,24 @@ def test_source_no_longer_claims_moe_verification() -> None:
     assert "verified by the 6-Expert MoE" not in source
     assert "24-Cycle Full-Day" not in source.replace('replace("24-Cycle Full-Day"', "")
     assert 'measurement_kind' in source
+
+
+def test_observatory_dashboard_labels_the_catalog_as_illustrative() -> None:
+    from pathlib import Path
+
+    html = (Path(__file__).resolve().parents[1] / "docs" / "dashboard" / "astrophysics_observatory_dashboard.html").read_text(
+        encoding="utf-8"
+    )
+    assert "Discovered Exoplanet" not in html
+    assert "Example Exoplanet, Stellar Halo" in html and "(illustrative)" in html
+    assert "_compute_cosmology_discoveries_and_catalog()" in html and "not inferred from the run" in html
+
+
+def test_readme_keeps_the_report_and_dashboard_links_next_to_the_corrected_paragraph() -> None:
+    from pathlib import Path
+
+    readme = (Path(__file__).resolve().parents[1] / "README.md").read_text(encoding="utf-8")
+    assert "measured wall time `197.64 s`" in readme
+    for link in ("docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md", "docs/dashboard/astrophysics_observatory_dashboard.html"):
+        assert link in readme
+    assert "Full-Day 24-Hour Schedule" not in readme
