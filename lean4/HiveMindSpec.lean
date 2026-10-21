@@ -1134,6 +1134,84 @@ theorem topk_contraction_rate (t : Nat) (keep : List Bool) (s : List Nat)
 
 end Season6_ErrorFeedbackModel
 
+-- ============================================================================
+-- SEASON 6 (#60): BOUNDED RESIDUALS AND THE DETERMINISTIC HALF OF UCB1, CORE LEAN ONLY
+-- ============================================================================
+namespace Season6_CoreOnlyBounds
+
+/-- Theorem 70 (Error-Feedback Residual Stays Bounded Under Decay):
+    scale the stale-step decay as `r / (r + s)` with `s ≥ 1` (so the carried residual
+    shrinks by that factor) and let each round inject at most `B` new residual energy
+    (what Top-k + FP8 drop from a bounded delta). If every step satisfies
+    `(r + s) * e (t+1) ≤ r * e t + (r + s) * B`, then for all `t`
+    `s * e t ≤ s * e 0 + (r + s) * B`, i.e. the residual never exceeds
+    `e 0 + (r + s) * B / s`. Exact natural-number arithmetic; no limits involved. -/
+theorem ef_residual_stays_bounded_under_decay (r s B : Nat) (e : Nat → Nat)
+    (hs : 0 < s)
+    (hstep : ∀ t, (r + s) * e (t + 1) ≤ r * e t + (r + s) * B) :
+    ∀ t, s * e t ≤ s * e 0 + (r + s) * B := by
+  intro t
+  induction t with
+  | zero => exact Nat.le_add_right _ _
+  | succ t ih =>
+    have hD : 0 < r + s := Nat.lt_of_lt_of_le hs (Nat.le_add_left s r)
+    have h1 : s * ((r + s) * e (t + 1)) ≤ s * (r * e t + (r + s) * B) :=
+      Nat.mul_le_mul_left s (hstep t)
+    have h2 : r * (s * e t) ≤ r * (s * e 0 + (r + s) * B) :=
+      Nat.mul_le_mul_left r ih
+    have key : (r + s) * (s * e (t + 1)) ≤ (r + s) * (s * e 0 + (r + s) * B) := by
+      have e1 : (r + s) * (s * e (t + 1)) = s * ((r + s) * e (t + 1)) := by ac_rfl
+      have e2 : s * (r * e t + (r + s) * B) = r * (s * e t) + s * ((r + s) * B) := by
+        rw [Nat.mul_add]; congr 1; ac_rfl
+      have e3 : r * (s * e 0 + (r + s) * B) + s * ((r + s) * B)
+          = r * (s * e 0) + (r + s) * ((r + s) * B) := by
+        rw [Nat.mul_add, Nat.add_assoc, ← Nat.add_mul]
+      have e4 : r * (s * e 0) ≤ (r + s) * (s * e 0) :=
+        Nat.mul_le_mul_right _ (Nat.le_add_right r s)
+      calc (r + s) * (s * e (t + 1)) = s * ((r + s) * e (t + 1)) := e1
+        _ ≤ s * (r * e t + (r + s) * B) := h1
+        _ = r * (s * e t) + s * ((r + s) * B) := e2
+        _ ≤ r * (s * e 0 + (r + s) * B) + s * ((r + s) * B) := Nat.add_le_add_right h2 _
+        _ = r * (s * e 0) + (r + s) * ((r + s) * B) := e3
+        _ ≤ (r + s) * (s * e 0) + (r + s) * ((r + s) * B) := Nat.add_le_add_right e4 _
+        _ = (r + s) * (s * e 0 + (r + s) * B) := by rw [Nat.mul_add]
+    exact Nat.le_of_mul_le_mul_left key hD
+
+/-- Theorem 71 (UCB1 Separation on the Concentration Event, deterministic half):
+    if a suboptimal arm has been pulled often enough that twice its exploration bonus
+    is at most its gap to the best arm (`mu_i + 2 * b_i ≤ mu_star`), and both empirical
+    means lie within their bonuses of the true means, then the suboptimal arm's UCB index
+    cannot exceed the best arm's index, so UCB1 does not pull it. The probability that
+    the concentration event holds is the probabilistic half of the regret bound and is
+    not stated in this dependency-free specification. -/
+theorem ucb1_well_sampled_suboptimal_arm_is_not_selected
+    (mu_i mu_star hat_i hat_star b_i b_star : Int)
+    (h_gap : mu_i + 2 * b_i ≤ mu_star)
+    (h_conc_i : hat_i ≤ mu_i + b_i)
+    (h_conc_star : mu_star ≤ hat_star + b_star) :
+    hat_i + b_i ≤ hat_star + b_star := by
+  omega
+
+/-- Theorem 72 (UCB1 Sample-Count Threshold):
+    with squared bonus `2 * L / n` (integer-scaled `2 ln N / n`), pulling an arm at least
+    `8 * L / gap²` times makes `4 * bonus² ≤ gap²`, which is the hypothesis Theorem 71 needs
+    (`2 * bonus ≤ gap`). -/
+theorem ucb1_sample_threshold_bounds_bonus (L n gap : Nat) (hn : 0 < n)
+    (h : 8 * L ≤ n * (gap * gap)) :
+    4 * (2 * L / n) ≤ gap * gap := by
+  have h1 : (2 * L / n) * n ≤ 2 * L := Nat.div_mul_le_self (2 * L) n
+  have h2 : 4 * ((2 * L / n) * n) ≤ 4 * (2 * L) := Nat.mul_le_mul_left 4 h1
+  have h3 : (4 * (2 * L / n)) * n ≤ n * (gap * gap) := by
+    calc (4 * (2 * L / n)) * n = 4 * ((2 * L / n) * n) := by rw [Nat.mul_assoc]
+      _ ≤ 4 * (2 * L) := h2
+      _ = 8 * L := by omega
+      _ ≤ n * (gap * gap) := h
+  have h4 : n * (4 * (2 * L / n)) ≤ n * (gap * gap) := by
+    rw [Nat.mul_comm n]; exact h3
+  exact Nat.le_of_mul_le_mul_left h4 hn
+
+end Season6_CoreOnlyBounds
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -1198,3 +1276,6 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length
 #print axioms HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds
 #print axioms HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate
+#print axioms HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay
+#print axioms HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected
+#print axioms HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus
