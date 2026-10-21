@@ -1,5 +1,7 @@
 # Project HiveMind — 24-Cycle Full-Day Local GPU (`NVIDIA GeForce RTX 2070`) Astrophysics & Cosmology BOINC Discovery Report
 
+![Executive Astrophysics & Cosmology Promotion Dashboard](assets/hivemind_astrophysics_executive_dashboard.svg)
+
 ![Deep-Space Cosmology & Exoplanet Swarm Observatory Banner](images/cosmology_deep_field_banner.png)
 
 > **Executive Summary for the Open-Source & Citizen-Science Community**:
