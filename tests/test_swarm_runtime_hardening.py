@@ -666,3 +666,37 @@ def test_local_boinc_astrophysics_gpu_campaign_and_cli(tmp_path: Path) -> None:
         assert len(b["slashed_byzantine_nodes"]) == 1
         assert b["cas_expert_cid"].startswith("cid://sha256/expert-")
 
+
+def test_24h_astrophysics_gpu_campaign_and_visualizations(tmp_path: Path) -> None:
+    out_json = tmp_path / "astro_24h_report.json"
+    dash_png = tmp_path / "dashboard.png"
+    cosmo_png = tmp_path / "cosmology.png"
+    rc = cli_main(
+        [
+            "run-astro-24h",
+            "--cycles",
+            "6",
+            "--inner-steps",
+            "4",
+            "--spot-check-interval",
+            "2",
+            "--lora-rank",
+            "8",
+            "--output-json",
+            str(out_json),
+            "--dashboard-png",
+            str(dash_png),
+            "--cosmology-png",
+            str(cosmo_png),
+        ]
+    )
+    assert rc == 0
+    assert out_json.exists()
+    assert dash_png.exists() and dash_png.stat().st_size > 10_000
+    assert cosmo_png.exists() and cosmo_png.stat().st_size > 10_000
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert data["overall_passed"] is True
+    assert len(data["branch_summaries"]) == 6
+    assert "exoplanet_biosignature_candidates" in data["scientific_discoveries"]
+    assert "cosmology_dark_energy_reconstruction" in data["scientific_discoveries"]
+

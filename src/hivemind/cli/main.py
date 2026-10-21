@@ -302,6 +302,30 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to write BOINC Astrophysics campaign JSON report",
     )
 
+    p_astro_24h = sub.add_parser(
+        "run-astro-24h",
+        help="Run a 24-Cycle Full-Day Intensive GPU Astrophysics & Cosmology Campaign and render PNG dashboards",
+    )
+    p_astro_24h.add_argument("--cycles", type=int, default=24, help="Number of BOINC outer cycles (default: 24)")
+    p_astro_24h.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps H per worker per cycle")
+    p_astro_24h.add_argument("--spot-check-interval", type=int, default=6, help="Micro-checkpoint interval s")
+    p_astro_24h.add_argument("--lora-rank", type=int, default=16, help="QLoRA rank r")
+    p_astro_24h.add_argument(
+        "--output-json",
+        default="artifacts/astrophysics_24h_gpu_campaign_report.json",
+        help="Path to write 24-cycle Astrophysics & Cosmology JSON report",
+    )
+    p_astro_24h.add_argument(
+        "--dashboard-png",
+        default="docs/images/astrophysics_gpu_24h_dashboard.png",
+        help="Path to write 6-panel Astrophysics GPU dashboard PNG",
+    )
+    p_astro_24h.add_argument(
+        "--cosmology-png",
+        default="docs/images/cosmology_deep_field_discovery.png",
+        help="Path to write 4-panel Cosmology & JWST discovery PNG",
+    )
+
     args = parser.parse_args(argv)
     if args.command == "hardware-check":
         return cmd_hardware_check()
@@ -422,6 +446,19 @@ def main(argv: list[str] | None = None) -> int:
 
         report = run_swarm_hardening_self_test(output_json_path=args.output_json)
         console.print(json.dumps(report, indent=2))
+        return 0 if report.get("overall_passed") else 1
+    if args.command == "run-astro-24h":
+        from hivemind.boinc.astrophysics_24h_campaign import run_24h_astrophysics_gpu_campaign
+
+        report = run_24h_astrophysics_gpu_campaign(
+            num_cycles=args.cycles,
+            inner_steps_per_cycle=args.inner_steps,
+            spot_check_interval_s=args.spot_check_interval,
+            lora_rank_r=args.lora_rank,
+            output_json_path=args.output_json,
+            dashboard_png_path=args.dashboard_png,
+            cosmology_png_path=args.cosmology_png,
+        )
         return 0 if report.get("overall_passed") else 1
     if args.command == "run-boinc-astro":
         from hivemind.boinc.local_astrophysics_boinc import run_local_boinc_astrophysics_campaign
