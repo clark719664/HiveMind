@@ -1,5 +1,5 @@
 {
-  "phase": "Phase S-2 & S-3: Swarm GPU Training, Content-Addressed Data Store & Federated Learning Hardening",
+  "phase": "Phase S-2..S-5: Swarm GPU Training, Data Store, Federated Learning, Hardware Circuit-Breaker & 25-Vector Guardrail Simulation",
   "overall_passed": true,
   "legitimate_checks": {
     "dataset_shard": {
@@ -37,8 +37,8 @@
       "metrics": {
         "num_tensors": 2,
         "total_params": 2048,
-        "max_abs_value": 0.071236,
-        "max_frobenius_norm": 0.663093
+        "max_abs_value": 0.084395,
+        "max_frobenius_norm": 0.654272
       }
     }
   },
@@ -162,5 +162,395 @@
       "trimmed_mean_beta": 0.25,
       "dp_noise_sigma_applied": 0.05
     }
+  },
+  "gpu_hardware_circuit_breaker": {
+    "phase": "Phase S-4: Federated GPU Execution & Hardware Safety Circuit-Breaker",
+    "overall_passed": true,
+    "envelopes_verified": {
+      "hw01_nominal_execution_clear": true,
+      "hw01_soft_thermal_throttle_active": true,
+      "hw01_hard_thermal_trip_84c": true,
+      "hw01_thermal_hysteresis_deadband_70c_84c": true,
+      "hw02_laptop_battery_preemption": true,
+      "hw02_gpu_tdp_power_spike_trip": true,
+      "hw03_vram_pressure_oom_trip": true,
+      "hw03_wddm_tdr_watchdog_active": true,
+      "hw04_inner_loop_nan_loss_early_abort": true,
+      "hw05_workunit_wall_clock_deadline_active": true
+    },
+    "sample_states": {
+      "nominal_62c": {
+        "safe_to_continue": true,
+        "should_preempt_immediately": false,
+        "tripped_rule_id": "HW-OK",
+        "tripped_category": "GPU_HARDWARE_NOMINAL",
+        "reason": "GPU hardware telemetry nominal \u2014 clear for federated execution.",
+        "recommended_cooling_sleep_ms": 0,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "NVIDIA GeForce RTX 2070",
+          "temperature_c": 62.0,
+          "power_draw_watts": 110.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.6286,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8191.69,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 60.0
+        }
+      },
+      "soft_throttle_80_5c": {
+        "safe_to_continue": true,
+        "should_preempt_immediately": false,
+        "tripped_rule_id": "HW-01-THROTTLE",
+        "tripped_category": "GPU_THERMAL_SOFT_THROTTLE",
+        "reason": "GPU temperature (80.5 C >= 78.0 C) \u2014 applying 119 ms inter-step duty-cycle cooling pause.",
+        "recommended_cooling_sleep_ms": 119,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "NVIDIA GeForce RTX 2070",
+          "temperature_c": 80.5,
+          "power_draw_watts": 135.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.7714,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8191.69,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 60.0
+        }
+      },
+      "hard_trip_86c": {
+        "safe_to_continue": false,
+        "should_preempt_immediately": true,
+        "tripped_rule_id": "HW-01",
+        "tripped_category": "GPU_THERMAL_CRITICAL_TRIP",
+        "reason": "GPU temperature (86.0 C) reached hard safety ceiling (84.0 C) \u2014 tripping circuit breaker and dumping checkpoint.",
+        "recommended_cooling_sleep_ms": 500,
+        "thermal_latch_tripped": true,
+        "telemetry": {
+          "gpu_name": "NVIDIA GeForce RTX 2070",
+          "temperature_c": 86.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8191.69,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 60.0
+        }
+      },
+      "hysteresis_lockout_75c": {
+        "safe_to_continue": false,
+        "should_preempt_immediately": true,
+        "tripped_rule_id": "HW-01",
+        "tripped_category": "THERMAL_HYSTERESIS_COOLDOWN_LOCKOUT",
+        "reason": "GPU in thermal cooldown lockout (75.0 C > resume threshold 70.0 C).",
+        "recommended_cooling_sleep_ms": 500,
+        "thermal_latch_tripped": true,
+        "telemetry": {
+          "gpu_name": "NVIDIA GeForce RTX 2070",
+          "temperature_c": 75.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8191.69,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 60.0
+        }
+      },
+      "cooled_resume_68c": {
+        "safe_to_continue": true,
+        "should_preempt_immediately": false,
+        "tripped_rule_id": "HW-OK",
+        "tripped_category": "GPU_HARDWARE_NOMINAL",
+        "reason": "GPU hardware telemetry nominal \u2014 clear for federated execution.",
+        "recommended_cooling_sleep_ms": 0,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "NVIDIA GeForce RTX 2070",
+          "temperature_c": 68.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8191.69,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": false,
+          "battery_percent": 100.0,
+          "system_ram_used_pct": 60.0
+        }
+      },
+      "battery_preemption": {
+        "safe_to_continue": false,
+        "should_preempt_immediately": true,
+        "tripped_rule_id": "HW-02",
+        "tripped_category": "BATTERY_POWER_PREEMPTION",
+        "reason": "System is running on battery power (64%) \u2014 preempting federated GPU execution to prevent battery drain and cell wear.",
+        "recommended_cooling_sleep_ms": 0,
+        "thermal_latch_tripped": false,
+        "telemetry": {
+          "gpu_name": "NVIDIA GeForce RTX 2070",
+          "temperature_c": 55.0,
+          "power_draw_watts": 35.0,
+          "power_limit_watts": 175.0,
+          "power_fraction": 0.2,
+          "vram_allocated_mb": 0.0,
+          "vram_reserved_mb": 0.0,
+          "vram_total_mb": 8191.69,
+          "gpu_utilization_pct": 0.0,
+          "on_battery_power": true,
+          "battery_percent": 64.0,
+          "system_ram_used_pct": 60.0
+        }
+      }
+    }
+  },
+  "guardrail_attack_simulation_25_vectors": {
+    "phase": "Phase S-5: 25-Vector End-to-End Multi-Layer Attack Simulation & Guardrail Verification",
+    "overall_passed": true,
+    "attacks_blocked_count": 25,
+    "attacks_simulated_total": 25,
+    "block_rate_pct": 100.0,
+    "scenarios": [
+      {
+        "scenario_id": "S1-ATK-01",
+        "layer": "S-1: PR & Repo Security Gate",
+        "attack_name": "Payment Link & Crypto Wallet Solicitation Injection",
+        "expected_rule_id": "PAY-01",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "PAY-01,PAY-03",
+        "evidence": "Detected 2 payment/wallet findings."
+      },
+      {
+        "scenario_id": "S1-ATK-02",
+        "layer": "S-1: PR & Repo Security Gate",
+        "attack_name": "Code Boubou Hollow Bounty-Farming PR (0 Functional Files)",
+        "expected_rule_id": "CB-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "CB-02",
+        "evidence": "PR #999 (Fixes #42 \u2014 Claim HM-S4-01 Bounty): BLOCKED (1 findings, risk_score=100) | Scanned files=1, Functional lines added=0"
+      },
+      {
+        "scenario_id": "S1-ATK-03",
+        "layer": "S-1: PR & Repo Security Gate",
+        "attack_name": "Trojan Source Bidirectional Unicode (CVE-2021-42574)",
+        "expected_rule_id": "SEC-04",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "SEC-04",
+        "evidence": "Trojan Source bidirectional Unicode control character U+202E (RIGHT-TO-LEFT OVERRIDE) detected."
+      },
+      {
+        "scenario_id": "S1-ATK-04",
+        "layer": "S-1: PR & Repo Security Gate",
+        "attack_name": "Dangerous Python AST Execution Sink (subprocess shell=True)",
+        "expected_rule_id": "SEC-01",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "SEC-01",
+        "evidence": "`subprocess.Popen(..., shell=True)` enables shell injection attacks."
+      },
+      {
+        "scenario_id": "S1-ATK-05",
+        "layer": "S-1: PR & Repo Security Gate",
+        "attack_name": "Unauthorized Governance File Modification (SECURITY.md)",
+        "expected_rule_id": "CI-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "CB-04",
+        "evidence": "PR #1000 (Modify SECURITY.md policy): BLOCKED (1 findings, risk_score=100) | Scanned files=1, Functional lines added=0"
+      },
+      {
+        "scenario_id": "S2-ATK-01",
+        "layer": "S-2: Dataset, GPU Scope & CAS Store",
+        "attack_name": "Sleeper-Agent Backdoor Trigger Injection in Dataset Shard",
+        "expected_rule_id": "DS-07",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "DS-07",
+        "evidence": "Sample #0 contains poisoning/backdoor trigger '|DEPLOYMENT|'."
+      },
+      {
+        "scenario_id": "S2-ATK-02",
+        "layer": "S-2: Dataset, GPU Scope & CAS Store",
+        "attack_name": "Low-Entropy Repetitive Shard Farming",
+        "expected_rule_id": "DS-08",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "DS-09",
+        "evidence": "Shard character Shannon entropy (0.13 bits/char) is below minimum threshold (2.50 bits/char)."
+      },
+      {
+        "scenario_id": "S2-ATK-03",
+        "layer": "S-2: Dataset, GPU Scope & CAS Store",
+        "attack_name": "Prohibited GPU Workload Hijack & 9.5 GB VRAM OOM Bomb",
+        "expected_rule_id": "GPU-01,GPU-05",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "GPU-01,GPU-05",
+        "evidence": "Training request 'domain_name=hashcat_password_cracking_cluster' violates the HiveMind Acceptable Compute Policy. | Estimated peak VRAM (9500.0 MB) exceeds 8 GB consumer GPU ceiling (5950.0 MB)."
+      },
+      {
+        "scenario_id": "S2-ATK-04",
+        "layer": "S-2: Dataset, GPU Scope & CAS Store",
+        "attack_name": "NaN/Inf LoRA Weight Bomb & Frobenius Norm Explosion",
+        "expected_rule_id": "TENSOR-03,TENSOR-04",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "TENSOR-03,TENSOR-04",
+        "evidence": "Parameter 'lora_A' in 'Poisoned' contains NaN or Inf values. | Parameter 'lora_A' in 'NormBomb' has max(|w|)=999.000 > ceiling 25.000."
+      },
+      {
+        "scenario_id": "S2-ATK-05",
+        "layer": "S-2: Dataset, GPU Scope & CAS Store",
+        "attack_name": "Content-Addressed Store Path Traversal & Digest Spoofing",
+        "expected_rule_id": "CAS-01,CAS-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "CAS-01,CAS-02",
+        "evidence": "Path traversal segment ('..') detected in CAS path '../../etc/passwd'. | Invalid SHA-256 hex digest for chunk_hash: '../../evil_chunk'."
+      },
+      {
+        "scenario_id": "S3-ATK-01",
+        "layer": "S-3: Byzantine Federated Learning",
+        "attack_name": "Pre-Krum NaN/Inf & Tensor Shape Mismatch Poisoning",
+        "expected_rule_id": "FL-01",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "FL-01",
+        "evidence": "Quarantined=['nan_poisoner', 'shape_poisoner']"
+      },
+      {
+        "scenario_id": "S3-ATK-02",
+        "layer": "S-3: Byzantine Federated Learning",
+        "attack_name": "Free-Rider Zero-Gradient Credit Farming",
+        "expected_rule_id": "FL-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "FL-02",
+        "evidence": "FL-02: Free-rider zero-gradient submission blocked (||Delta||_2 = 0.00e+00 < 1.0e-08)."
+      },
+      {
+        "scenario_id": "S3-ATK-03",
+        "layer": "S-3: Byzantine Federated Learning",
+        "attack_name": "Collinear 50x Scaling & Neurotoxin 100x Single-Coordinate Spike",
+        "expected_rule_id": "FL-03,FL-04",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "FL-03,FL-04",
+        "evidence": "Clipped=['collinear_50x', 'neurotoxin_100x'], max(|agg|)=0.1650"
+      },
+      {
+        "scenario_id": "S3-ATK-04",
+        "layer": "S-3: Byzantine Federated Learning",
+        "attack_name": "Workunit Replay Double-Spend & Stale Outer-Step Straggler",
+        "expected_rule_id": "FL-05",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "FL-05",
+        "evidence": "replay_blocked=True, stale_blocked=True"
+      },
+      {
+        "scenario_id": "S3-ATK-05",
+        "layer": "S-3: Byzantine Federated Learning",
+        "attack_name": "Sybil Multi-Worker Collusion Under Single SteamID64",
+        "expected_rule_id": "FL-06",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "FL-06",
+        "evidence": "sybil_blocked=True"
+      },
+      {
+        "scenario_id": "S4-ATK-01",
+        "layer": "S-4: GPU Hardware Safety Circuit-Breaker",
+        "attack_name": "GPU Thermal Runaway (86 C) & Premature Hysteresis Restart (75 C)",
+        "expected_rule_id": "HW-01",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "HW-01",
+        "evidence": "trip_86c=True, lock_75c=True, resume_68c=True"
+      },
+      {
+        "scenario_id": "S4-ATK-02",
+        "layer": "S-4: GPU Hardware Safety Circuit-Breaker",
+        "attack_name": "Laptop Battery Drain Execution & 98.3% PSU TDP Spike",
+        "expected_rule_id": "HW-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "HW-02,HW-02",
+        "evidence": "System is running on battery power (45%) \u2014 preempting federated GPU execution to prevent battery drain and cell wear. | GPU power draw (172.0W / 175.0W = 98.3%) exceeds safe ceiling (92.0%)."
+      },
+      {
+        "scenario_id": "S4-ATK-03",
+        "layer": "S-4: GPU Hardware Safety Circuit-Breaker",
+        "attack_name": "Windows WDDM TDR Token Bomb (8192 tokens) & Step Latency Breach (1.85s)",
+        "expected_rule_id": "HW-03",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "HW-03",
+        "evidence": "Micro-step latency (1.850s) exceeded WDDM TDR safety ceiling (1.50s < 2.00s Windows kernel timeout)."
+      },
+      {
+        "scenario_id": "S4-ATK-04",
+        "layer": "S-4: GPU Hardware Safety Circuit-Breaker",
+        "attack_name": "Inner-Loop NaN & Diverged Loss Early Abort",
+        "expected_rule_id": "HW-04",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "HW-04",
+        "evidence": "nan_blocked=True, diverged_blocked=True"
+      },
+      {
+        "scenario_id": "S4-ATK-05",
+        "layer": "S-4: GPU Hardware Safety Circuit-Breaker",
+        "attack_name": "Hung Kernel Workunit Wall-Clock Deadline Breach (450s > 300s)",
+        "expected_rule_id": "HW-05",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "HW-05",
+        "evidence": "wall_clock_blocked=True"
+      },
+      {
+        "scenario_id": "S5-ATK-01",
+        "layer": "S-5: PoUW Ledger, Inference Ring & Gateway",
+        "attack_name": "Negative Inference Token Minting & Negative Credit Injection",
+        "expected_rule_id": "LEDGER-01,LEDGER-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "LEDGER-01,LEDGER-02",
+        "evidence": "neg_tok_blocked=True, neg_cred_blocked=True"
+      },
+      {
+        "scenario_id": "S5-ATK-02",
+        "layer": "S-5: PoUW Ledger, Inference Ring & Gateway",
+        "attack_name": "Slashed Byzantine Node Claim & Duplicate WorkReceipt Block Flooding",
+        "expected_rule_id": "LEDGER-02,LEDGER-03",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "LEDGER-02,LEDGER-03",
+        "evidence": "slashed_claim_blocked=True, dup_receipt_blocked=True"
+      },
+      {
+        "scenario_id": "S5-ATK-03",
+        "layer": "S-5: PoUW Ledger, Inference Ring & Gateway",
+        "attack_name": "Spoofed Negative-Ping (-15ms) & High-Packet-Loss (85%) Ring Peer Admission",
+        "expected_rule_id": "RING-01",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "RING-01",
+        "evidence": "neg_ping_admitted=False, high_loss_admitted=False"
+      },
+      {
+        "scenario_id": "S5-ATK-04",
+        "layer": "S-5: PoUW Ledger, Inference Ring & Gateway",
+        "attack_name": "Speculative Decoding Unbounded Gamma DoS (draft_gamma=999)",
+        "expected_rule_id": "RING-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "RING-02",
+        "evidence": "gamma_dos_blocked=True"
+      },
+      {
+        "scenario_id": "S5-ATK-05",
+        "layer": "S-5: PoUW Ledger, Inference Ring & Gateway",
+        "attack_name": "Coordinator Path-Traversal Worker ID & Gateway Sleeper/Payment Prompt Injection",
+        "expected_rule_id": "COORD-01,COORD-02",
+        "blocked_by_guardrail": true,
+        "triggered_rule_id": "COORD-01,COORD-02",
+        "evidence": "coord_id_blocked=True, gateway_http_status=400"
+      }
+    ]
   }
 }

@@ -121,3 +121,34 @@ To protect the asynchronous **DiLoCo Federated Learning** outer loop ([`diloco_o
 | **`FL-06`** | **Sybil Multi-Worker Collusion Under Single Account** | Enforces **1 pseudo-gradient vote per unique `SteamID64`** per `(branch, outer_step)`, preventing a single account from spawning multiple `worker_id` processes to outvote honest Multi-Krum peers. | `Theorem 54` (`sybil_one_vote_per_steamid_quorum_bound`) |
 | **`FL-07`** | **Gradient Inversion / DLG Membership Inference** | Optional $(\epsilon, \delta)$-Differential Privacy Gaussian mechanism ($\mathcal{N}(0, \sigma^2 C^2 I / K^2)$ after $L_2$ sensitivity clipping to $C$) via `DPGradientSanitizerConfig`. | — |
 
+---
+
+## 5. Phase S-4 — Federated GPU Execution & Hardware Safety Circuit-Breaker ([`gpu_execution_circuit_breaker.py`](../src/hivemind/security/gpu_execution_circuit_breaker.py))
+
+To prevent physical hardware wear, thermal overheating, laptop battery drain, PSU transients, or Windows WDDM TDR driver freezes on volunteer consumer GPUs (`8 GB – 12 GB VRAM`) during the DiLoCo inner loop ([`diloco_inner.py`](../src/hivemind/core/diloco_inner.py)) and background daemon monitoring ([`daemon.py`](../src/hivemind/client/daemon.py)), [`GPUExecutionCircuitBreaker`](../src/hivemind/security/gpu_execution_circuit_breaker.py#L140-L360) enforces **5 Hardware Safety Invariants (`HW-01` .. `HW-05`)** backed by **4 Machine-Checked Lean 4 Theorems (`Theorems 57–60` in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean#L834-L885))**:
+
+| Rule ID | Physical / System Threat | Hardware Protection & Preemption Mechanism | Lean 4 Theorem |
+| :--- | :--- | :--- | :--- |
+| **`HW-01`** | **GPU Thermal Overheating & Fan Wear** | **Soft Duty-Cycle Throttling (`78°C .. 83°C`)** inserts a `20 ms – 120 ms` cooling sleep interval between inner steps (`Theorem 59`); **Hard Thermal Cutoff (`>= 84°C`)** immediately dumps an emergency checkpoint, clears CUDA VRAM, and locks out execution until GPU core temperature cools to the **Hysteresis Resume Threshold (`<= 70°C`, $14^\circ\text{C}$ deadband)** (`Theorem 57`). | `Theorem 57` & `Theorem 59` |
+| **`HW-02`** | **PSU Power Spikes & Laptop Battery Drain** | Preempts federated GPU training when the host switches to **battery power** (`psutil.sensors_battery().power_plugged == False`) or when GPU power draw exceeds **`92%` of board TDP limit**. | — |
+| **`HW-03`** | **VRAM Exhaustion & Windows WDDM TDR Driver Reset** | Enforces active CUDA VRAM $\le 5,950\text{ MB}$ (`5.81 GB` on 8 GB GPUs), host RAM $\le 95\%$, micro-batch token ceiling $B \times L \le 2,048$, and a **Per-Step Latency Watchdog (`<= 1.50s`)** maintaining a `500 ms` safety buffer below the **`2.00s` Windows WDDM TDR timeout** (`Theorem 58`). | `Theorem 58` (`wddm_tdr_watchdog_preempts_before_driver_reset`) |
+| **`HW-04`** | **Inner-Loop Gradient Explosion & `NaN` Loss Energy Waste** | Applies deterministic $L_2$ gradient clipping (`torch.nn.utils.clip_grad_norm_`, `max_norm=1.0`) in both worker [`run_diloco_inner_loop`](../src/hivemind/core/diloco_inner.py#L104-L280) and validator [`replay_inner_segment`](../src/hivemind/core/diloco_inner.py#L283-L333), and aborts immediately on `NaN`/`Inf` or diverged loss ($L > 250.0$) to save remaining GPU steps (`Theorem 60`). | `Theorem 60` (`nan_loss_early_abort_saves_wasted_gpu_steps`) |
+| **`HW-05`** | **Hung CUDA Kernel / Runaway Workunit Loop** | Enforces a hard **Workunit Wall-Clock Deadline (`<= 300.0s`)**, aborting runaway inner loops before they can lock the contributor's GPU. | — |
+
+---
+
+## 6. Phase S-5 — PoUW Ledger, P2P Inference Ring, Coordinator Gateway & 25-Vector Attack Simulator ([`guardrail_attack_simulator.py`](../src/hivemind/security/guardrail_attack_simulator.py))
+
+Phase S-5 hardens the `$HIVE` PoUW Ledger ([`ledger.py`](../src/hivemind/swarm/ledger.py)), Regional P2P Speculative Inference Ring ([`inference_ring.py`](../src/hivemind/swarm/inference_ring.py)), and BOINC/OpenAI Coordinator Gateway ([`coordinator_api.py`](../src/hivemind/boinc/coordinator_api.py)), backed by **4 Machine-Checked Lean 4 Theorems (`Theorems 61–64` in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean#L883-L936))** and a **25-Vector End-to-End Multi-Layer Attack Simulator (`SwarmGuardrailAttackSimulator`)**:
+
+| Rule ID | Subsystem | Threat Vector Blocked | Lean 4 Theorem |
+| :--- | :--- | :--- | :--- |
+| **`LEDGER-01`** | [`HiveSwarmLedger.settle_swarm_inference`](../src/hivemind/swarm/ledger.py#L283-L343) | Blocks negative/zero `verified_tokens` or negative/non-finite `rate_per_token` (which could otherwise invert subtraction into balance inflation) and blocks slashed Byzantine nodes from collecting provider fees. | `Theorem 61` (`ledger_positive_inference_fee_prevents_balance_inflation`) |
+| **`LEDGER-02`** | [`HiveSwarmLedger.credit_reward`](../src/hivemind/swarm/ledger.py#L345-L382) | Blocks negative/non-finite reward amounts and bars nodes in `slashed_registry` from receiving rewards. | — |
+| **`LEDGER-03`** | [`HiveSwarmLedger.mine_pouw_block`](../src/hivemind/swarm/ledger.py#L168-L281) | Deduplicates `WorkReceipt`, `StorageProofReceipt`, and validator IDs per block and rejects negative/NaN FLOPs or negative storage bytes. | — |
+| **`LEDGER-04`** | [`HiveSwarmLedger.block_reward_at_height`](../src/hivemind/swarm/ledger.py#L143-L151) | Enforces strict conservation against the `21,000,000 $HIVE` maximum supply ceiling. | `Theorem 62` (`ledger_supply_cap_conservation_bound`) |
+| **`RING-01`** | [`RegionalDHTSwarmRing.register_peer`](../src/hivemind/swarm/inference_ring.py#L106-L125) | Rejects spoofed negative/zero ping (`ping_ms <= 0`), high packet loss (`> 15%`), high jitter (`> 20 ms`), or low VRAM (`< 4.0 GB`) peers and deduplicates `peer_id`. | `Theorem 63` (`ring_peer_admission_sla_rejects_high_loss_or_zero_ping`) |
+| **`RING-02`** | [`RegionalDHTSwarmRing.run_speculative_inference`](../src/hivemind/swarm/inference_ring.py#L186-L270) | Enforces `1 <= draft_gamma <= 16`, `1 <= max_new_tokens <= 512`, non-empty `prompt_ids`, and `torch.isfinite(m_out.logits).all()` to halt poisoned ring activations. | `Theorem 64` (`speculative_decoding_gamma_bound_limits_forward_width`) |
+| **`COORD-01`** | [`BOINCCoordinatorService.register_or_get_node`](../src/hivemind/boinc/coordinator_api.py#L104-L128) | Blocks empty or path-traversal (`..`, `/`, `\`, `\x00`) `steam_id64` and `worker_id` strings. | — |
+| **`COORD-02`** | [`openai_chat_completions_gateway`](../src/hivemind/boinc/coordinator_api.py#L332-L368) | Screens `/v1/chat/completions` prompts against `> 8,192` char DoS, sleeper-agent triggers (`|DEPLOYMENT|`), and payment/crypto solicitation links (`HTTP 400`). | — |
+

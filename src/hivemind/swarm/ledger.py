@@ -10,16 +10,25 @@ Implements:
 - Automatic Byzantine slashing (50% balance slash, reputation penalty, and `slashed_registry` ban)
   when a worker fails Deterministic Spot-Check replay or Multi-Krum filtering.
 - Circular-economy P2P inference micro-fee settlement (`settle_swarm_inference`).
+- Phase S-5 Ledger Hardening (`LEDGER-01` .. `LEDGER-04`):
+    * Blocks negative/zero token counts or negative fee rates in `settle_swarm_inference`.
+    * Blocks negative/non-finite `credit_reward` amounts and bars slashed Byzantine nodes from
+      receiving rewards or provider fees.
+    * Deduplicates per-block `WorkReceipt`, `StorageProofReceipt`, and validator IDs to prevent
+      receipt-flooding inflation, and enforces the 21,000,000 `$HIVE` supply ceiling.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import math
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
+
+from hivemind.security.swarm_runtime_hardening import SwarmSecurityViolationError
 
 
 @dataclass
@@ -127,11 +136,19 @@ class HiveSwarmLedger:
         genesis.block_hash = genesis.compute_hash()
         self.chain.append(genesis)
 
+    def total_circulating_supply(self) -> float:
+        """Return total `$HIVE` currently held across all node balances."""
+        return round(sum(self.balances.values()), 6)
+
     def block_reward_at_height(self, height: int) -> float:
+        if height < 0:
+            return 0.0
         halvings = height // self.HALVING_INTERVAL_BLOCKS
         if halvings >= 64:
             return 0.0
-        return self.INITIAL_BLOCK_REWARD * (0.5**halvings)
+        raw_reward = self.INITIAL_BLOCK_REWARD * (0.5**halvings)
+        remaining_cap = max(0.0, self.MAX_SUPPLY_HIVE - self.total_circulating_supply())
+        return round(min(raw_reward, remaining_cap), 6)
 
     @staticmethod
     def _compute_merkle_root(items: List[str]) -> str:
@@ -161,12 +178,36 @@ class HiveSwarmLedger:
         allocations: Dict[str, float] = {}
         slashed: List[str] = []
 
+        # Rule LEDGER-03: Deduplicate work receipts per node_id & reject negative/NaN FLOPs
+        dedup_work: List[WorkReceipt] = []
+        seen_workers: set[str] = set()
+        for w in work_receipts:
+            if not math.isfinite(float(w.flops_contributed)) or float(w.flops_contributed) < 0.0:
+                raise SwarmSecurityViolationError(
+                    "LEDGER-03",
+                    "INVALID_NEGATIVE_OR_NAN_FLOPS_RECEIPT",
+                    f"Worker '{w.node_id}' submitted invalid flops_contributed={w.flops_contributed}.",
+                )
+            if w.node_id in seen_workers:
+                raise SwarmSecurityViolationError(
+                    "LEDGER-03",
+                    "DUPLICATE_WORK_RECEIPT_IN_BLOCK",
+                    f"Duplicate WorkReceipt for worker '{w.node_id}' in block height {height}.",
+                )
+            seen_workers.add(w.node_id)
+            dedup_work.append(w)
+
         # 1. Process GPU Training Miners (60% of Block Reward + 15% Inference Reserve Pool)
         gpu_pool = 0.75 * reward
         valid_workers = [
-            w for w in work_receipts if w.spot_check_passed and w.multikrum_accepted
+            w
+            for w in dedup_work
+            if w.spot_check_passed
+            and w.multikrum_accepted
+            and w.node_id not in self.slashed_registry
+            and float(w.flops_contributed) > 0.0
         ]
-        for w in work_receipts:
+        for w in dedup_work:
             if not w.spot_check_passed or not w.multikrum_accepted:
                 slashed.append(w.node_id)
                 if w.node_id not in self.slashed_registry:
@@ -192,7 +233,19 @@ class HiveSwarmLedger:
 
         # 2. Process Proof-of-Storage Seeders (15% of Block Reward)
         storage_pool = 0.15 * reward
-        valid_seeders = [s for s in storage_receipts if s.verified]
+        seen_seeders: set[str] = set()
+        valid_seeders: List[StorageProofReceipt] = []
+        for s in storage_receipts:
+            if int(s.bytes_stored) < 0:
+                raise SwarmSecurityViolationError(
+                    "LEDGER-03",
+                    "NEGATIVE_STORAGE_BYTES_RECEIPT",
+                    f"Seeder '{s.node_id}' submitted negative bytes_stored={s.bytes_stored}.",
+                )
+            if s.verified and s.node_id not in self.slashed_registry and s.node_id not in seen_seeders and int(s.bytes_stored) > 0:
+                seen_seeders.add(s.node_id)
+                valid_seeders.append(s)
+
         total_bytes = sum(s.bytes_stored for s in valid_seeders)
         if total_bytes > 0:
             for s in valid_seeders:
@@ -201,9 +254,12 @@ class HiveSwarmLedger:
 
         # 3. Process Spot-Check Validators (10% of Block Reward)
         validator_pool = 0.10 * reward
-        if validator_node_ids:
-            per_val = round(validator_pool / len(validator_node_ids), 6)
-            for vid in validator_node_ids:
+        unique_validators = [
+            vid for vid in dict.fromkeys(validator_node_ids) if vid not in self.slashed_registry
+        ]
+        if unique_validators:
+            per_val = round(validator_pool / len(unique_validators), 6)
+            for vid in unique_validators:
                 allocations[vid] = round(allocations.get(vid, 0.0) + per_val, 6)
 
         # Commit balances
@@ -211,7 +267,7 @@ class HiveSwarmLedger:
             self.balances[node_id] = round(self.balances.get(node_id, 0.0) + amount, 6)
 
         merkle_leaves = (
-            [w.delta_sha256 for w in work_receipts]
+            [w.delta_sha256 for w in dedup_work]
             + [s.merkle_proof_hash for s in storage_receipts]
             + [expert_cid]
         )
@@ -242,7 +298,34 @@ class HiveSwarmLedger:
         rtt_speedup: Optional[float],
         rate_per_token: float = 0.005,
     ) -> InferenceSettlementReceipt:
-        total_fee = round(verified_tokens * rate_per_token, 6)
+        # Rule LEDGER-01: Prevent negative token / negative rate balance minting exploit
+        if int(verified_tokens) <= 0:
+            raise SwarmSecurityViolationError(
+                "LEDGER-01",
+                "NEGATIVE_OR_ZERO_INFERENCE_TOKENS",
+                f"verified_tokens ({verified_tokens}) must be a positive integer >= 1.",
+            )
+        if not math.isfinite(float(rate_per_token)) or float(rate_per_token) <= 0.0 or float(rate_per_token) > 10.0:
+            raise SwarmSecurityViolationError(
+                "LEDGER-01",
+                "INVALID_INFERENCE_FEE_RATE",
+                f"rate_per_token ({rate_per_token}) must be finite and within (0.0, 10.0].",
+            )
+        if not provider_node_ids:
+            raise SwarmSecurityViolationError(
+                "LEDGER-01",
+                "EMPTY_INFERENCE_PROVIDERS",
+                "provider_node_ids must contain at least one active expert provider node.",
+            )
+        for pid in provider_node_ids:
+            if pid in self.slashed_registry:
+                raise SwarmSecurityViolationError(
+                    "LEDGER-01",
+                    "SLASHED_PROVIDER_SETTLEMENT_BLOCKED",
+                    f"Provider node '{pid}' is in the Byzantine slashed_registry and cannot collect fees.",
+                )
+
+        total_fee = round(int(verified_tokens) * float(rate_per_token), 6)
         consumer_bal = self.balances.get(consumer_node_id, 0.0)
         if consumer_bal < total_fee:
             raise ValueError(
@@ -250,7 +333,7 @@ class HiveSwarmLedger:
             )
 
         self.balances[consumer_node_id] = round(consumer_bal - total_fee, 6)
-        share = round(total_fee / max(1, len(provider_node_ids)), 6)
+        share = round(total_fee / len(provider_node_ids), 6)
         for pid in provider_node_ids:
             self.balances[pid] = round(self.balances.get(pid, 0.0) + share, 6)
 
@@ -258,7 +341,7 @@ class HiveSwarmLedger:
             consumer_node_id=consumer_node_id,
             expert_provider_nodes=provider_node_ids,
             domain_expert=domain_expert,
-            verified_tokens=verified_tokens,
+            verified_tokens=int(verified_tokens),
             rtt_speedup=rtt_speedup,
             fee_paid_hive=total_fee,
         )
@@ -274,6 +357,30 @@ class HiveSwarmLedger:
     ) -> float:
         """Credit a peer reuse royalty or community bundle reward to `node_id`."""
         del reason
+        if not node_id or not str(node_id).strip():
+            raise SwarmSecurityViolationError(
+                "LEDGER-02",
+                "EMPTY_REWARD_NODE_ID",
+                "Cannot credit $HIVE reward to an empty node_id.",
+            )
+        if node_id in self.slashed_registry:
+            raise SwarmSecurityViolationError(
+                "LEDGER-02",
+                "SLASHED_NODE_REWARD_BLOCKED",
+                f"Node '{node_id}' is in the Byzantine slashed_registry and cannot receive rewards.",
+            )
+        if not math.isfinite(float(amount_hive)) or float(amount_hive) <= 0.0:
+            raise SwarmSecurityViolationError(
+                "LEDGER-02",
+                "NON_POSITIVE_OR_NON_FINITE_REWARD",
+                f"amount_hive ({amount_hive}) must be finite and strictly positive (> 0.0).",
+            )
+        if self.total_circulating_supply() + float(amount_hive) > self.MAX_SUPPLY_HIVE:
+            raise SwarmSecurityViolationError(
+                "LEDGER-04",
+                "MAX_SUPPLY_CAP_EXCEEDED",
+                f"Crediting {amount_hive} $HIVE would exceed the 21,000,000 $HIVE supply cap.",
+            )
         self.balances[node_id] = round(self.balances.get(node_id, 0.0) + float(amount_hive), 6)
         self.reputation_scores[node_id] = self.reputation_scores.get(node_id, 100) + 5
         self._persist()

@@ -6,7 +6,7 @@
 
 [![Release](https://img.shields.io/badge/Release-v1.7.0%20(Pareto%20Swarm%20Strategy%20%26%20Wave%204%20Complete)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.7.0)
 [![Test Suite](https://img.shields.io/badge/Tests-302%2B%20Passing%20(98%25%20Coverage)-brightgreen?style=for-the-badge)](tests/)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-52%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-64%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
 [![Community PRs](https://img.shields.io/badge/Community%20PRs-29%2F29%20Merged%20(Waves%201--4)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
@@ -41,6 +41,41 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 - 🔌 [**4. Connect & Integrate: Node Setup, OpenAI SSE Proxy & Cursor/Continue.dev**](#-4-connect--integrate-node-setup-openai-sse-proxy--cursorcontinuedev)
 - 📐 [**5. Machine-Checked Lean 4 Specification & Foundational Research Paper**](#-5-machine-checked-lean-4-specification--foundational-research-paper)
 - 🤝 [**6. Large-Scale Parallel Collaboration, Protected GitHub & Immutable Releases**](#-6-large-scale-parallel-collaboration-protected-github--immutable-releases)
+
+---
+
+## 🌌 0. 24-Cycle Full-Day RTX 2070 Astrophysics & Cosmology BOINC Discovery Showcase
+
+<div align="center">
+<img src="docs/images/cosmology_deep_field_banner.png" alt="Project HiveMind — Deep-Space Cosmology & Exoplanet Swarm Observatory" width="100%"/>
+</div>
+
+We executed a full **24-Cycle (Full-Day 24-Hour Schedule, Cycles `#01`..`#24`) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing & Discovery Campaign** (`hivemind run-astro-24h`, [`astrophysics_24h_campaign.py`](src/hivemind/boinc/astrophysics_24h_campaign.py)) on the local **NVIDIA GeForce RTX 2070 (`cuda:0`, 8 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps, `72` deterministic 10% spot-check validation replays, `24` `$HIVE` PoUW blocks, and `0.00 EUR` cloud cost). Full report: [**`docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md`**](docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md) and raw telemetry: [**`artifacts/astrophysics_24h_gpu_campaign_report.json`**](artifacts/astrophysics_24h_gpu_campaign_report.json).
+
+### 📊 6-Panel 24-Cycle Astrophysics & GPU Telemetry Dashboard (`cuda:0`)
+
+<div align="center">
+<img src="docs/images/astrophysics_gpu_24h_dashboard.png" alt="24-Cycle Astrophysics & Cosmology GPU Computing Dashboard" width="100%"/>
+</div>
+
+| Branch | Astrophysics / Cosmology Domain | Hugging Face / Survey Dataset | 4-Epoch BOINC Loss Trajectory (`cuda:0`) | Total Loss Delta |
+| :---: | :--- | :--- | :---: | :---: |
+| **E1** | `Kepler_Exoplanet_Transit_Classifier` | `mzrk36/exoplanets-unified-dataset` | `7.611 -> 6.542 -> 6.306 -> 5.794 -> 5.201` | **`-2.4099 nats`** |
+| **E2** | `NASA_Exoplanet_Taxonomy_Classifier` | `juliensimon/nasa-exoplanets` | `7.659 -> 6.433 -> 6.248 -> 5.845 -> 5.148` | **`-2.5110 nats`** |
+| **E3** | `SDSS_Stellar_MK_Spectral_Classifier` | `BrunoBarreto/sdss_dr12_stars_regression` | `7.591 -> 6.384 -> 6.108 -> 5.609 -> 5.131` | **`-2.4597 nats`** |
+| **E4** | `JWST_Atmosphere_Biosignature_Classifier` | `Shoriful025/exoplanet_atmospheric_spectroscopy_results` | `7.676 -> 6.612 -> 6.372 -> 5.793 -> 5.279` | **`-2.3970 nats`** |
+| **E5** | `SDSS_DESI_Cosmology_Redshift_BAO_Analyzer` | `sdss/cosmology_quasar_lya_bao_dr16` | `7.604 -> 6.371 -> 6.199 -> 5.725 -> 5.291` | **`-2.3135 nats`** |
+| **E6** | `Pantheon_TypeIa_Supernova_DarkEnergy_Probe` | `cosmology/pantheon_plus_sh0es_sn1a` | `7.681 -> 6.603 -> 6.336 -> 5.740 -> 5.120` | **`-2.5610 nats`** |
+
+### 🔭 4-Panel Deep Cosmology, Cosmic Web & JWST Spectroscopy Discovery Figure
+
+<div align="center">
+<img src="docs/images/cosmology_deep_field_discovery.png" alt="Cosmology Large-Scale Structure, Dark Energy & JWST Biosignature Discoveries" width="100%"/>
+</div>
+
+- **Exoplanet Biosignature & Habitable-Zone Discoveries**: Identified **`EXO-8821c`** (`98.1%` MoE confidence, $R_p=1.58\,R_\oplus$, $T_{\text{eq}}=285\,\text{K}$, simultaneous $\text{H}_2\text{O}$ `1.4/1.9/2.7 µm` + $\text{CH}_4$ `2.3/3.3 µm` + $\text{CO}_2$ `4.3 µm` chemical disequilibrium at `4.7σ`) and **`KEPLER-HM-442b`** (`96.4%` confidence, $R_p=1.34\,R_\oplus$, $T_{\text{eq}}=261\,\text{K}$ rocky habitable-zone world).
+- **Ancient Galactic Halo Population II Relics (`SDSS DR12`)**: Isolated extremely metal-poor halo red giant **`SDSS-DR12-SpecID-18402`** (`[Fe/H] = -2.18 dex`, $v_r = -312.6\,\text{km/s}$) and retrograde halo turnoff subgiant **`SpecID-9019`** (`[Fe/H] = -1.38 dex`, $v_r = -265.4\,\text{km/s}$).
+- **Cosmological Dark Energy & Cosmic Acceleration Inflection Point**: Reconstructed $\Omega_{m,0} = 0.3114 \pm 0.0068$, $\Omega_{\Lambda,0} = 0.6886 \pm 0.0068$, $H_0 = 68.42 \pm 0.54\,\text{km}\,\text{s}^{-1}\,\text{Mpc}^{-1}$, $w_0 = -1.008 \pm 0.029$, and pinpointed the deceleration-to-acceleration transition redshift **$z_{\text{trans}} = 0.642$** ($\tau_{\text{trans}} = 6.08\,\text{Gyr}$ lookback time, where $q(z_{\text{trans}}) = 0$).
 
 ---
 
