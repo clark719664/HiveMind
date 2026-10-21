@@ -668,6 +668,7 @@ def test_local_boinc_astrophysics_gpu_campaign_and_cli(tmp_path: Path) -> None:
 
 
 def test_24h_astrophysics_gpu_campaign_and_visualizations(tmp_path: Path) -> None:
+    pytest.importorskip("PIL", reason="dashboard rendering needs Pillow (the astro/dev extra)")
     out_json = tmp_path / "astro_24h_report.json"
     dash_png = tmp_path / "dashboard.png"
     cosmo_png = tmp_path / "cosmology.png"

@@ -37,9 +37,20 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import torch
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from rich.console import Console
 from rich.table import Table
+
+
+def _require_pil() -> Tuple[Any, Any, Any, Any]:
+    """Pillow is only needed to render the campaign PNGs, so import it on demand."""
+    try:
+        from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    except ImportError as exc:  # pragma: no cover - exercised in a subprocess test
+        raise ImportError(
+            "Rendering the astrophysics dashboard needs Pillow: pip install pillow "
+            "(or the 'astro' extra)."
+        ) from exc
+    return Image, ImageDraw, ImageFilter, ImageFont
 
 from hivemind.boinc.coordinator_api import BOINCCoordinatorService
 from hivemind.boinc.local_astrophysics_boinc import _load_astrophysics_examples
@@ -370,6 +381,7 @@ def render_astrophysics_24h_dashboard_png(
     output_path: Path,
 ) -> Path:
     """Render a 1920x1240 6-panel dark-mode scientific dashboard PNG directly from GPU campaign data."""
+    Image, ImageDraw, ImageFilter, ImageFont = _require_pil()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     W, H = 1920, 1240
     img = Image.new("RGB", (W, H), (9, 13, 24))
@@ -623,6 +635,7 @@ def render_cosmology_deep_field_discovery_png(
     output_path: Path,
 ) -> Path:
     """Render a 1920x1240 4-panel Deep Cosmology & JWST Spectroscopy Discovery Figure."""
+    Image, ImageDraw, ImageFilter, ImageFont = _require_pil()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     W, H = 1920, 1240
     img = Image.new("RGB", (W, H), (7, 10, 19))
