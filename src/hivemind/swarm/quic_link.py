@@ -538,8 +538,15 @@ class Quic0RttProbe:
 
     @property
     def ok(self) -> bool:
-        """True when every frame was acknowledged and the session really resumed."""
-        return self.error is None and self.frames_delivered == self.frames_sent
+        """True only when every frame was delivered, the server resumed the TLS session and
+        it accepted the 0-RTT early data. A probe that fell back to a full 1-RTT handshake
+        delivered its frames but measured no 0-RTT, so it is not ok."""
+        return (
+            self.error is None
+            and self.frames_delivered == self.frames_sent
+            and self.session_resumed
+            and self.early_data_accepted
+        )
 
 
 async def quic_0rtt_resumption_probe(
@@ -567,17 +574,24 @@ async def quic_0rtt_resumption_probe(
     first_delivery_at: Optional[float] = None
     early_frames_before = server.early_frames
     original = server.on_frame
+    timed_frames: set = set()
 
     def observer(frame: bytes) -> None:
+        # Every frame reaches the server's own handler; only the probe's envelope frames
+        # are timed, so unrelated traffic is neither dropped nor mistaken for an envelope.
         nonlocal first_delivery_at
-        try:
-            envelope = FrameEnvelope.decode(frame)
-        except (LinkProtocolError, TypeError):
-            return
-        now = time.time()
-        latencies.append((now - envelope.sent_at) * 1000.0)
-        if first_delivery_at is None:
-            first_delivery_at = now
+        if frame in timed_frames:
+            now = time.time()
+            try:
+                envelope = FrameEnvelope.decode(frame)
+            except (LinkProtocolError, TypeError):
+                envelope = None
+            # The server shares the sender's clock, so a timestamp in the future means the
+            # bytes merely happened to parse as an envelope.
+            if envelope is not None and envelope.sent_at <= now:
+                latencies.append((now - envelope.sent_at) * 1000.0)
+                if first_delivery_at is None:
+                    first_delivery_at = now
         if original is not None:
             original(frame)
 
@@ -594,6 +608,7 @@ async def quic_0rtt_resumption_probe(
             )
             ticket = warmup.new_ticket
         batch = _validate_frames(frame_factory() if frame_factory is not None else frames)
+        timed_frames.update(batch)
         report = await quic_send_frames(
             host, port, batch, server.identity.ca_pem, session_ticket=ticket,
             timeout=timeout, server_name=server_name,
