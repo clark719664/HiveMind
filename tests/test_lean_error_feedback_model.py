@@ -9,6 +9,11 @@ from pathlib import Path
 import pytest
 
 SPEC = Path(__file__).resolve().parents[1] / "lean4" / "HiveMindSpec.lean"
+BOUND_THEOREMS = (
+    "ef_residual_stays_bounded_under_decay",
+    "ucb1_well_sampled_suboptimal_arm_is_not_selected",
+    "ucb1_sample_threshold_bounds_bonus",
+)
 MODEL_THEOREMS = (
     "ef_conservation_any_compressor",
     "sparsify_residual_energy_le",
@@ -25,6 +30,10 @@ def test_model_theorems_are_declared_and_printed() -> None:
     for name in MODEL_THEOREMS:
         assert re.search(rf"^theorem {name}\b", source, flags=re.M), name
         assert f"#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.{name}" in source
+    assert "namespace Season6_CoreOnlyBounds" in source
+    for name in BOUND_THEOREMS:
+        assert re.search(rf"^theorem {name}\b", source, flags=re.M), name
+        assert f"#print axioms HiveMindSpec.Season6_CoreOnlyBounds.{name}" in source
 
 
 def test_theorem_49_docstring_does_not_claim_to_model_the_update() -> None:
@@ -43,4 +52,7 @@ def test_model_theorems_are_machine_checked_with_standard_axioms_only() -> None:
     allowed = {"propext", "Quot.sound", "Classical.choice"}
     for name in MODEL_THEOREMS:
         axioms = result["axioms_by_theorem"][f"HiveMindSpec.Season6_ErrorFeedbackModel.{name}"]
+        assert set(axioms) <= allowed, (name, axioms)
+    for name in BOUND_THEOREMS:
+        axioms = result["axioms_by_theorem"][f"HiveMindSpec.Season6_CoreOnlyBounds.{name}"]
         assert set(axioms) <= allowed, (name, axioms)
