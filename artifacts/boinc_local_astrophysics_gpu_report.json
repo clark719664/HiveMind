@@ -1,0 +1,488 @@
+{
+  "campaign": "Project HiveMind \u2014 Local GPU BOINC Astrophysics Validation Campaign",
+  "overall_passed": true,
+  "execution_device": "cuda:0",
+  "gpu_hardware": {
+    "system_ram_total_gb": 15.89,
+    "system_ram_available_gb": 6.06,
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2070",
+    "vram_total_gb": 8.0,
+    "vram_free_gb": 6.98,
+    "compute_capability": "7.5",
+    "supports_native_bf16": false,
+    "recommended_dtype": "float16",
+    "assigned_backbone_tier": "7B/9B or 8x0.5B/1.5B MoE (8GB Consumer Node)",
+    "gpu_backend": "cuda",
+    "gpu_vendor": "nvidia",
+    "gpu_arch": null,
+    "mps_available": false,
+    "mps_built": false,
+    "rocm_available": false,
+    "hip_version": null,
+    "cuda_version": "12.4",
+    "unified_memory": false,
+    "zero_copy_staging_supported": false,
+    "compute_backend": "cuda"
+  },
+  "gpu_circuit_breaker_status": {
+    "safe_to_continue": true,
+    "should_preempt_immediately": false,
+    "tripped_rule_id": "HW-OK",
+    "tripped_category": "GPU_HARDWARE_NOMINAL",
+    "reason": "GPU hardware telemetry nominal \u2014 clear for federated execution.",
+    "recommended_cooling_sleep_ms": 0,
+    "thermal_latch_tripped": false,
+    "telemetry": {
+      "gpu_name": "NVIDIA GeForce RTX 2070",
+      "temperature_c": 27.0,
+      "power_draw_watts": 23.55,
+      "power_limit_watts": 175.0,
+      "power_fraction": 0.1346,
+      "vram_allocated_mb": 81.05,
+      "vram_reserved_mb": 108.0,
+      "vram_total_mb": 8191.69,
+      "gpu_utilization_pct": 27.0,
+      "on_battery_power": false,
+      "battery_percent": 100.0,
+      "system_ram_used_pct": 67.2
+    }
+  },
+  "vram_telemetry_mb": {
+    "allocated_mb": 81.05,
+    "reserved_mb": 108.0,
+    "peak_allocated_mb": 96.34,
+    "free_vram_gb": 6.84,
+    "total_vram_gb": 8.0
+  },
+  "elapsed_seconds": 46.281,
+  "backbone_info": {
+    "is_4bit_nf4": true,
+    "trainable_lora_params": 311296,
+    "total_params": 3985664,
+    "lora_size_mb": 0.594
+  },
+  "astrophysics_branches": {
+    "Kepler_Exoplanet_Transit_Classifier": {
+      "branch_name": "Kepler_Exoplanet_Transit_Classifier",
+      "hf_dataset_id": "mzrk36/exoplanets-unified-dataset",
+      "boinc_workunit_id": "wu-astro-kepler_exoplanet_transit_classifier-t1-38c19c",
+      "parquet_shard_path": "D:\\xdev\\DecentralizedAI\\artifacts\\boinc_astrophysics_shards\\wu-astro-kepler_exoplanet_transit_classifier-t1-38c19c.parquet",
+      "parquet_shard_bytes": 5017,
+      "shard_sha256": "2cb5a07bc29261ae55784b2081c512f9da97dec880ac9e16b316368a6e89ef80",
+      "shard_hmac_signature": "203e472df1fdf5e039310bbf9ccd0c4aa96d371b0645583b9aa044d3f9aa73fb",
+      "sample_astrophysics_observation": "### Kepler/TESS Exoplanet Transit Observation:\nOrbital Period: 30.945 days | Planet Radius: 2.31 R_earth | Transit Depth: 250.0 ppm (SNR=18.0) | Host Star Teff: 5617 K\n### Planet Disposition & Classification:\nDisposition: CONFIRMED | Planetary Class: Super-Earth Exoplanet",
+      "phase_s2_shard_verdict": {
+        "passed": true,
+        "rule_id": "DS-OK",
+        "category": "DATASET_SHARD_VERIFIED",
+        "message": "Dataset shard for 'Kepler_Exoplanet_Transit_Classifier' passed 9-point anti-poisoning & entropy verification.",
+        "metrics": {
+          "num_samples": 24,
+          "total_bytes": 6702,
+          "shannon_entropy_bits": 5.1449,
+          "unique_sample_ratio": 1.0
+        }
+      },
+      "pre_boinc_shard_loss": 7.730464,
+      "post_boinc_shard_loss": 6.59953,
+      "loss_delta": -1.130934,
+      "loss_improved": true,
+      "honest_workers_accepted": [
+        "boinc-rtx-miner-alpha-d0",
+        "boinc-rtx-miner-beta-d0",
+        "boinc-rtx-miner-gamma-d0"
+      ],
+      "multikrum_rejected_outliers": [
+        "stealth-krum-outlier-d0"
+      ],
+      "outer_delta_l2_norm": 1.652512,
+      "cas_expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-c53a81ae77b7bf8d86112cd6",
+      "cas_shard_cid": "cid://sha256/d0b362d3ba473e71d3793d9754a7d7a8",
+      "pouw_block_height": 1,
+      "pouw_block_hash": "059a303a803e377938b983d92505c0ed41b9df88ad360998467fd251bca73dba",
+      "slashed_byzantine_nodes": [
+        "boinc-byzantine-rogue-99-d0"
+      ],
+      "workers": [
+        {
+          "worker_id": "boinc-rtx-miner-alpha-d0",
+          "steam_id64": "76561198010000001",
+          "persona": "KeplerHunter_FR",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.729489,
+          "final_loss": 6.568255,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.101881
+        },
+        {
+          "worker_id": "boinc-rtx-miner-beta-d0",
+          "steam_id64": "76561198010000002",
+          "persona": "GaiaSpectro_DE",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.729489,
+          "final_loss": 6.568255,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.062851
+        },
+        {
+          "worker_id": "boinc-rtx-miner-gamma-d0",
+          "steam_id64": "76561198010000003",
+          "persona": "JWSTBioScout_US",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.729489,
+          "final_loss": 6.568255,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.064355
+        },
+        {
+          "worker_id": "boinc-byzantine-rogue-99-d0",
+          "steam_id64": "76561198010000909",
+          "persona": "ByzantineSpoofer_XX",
+          "role": "simulated_byzantine_poisoner",
+          "initial_loss": 7.729489,
+          "final_loss": 6.568255,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": false,
+          "spot_check_max_diff": 56.15240479,
+          "steam_account_flagged": true
+        }
+      ]
+    },
+    "NASA_Exoplanet_Taxonomy_Classifier": {
+      "branch_name": "NASA_Exoplanet_Taxonomy_Classifier",
+      "hf_dataset_id": "juliensimon/nasa-exoplanets",
+      "boinc_workunit_id": "wu-astro-nasa_exoplanet_taxonomy_classifier-t1-56d19b",
+      "parquet_shard_path": "D:\\xdev\\DecentralizedAI\\artifacts\\boinc_astrophysics_shards\\wu-astro-nasa_exoplanet_taxonomy_classifier-t1-56d19b.parquet",
+      "parquet_shard_bytes": 5034,
+      "shard_sha256": "2c4fc1ea40f32035fbf3255c28038aaa9f06a3bdf4b687d8bc37fcbc324ad99c",
+      "shard_hmac_signature": "95c790588405d183e81f03520e59068fb86a829bc59cf902340d3407c45df26d",
+      "sample_astrophysics_observation": "### NASA Exoplanet Archive Observation (HIP 39330 b around HIP 39330):\nPeriod: 4650.000 d | Radius: 2.10 R_earth | Mass: 530.77 M_earth | Host Star Teff: 5748 K\n### Exoplanet Taxonomy Classification:\nPhysical Class: Super-Earth / Sub-Neptune | Thermal Regime: Irradiated Exoplanet",
+      "phase_s2_shard_verdict": {
+        "passed": true,
+        "rule_id": "DS-OK",
+        "category": "DATASET_SHARD_VERIFIED",
+        "message": "Dataset shard for 'NASA_Exoplanet_Taxonomy_Classifier' passed 9-point anti-poisoning & entropy verification.",
+        "metrics": {
+          "num_samples": 24,
+          "total_bytes": 6534,
+          "shannon_entropy_bits": 5.2058,
+          "unique_sample_ratio": 1.0
+        }
+      },
+      "pre_boinc_shard_loss": 7.663404,
+      "post_boinc_shard_loss": 6.525445,
+      "loss_delta": -1.137959,
+      "loss_improved": true,
+      "honest_workers_accepted": [
+        "boinc-rtx-miner-alpha-d1",
+        "boinc-rtx-miner-beta-d1",
+        "boinc-rtx-miner-gamma-d1"
+      ],
+      "multikrum_rejected_outliers": [
+        "stealth-krum-outlier-d1"
+      ],
+      "outer_delta_l2_norm": 1.655308,
+      "cas_expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-d9d961cb443ce9201bd3ad60",
+      "cas_shard_cid": "cid://sha256/e75b337c65e127b468b20343dd52a23d",
+      "pouw_block_height": 2,
+      "pouw_block_hash": "0c1c792e678cbb653b9b9804e40bfc16a021cac207fedc4ec0f91b26fc0f3262",
+      "slashed_byzantine_nodes": [
+        "boinc-byzantine-rogue-99-d1"
+      ],
+      "workers": [
+        {
+          "worker_id": "boinc-rtx-miner-alpha-d1",
+          "steam_id64": "76561198010000001",
+          "persona": "KeplerHunter_FR",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.681805,
+          "final_loss": 6.545423,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.067921
+        },
+        {
+          "worker_id": "boinc-rtx-miner-beta-d1",
+          "steam_id64": "76561198010000002",
+          "persona": "GaiaSpectro_DE",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.681805,
+          "final_loss": 6.545423,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.063665
+        },
+        {
+          "worker_id": "boinc-rtx-miner-gamma-d1",
+          "steam_id64": "76561198010000003",
+          "persona": "JWSTBioScout_US",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.681805,
+          "final_loss": 6.545423,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.071402
+        },
+        {
+          "worker_id": "boinc-byzantine-rogue-99-d1",
+          "steam_id64": "76561198010000919",
+          "persona": "ByzantineSpoofer_XX",
+          "role": "simulated_byzantine_poisoner",
+          "initial_loss": 7.681805,
+          "final_loss": 6.545423,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": false,
+          "spot_check_max_diff": 56.0465889,
+          "steam_account_flagged": true
+        }
+      ]
+    },
+    "SDSS_Stellar_MK_Spectral_Classifier": {
+      "branch_name": "SDSS_Stellar_MK_Spectral_Classifier",
+      "hf_dataset_id": "BrunoBarreto/sdss_dr12_stars_regression",
+      "boinc_workunit_id": "wu-astro-sdss_stellar_mk_spectral_classifier-t1-d29853",
+      "parquet_shard_path": "D:\\xdev\\DecentralizedAI\\artifacts\\boinc_astrophysics_shards\\wu-astro-sdss_stellar_mk_spectral_classifier-t1-d29853.parquet",
+      "parquet_shard_bytes": 5192,
+      "shard_sha256": "16d87bb448c7744b024a59d146afaf6c54c8af66a2f67c1779ce997ea81a35ea",
+      "shard_hmac_signature": "da7ab88576d95c9c106d9d5641c89c00df137aa0e44241220e01c9b142262b7c",
+      "sample_astrophysics_observation": "### SDSS DR12 Stellar Spectrum (SpecID 21143, Plate 2316-580):\nCoordinates: RA=130.846, Dec=+54.661 | Teff: 6190.7 K | Surface Gravity log(g): 3.98 dex | Metallicity [Fe/H]: -0.41 dex | Radial Velocity: -38.3 km/s (SNR=43.4)\n### Stellar MK Classification:\nSpectral Type: F-Type Yellow-White Star | Luminosity Class: Class IV (Subgiant Turnoff) | Galactic Population: Thin-Disk Population I [ObsSeq #1]",
+      "phase_s2_shard_verdict": {
+        "passed": true,
+        "rule_id": "DS-OK",
+        "category": "DATASET_SHARD_VERIFIED",
+        "message": "Dataset shard for 'SDSS_Stellar_MK_Spectral_Classifier' passed 9-point anti-poisoning & entropy verification.",
+        "metrics": {
+          "num_samples": 24,
+          "total_bytes": 9887,
+          "shannon_entropy_bits": 5.3563,
+          "unique_sample_ratio": 1.0
+        }
+      },
+      "pre_boinc_shard_loss": 7.686716,
+      "post_boinc_shard_loss": 6.618046,
+      "loss_delta": -1.06867,
+      "loss_improved": true,
+      "honest_workers_accepted": [
+        "boinc-rtx-miner-alpha-d2",
+        "boinc-rtx-miner-beta-d2",
+        "boinc-rtx-miner-gamma-d2"
+      ],
+      "multikrum_rejected_outliers": [
+        "stealth-krum-outlier-d2"
+      ],
+      "outer_delta_l2_norm": 1.640126,
+      "cas_expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-d01d3bebdb40174e2e8c12cb",
+      "cas_shard_cid": "cid://sha256/12093ccbba2b1b41c91bc3875bad6054",
+      "pouw_block_height": 3,
+      "pouw_block_hash": "9cfab17c1f8fcc54ab722083829b1659d8ed4a78d7e9db968a750ca42551954b",
+      "slashed_byzantine_nodes": [
+        "boinc-byzantine-rogue-99-d2"
+      ],
+      "workers": [
+        {
+          "worker_id": "boinc-rtx-miner-alpha-d2",
+          "steam_id64": "76561198010000001",
+          "persona": "KeplerHunter_FR",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.685127,
+          "final_loss": 6.455708,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.066708
+        },
+        {
+          "worker_id": "boinc-rtx-miner-beta-d2",
+          "steam_id64": "76561198010000002",
+          "persona": "GaiaSpectro_DE",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.685127,
+          "final_loss": 6.455708,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.062382
+        },
+        {
+          "worker_id": "boinc-rtx-miner-gamma-d2",
+          "steam_id64": "76561198010000003",
+          "persona": "JWSTBioScout_US",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.685127,
+          "final_loss": 6.455708,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.063632
+        },
+        {
+          "worker_id": "boinc-byzantine-rogue-99-d2",
+          "steam_id64": "76561198010000929",
+          "persona": "ByzantineSpoofer_XX",
+          "role": "simulated_byzantine_poisoner",
+          "initial_loss": 7.685127,
+          "final_loss": 6.455708,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": false,
+          "spot_check_max_diff": 56.55007553,
+          "steam_account_flagged": true
+        }
+      ]
+    },
+    "JWST_Atmosphere_Biosignature_Classifier": {
+      "branch_name": "JWST_Atmosphere_Biosignature_Classifier",
+      "hf_dataset_id": "Shoriful025/exoplanet_atmospheric_spectroscopy_results",
+      "boinc_workunit_id": "wu-astro-jwst_atmosphere_biosignature_classifier-t1-c2f286",
+      "parquet_shard_path": "D:\\xdev\\DecentralizedAI\\artifacts\\boinc_astrophysics_shards\\wu-astro-jwst_atmosphere_biosignature_classifier-t1-c2f286.parquet",
+      "parquet_shard_bytes": 5324,
+      "shard_sha256": "463d6456d4a3204a0870cbd9f4f478a762f7c5a7e08c0b12a17aa7ffed970850",
+      "shard_hmac_signature": "a1371483dce1287bb5f55d258d836dcb4dee20b44916121425a2d5b675d8f6d0",
+      "sample_astrophysics_observation": "### JWST Exoplanet Transmission Spectroscopy (EXO-8821 around G-Type Star, 45.2 ly):\nTransit Depth: 1250 ppm | log(H2O): -4.5 | log(CH4): -6.2 | log(CO2): -5.1 | Cloud Deck: 0.10 bar | Teq: 285 K | Habitability Index: 0.82\n### Atmospheric Biosignature Classification:\nHabitability Class: Class-I High-Habitability Temperate World | Biosignature Status: Strong H2O + CH4/CO2 Chemical Disequilibrium Candidate [ObsSeq #1]",
+      "phase_s2_shard_verdict": {
+        "passed": true,
+        "rule_id": "DS-OK",
+        "category": "DATASET_SHARD_VERIFIED",
+        "message": "Dataset shard for 'JWST_Atmosphere_Biosignature_Classifier' passed 9-point anti-poisoning & entropy verification.",
+        "metrics": {
+          "num_samples": 24,
+          "total_bytes": 10007,
+          "shannon_entropy_bits": 5.2376,
+          "unique_sample_ratio": 1.0
+        }
+      },
+      "pre_boinc_shard_loss": 7.597737,
+      "post_boinc_shard_loss": 6.508669,
+      "loss_delta": -1.089068,
+      "loss_improved": true,
+      "honest_workers_accepted": [
+        "boinc-rtx-miner-alpha-d3",
+        "boinc-rtx-miner-beta-d3",
+        "boinc-rtx-miner-gamma-d3"
+      ],
+      "multikrum_rejected_outliers": [
+        "stealth-krum-outlier-d3"
+      ],
+      "outer_delta_l2_norm": 1.688473,
+      "cas_expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-b310a45745c0f2bbe3582209",
+      "cas_shard_cid": "cid://sha256/407f1fe99c7dd045ef53c1829b4e394c",
+      "pouw_block_height": 4,
+      "pouw_block_hash": "61ecacad2ce40215ab51cf9622efc02f7683c23eeb9e91a0573bc2a460a5e683",
+      "slashed_byzantine_nodes": [
+        "boinc-byzantine-rogue-99-d3"
+      ],
+      "workers": [
+        {
+          "worker_id": "boinc-rtx-miner-alpha-d3",
+          "steam_id64": "76561198010000001",
+          "persona": "KeplerHunter_FR",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.572945,
+          "final_loss": 6.443601,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.062612
+        },
+        {
+          "worker_id": "boinc-rtx-miner-beta-d3",
+          "steam_id64": "76561198010000002",
+          "persona": "GaiaSpectro_DE",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.572945,
+          "final_loss": 6.443601,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.068693
+        },
+        {
+          "worker_id": "boinc-rtx-miner-gamma-d3",
+          "steam_id64": "76561198010000003",
+          "persona": "JWSTBioScout_US",
+          "role": "honest_gpu_miner",
+          "initial_loss": 7.572945,
+          "final_loss": 6.443601,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": true,
+          "spot_check_max_diff": 0.0,
+          "max_step_latency_sec": 0.063742
+        },
+        {
+          "worker_id": "boinc-byzantine-rogue-99-d3",
+          "steam_id64": "76561198010000939",
+          "persona": "ByzantineSpoofer_XX",
+          "role": "simulated_byzantine_poisoner",
+          "initial_loss": 7.572945,
+          "final_loss": 6.443601,
+          "steps_completed": 16,
+          "compression_ratio_x": 2.66,
+          "spot_check_passed": false,
+          "spot_check_max_diff": 59.87881851,
+          "steam_account_flagged": true
+        }
+      ]
+    }
+  },
+  "sparse_moe_upcycle": {
+    "num_experts": 4,
+    "top_k": 2,
+    "attention_layers_merged": 16,
+    "ffn_expert_modules_created": 16,
+    "total_moe_parameters": 10756352,
+    "active_parameters_per_token": 6037760,
+    "router_initial_loss": 7.155094,
+    "router_final_loss": 6.83142,
+    "expert_routing_utilization": {
+      "Kepler_Exoplanet_Transit_Classifier": 0.8448,
+      "NASA_Exoplanet_Taxonomy_Classifier": 0.0158,
+      "SDSS_Stellar_MK_Spectral_Classifier": 0.0201,
+      "JWST_Atmosphere_Biosignature_Classifier": 0.1193
+    }
+  },
+  "speculative_swarm_inference": {
+    "region_ring": "EU-West-Paris",
+    "active_ring_peers": 4,
+    "mean_ring_ping_ms": 11.65,
+    "draft_gamma": 5,
+    "generated_tokens_count": 15,
+    "latency_reduction_factor": 5.0,
+    "effective_tokens_per_sec": 22.42
+  },
+  "pouw_ledger_summary": {
+    "chain_length": 5,
+    "chain_integrity_verified": true,
+    "total_circulating_hive": 200.0,
+    "slashed_byzantine_registry": [
+      "boinc-byzantine-rogue-99-d0",
+      "boinc-byzantine-rogue-99-d1",
+      "boinc-byzantine-rogue-99-d2",
+      "boinc-byzantine-rogue-99-d3"
+    ]
+  }
+}
