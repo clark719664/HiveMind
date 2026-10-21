@@ -385,7 +385,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       term.textContent =
         `[OMEGA FINAL BOSS STAGE] ${{moe.num_experts || 6}}-EXPERT SPARSE MoE MULTI-DOMAIN SPECULATIVE RAID\\n` +
         `[REGIONAL RING] ${{raid.region_ring || 'EU-West-Swarm-Ring'}} (${{raid.active_ring_peers || 3}} Peers | Mean Ping: ${{raid.mean_ring_ping_ms || 14.1}} ms)\\n` +
-        `[SPECULATIVE DECODING] Ring gamma=${{raid.draft_gamma || 5}} (${{raid.latency_reduction_factor || 5.6}}x) | Token-Tree gamma=${{tree.tree_depth_gamma || 6}} (Accepted: ${{tree.accepted_length || 7}} toks)\\n` +
+        `[SPECULATIVE DECODING] Ring gamma=${{raid.draft_gamma || 5}} (${{raid.latency_reduction_factor ?? 'n/a'}} tokens/pass, simulated RTT) | Token-Tree gamma=${{tree.tree_depth_gamma || 6}} (Accepted: ${{tree.accepted_length || 7}} toks)\\n` +
         `[TOP-2 ROUTER CALIBRATION] Loss: ${{Number(moe.router_initial_loss || 2.45).toFixed(4)}} -> ${{Number(moe.router_final_loss || 1.71).toFixed(4)}}\\n\\n` +
         `--- MULTI-DOMAIN BOSS PROMPT ---\\n${{raid.prompt || 'Write a memory-safe function atp_hive_yield(cells, blocks)...'}}\\n` +
         `--- MULTI-EXPERT SPARSE MoE SPECULATIVE OUTPUT ---\\n${{raid.generated_boss_solution || 'def atp_hive_yield(cells, blocks): return cells * blocks * 50'}}`;
@@ -405,8 +405,8 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         <ul>
           ${{Object.entries(util).map(([k, v]) => `<li>${{k}}: <strong>${{(v * 100).toFixed(1)}}%</strong></li>`).join('')}}
         </ul>
-        <p><strong>2-Slot Double-Buffered Pinned RAM DMA (HM-M2-01):</strong> <span style="color:#00ff9d;">${{dma.length || 6}} Experts Staged (0.0 ms Exposed Swap Latency)</span></p>
-        <p><strong>Speculative Swarm Ring (&gamma;=${{raid.draft_gamma || 5}} / Tree &gamma;=6):</strong> <span style="color:#00f0ff;">${{raid.latency_reduction_factor || 5.6}}x RTT Speedup</span> (${{raid.effective_tokens_per_sec || 28.5}} tok/s)</p>
+        <p><strong>2-Slot Double-Buffered Pinned RAM DMA (HM-M2-01):</strong> <span style="color:#00ff9d;">${{dma.length || 6}} Experts Staged (simulated swap latency, not measured)</span></p>
+        <p><strong>Speculative Swarm Ring (&gamma;=${{raid.draft_gamma || 5}} / Tree &gamma;=6):</strong> <span style="color:#00f0ff;">${{raid.latency_reduction_factor ?? 'n/a'}} tokens/pass (simulated RTT, not a measured speedup)</span> (${{raid.effective_tokens_per_sec || 28.5}} tok/s)</p>
         <p><strong>Steamworks Anti-Cheat Firewall:</strong> <span style="color:#ff007f;">Sybil_Bot_Limited_00 Blocked ($0 &lt; $5)</span> | <span style="color:#ff007f;">DarkNet_Spoofer_99 Slashed (Multi-Krum 2&sigma;)</span></p>
         <p><strong>Peak RTX 2070 VRAM:</strong> ${{vram.peak_allocated_mb || 1192.6}} MiB (${{vram.free_vram_gb || 5.62}} GiB Free)</p>
       `;
