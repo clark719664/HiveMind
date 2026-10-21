@@ -35,6 +35,7 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 > **Steam Integration & Local Prototype Status ([`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md)):** The `HiveMind: Neural Breach` Free Steam RTX Tool & Hack-Miner package in [`steam_dist/HiveMind_Steam_FreeEdition/`](steam_dist/HiveMind_Steam_FreeEdition/) runs locally from this repository using your `.venv` Python environment, dynamic `steam_api64.dll` probing with headless HMAC fallback, and local JSON/VDF manifests. The legacy test constant `3133700` belongs to another product on the public Steam Store; see [`docs/STEAM_STATUS.md`](docs/STEAM_STATUS.md) (contributed in `PR #11` by `@radialmonster`).
 
 ### 🧭 Quick Navigation
+- 🌌 [**0. 24-Cycle Full-Day RTX 2070 Astrophysics & Cosmology BOINC Discovery Showcase**](#-0-24-cycle-full-day-rtx-2070-astrophysics--cosmology-boinc-discovery-showcase)
 - 🏛️ [**1. System Architecture & 5-Layer Visual Stack**](#-1-system-architecture--5-layer-visual-stack)
 - 🔥 [**2. Intense RTX 2070 (8 GB VRAM) Stress Test & PoC Benchmarks**](#-2-intense-rtx-2070-8-gb-vram-stress-test--poc-benchmarks)
 - 🎮 [**3. Hugging Face Hack-Miner & Free Steam RTX Tool (`v1.0.0`)**](#-3-hugging-face-hack-miner--free-steam-rtx-tool-v100)
@@ -47,10 +48,19 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 ## 🌌 0. 24-Cycle Full-Day RTX 2070 Astrophysics & Cosmology BOINC Discovery Showcase
 
 <div align="center">
+<img src="docs/assets/hivemind_astrophysics_executive_dashboard.svg" alt="Project HiveMind — 24-Cycle RTX 2070 Astrophysics & Cosmology Executive Promotion Dashboard" width="100%"/>
+</div>
+
+<br/>
+
+<div align="center">
 <img src="docs/images/cosmology_deep_field_banner.png" alt="Project HiveMind — Deep-Space Cosmology & Exoplanet Swarm Observatory" width="100%"/>
 </div>
 
-We executed a full **24-Cycle (Full-Day 24-Hour Schedule, Cycles `#01`..`#24`) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing & Discovery Campaign** (`hivemind run-astro-24h`, [`astrophysics_24h_campaign.py`](src/hivemind/boinc/astrophysics_24h_campaign.py)) on the local **NVIDIA GeForce RTX 2070 (`cuda:0`, 8 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps, `72` deterministic 10% spot-check validation replays, `24` `$HIVE` PoUW blocks, and `0.00 EUR` cloud cost). Full report: [**`docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md`**](docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md) and raw telemetry: [**`artifacts/astrophysics_24h_gpu_campaign_report.json`**](artifacts/astrophysics_24h_gpu_campaign_report.json).
+We executed a full **24-Cycle (Full-Day 24-Hour Schedule, Cycles `#01`..`#24`) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing & Discovery Campaign** (`hivemind run-astro-24h`, [`astrophysics_24h_campaign.py`](src/hivemind/boinc/astrophysics_24h_campaign.py)) on the local **NVIDIA GeForce RTX 2070 (`cuda:0`, 8 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps, `72` deterministic 10% spot-check validation replays, `24` `$HIVE` PoUW blocks, and `0.00 EUR` cloud cost).
+- 📄 **Full Community Discovery Report**: [**`docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md`**](docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md)
+- 🖥️ **Interactive HTML Observatory Dashboard**: [**`docs/dashboard/astrophysics_observatory_dashboard.html`**](docs/dashboard/astrophysics_observatory_dashboard.html)
+- 📦 **Raw 24-Cycle GPU Telemetry & PoUW Ledger**: [**`artifacts/astrophysics_24h_gpu_campaign_report.json`**](artifacts/astrophysics_24h_gpu_campaign_report.json) | [**`artifacts/boinc_astro_24h_pouw_ledger.json`**](artifacts/boinc_astro_24h_pouw_ledger.json)
 
 ### 📊 6-Panel 24-Cycle Astrophysics & GPU Telemetry Dashboard (`cuda:0`)
 
