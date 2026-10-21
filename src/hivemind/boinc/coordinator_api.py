@@ -187,6 +187,7 @@ class BOINCCoordinatorService:
             num_sequences=num_sequences,
         )
         self.active_workunits[wu_id] = wu
+        self.fl_security_guard.register_workunit_assignment(wu_id, worker_id=worker_id, steam_id64=steam_id64)
         return wu, {k: v.clone() for k, v in branch_state.lora_state.items()}
 
     def validate_and_record_submission(
@@ -202,7 +203,7 @@ class BOINCCoordinatorService:
         """Run Phase S-3 federated envelope verification + 50-step segment spot-check validation, update reputation, and queue delta for Multi-Krum."""
         branch_state = self.branches.get(workunit.branch_name)
         coord_outer_step = (branch_state.outer_step + 1) if branch_state is not None else workunit.outer_step
-        self.fl_security_guard.verify_workunit_submission_envelope(
+        self.fl_security_guard.check_workunit_submission_envelope(
             wu_id=workunit.wu_id,
             expected_branch=workunit.branch_name,
             submitted_branch=submission.branch_name,
@@ -229,6 +230,14 @@ class BOINCCoordinatorService:
             lr=lr,
             weight_decay=weight_decay,
             micro_batch_size=micro_batch_size,
+        )
+        # The verdict (pass or fail) is final for this wu_id: only now cast the FL-06 vote and consume it.
+        self.fl_security_guard.record_workunit_submission(
+            wu_id=workunit.wu_id,
+            expected_branch=workunit.branch_name,
+            coordinator_outer_step=coord_outer_step,
+            steam_id64=steam_id64,
+            worker_id=submission.worker_id,
         )
         rec = self.reputation_ledger.setdefault(
             steam_id64,
