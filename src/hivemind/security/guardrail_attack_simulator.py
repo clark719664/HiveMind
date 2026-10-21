@@ -49,7 +49,6 @@ from typing import Any, Dict, List, Optional
 
 import torch
 
-from hivemind.boinc.coordinator_api import BOINCCoordinatorService, create_coordinator_fastapi_app
 from hivemind.config import HiveMindConfig
 from hivemind.security.federated_learning_hardening import FederatedLearningSecurityGuard
 from hivemind.security.gpu_execution_circuit_breaker import GPUExecutionCircuitBreaker
@@ -690,6 +689,8 @@ class SwarmGuardrailAttackSimulator:
         )
 
         # S5-ATK-05: Path-traversal worker_id in Coordinator & sleeper-agent gateway prompt
+        from hivemind.boinc.coordinator_api import BOINCCoordinatorService, create_coordinator_fastapi_app
+
         cfg = HiveMindConfig.from_yaml()
         coord = BOINCCoordinatorService(
             config=cfg,

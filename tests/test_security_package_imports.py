@@ -37,6 +37,34 @@ def test_pr_scanner_imports_without_torch() -> None:
     assert result.returncode == 0, result.stderr[-2000:]
 
 
+@pytest.mark.parametrize(
+    "first_import", ["hivemind.boinc.validator", "hivemind.boinc.coordinator_api", "hivemind.boinc.workunit"]
+)
+def test_boinc_submodules_import_without_pillow(first_import: str) -> None:
+    result = _run(
+        "import sys; sys.modules['PIL'] = None\n"
+        f"import {first_import}\n"
+        "assert 'hivemind.boinc.astrophysics_24h_campaign' not in sys.modules"
+    )
+    assert result.returncode == 0, result.stderr[-2000:]
+
+
+def test_campaign_render_names_pillow_when_missing() -> None:
+    result = _run(
+        "import sys; sys.modules['PIL'] = None\n"
+        "import hivemind.boinc as b\n"
+        "from hivemind.boinc.astrophysics_24h_campaign import _require_pil\n"
+        "assert sorted(b.__all__) == sorted(b._EXPORTS)\n"
+        "try:\n"
+        "    _require_pil()\n"
+        "except ImportError as e:\n"
+        "    assert 'pillow' in str(e).lower(); print('ok')\n"
+        "else:\n"
+        "    raise SystemExit('expected ImportError')"
+    )
+    assert result.returncode == 0 and "ok" in result.stdout, result.stderr[-2000:]
+
+
 def test_lazy_exports_resolve_every_public_name() -> None:
     assert sorted(security._EXPORTS) == sorted(security.__all__)
     for name in security.__all__:
