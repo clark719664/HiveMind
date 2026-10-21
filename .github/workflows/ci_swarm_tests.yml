@@ -102,3 +102,4 @@ jobs:
           uv run --no-sync python -m hivemind.cli.main --help
           uv run --no-sync python -m hivemind.cli.main hardware-check
           uv run --no-sync python -m hivemind.cli.main scan-pr-security --root . --output-json artifacts/ci_security_audit.json
+          uv run --no-sync python -m hivemind.cli.main audit-swarm-hardening --output-json artifacts/swarm_gpu_and_datastore_hardening_report.json

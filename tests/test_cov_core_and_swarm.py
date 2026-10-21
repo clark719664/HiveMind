@@ -834,8 +834,9 @@ def test_dht_storage_all_error_and_resume_branches(tmp_path: Path) -> None:
         sort_keys=True,
     ).encode("utf-8")
     pad_needed = (16384 - (len(probe_json) % 16384)) % 16384
+    aligned_sample = ("abcdef0123456789" * ((pad_needed // 16) + 1))[:pad_needed]
     cid, shard_path, nbytes = store.store_hf_dataset_shard(
-        "node-main", "align", 0, ["x" * pad_needed]
+        "node-main", "align", 0, [aligned_sample]
     )
     assert nbytes == 16384
 

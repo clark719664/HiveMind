@@ -10,10 +10,17 @@ Season 4 Milestone `HM-S4-02` (Issue #27) upgrades the flat regional ring into a
 Kademlia Super-Ring: the regional Geo-Ring stays the Tier-1 `< 20 ms` data plane while a
 `ContinentalSuperRingRouter` elects *Continental Bridge* nodes per continent (`EU`, `US`,
 `APAC`) that aggregate the Tier-1 rings into a single WAN-transit Tier-2 plane.
+
+Phase S-5 Inference Ring Hardening (`RING-01` .. `RING-02`):
+- Rejects spoofed (`ping_ms <= 0`), high-packet-loss (`> 15%`), high-jitter (`> 20 ms`),
+  or insufficient-VRAM (`< 4.0 GB`) peers and deduplicates `peer_id` registrations.
+- Enforces speculative decoding envelope (`1 <= draft_gamma <= 16`, `1 <= max_new_tokens <= 512`)
+  and verifies finiteness (`torch.isfinite`) of MoE verification logits.
 """
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict
@@ -22,6 +29,7 @@ import torch
 import torch.nn as nn
 
 from hivemind.core.btm_upcycle import UpcycledSparseMoEModel
+from hivemind.security.swarm_runtime_hardening import SwarmSecurityViolationError
 
 if TYPE_CHECKING:  # pragma: no cover - typing only, avoids a circular runtime import.
     from hivemind.swarm.quic_transport import ContinentalSuperRingRouter
@@ -44,7 +52,12 @@ class SwarmPeerNode:
 
     @property
     def eligible_for_low_latency_ring(self) -> bool:
-        return self.ping_ms < 25.0
+        return (
+            0.0 < self.ping_ms < 25.0
+            and self.vram_gb >= 4.0
+            and 0.0 <= self.packet_loss_ratio <= 0.15
+            and 0.0 <= self.jitter_ms <= 20.0
+        )
 
     @property
     def continent(self) -> str:
@@ -85,7 +98,20 @@ class RegionalDHTSwarmRing:
         self.hierarchical_routes: list[Dict[str, Any]] = []
 
     def register_peer(self, peer: SwarmPeerNode) -> bool:
+        # Rule RING-01: Reject spoofed ping (<= 0), high packet loss (> 15%), high jitter (> 20ms), or low VRAM (< 4GB)
+        if not peer.peer_id or not str(peer.peer_id).strip() or not peer.steam_id64:
+            return False
+        if not math.isfinite(float(peer.ping_ms)) or float(peer.ping_ms) <= 0.0:
+            return False
+        if not math.isfinite(float(peer.vram_gb)) or float(peer.vram_gb) < 4.0:
+            return False
+        if not math.isfinite(float(peer.packet_loss_ratio)) or not (0.0 <= float(peer.packet_loss_ratio) <= 0.15):
+            return False
+        if not math.isfinite(float(peer.jitter_ms)) or not (0.0 <= float(peer.jitter_ms) <= 20.0):
+            return False
+
         if peer.region == self.region and peer.ping_ms < self.max_ping_ms:
+            self.peers = [p for p in self.peers if p.peer_id != peer.peer_id]
             self.peers.append(peer)
             self._sync_peer_to_super_ring(peer)
             return True
@@ -174,6 +200,26 @@ class RegionalDHTSwarmRing:
         simulated_network_rtt_ms: float = 18.5,
     ) -> SpeculativeSwarmResult:
         """Generate tokens using local draft speculation (gamma=5) + single-pass MoE swarm verification."""
+        # Rule RING-02: Enforce speculative decoding bounds to prevent unbounded forward-pass DoS
+        if int(draft_gamma) < 1 or int(draft_gamma) > 16:
+            raise SwarmSecurityViolationError(
+                "RING-02",
+                "SPECULATIVE_GAMMA_OUT_OF_BOUNDS",
+                f"draft_gamma ({draft_gamma}) must be within [1, 16].",
+            )
+        if int(max_new_tokens) < 1 or int(max_new_tokens) > 512:
+            raise SwarmSecurityViolationError(
+                "RING-02",
+                "MAX_NEW_TOKENS_OUT_OF_BOUNDS",
+                f"max_new_tokens ({max_new_tokens}) must be within [1, 512].",
+            )
+        if prompt_ids.numel() == 0:
+            raise SwarmSecurityViolationError(
+                "RING-02",
+                "EMPTY_PROMPT_TENSOR",
+                "prompt_ids must contain at least 1 token.",
+            )
+
         device = next(moe_target_model.parameters()).device
         moe_target_model.eval()
         draft_model.eval()
@@ -215,6 +261,12 @@ class RegionalDHTSwarmRing:
                         blk.router.top_k = moe_target_model.top_k
                 verification_passes += 1
                 m_out = moe_target_model(input_ids=draft_seq)
+                if not bool(torch.isfinite(m_out.logits).all().item()):
+                    raise SwarmSecurityViolationError(
+                        "RING-02",
+                        "POISONED_MOE_RING_LOGITS_DETECTED",
+                        "Non-finite (NaN/Inf) logits returned by P2P Sparse MoE verification pass.",
+                    )
                 start_pos = seq.size(1) - 1
                 target_logits = m_out.logits[:, start_pos : start_pos + draft_gamma + 1, :].squeeze(0)
                 target_probs = torch.softmax(target_logits.to(torch.float32), dim=-1)

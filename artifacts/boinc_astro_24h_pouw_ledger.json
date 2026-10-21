@@ -1,0 +1,192 @@
+{
+  "chain": [
+    {
+      "block_height": 0,
+      "prev_block_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": 1700000000.0,
+      "outer_step": 0,
+      "expert_cid": "cid://sha256/genesis-qwen25-nf4-backbone",
+      "merkle_root": "f61b3142805ee986d4446ddfe28049948ea3efa538cca78e60920e123ccd154c",
+      "total_block_reward": 0.0,
+      "reward_allocations": {},
+      "slashed_nodes": [],
+      "block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6"
+    },
+    {
+      "block_height": 1,
+      "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
+      "timestamp": 1792571508.3961103,
+      "outer_step": 1,
+      "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-9e43c945e0235215424d1110",
+      "merkle_root": "c953fb5e2337ef63e54dbf21a8036d53e089d6537c10deda2a759c75b24d6a8d",
+      "total_block_reward": 50.0,
+      "reward_allocations": {
+        "boinc-rtx2070-miner-alpha-c01": 20.0,
+        "boinc-rtx2070-miner-beta-c01": 12.5,
+        "boinc-rtx2070-miner-gamma-c01": 12.5,
+        "boinc-spotcheck-validator-primary": 5.0
+      },
+      "slashed_nodes": [
+        "boinc-byzantine-poisoner-c01"
+      ],
+      "block_hash": "6f5683457854defc7d865da1b2bafd62a0d52b2f93b342e545b01deadae3ea30"
+    },
+    {
+      "block_height": 2,
+      "prev_block_hash": "6f5683457854defc7d865da1b2bafd62a0d52b2f93b342e545b01deadae3ea30",
+      "timestamp": 1792571511.617751,
+      "outer_step": 2,
+      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-e9e175f1e7ddab7222de4cf7",
+      "merkle_root": "6b7715a3e6e1d39c45bfcfa7110cb8f8441110266fbd607fc861ca1513cb2ef4",
+      "total_block_reward": 50.0,
+      "reward_allocations": {
+        "boinc-rtx2070-miner-alpha-c02": 20.0,
+        "boinc-rtx2070-miner-beta-c02": 12.5,
+        "boinc-rtx2070-miner-gamma-c02": 12.5,
+        "boinc-spotcheck-validator-primary": 5.0
+      },
+      "slashed_nodes": [
+        "boinc-byzantine-poisoner-c02"
+      ],
+      "block_hash": "d01432d2abf1a2cdac379cf3adbc0feb56ff5c343ceb32412a91877fe423e7ac"
+    },
+    {
+      "block_height": 3,
+      "prev_block_hash": "d01432d2abf1a2cdac379cf3adbc0feb56ff5c343ceb32412a91877fe423e7ac",
+      "timestamp": 1792571514.8870845,
+      "outer_step": 3,
+      "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-f239aefa09522dc3d79c45ce",
+      "merkle_root": "4ecb0e82089425ed929c42e6548a4c61a813919fa2774aedd08059388c35906f",
+      "total_block_reward": 50.0,
+      "reward_allocations": {
+        "boinc-rtx2070-miner-alpha-c03": 20.0,
+        "boinc-rtx2070-miner-beta-c03": 12.5,
+        "boinc-rtx2070-miner-gamma-c03": 12.5,
+        "boinc-spotcheck-validator-primary": 5.0
+      },
+      "slashed_nodes": [
+        "boinc-byzantine-poisoner-c03"
+      ],
+      "block_hash": "f73aeeee993ef655786867042767417a86920e93ca08ef87f770644543a6f790"
+    },
+    {
+      "block_height": 4,
+      "prev_block_hash": "f73aeeee993ef655786867042767417a86920e93ca08ef87f770644543a6f790",
+      "timestamp": 1792571518.2036529,
+      "outer_step": 4,
+      "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-91229e5e68d1535f37bac5a1",
+      "merkle_root": "3ff916aafa46e8c4c5e613d3d8274ba489a8f7b8ad301d7a2222c9eb9b5fb96a",
+      "total_block_reward": 50.0,
+      "reward_allocations": {
+        "boinc-rtx2070-miner-alpha-c04": 20.0,
+        "boinc-rtx2070-miner-beta-c04": 12.5,
+        "boinc-rtx2070-miner-gamma-c04": 12.5,
+        "boinc-spotcheck-validator-primary": 5.0
+      },
+      "slashed_nodes": [
+        "boinc-byzantine-poisoner-c04"
+      ],
+      "block_hash": "00a2bf8b1eba370db9d239f92ab28662375b7e6f77cbec43dcbb2d3ccdd0750d"
+    },
+    {
+      "block_height": 5,
+      "prev_block_hash": "00a2bf8b1eba370db9d239f92ab28662375b7e6f77cbec43dcbb2d3ccdd0750d",
+      "timestamp": 1792571521.4463482,
+      "outer_step": 5,
+      "expert_cid": "cid://sha256/expert-sdss_desi_cosmology_redshift_bao_analyzer-fef45a8848883a24909a37b1",
+      "merkle_root": "5edda4dd8f30497ff062651a9aa52cae8007733cc01fffbc15ecaa24f29c373f",
+      "total_block_reward": 50.0,
+      "reward_allocations": {
+        "boinc-rtx2070-miner-alpha-c05": 20.0,
+        "boinc-rtx2070-miner-beta-c05": 12.5,
+        "boinc-rtx2070-miner-gamma-c05": 12.5,
+        "boinc-spotcheck-validator-primary": 5.0
+      },
+      "slashed_nodes": [
+        "boinc-byzantine-poisoner-c05"
+      ],
+      "block_hash": "8eaaffc2b09b6347597e010141a95209c303e9a8ef8e5c4fc206087931a5a75a"
+    },
+    {
+      "block_height": 6,
+      "prev_block_hash": "8eaaffc2b09b6347597e010141a95209c303e9a8ef8e5c4fc206087931a5a75a",
+      "timestamp": 1792571524.7111042,
+      "outer_step": 6,
+      "expert_cid": "cid://sha256/expert-pantheon_typeia_supernova_darkenergy_probe-48c6a37aeddabc44fd01367f",
+      "merkle_root": "3204f148a4722e4991ad3e55d8e7135fddeabbb415489ea43f9b06fd6c8e2690",
+      "total_block_reward": 50.0,
+      "reward_allocations": {
+        "boinc-rtx2070-miner-alpha-c06": 20.0,
+        "boinc-rtx2070-miner-beta-c06": 12.5,
+        "boinc-rtx2070-miner-gamma-c06": 12.5,
+        "boinc-spotcheck-validator-primary": 5.0
+      },
+      "slashed_nodes": [
+        "boinc-byzantine-poisoner-c06"
+      ],
+      "block_hash": "c40c655a01af4f6e2079d8112d44142808ea5c9c909f9a727a5bdfc56b9d7f12"
+    }
+  ],
+  "balances": {
+    "boinc-byzantine-poisoner-c01": 0.0,
+    "boinc-rtx2070-miner-alpha-c01": 20.0,
+    "boinc-rtx2070-miner-beta-c01": 12.5,
+    "boinc-rtx2070-miner-gamma-c01": 12.5,
+    "boinc-spotcheck-validator-primary": 30.0,
+    "boinc-byzantine-poisoner-c02": 0.0,
+    "boinc-rtx2070-miner-alpha-c02": 20.0,
+    "boinc-rtx2070-miner-beta-c02": 12.5,
+    "boinc-rtx2070-miner-gamma-c02": 12.5,
+    "boinc-byzantine-poisoner-c03": 0.0,
+    "boinc-rtx2070-miner-alpha-c03": 20.0,
+    "boinc-rtx2070-miner-beta-c03": 12.5,
+    "boinc-rtx2070-miner-gamma-c03": 12.5,
+    "boinc-byzantine-poisoner-c04": 0.0,
+    "boinc-rtx2070-miner-alpha-c04": 20.0,
+    "boinc-rtx2070-miner-beta-c04": 12.5,
+    "boinc-rtx2070-miner-gamma-c04": 12.5,
+    "boinc-byzantine-poisoner-c05": 0.0,
+    "boinc-rtx2070-miner-alpha-c05": 20.0,
+    "boinc-rtx2070-miner-beta-c05": 12.5,
+    "boinc-rtx2070-miner-gamma-c05": 12.5,
+    "boinc-byzantine-poisoner-c06": 0.0,
+    "boinc-rtx2070-miner-alpha-c06": 20.0,
+    "boinc-rtx2070-miner-beta-c06": 12.5,
+    "boinc-rtx2070-miner-gamma-c06": 12.5
+  },
+  "reputation_scores": {
+    "boinc-byzantine-poisoner-c01": 50,
+    "boinc-rtx2070-miner-alpha-c01": 110,
+    "boinc-rtx2070-miner-beta-c01": 110,
+    "boinc-rtx2070-miner-gamma-c01": 110,
+    "boinc-byzantine-poisoner-c02": 50,
+    "boinc-rtx2070-miner-alpha-c02": 110,
+    "boinc-rtx2070-miner-beta-c02": 110,
+    "boinc-rtx2070-miner-gamma-c02": 110,
+    "boinc-byzantine-poisoner-c03": 50,
+    "boinc-rtx2070-miner-alpha-c03": 110,
+    "boinc-rtx2070-miner-beta-c03": 110,
+    "boinc-rtx2070-miner-gamma-c03": 110,
+    "boinc-byzantine-poisoner-c04": 50,
+    "boinc-rtx2070-miner-alpha-c04": 110,
+    "boinc-rtx2070-miner-beta-c04": 110,
+    "boinc-rtx2070-miner-gamma-c04": 110,
+    "boinc-byzantine-poisoner-c05": 50,
+    "boinc-rtx2070-miner-alpha-c05": 110,
+    "boinc-rtx2070-miner-beta-c05": 110,
+    "boinc-rtx2070-miner-gamma-c05": 110,
+    "boinc-byzantine-poisoner-c06": 50,
+    "boinc-rtx2070-miner-alpha-c06": 110,
+    "boinc-rtx2070-miner-beta-c06": 110,
+    "boinc-rtx2070-miner-gamma-c06": 110
+  },
+  "slashed_registry": [
+    "boinc-byzantine-poisoner-c01",
+    "boinc-byzantine-poisoner-c02",
+    "boinc-byzantine-poisoner-c03",
+    "boinc-byzantine-poisoner-c04",
+    "boinc-byzantine-poisoner-c05",
+    "boinc-byzantine-poisoner-c06"
+  ],
+  "settlement_history": []
+}
