@@ -33,7 +33,12 @@ SWARM_TELEMETRY_INTERVAL_SECONDS = 1.0
 
 def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     """Generate a self-contained interactive Cyberpunk HTML5 HUD v2 preloaded with live RTX 2070 game data."""
+    from hivemind.game.hf_hack_miner import build_georing_3d_topology_snapshot
+
     embedded_json = json.dumps(game_report, indent=2)
+    georing_snapshot_json = json.dumps(
+        {"nodes": build_georing_3d_topology_snapshot()["nodes"]}
+    ).replace("</", "<\\/")
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -259,6 +264,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       <div class="terminal" id="bounty-terminal">[READY] Submit any Coding, Biomedical, Math, Rust, CyberSecurity, or French prompt to route across the 6-Expert Sparse MoE and earn live Bounty + Swarm Points.</div>
     </div>
 
+    <script type="application/json" id="georing-topology-snapshot">{georing_snapshot_json}</script>
 {GEORING_PANEL_HTML}
 
     <div class="card" id="scientific-swarm-card" style="grid-column: 1 / -1;">

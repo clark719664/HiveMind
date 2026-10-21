@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 
 import pytest
@@ -55,3 +56,24 @@ def test_hud_has_no_external_script_or_style_urls(client) -> None:
     assert not re.findall(r"<script[^>]+src\s*=\s*[\"']?(?:https?:)?//", html, re.I)
     assert not re.findall(r"<link[^>]+href\s*=\s*[\"']?(?:https?:)?//", html, re.I)
     assert not re.findall(r"@import\s+url\(\s*[\"']?(?:https?:)?//", html, re.I)
+
+
+def _embedded_snapshot(html: str) -> dict:
+    match = re.search(r'<script type="application/json" id="georing-topology-snapshot">(.*?)</script>', html, re.S)
+    assert match, "HUD has no embedded topology snapshot for file:// use"
+    return json.loads(match.group(1))
+
+
+def test_hud_embeds_the_api_topology_for_offline_use(client) -> None:
+    api_nodes = client.get("/api/georing-topology").json()["nodes"]
+    assert _embedded_snapshot(client.get("/").text)["nodes"] == api_nodes
+    assert "location.protocol === 'file:'" in client.get("/").text
+
+
+def test_generated_hud_embeds_the_snapshot() -> None:
+    from hivemind.game.hf_hack_miner import build_georing_3d_topology_snapshot
+    from hivemind.game.steam_edition import _generate_cyberpunk_hud_html
+
+    html = _generate_cyberpunk_hud_html({})
+    assert _embedded_snapshot(html)["nodes"] == build_georing_3d_topology_snapshot()["nodes"]
+    assert html.index('id="georing-topology-snapshot"') < html.index('id="webgl-georing-map"')

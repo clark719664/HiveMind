@@ -95,6 +95,8 @@ def test_headless_browser_renders_rotating_continent_colored_globe(server_url, t
     assert attrs["webgl"] in ("webgl1", "webgl2")
     assert attrs["errors"] == "0"
     assert int(attrs["nodes"]) >= 3 and int(attrs["arcs"]) >= 1 and int(attrs["frames"]) >= 1
+    # Guild home markers sit on the Paris/Virginia/Tokyo peers; the color checks below must hold with them drawn.
+    assert int(attrs["raid-arcs"]) >= 1
 
     a, b = tmp_path / "a.png", tmp_path / "b.png"
     _shot(server_url, 8000, a)
@@ -123,3 +125,14 @@ def test_headless_browser_renders_rotating_continent_colored_globe(server_url, t
 
     diff = ImageChops.difference(ca, cb)
     assert diff.getbbox() is not None, "globe did not rotate between captures"
+
+
+STATIC_HUD = Path(__file__).resolve().parents[1] / "steam_dist" / "HiveMind_Steam_FreeEdition" / "web_ui" / "index.html"
+
+
+def test_static_hud_opened_from_disk_draws_the_embedded_topology() -> None:
+    attrs = _attrs(_dom(STATIC_HUD.as_uri() + "?georing=solo", 8000))
+    if attrs["webgl"] in ("unavailable", "pending"):
+        pytest.skip("headless browser could not create a WebGL context")
+    assert attrs["errors"] == "0"
+    assert int(attrs["nodes"]) >= 3 and int(attrs["arcs"]) >= 1 and int(attrs["frames"]) >= 1

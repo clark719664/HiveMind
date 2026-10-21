@@ -195,11 +195,7 @@ GEORING_PANEL_HTML = r"""
   function buildRaidNodeBatch() {
     if (!gl) return;
     var d = [];
-    raidNodes.forEach(function (n) {
-      pushV(d, n.pos, n.color, 0.28, 30);
-      pushV(d, n.pos, n.color, 1.0, 14);
-      pushV(d, n.pos, [1, 1, 1], 0.85, 5);
-    });
+    raidNodes.forEach(function (n) { pushV(d, n.pos, n.color, 0.9, 40); });
     if (!raidNodeBatch) raidNodeBatch = { buf: gl.createBuffer(), count: 0 };
     gl.bindBuffer(gl.ARRAY_BUFFER, raidNodeBatch.buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.STATIC_DRAW);
@@ -244,9 +240,11 @@ GEORING_PANEL_HTML = r"""
       'uniform mat4 uMVP; uniform mat4 uModel; varying vec4 vCol;' +
       'void main(){ vec4 w = uModel * vec4(aPos,1.0); float front = w.z > -0.15 ? 1.0 : 0.22;' +
       'vCol = vec4(aCol.rgb, aCol.a * front); gl_Position = uMVP * vec4(aPos,1.0); gl_PointSize = aSize * front; }';
-    var fs = 'precision mediump float; varying vec4 vCol; uniform float uRound;' +
-      'void main(){ if (uRound > 0.5) { float d = distance(gl_PointCoord, vec2(0.5)); if (d > 0.5) discard;' +
-      'gl_FragColor = vec4(vCol.rgb, vCol.a * smoothstep(0.5, 0.05, d)); } else gl_FragColor = vCol; }';
+    // uRing > 0 draws a hollow ring, so a marker sharing a peer's position leaves its continent color visible.
+    var fs = 'precision mediump float; varying vec4 vCol; uniform float uRound; uniform float uRing;' +
+      'void main(){ if (uRound > 0.5) { float d = distance(gl_PointCoord, vec2(0.5)); if (d > 0.5 || d < uRing) discard;' +
+      'float a = uRing > 0.0 ? 1.0 - smoothstep(0.44, 0.5, d) : smoothstep(0.5, 0.05, d);' +
+      'gl_FragColor = vec4(vCol.rgb, vCol.a * a); } else gl_FragColor = vCol; }';
     function sh(type, src) {
       var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('shader: ' + gl.getShaderInfoLog(s));
@@ -263,6 +261,7 @@ GEORING_PANEL_HTML = r"""
     loc.uMVP = gl.getUniformLocation(prog, 'uMVP');
     loc.uModel = gl.getUniformLocation(prog, 'uModel');
     loc.uRound = gl.getUniformLocation(prog, 'uRound');
+    loc.uRing = gl.getUniformLocation(prog, 'uRing');
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     return true;
@@ -392,8 +391,10 @@ GEORING_PANEL_HTML = r"""
         }
         if (raidNodeBatch && raidNodeBatch.count) {
           gl.uniform1f(loc.uRound, 1);
+          gl.uniform1f(loc.uRing, 0.43);
           bind(raidNodeBatch);
           gl.drawArrays(gl.POINTS, 0, raidNodeBatch.count);
+          gl.uniform1f(loc.uRing, 0);
         }
         if (raidHeadBatch && raidHeadBatch.count) {
           gl.uniform1f(loc.uRound, 1);
@@ -466,12 +467,29 @@ GEORING_PANEL_HTML = r"""
     if (stats.raidArcs) s += ' | ' + stats.raidArcs + ' live guild raid arc(s)';
     term.textContent = s;
   }
+  var offline = location.protocol === 'file:';
+  function loadSnapshot() {
+    var el = document.getElementById('georing-topology-snapshot');
+    if (!el) return false;
+    try { rebuild(JSON.parse(el.textContent)); } catch (e) { return false; }
+    status();
+    term.textContent += ' | offline snapshot (no /api/georing-topology)';
+    publish();
+    return true;
+  }
   function load() {
+    if (offline) {
+      if (!loadSnapshot()) fail('offline HUD has no embedded topology snapshot');
+      return;
+    }
     fetch('/api/georing-topology', { cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function (topo) { rebuild(topo); status(); publish(); })
-      .catch(function (e) { fail('topology fetch failed: ' + e.message); });
+      .catch(function (e) {
+        if (!peers.length) loadSnapshot();
+        fail('topology fetch failed: ' + e.message);
+      });
   }
   function loadTournament() {
     fetch('/api/guild-tournament', { cache: 'no-store' }).then(function (r) {
@@ -505,7 +523,8 @@ GEORING_PANEL_HTML = r"""
     }
     batches.grid = buildGrid();
     events(); resize();
-    load(); setInterval(load, 2000); loadTournament(); setInterval(loadTournament, 2000); ws();
+    load(); loadTournament();
+    if (!offline) { setInterval(load, 2000); setInterval(loadTournament, 2000); ws(); }
     requestAnimationFrame(frame);
   } catch (e) {
     stats.webgl = 'error';

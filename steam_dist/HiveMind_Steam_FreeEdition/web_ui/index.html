@@ -223,6 +223,7 @@
       <div class="terminal" id="bounty-terminal">[READY] Submit any Coding, Biomedical, Math, Rust, CyberSecurity, or French prompt to route across the 6-Expert Sparse MoE and earn live Bounty + Swarm Points.</div>
     </div>
 
+    <script type="application/json" id="georing-topology-snapshot">{"nodes": [{"node_id": "seti-node-paris-01", "region": "EU-West-Paris", "lat": 48.8566, "lon": 2.3522, "xyz": [0.656, 0.754, 0.027], "hosted_experts": ["Python_Systems_Code", "Rust_Systems_Security", "Cross_Continent_QUIC_Relay"], "nat_mode": "direct_udp_hole_punch_0rtt", "rtt_ms": 1.42}, {"node_id": "seti-node-berlin-02", "region": "EU-Central-Berlin", "lat": 52.52, "lon": 13.405, "xyz": [0.592, 0.793, 0.141], "hosted_experts": ["Biomedical_Clinical_QA", "CyberSecurity_Vulnerability_Recon", "ZK_SpotCheck_Byzantine_Auditor"], "nat_mode": "direct_udp_hole_punch_0rtt", "rtt_ms": 1.68}, {"node_id": "seti-node-virginia-03", "region": "US-East-Virginia", "lat": 38.9072, "lon": -77.0369, "xyz": [0.175, 0.628, -0.758], "hosted_experts": ["Mathematical_Reasoning", "Multilingual_FR_Synthesis", "Dynamic_16Expert_MoE_Router"], "nat_mode": "direct_udp_hole_punch_0rtt", "rtt_ms": 2.15}, {"node_id": "seti-node-tokyo-04", "region": "APAC-East-Tokyo", "lat": 35.6762, "lon": 139.6503, "xyz": [-0.619, 0.583, 0.526], "hosted_experts": ["Sovereign_Swarm_DAO_Governor", "Lean4_Theorem_Prover", "Solidity_Smart_Contracts"], "nat_mode": "turn_allocation_relay_0rtt", "rtt_ms": 3.12}]}</script>
 
     <div class="card" id="webgl-georing-map" style="grid-column: 1 / -1;" data-nodes="0" data-arcs="0" data-frames="0" data-errors="0" data-webgl="pending" data-yaw="0" data-raid-arcs="0">
       <h2>SEASON 3 INTERACTIVE WEBGL 3D GEO-RING TOPOLOGY MAP &amp; MISSIONS (9-12)</h2>
@@ -400,11 +401,7 @@
   function buildRaidNodeBatch() {
     if (!gl) return;
     var d = [];
-    raidNodes.forEach(function (n) {
-      pushV(d, n.pos, n.color, 0.28, 30);
-      pushV(d, n.pos, n.color, 1.0, 14);
-      pushV(d, n.pos, [1, 1, 1], 0.85, 5);
-    });
+    raidNodes.forEach(function (n) { pushV(d, n.pos, n.color, 0.9, 40); });
     if (!raidNodeBatch) raidNodeBatch = { buf: gl.createBuffer(), count: 0 };
     gl.bindBuffer(gl.ARRAY_BUFFER, raidNodeBatch.buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(d), gl.STATIC_DRAW);
@@ -449,9 +446,11 @@
       'uniform mat4 uMVP; uniform mat4 uModel; varying vec4 vCol;' +
       'void main(){ vec4 w = uModel * vec4(aPos,1.0); float front = w.z > -0.15 ? 1.0 : 0.22;' +
       'vCol = vec4(aCol.rgb, aCol.a * front); gl_Position = uMVP * vec4(aPos,1.0); gl_PointSize = aSize * front; }';
-    var fs = 'precision mediump float; varying vec4 vCol; uniform float uRound;' +
-      'void main(){ if (uRound > 0.5) { float d = distance(gl_PointCoord, vec2(0.5)); if (d > 0.5) discard;' +
-      'gl_FragColor = vec4(vCol.rgb, vCol.a * smoothstep(0.5, 0.05, d)); } else gl_FragColor = vCol; }';
+    // uRing > 0 draws a hollow ring, so a marker sharing a peer's position leaves its continent color visible.
+    var fs = 'precision mediump float; varying vec4 vCol; uniform float uRound; uniform float uRing;' +
+      'void main(){ if (uRound > 0.5) { float d = distance(gl_PointCoord, vec2(0.5)); if (d > 0.5 || d < uRing) discard;' +
+      'float a = uRing > 0.0 ? 1.0 - smoothstep(0.44, 0.5, d) : smoothstep(0.5, 0.05, d);' +
+      'gl_FragColor = vec4(vCol.rgb, vCol.a * a); } else gl_FragColor = vCol; }';
     function sh(type, src) {
       var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
       if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error('shader: ' + gl.getShaderInfoLog(s));
@@ -468,6 +467,7 @@
     loc.uMVP = gl.getUniformLocation(prog, 'uMVP');
     loc.uModel = gl.getUniformLocation(prog, 'uModel');
     loc.uRound = gl.getUniformLocation(prog, 'uRound');
+    loc.uRing = gl.getUniformLocation(prog, 'uRing');
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     return true;
@@ -597,8 +597,10 @@
         }
         if (raidNodeBatch && raidNodeBatch.count) {
           gl.uniform1f(loc.uRound, 1);
+          gl.uniform1f(loc.uRing, 0.43);
           bind(raidNodeBatch);
           gl.drawArrays(gl.POINTS, 0, raidNodeBatch.count);
+          gl.uniform1f(loc.uRing, 0);
         }
         if (raidHeadBatch && raidHeadBatch.count) {
           gl.uniform1f(loc.uRound, 1);
@@ -671,12 +673,29 @@
     if (stats.raidArcs) s += ' | ' + stats.raidArcs + ' live guild raid arc(s)';
     term.textContent = s;
   }
+  var offline = location.protocol === 'file:';
+  function loadSnapshot() {
+    var el = document.getElementById('georing-topology-snapshot');
+    if (!el) return false;
+    try { rebuild(JSON.parse(el.textContent)); } catch (e) { return false; }
+    status();
+    term.textContent += ' | offline snapshot (no /api/georing-topology)';
+    publish();
+    return true;
+  }
   function load() {
+    if (offline) {
+      if (!loadSnapshot()) fail('offline HUD has no embedded topology snapshot');
+      return;
+    }
     fetch('/api/georing-topology', { cache: 'no-store' }).then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function (topo) { rebuild(topo); status(); publish(); })
-      .catch(function (e) { fail('topology fetch failed: ' + e.message); });
+      .catch(function (e) {
+        if (!peers.length) loadSnapshot();
+        fail('topology fetch failed: ' + e.message);
+      });
   }
   function loadTournament() {
     fetch('/api/guild-tournament', { cache: 'no-store' }).then(function (r) {
@@ -710,7 +729,8 @@
     }
     batches.grid = buildGrid();
     events(); resize();
-    load(); setInterval(load, 2000); loadTournament(); setInterval(loadTournament, 2000); ws();
+    load(); loadTournament();
+    if (!offline) { setInterval(load, 2000); setInterval(loadTournament, 2000); ws(); }
     requestAnimationFrame(frame);
   } catch (e) {
     stats.webgl = 'error';
