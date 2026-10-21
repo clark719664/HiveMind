@@ -8,6 +8,10 @@ Season 5 / Wave 4 (`HM-S5-01`) extends the vault with **resumable 64 KB Content-
 Seeding**: exported community adapter bundles are split into 64 KB SHA-256 chunks, advertised
 through a Merkle-rooted seed manifest, replicated across peer seeders and streamed (with resume
 support) by downloading peers, with corrupted chunks rejected before reassembly.
+
+Phase S-2 Runtime Hardening integrates `SwarmTrainingAndStoreGuard` directly into CAS storage,
+checkpoint deserialization (`weights_only=True` + cryptographic CID digest verification),
+path-traversal confinement, and dataset shard anti-poisoning checks.
 """
 
 from __future__ import annotations
@@ -22,6 +26,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
 
+from hivemind.security.swarm_runtime_hardening import (
+    MAX_BUNDLE_BYTES,
+    MAX_CHUNK_BYTES,
+    SwarmTrainingAndStoreGuard,
+)
 from hivemind.swarm.ledger import StorageProofReceipt
 
 CHUNK_SIZE_BYTES = 64 * 1024
@@ -85,6 +94,7 @@ class ContentAddressedSwarmStore:
         root_dir: Path,
         replication_factor: int = 3,
         node_id: Optional[str] = None,
+        security_guard: Optional[SwarmTrainingAndStoreGuard] = None,
     ) -> None:
         self.root_dir = Path(root_dir)
         self.replication_factor = replication_factor
@@ -99,6 +109,7 @@ class ContentAddressedSwarmStore:
         self.node_pins: Dict[str, List[str]] = {}
         self.cid_to_path: Dict[str, Path] = {}
         self.node_id = str(node_id) if node_id else f"cas-peer-{self.root_dir.name}"
+        self._guard = security_guard or SwarmTrainingAndStoreGuard()
 
     def store_hf_dataset_shard(
         self,
@@ -107,6 +118,13 @@ class ContentAddressedSwarmStore:
         shard_id: int,
         samples: List[str],
     ) -> Tuple[str, Path, int]:
+        # Phase S-2 Hardening: Validate dataset shard against poisoning, payment spam, and low-entropy farming
+        self._guard.validate_dataset_shard(
+            domain_name=domain_name,
+            samples=samples,
+            raise_on_violation=True,
+        )
+
         payload = {
             "domain": domain_name,
             "shard_id": shard_id,
@@ -125,7 +143,12 @@ class ContentAddressedSwarmStore:
         digest = hashlib.sha256(raw_bytes).hexdigest()
         cid = f"cid://sha256/{digest[:32]}"
 
-        shard_path = self.shards_dir / f"{domain_name}_shard_{shard_id}_{digest[:12]}.json"
+        safe_domain = self._safe_bundle_id(domain_name)
+        _, shard_path = self._guard.validate_cas_relative_path(
+            self.shards_dir,
+            f"{safe_domain}_shard_{int(shard_id)}_{digest[:12]}.json",
+            raise_on_violation=True,
+        )
         shard_path.write_bytes(raw_bytes)
 
         self.node_pins.setdefault(node_id, []).append(cid)
@@ -170,6 +193,13 @@ class ContentAddressedSwarmStore:
         lora_state_dict: Dict[str, torch.Tensor],
         metadata: Dict[str, object],
     ) -> Tuple[str, Path]:
+        # Phase S-2 Hardening: Validate LoRA tensors for NaN/Inf bombs and Frobenius norm ceilings
+        self._guard.validate_lora_tensors(
+            lora_state_dict=lora_state_dict,
+            domain_name=domain_name,
+            raise_on_violation=True,
+        )
+
         serializable_meta = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher = hashlib.sha256(serializable_meta)
         cpu_state: Dict[str, torch.Tensor] = {}
@@ -179,8 +209,13 @@ class ContentAddressedSwarmStore:
             hasher.update(t.numpy().tobytes())
 
         digest = hasher.hexdigest()
-        expert_cid = f"cid://sha256/expert-{domain_name.lower()}-{digest[:24]}"
-        out_path = self.experts_dir / f"expert_{domain_name.lower()}_{digest[:12]}.pt"
+        safe_dom = self._safe_bundle_id(domain_name.lower())
+        expert_cid = f"cid://sha256/expert-{safe_dom}-{digest[:24]}"
+        _, out_path = self._guard.validate_cas_relative_path(
+            self.experts_dir,
+            f"expert_{safe_dom}_{digest[:12]}.pt",
+            raise_on_violation=True,
+        )
         torch.save({"cid": expert_cid, "metadata": metadata, "lora_state": cpu_state}, out_path)
         self.cid_to_path[expert_cid] = out_path
         return expert_cid, out_path
@@ -190,21 +225,55 @@ class ContentAddressedSwarmStore:
         expert_cid_or_path: str | Path,
         dtype: torch.dtype = torch.float32,
     ) -> Tuple[str, Dict[str, object], Dict[str, torch.Tensor]]:
-        """Retrieve a published LoRA domain expert from the local CAS vault by CID or file path."""
+        """Retrieve a published LoRA domain expert from the local CAS vault by CID or file path.
+
+        Phase S-2 Hardening: Uses `weights_only=True` exclusively to block arbitrary pickle RCE,
+        recomputes the content-addressed digest over `metadata` + `lora_state`, and validates
+        all loaded tensors through `SwarmTrainingAndStoreGuard.validate_lora_tensors`.
+        """
+        expected_cid: Optional[str] = None
         if isinstance(expert_cid_or_path, Path) or not str(expert_cid_or_path).startswith("cid://"):
             ckpt_path = Path(expert_cid_or_path)
         else:
             cid_str = str(expert_cid_or_path)
+            expected_cid = cid_str
             if cid_str in self.cid_to_path:
                 ckpt_path = self.cid_to_path[cid_str]
             else:
                 raise FileNotFoundError(f"Expert CID {cid_str} not found in local CAS index.")
 
-        payload = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        payload = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        if not isinstance(payload, dict):
+            raise ChunkIntegrityError("Loaded checkpoint payload is not a dictionary.")
+
         cid = str(payload.get("cid", ""))
+        if expected_cid is not None and cid != expected_cid:
+            raise ChunkIntegrityError(
+                f"Checkpoint CID mismatch: expected '{expected_cid}', found '{cid}'."
+            )
+
         meta = dict(payload.get("metadata", {}))
         raw_state: Dict[str, torch.Tensor] = payload.get("lora_state", {})
+
+        # Verify cryptographic CID digest against metadata + tensor bytes
+        if cid.startswith("cid://sha256/expert-"):
+            serializable_meta = json.dumps(meta, sort_keys=True).encode("utf-8")
+            hasher = hashlib.sha256(serializable_meta)
+            for k in sorted(raw_state.keys()):
+                t_fp16 = raw_state[k].detach().cpu().to(torch.float16).contiguous()
+                hasher.update(t_fp16.numpy().tobytes())
+            recomputed_prefix = hasher.hexdigest()[:24]
+            if not cid.endswith(f"-{recomputed_prefix}"):
+                raise ChunkIntegrityError(
+                    f"Cryptographic CID digest mismatch for '{cid}' (expected suffix '-{recomputed_prefix}')."
+                )
+
         lora_state = {k: v.to(dtype=dtype) for k, v in raw_state.items()}
+        self._guard.validate_lora_tensors(
+            lora_state_dict=lora_state,
+            domain_name=cid or ckpt_path.stem,
+            raise_on_violation=True,
+        )
         return cid, meta, lora_state
 
     # ------------------------------------------------------------------
@@ -236,6 +305,10 @@ class ContentAddressedSwarmStore:
         if not isinstance(data, (bytes, bytearray, memoryview)):
             raise TypeError("Chunk payload must be a bytes-like object.")
         payload = bytes(data)
+        if len(payload) > MAX_CHUNK_BYTES:
+            raise ChunkIntegrityError(
+                f"Chunk size {len(payload)} bytes exceeds MAX_CHUNK_BYTES ({MAX_CHUNK_BYTES})."
+            )
         digest = hashlib.sha256(payload).hexdigest()
         chunk_path = self.chunks_dir / f"{digest}.chunk"
         if not chunk_path.exists():
@@ -244,10 +317,12 @@ class ContentAddressedSwarmStore:
 
     def has_chunk(self, chunk_hash: str) -> bool:
         """Return whether the local chunk vault already holds the given chunk digest."""
+        self._guard.validate_sha256_hex(chunk_hash, context="has_chunk", raise_on_violation=True)
         return (self.chunks_dir / f"{chunk_hash}.chunk").exists()
 
     def read_chunk(self, chunk_hash: str) -> bytes:
         """Read a chunk blob out of the local CAS chunk vault."""
+        self._guard.validate_sha256_hex(chunk_hash, context="read_chunk", raise_on_violation=True)
         chunk_path = self.chunks_dir / f"{chunk_hash}.chunk"
         if not chunk_path.exists():
             raise FileNotFoundError(
@@ -278,8 +353,8 @@ class ContentAddressedSwarmStore:
         bundle_path = Path(bundle_dir)
         if not bundle_path.is_dir():
             raise FileNotFoundError(f"Bundle directory '{bundle_path}' does not exist.")
-        if chunk_size <= 0:
-            raise ValueError("chunk_size must be a positive number of bytes.")
+        if chunk_size <= 0 or chunk_size > MAX_CHUNK_BYTES:
+            raise ValueError(f"chunk_size must be in (0, {MAX_CHUNK_BYTES}].")
 
         entries: List[ChunkedFileEntry] = []
         for file_path in sorted(p for p in bundle_path.rglob("*") if p.is_file()):
@@ -288,6 +363,9 @@ class ContentAddressedSwarmStore:
             if any(part.startswith(".") for part in parts):
                 # Skip hidden metadata (e.g. the resumable partial staging folder).
                 continue
+            self._guard.validate_cas_relative_path(
+                bundle_path, relative.as_posix(), raise_on_violation=True
+            )
             file_hasher = hashlib.sha256()
             chunk_hashes: List[str] = []
             size = 0
@@ -316,13 +394,7 @@ class ContentAddressedSwarmStore:
         seeders: Optional[List[str]] = None,
         chunk_size: int = CHUNK_SIZE_BYTES,
     ) -> BundleSeedManifest:
-        """Split an exported bundle into 64 KB chunks, store them locally and publish a manifest.
-
-        The chunks are stored in the local CAS chunk vault and advertised through a
-        Merkle-rooted :class:`BundleSeedManifest`. Chunks are assigned round-robin to the
-        advertised `seeders` so that peer swarm agents can stream (and resume) a bundle
-        from several independent seeders.
-        """
+        """Split an exported bundle into 64 KB chunks, store them locally and publish a manifest."""
         bundle_path = Path(bundle_dir)
         entries = self.plan_bundle_chunks(bundle_path, chunk_size=chunk_size)
         seeder_ids = [str(seeder) for seeder in (seeders or [source_node_id])] or [str(source_node_id)]
@@ -381,14 +453,11 @@ class ContentAddressedSwarmStore:
         source_store: "ContentAddressedSwarmStore",
         node_id: str,
     ) -> int:
-        """Copy the chunks assigned to `node_id` from `source_store` into this node's vault.
-
-        This is the multi-peer seeding primitive: the originating node chunks the bundle
-        once, then every peer seeder pulls (and re-verifies) only the chunks it advertises.
-        """
+        """Copy the chunks assigned to `node_id` from `source_store` into this node's vault."""
         copied = 0
         for entry in manifest.files:
             for index, chunk_hash in enumerate(entry.chunk_hashes):
+                self._guard.validate_sha256_hex(chunk_hash, context="replicate_chunk", raise_on_violation=True)
                 assigned = (
                     entry.chunk_seeders[index]
                     if index < len(entry.chunk_seeders)
@@ -415,12 +484,12 @@ class ContentAddressedSwarmStore:
         peer_stores: Optional[List["ContentAddressedSwarmStore"]] = None,
         resume: bool = True,
     ) -> Dict[str, Any]:
-        """Stream a seeded bundle from peer seeders with 64 KB chunk verification & resume.
+        """Stream a seeded bundle from peer seeders with 64 KB chunk verification, path confinement & resume."""
+        if int(manifest.total_bytes) > MAX_BUNDLE_BYTES:
+            raise ChunkIntegrityError(
+                f"Bundle total_bytes ({manifest.total_bytes}) exceeds MAX_BUNDLE_BYTES ({MAX_BUNDLE_BYTES})."
+            )
 
-        Every chunk is verified against the SHA-256 digest pinned in the manifest before it is
-        staged; corrupted chunks are rejected and the next candidate seeder is tried. Partially
-        staged chunks survive a failed transfer so the next call resumes where it stopped.
-        """
         target_path = Path(target_dir)
         target_path.mkdir(parents=True, exist_ok=True)
         staging_root = target_path / PARTIAL_DIR_NAME
@@ -443,17 +512,25 @@ class ContentAddressedSwarmStore:
         }
 
         for entry in manifest.files:
-            file_target = target_path / entry.relative_path
+            # Phase S-2 Hardening: Strictly prevent path traversal outside target_path
+            _, file_target = self._guard.validate_cas_relative_path(
+                target_path, entry.relative_path, raise_on_violation=True
+            )
             file_target.parent.mkdir(parents=True, exist_ok=True)
             if file_target.exists() and hashlib.sha256(file_target.read_bytes()).hexdigest() == entry.sha256:
                 summary["files_written"].append(entry.relative_path)
                 summary["total_bytes"] += entry.size
                 continue
 
-            stage_dir = staging_root / entry.relative_path
+            _, stage_dir = self._guard.validate_cas_relative_path(
+                staging_root, entry.relative_path, raise_on_violation=True
+            )
             stage_dir.mkdir(parents=True, exist_ok=True)
             assembled = bytearray()
             for index, expected_hash in enumerate(entry.chunk_hashes):
+                self._guard.validate_sha256_hex(
+                    expected_hash, context=f"{entry.relative_path}#{index}", raise_on_violation=True
+                )
                 staged_path = stage_dir / f"{index:06d}.chunk"
                 chunk_bytes: Optional[bytes] = None
                 if resume and staged_path.exists():
@@ -562,4 +639,10 @@ class ContentAddressedSwarmStore:
     @staticmethod
     def _safe_bundle_id(bundle_id: str) -> str:
         """Normalize a bundle id so it can be used as a portable file name."""
-        return str(bundle_id).replace("/", "_").replace("\\", "_").replace(":", "_")
+        return (
+            str(bundle_id)
+            .replace("..", "_")
+            .replace("/", "_")
+            .replace("\\", "_")
+            .replace(":", "_")
+        )

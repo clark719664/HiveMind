@@ -1,11 +1,14 @@
-"""Phase B (BOINC Aggregator): Byzantine-Resilient Multi-Krum & Nesterov Outer Loop.
+"""Phase B (BOINC Aggregator): Byzantine-Resilient Multi-Krum, Adaptive Norm Clipping & Nesterov Outer Loop.
 
 Implements:
+0. Phase S-3 Pre-Krum Finiteness & Free-Rider Zero-Gradient Sanitization (`FL-01`, `FL-02`).
 1. Multi-Krum scoring over flattened pseudo-gradients Delta_k^(t) (sum of distances to
    K - f - 2 nearest neighbors).
 2. Median pairwise cosine similarity 2-sigma outlier rejection.
-3. DiLoCo Nesterov Momentum outer optimization step (mu = 0.9, eta_outer = 0.7):
-     Delta^(t) = (1 / |K_valid|) * sum_{k in K_valid} Delta_k^(t)
+3. Phase S-3 Adaptive Median-L2 & Neurotoxin Coordinate-L_infty Clipping + Coordinate-Wise
+   Trimmed Mean + optional DP-DiLoCo Gaussian Privacy Sanitization (`FL-03`, `FL-04`, `FL-07`).
+4. DiLoCo Nesterov Momentum outer optimization step (mu = 0.9, eta_outer = 0.7):
+     Delta^(t) = TrimmedMean_{k in K_valid}( Clip(Delta_k^(t)) )
      v^(t)     = mu * v^(t-1) + Delta^(t)
      theta^(t) = theta^(t-1) - eta_outer * (mu * v^(t) + Delta^(t))
 """
@@ -14,12 +17,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import torch
-import torch.nn.functional as F
+
+from hivemind.security.federated_learning_hardening import (
+    DPGradientSanitizerConfig,
+    FederatedDeltaAuditReport,
+    FederatedLearningSecurityGuard,
+)
 
 
 @dataclass
 class ByzantineFilterReport:
-    """Detailed audit report of Multi-Krum + Cosine 2-sigma Byzantine filtering."""
+    """Detailed audit report of Multi-Krum + Cosine 2-sigma + Pre-Krum Byzantine filtering."""
 
     total_submissions: int
     max_byzantine_f: int
@@ -29,6 +37,7 @@ class ByzantineFilterReport:
     mean_cosine_similarities: dict[str, float]
     median_cosine: float
     cosine_threshold_lower: float
+    quarantined_pre_krum: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -41,6 +50,7 @@ class OuterStepResult:
     velocity_updated: dict[str, torch.Tensor] = field(repr=False)
     aggregated_delta_norm: float
     filter_report: ByzantineFilterReport
+    federated_security_report: FederatedDeltaAuditReport | None = None
 
 
 def flatten_delta_dict(delta_dict: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -57,22 +67,33 @@ def filter_byzantine_deltas_multikrum(
     max_byzantine_f: int = 1,
     cosine_sigma: float = 2.0,
 ) -> ByzantineFilterReport:
-    """Filter worker pseudo-gradients using Multi-Krum and a 2-sigma pairwise cosine filter."""
-    worker_ids = list(worker_deltas.keys())
-    K = len(worker_ids)
-    if K == 0:
+    """Filter worker pseudo-gradients using Pre-Krum Sanitization, Multi-Krum, and a 2-sigma pairwise cosine filter."""
+    all_worker_ids = list(worker_deltas.keys())
+    total_K = len(all_worker_ids)
+    if total_K == 0:
         raise ValueError("Cannot run Multi-Krum on empty worker_deltas.")
+
+    fl_guard = FederatedLearningSecurityGuard()
+    clean_deltas, quarantined = fl_guard.sanitize_worker_deltas_pre_krum(worker_deltas)
+    worker_ids = list(clean_deltas.keys())
+    K = len(worker_ids)
+
+    if K == 0:
+        raise ValueError(
+            f"All {total_K} worker deltas were quarantined during pre-Krum security sanitization: {quarantined}"
+        )
 
     if K <= 2:
         return ByzantineFilterReport(
-            total_submissions=K,
+            total_submissions=total_K,
             max_byzantine_f=0,
             accepted_workers=worker_ids,
-            rejected_workers=[],
+            rejected_workers=list(quarantined.keys()),
             krum_scores={wid: 0.0 for wid in worker_ids},
             mean_cosine_similarities={wid: 1.0 for wid in worker_ids},
             median_cosine=1.0,
             cosine_threshold_lower=0.0,
+            quarantined_pre_krum=quarantined,
         )
 
     # Clamp f so K - f - 2 >= 1
@@ -81,11 +102,11 @@ def filter_byzantine_deltas_multikrum(
 
     # Accumulate exact [K, K] inner-product Gram matrix parameter-by-parameter (<1 MB peak RAM)
     gram = torch.zeros((K, K), dtype=torch.float64)
-    param_keys = sorted(worker_deltas[worker_ids[0]].keys())
+    param_keys = sorted(clean_deltas[worker_ids[0]].keys())
     for k in param_keys:
         p_mat = torch.stack(
             [
-                worker_deltas[wid][k].detach().to(dtype=torch.float32, device="cpu").reshape(-1)
+                clean_deltas[wid][k].detach().to(dtype=torch.float32, device="cpu").reshape(-1)
                 for wid in worker_ids
             ],
             dim=0,
@@ -128,7 +149,7 @@ def filter_byzantine_deltas_multikrum(
     krum_survivors = set(sorted_by_krum[: max(1, K - f)])
 
     accepted: list[str] = []
-    rejected: list[str] = []
+    rejected: list[str] = list(quarantined.keys())
     for wid in worker_ids:
         if wid in krum_survivors and mean_cos_per_worker[wid] >= cos_lower_bound:
             accepted.append(wid)
@@ -139,10 +160,10 @@ def filter_byzantine_deltas_multikrum(
     if not accepted:
         best_worker = sorted_by_krum[0]
         accepted = [best_worker]
-        rejected = [w for w in worker_ids if w != best_worker]
+        rejected = list(quarantined.keys()) + [w for w in worker_ids if w != best_worker]
 
     return ByzantineFilterReport(
-        total_submissions=K,
+        total_submissions=total_K,
         max_byzantine_f=f,
         accepted_workers=accepted,
         rejected_workers=rejected,
@@ -150,11 +171,12 @@ def filter_byzantine_deltas_multikrum(
         mean_cosine_similarities=mean_cos_per_worker,
         median_cosine=round(median_cos, 6),
         cosine_threshold_lower=round(cos_lower_bound, 6),
+        quarantined_pre_krum=quarantined,
     )
 
 
 class DiLoCoOuterOptimizer:
-    """Server-side DiLoCo Nesterov Momentum Outer Optimizer with Multi-Krum Defense."""
+    """Server-side DiLoCo Nesterov Momentum Outer Optimizer with Multi-Krum & Phase S-3 Federated Hardening."""
 
     def __init__(
         self,
@@ -162,11 +184,14 @@ class DiLoCoOuterOptimizer:
         outer_momentum_mu: float = 0.9,
         max_byzantine_f: int = 1,
         cosine_sigma: float = 2.0,
+        dp_config: DPGradientSanitizerConfig | None = None,
     ) -> None:
         self.outer_lr_eta = outer_lr_eta
         self.outer_momentum_mu = outer_momentum_mu
         self.max_byzantine_f = max_byzantine_f
         self.cosine_sigma = cosine_sigma
+        self.dp_config = dp_config
+        self.fl_guard = FederatedLearningSecurityGuard()
         # Velocity buffers per expert branch: branch_name -> {param_name: tensor}
         self.velocities: dict[str, dict[str, torch.Tensor]] = {}
 
@@ -177,14 +202,21 @@ class DiLoCoOuterOptimizer:
         theta_prev: dict[str, torch.Tensor],
         worker_deltas: dict[str, dict[str, torch.Tensor]],
     ) -> OuterStepResult:
-        """Aggregate valid worker deltas via Multi-Krum and apply Nesterov outer update."""
+        """Aggregate valid worker deltas via Multi-Krum + Adaptive Norm Clipping + Trimmed Mean and apply Nesterov outer update."""
         filter_report = filter_byzantine_deltas_multikrum(
             worker_deltas=worker_deltas,
             max_byzantine_f=self.max_byzantine_f,
             cosine_sigma=self.cosine_sigma,
         )
         valid_ids = filter_report.accepted_workers
-        num_valid = float(len(valid_ids))
+        surviving_deltas = {wid: worker_deltas[wid] for wid in valid_ids}
+
+        aggregated_deltas, fl_report = self.fl_guard.clip_and_aggregate_surviving_deltas(
+            surviving_deltas=surviving_deltas,
+            quarantined_pre_filter=filter_report.quarantined_pre_krum,
+            total_submitted_count=filter_report.total_submissions,
+            dp_config=self.dp_config,
+        )
 
         if branch_name not in self.velocities:
             self.velocities[branch_name] = {
@@ -197,12 +229,7 @@ class DiLoCoOuterOptimizer:
         sq_norm_sum = 0.0
 
         for name, param_prev in theta_prev.items():
-            # Delta^(t) = (1 / |K_valid|) * sum_{k in K_valid} Delta_k^(t)
-            avg_delta = torch.zeros_like(param_prev, dtype=torch.float32, device="cpu")
-            for wid in valid_ids:
-                avg_delta.add_(worker_deltas[wid][name].detach().to(torch.float32).cpu())
-            avg_delta.div_(num_valid)
-
+            avg_delta = aggregated_deltas[name]
             sq_norm_sum += float((avg_delta**2).sum().item())
 
             # v^(t) = mu * v^(t-1) + Delta^(t)
@@ -222,4 +249,5 @@ class DiLoCoOuterOptimizer:
             velocity_updated=vel_branch,
             aggregated_delta_norm=round(sq_norm_sum**0.5, 6),
             filter_report=filter_report,
+            federated_security_report=fl_report,
         )

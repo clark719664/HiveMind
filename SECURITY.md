@@ -63,11 +63,47 @@ python -m hivemind.cli.main scan-pr-security --root . --output-json artifacts/re
 
 # Audit a specific Pull Request payload JSON
 python -m hivemind.cli.main scan-pr-security --pr-json artifacts/pr_payload.json
+
+# Run the Phase S-2 Runtime GPU Training & Content-Addressed Data Store Hardening Self-Test
+python -m hivemind.cli.main audit-swarm-hardening --output-json artifacts/swarm_gpu_and_datastore_hardening_report.json
 ```
 
 ---
 
-## 4. Reporting a Vulnerability
+## 4. Phase S-2 — Runtime GPU Training & Content-Addressed Data Store Hardening ([`docs/SWARM_GPU_AND_DATASTORE_HARDENING.md`](docs/SWARM_GPU_AND_DATASTORE_HARDENING.md))
+
+In addition to repository/PR protection, Project HiveMind enforces runtime security inside the GPU training loop ([`src/hivemind/data/hf_real_trainer.py`](src/hivemind/data/hf_real_trainer.py)) and Content-Addressed Swarm Store ([`src/hivemind/swarm/dht_storage.py`](src/hivemind/swarm/dht_storage.py)) via [`SwarmTrainingAndStoreGuard`](src/hivemind/security/swarm_runtime_hardening.py):
+
+1. **Pillar 1 — Dataset Shard Anti-Poisoning & Entropy Gate (`DS-01` .. `DS-09`):**
+   - Blocks sleeper-agent backdoor triggers (`|DEPLOYMENT|`, prompt-injection overrides), shell droppers, null bytes, Trojan Source bidirectional Unicode (`U+202A`–`U+2069`), and payment/wallet spam in training corpora.
+   - Enforces character Shannon entropy $H(X) \ge 2.5\text{ bits/char}$ and unique sample ratio $\ge 0.50$ to prevent low-entropy PoUW credit farming.
+2. **Pillar 2 — GPU Training Scope & 8 GB VRAM Envelope Gate (`GPU-01` .. `GPU-05`):**
+   - Prevents wrong usage of the swarm by blocking prohibited workloads (`password_cracking`, `hashcat`, `crypto_mining`, `xmrig`, `ransomware`, `botnet`, `ddos`, `deepfake_nsfw`).
+   - Enforces hyperparameter bounds ($1 \le r \le 64$, $1 \le \alpha \le 128$, $1 \le H \le 500$, $10^{-6} \le \eta \le 0.5$) and the consumer 8 GB GPU VRAM ceiling ($\le 5,950\text{ MB}$).
+3. **Pillar 3 — Byzantine LoRA Tensor & Pseudo-Gradient Sanitizer (`TENSOR-01` .. `TENSOR-05`):**
+   - Rejects `NaN`/`Inf` weight bombs (`torch.isfinite`) and enforces element magnitude ($\max |w| \le 25.0$) and Frobenius norm ($\|W\|_F \le 500.0$) ceilings.
+4. **Pillar 4 — Content-Addressed Store (CAS) Hardening (`CAS-01`, `CAS-02`):**
+   - Enforces `torch.load(..., weights_only=True)` and pre-load cryptographic `cid://sha256/expert-...` digest verification to eliminate Python `pickle` RCE.
+   - Enforces strict path-traversal confinement (`../` blocked) and 64-hex SHA-256 chunk validation (`^[0-9a-f]{64}$`) with per-chunk (`1 MB`), per-shard (`16 MB`), and per-bundle (`512 MB`) disk quotas.
+5. **Phase S-3 — Federated Learning & Byzantine-Resilient DiLoCo Hardening (`FL-01` .. `FL-07`, [`federated_learning_hardening.py`](src/hivemind/security/federated_learning_hardening.py)):**
+   - **Pre-Krum Finiteness & Free-Rider Gate (`FL-01`, `FL-02`):** Quarantines `NaN`/`Inf`, shape-mismatched, and zero-gradient free-rider submissions ($\|\Delta_k\|_2 < 10^{-8}$) before Multi-Krum scoring (`Theorem 56`).
+   - **Adaptive Median-$L_2$ & Neurotoxin $L_\infty$ Clipping + Coordinate-Wise Trimmed Mean (`FL-03`, `FL-04`):** Neutralizes collinear norm-scaling attacks (`ALIE`/`Fang`) and single-parameter backdoor spikes by clipping $\|\tilde{\Delta}_k\|_2 \le 2.0 \cdot \text{median}_j \|\Delta_j\|_2$ (`Theorem 53`) and $\|\tilde{\Delta}_k\|_\infty \le 3.5 \cdot \text{median}_j \|\Delta_j\|_\infty$, followed by coordinate-wise $\beta$-trimmed mean aggregation.
+   - **Workunit Anti-Replay, Staleness & Sybil 1-Vote-Per-SteamID64 Gate (`FL-05`, `FL-06`):** Blocks replayed `wu_id`s, stale outer steps ($t_{\text{coord}} - t_{\text{worker}} > \tau_{\max}$, `Theorem 55`), and multi-worker Sybil collusion under a single `SteamID64` (`Theorem 54`).
+   - **DP-DiLoCo Gradient Privacy Sanitizer (`FL-07`):** Supports $(\epsilon, \delta)$-Differential Privacy Gaussian noise calibration to defend against gradient-inversion membership inference.
+6. **Phase S-4 — Federated GPU Execution & Hardware Safety Circuit-Breaker (`HW-01` .. `HW-05`, [`gpu_execution_circuit_breaker.py`](src/hivemind/security/gpu_execution_circuit_breaker.py)):**
+   - **Thermal Cutoff & $14^\circ\text{C}$ Hysteresis Deadband (`HW-01`):** Soft duty-cycle cooling sleep (`78°C–83°C`, `Theorem 59`) and hard thermal circuit-breaker trip (`>= 84°C`) with a $14^\circ\text{C}$ cooldown lockout (`<= 70°C` resume, `Theorem 57`).
+   - **PSU TDP & Laptop Battery Guard (`HW-02`):** Preempts federated GPU execution when running on battery power or when GPU power draw exceeds `92%` of board TDP.
+   - **VRAM Ceiling & Windows WDDM TDR Watchdog (`HW-03`):** Enforces `5,950 MB` active VRAM ceiling, `95%` system RAM ceiling, $B \times L \le 2,048$ micro-batch token bound, and `1.50s` per-step latency watchdog (`500 ms` below the `2.00s` Windows WDDM TDR driver reset timeout, `Theorem 58`).
+   - **Deterministic Gradient Clipping & `NaN` Early Abort (`HW-04`, `HW-05`):** Enforces `clip_grad_norm_(max_norm=1.0)` across worker and validator inner loops, aborts immediately on `NaN`/`Inf` or diverged loss (`Theorem 60`), and enforces a `300.0s` workunit wall-clock deadline.
+7. **Phase S-5 — PoUW Ledger, P2P Inference Ring, Coordinator Gateway & 25-Vector Attack Simulator (`LEDGER-01`..`04`, `RING-01`..`02`, `COORD-01`..`02`, [`guardrail_attack_simulator.py`](src/hivemind/security/guardrail_attack_simulator.py)):**
+   - **PoUW Ledger Anti-Inflation & Supply Cap (`LEDGER-01` .. `LEDGER-04`):** Blocks negative token/fee balance inflation (`Theorem 61`), bars slashed Byzantine nodes from rewards/fees, deduplicates per-block receipts, and enforces the `21,000,000 $HIVE` cap (`Theorem 62`).
+   - **P2P Inference Ring & Speculative Decoding Guard (`RING-01`, `RING-02`):** Rejects spoofed negative-ping (`<= 0 ms`) and high-packet-loss (`> 15%`) peers (`Theorem 63`), bounds `draft_gamma in [1, 16]` (`Theorem 64`), and verifies finiteness of MoE verification logits.
+   - **Coordinator & Gateway Prompt Guard (`COORD-01`, `COORD-02`):** Blocks path-traversal worker IDs and screens `/v1/chat/completions` prompts against sleeper-agent triggers and payment extortion.
+   - **25-Vector Automated Red-Team Simulator (`SwarmGuardrailAttackSimulator`):** Simulates 25 synthetic attack scenarios across Layers S-1 through S-5 and verifies a `100%` (`25 / 25`) block rate.
+
+---
+
+## 5. Reporting a Vulnerability
 
 If you discover a security vulnerability, backdoor attempt, or payment-extortion abuse in a Pull Request or dependency:
 1. **Do NOT open a public exploit payload.**

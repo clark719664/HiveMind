@@ -1,13 +1,31 @@
-"""Project HiveMind — Repository & Pull Request Security Scanner Package.
+"""Project HiveMind — Repository, Pull Request, Runtime Swarm, Federated Learning, GPU Hardware & Red-Team Guardrail Security Package.
 
-Provides automated 5-layer defense against:
-1. Payment Solicitation, Financial Extortion & Crypto Wallet Injection
-2. "Code Boubou" Attacks (Hollow Bounty-Farming PRs, Fake Issue Closures, Binary/Cache Pollution)
-3. Dangerous Python AST Sinks (eval, exec, pickle, shell=True, os.system, obfuscated droppers)
-4. Credential Exfiltration & Hardcoded Secrets (HF_TOKEN, GITHUB_TOKEN, private keys, webhooks)
-5. Trojan Source Bidirectional Unicode Attacks (CVE-2021-42574) & Protected Governance Tampering
+Provides:
+1. Automated 5-Layer Pull Request & Repository Security Scanner (`pr_security_scanner.py`)
+2. Phase S-2 Swarm GPU Training & Content-Addressed Data Store Runtime Hardening (`swarm_runtime_hardening.py`)
+3. Phase S-3 Federated Learning & Byzantine-Resilient DiLoCo Hardening (`federated_learning_hardening.py`)
+4. Phase S-4 Federated GPU Execution & Hardware Safety Circuit-Breaker (`gpu_execution_circuit_breaker.py`)
+5. Phase S-5 25-Vector End-to-End Multi-Layer Attack Simulation & Guardrail Verification (`guardrail_attack_simulator.py`)
 """
 
+from hivemind.security.federated_learning_hardening import (
+    DPGradientSanitizerConfig,
+    FederatedDeltaAuditReport,
+    FederatedLearningSecurityGuard,
+    run_federated_hardening_self_test,
+)
+from hivemind.security.gpu_execution_circuit_breaker import (
+    CircuitBreakerStatus,
+    GPUExecutionCircuitBreaker,
+    GPUHardwareTelemetry,
+    query_live_gpu_hardware_telemetry,
+    run_gpu_circuit_breaker_self_test,
+)
+from hivemind.security.guardrail_attack_simulator import (
+    SimulatedAttackScenarioResult,
+    SwarmGuardrailAttackSimulator,
+    run_guardrail_attack_simulation,
+)
 from hivemind.security.pr_security_scanner import (
     PRSecurityAuditResult,
     PRSecurityScanner,
@@ -15,11 +33,35 @@ from hivemind.security.pr_security_scanner import (
     SecuritySeverity,
     run_cli_security_scan,
 )
+from hivemind.security.swarm_runtime_hardening import (
+    SwarmHardeningVerdict,
+    SwarmSecurityViolationError,
+    SwarmTrainingAndStoreGuard,
+    compute_shannon_entropy,
+    run_swarm_hardening_self_test,
+)
 
 __all__ = [
+    "CircuitBreakerStatus",
+    "DPGradientSanitizerConfig",
+    "FederatedDeltaAuditReport",
+    "FederatedLearningSecurityGuard",
+    "GPUExecutionCircuitBreaker",
+    "GPUHardwareTelemetry",
     "PRSecurityAuditResult",
     "PRSecurityScanner",
     "SecurityFinding",
     "SecuritySeverity",
+    "SimulatedAttackScenarioResult",
+    "SwarmGuardrailAttackSimulator",
+    "SwarmHardeningVerdict",
+    "SwarmSecurityViolationError",
+    "SwarmTrainingAndStoreGuard",
+    "compute_shannon_entropy",
+    "query_live_gpu_hardware_telemetry",
     "run_cli_security_scan",
+    "run_federated_hardening_self_test",
+    "run_gpu_circuit_breaker_self_test",
+    "run_guardrail_attack_simulation",
+    "run_swarm_hardening_self_test",
 ]
