@@ -731,11 +731,11 @@ end Season5_StrategyAndBisection
 
 namespace Season6_ErrorFeedbackAnd128MoE
 
-/-- Theorem 49 (EF21-DiLoCo Top-k Error-Feedback Residual Contraction):
-    For any uncompressed pseudo-gradient energy E_total > 0 where Top-k compression
-    retains at least k_pct ≥ 1 percent of energy (E_sent * 100 ≥ k_pct * E_total
-    and E_sent ≤ E_total), the residual energy E_res = E_total - E_sent is strictly
-    contracted (E_res * 100 ≤ (100 - k_pct) * E_total and E_res < E_total). -/
+/-- Theorem 49 (Residual Energy Arithmetic for Top-k Error Feedback):
+    an arithmetic bound on two energy totals: if at least 1% of `E_total > 0` is sent
+    (`E_sent * 100 ≥ E_total`, `E_sent ≤ E_total`), the remainder is at most 99% of it.
+    It does not model the error-feedback update itself; Theorems 65-67 in
+    `Season6_ErrorFeedbackModel` do. -/
 theorem ef21_error_feedback_residual_contraction (E_total E_sent : Nat)
     (h_pos : E_total > 0)
     (h_sent_le : E_sent ≤ E_total)
@@ -756,9 +756,9 @@ theorem hierarchical_128_expert_3tier_gating_savings (hidden_dim : Nat)
   omega
 
 /-- Theorem 51 (UCB1 Bandit Exploration Bonus Monotonicity in Pull Count):
-    For any fixed total exploration numerator 	wo_ln_N > 0 and domain pull counts
+    For any fixed total exploration numerator two_ln_N > 0 and domain pull counts
     1 ≤ n_unexplored ≤ n_explored, the integer-scaled UCB1 exploration bonus
-    	wo_ln_N / n_unexplored is at least 	wo_ln_N / n_explored (prioritizing under-explored domains). -/
+    two_ln_N / n_unexplored is at least two_ln_N / n_explored (prioritizing under-explored domains). -/
 theorem ucb1_bandit_exploration_bonus_monotonicity (two_ln_N n_unexplored n_explored : Nat)
     (h_unexp : 1 ≤ n_unexplored)
     (h_lt : n_unexplored ≤ n_explored) :
@@ -933,6 +933,103 @@ theorem speculative_decoding_gamma_bound_limits_forward_width (promptLen draftGa
 
 end Season9_LedgerAndInferenceRingHardening
 
+-- ============================================================================
+-- SEASON 6 (HM-S6-01 / #60): ERROR-FEEDBACK UPDATE MODEL
+-- ============================================================================
+namespace Season6_ErrorFeedbackModel
+
+/-- One worker's error-feedback state over `T` rounds for a single coordinate, as in
+    `EF21DiLoCoErrorFeedbackBuffer` with `stale_decay = 1` and no clipping: each round
+    compresses `delta + residual` with an arbitrary compressor `C` and carries the rest. -/
+def efStep (C : Int → Int) (residual delta : Int) : Int × Int :=
+  let corrected := delta + residual
+  (C corrected, corrected - C corrected)
+
+/-- Final residual and total transmitted value after running every delta in order. -/
+def efRun (C : Int → Int) : Int → List Int → Int × Int
+  | residual, [] => (residual, 0)
+  | residual, delta :: rest =>
+    let (sent, nextResidual) := efStep C residual delta
+    let (finalResidual, sentRest) := efRun C nextResidual rest
+    (finalResidual, sent + sentRest)
+
+/-- Theorem 65 (Error-Feedback Conservation for Any Compressor):
+    whatever the compressor drops is carried, never lost: after any sequence of rounds,
+    total transmitted plus final residual equals initial residual plus every delta. -/
+theorem ef_conservation_any_compressor (C : Int → Int) (residual0 : Int) (deltas : List Int) :
+    (efRun C residual0 deltas).2 + (efRun C residual0 deltas).1 = residual0 + deltas.sum := by
+  induction deltas generalizing residual0 with
+  | nil => simp [efRun]
+  | cons d rest ih =>
+    have h := ih (d + residual0 - C (d + residual0))
+    simp only [efRun, efStep, List.sum_cons] at h ⊢
+    omega
+
+/-- Squares of integers are non-negative. -/
+theorem int_mul_self_nonneg (a : Int) : 0 ≤ a * a := by
+  rcases Int.le_total 0 a with h | h
+  · exact Int.mul_nonneg h h
+  · have h' : 0 ≤ -a := by omega
+    have := Int.mul_nonneg h' h'
+    rwa [Int.neg_mul_neg] at this
+
+/-- A sparsifying compressor keeps a coordinate whole or drops it (Top-k is one). -/
+def sparsify (keep : List Bool) (x : List Int) : List Int :=
+  List.zipWith (fun k xi => if k then xi else 0) keep x
+
+def energy (x : List Int) : Int := (x.map (fun xi => xi * xi)).sum
+
+def residualOf (keep : List Bool) (x : List Int) : List Int :=
+  List.zipWith (fun a b => a - b) x (sparsify keep x)
+
+theorem energy_nonneg (x : List Int) : 0 ≤ energy x := by
+  induction x with
+  | nil => simp [energy]
+  | cons y ys ih =>
+    have := int_mul_self_nonneg y
+    simp only [energy, List.map_cons, List.sum_cons] at ih ⊢
+    omega
+
+/-- Theorem 66 (Sparsifier Residual Energy Never Exceeds Input Energy):
+    for any keep-mask (Top-k is one choice of mask), the error-feedback residual
+    `x - sparsify keep x` has energy at most the energy of `x`. -/
+theorem sparsify_residual_energy_le (keep : List Bool) (x : List Int) :
+    energy (residualOf keep x) ≤ energy x := by
+  induction x generalizing keep with
+  | nil => cases keep <;> simp [energy, residualOf, sparsify]
+  | cons xi xs ih =>
+    cases keep with
+    | nil =>
+      have := energy_nonneg (xi :: xs)
+      simpa [residualOf, sparsify, energy] using this
+    | cons k ks =>
+      have h := ih ks
+      have hsq : 0 ≤ xi * xi := int_mul_self_nonneg xi
+      cases k <;> simp [energy, residualOf, sparsify] at h ⊢ <;> omega
+
+/-- Theorem 67 (Sparsifier Energy Split and Strict Contraction):
+    when the mask covers every coordinate, the input energy splits exactly into what is
+    sent and what is carried, so the residual energy strictly drops whenever the sent
+    part has positive energy. -/
+theorem sparsify_energy_split (keep : List Bool) (x : List Int) (h_len : keep.length = x.length) :
+    energy (residualOf keep x) + energy (sparsify keep x) = energy x := by
+  induction x generalizing keep with
+  | nil => cases keep <;> simp [energy, residualOf, sparsify]
+  | cons xi xs ih =>
+    cases keep with
+    | nil => simp at h_len
+    | cons k ks =>
+      have h := ih ks (by simpa using h_len)
+      cases k <;> simp [energy, residualOf, sparsify] at h ⊢ <;> omega
+
+theorem sparsify_strict_contraction (keep : List Bool) (x : List Int)
+    (h_len : keep.length = x.length) (h_sent : 0 < energy (sparsify keep x)) :
+    energy (residualOf keep x) < energy x := by
+  have := sparsify_energy_split keep x h_len
+  omega
+
+end Season6_ErrorFeedbackModel
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -987,3 +1084,9 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_supply_cap_conservation_bound
 #print axioms HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ring_peer_admission_sla_rejects_high_loss_or_zero_ping
 #print axioms HiveMindSpec.Season9_LedgerAndInferenceRingHardening.speculative_decoding_gamma_bound_limits_forward_width
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_any_compressor
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.int_mul_self_nonneg
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.energy_nonneg
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction
