@@ -11,7 +11,7 @@ import gc
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import torch
 import torch.nn as nn
@@ -27,6 +27,9 @@ from hivemind.core.quantization import (
     extract_lora_state_dict,
     load_lora_state_dict,
 )
+
+if TYPE_CHECKING:
+    from hivemind.swarm.strategy_optimizer import EF21DiLoCoErrorFeedbackBuffer
 
 
 @dataclass
@@ -58,6 +61,7 @@ class InnerLoopResult:
     preempted_by_daemon: bool = False
     emergency_dump_path: Path | None = None
     emergency_dump_latency_sec: float = 0.0
+    error_feedback_residual_norm: float | None = None
 
 
 def build_inner_optimizer(
@@ -109,8 +113,20 @@ def run_diloco_inner_loop(
     use_paged_8bit_adamw: bool = False,
     should_preempt_fn: Callable[[], bool] | None = None,
     emergency_checkpoint_dir: Path | None = None,
+    error_feedback: EF21DiLoCoErrorFeedbackBuffer | None = None,
 ) -> InnerLoopResult:
-    """Execute H local AdamW steps on LoRA parameters with micro-checkpointing every s steps."""
+    """Execute H local AdamW steps on LoRA parameters with micro-checkpointing every s steps.
+
+    With `error_feedback`, the uploaded package compresses `raw_delta` plus the residual the
+    buffer carried from earlier outer steps, and the buffer keeps what this upload dropped.
+    `raw_delta`, `theta_final` and the micro-checkpoints are unaffected, so spot-check replay
+    sees the same trajectory either way.
+    """
+    if error_feedback is not None and error_feedback.topk_ratio != topk_ratio:
+        raise ValueError(
+            f"topk_ratio={topk_ratio} differs from the error-feedback buffer's "
+            f"topk_ratio={error_feedback.topk_ratio}"
+        )
     configure_deterministic_runtime(rng_seed)
     device = next(model.parameters()).device
     model.train()
@@ -212,14 +228,25 @@ def run_diloco_inner_loop(
     else:
         theta_final = extract_lora_state_dict(model)
     raw_delta = compute_pseudo_gradient_delta(theta_init, theta_final)
-    compressed_delta = compress_lora_delta(
-        delta_dict=raw_delta,
-        worker_id=worker_id,
-        branch_name=branch_name,
-        outer_step=outer_step,
-        inner_steps_completed=steps_completed,
-        topk_ratio=topk_ratio,
-    )
+    residual_norm: float | None = None
+    if error_feedback is None:
+        compressed_delta = compress_lora_delta(
+            delta_dict=raw_delta,
+            worker_id=worker_id,
+            branch_name=branch_name,
+            outer_step=outer_step,
+            inner_steps_completed=steps_completed,
+            topk_ratio=topk_ratio,
+        )
+    else:
+        compressed_delta = error_feedback.compress(
+            raw_delta,
+            worker_id=worker_id,
+            branch_name=branch_name,
+            outer_step=outer_step,
+            inner_steps_completed=steps_completed,
+        )
+        residual_norm = error_feedback.residual_norm()
 
     return InnerLoopResult(
         worker_id=worker_id,
@@ -237,6 +264,7 @@ def run_diloco_inner_loop(
         preempted_by_daemon=preempted,
         emergency_dump_path=dump_path,
         emergency_dump_latency_sec=dump_latency,
+        error_feedback_residual_norm=residual_norm,
     )
 
 
