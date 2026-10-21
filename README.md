@@ -44,13 +44,13 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 
 ---
 
-## 🌌 0. 24-Cycle Full-Day RTX 2070 Astrophysics & Cosmology BOINC Discovery Showcase
+## 🌌 0. 24-Cycle RTX 2070 Astrophysics & Cosmology BOINC Showcase
 
 <div align="center">
 <img src="docs/images/cosmology_deep_field_banner.png" alt="Project HiveMind — Deep-Space Cosmology & Exoplanet Swarm Observatory" width="100%"/>
 </div>
 
-We executed a full **24-Cycle (Full-Day 24-Hour Schedule, Cycles `#01`..`#24`) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing & Discovery Campaign** (`hivemind run-astro-24h`, [`astrophysics_24h_campaign.py`](src/hivemind/boinc/astrophysics_24h_campaign.py)) on the local **NVIDIA GeForce RTX 2070 (`cuda:0`, 8 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps, `72` deterministic 10% spot-check validation replays, `24` `$HIVE` PoUW blocks, and `0.00 EUR` cloud cost). Full report: [**`docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md`**](docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md) and raw telemetry: [**`artifacts/astrophysics_24h_gpu_campaign_report.json`**](artifacts/astrophysics_24h_gpu_campaign_report.json).
+We executed a **24-Cycle (Cycles `#01`..`#24`, labelled `01:00`..`24:00` as a schedule; measured wall time `197.64 s` for 24 cycles of 12 inner steps per worker) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing & Discovery Campaign** (`hivemind run-astro-24h`, [`astrophysics_24h_campaign.py`](src/hivemind/boinc/astrophysics_24h_campaign.py)) on the local **NVIDIA GeForce RTX 2070 (`cuda:0`, 8 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps, `72` deterministic 10% spot-check validation replays, `24` `$HIVE` PoUW blocks, and `0.00 EUR` cloud cost). Full report: [**`docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md`**](docs/ASTROPHYSICS_24H_GPU_DISCOVERY_REPORT.md) and raw telemetry: [**`artifacts/astrophysics_24h_gpu_campaign_report.json`**](artifacts/astrophysics_24h_gpu_campaign_report.json).
 
 ### 📊 6-Panel 24-Cycle Astrophysics & GPU Telemetry Dashboard (`cuda:0`)
 
@@ -67,15 +67,17 @@ We executed a full **24-Cycle (Full-Day 24-Hour Schedule, Cycles `#01`..`#24`) M
 | **E5** | `SDSS_DESI_Cosmology_Redshift_BAO_Analyzer` | `sdss/cosmology_quasar_lya_bao_dr16` | `7.604 -> 6.371 -> 6.199 -> 5.725 -> 5.291` | **`-2.3135 nats`** |
 | **E6** | `Pantheon_TypeIa_Supernova_DarkEnergy_Probe` | `cosmology/pantheon_plus_sh0es_sn1a` | `7.681 -> 6.603 -> 6.336 -> 5.740 -> 5.120` | **`-2.5610 nats`** |
 
-### 🔭 4-Panel Deep Cosmology, Cosmic Web & JWST Spectroscopy Discovery Figure
+### 🔭 4-Panel Deep Cosmology, Cosmic Web & JWST Spectroscopy Figure (illustrative example catalog)
+
+> **Provenance notice: illustrative example catalog, not inferred from the run.** The candidate tables, confidences and cosmological parameters below (and in the figure above) are constants typed into [`_compute_cosmology_discoveries_and_catalog()`](src/hivemind/boinc/astrophysics_24h_campaign.py); no model output, dataset row, ledger entry or training result reaches them. The ΛCDM curves are integrated from the fixed inputs $H_0 = 68.42$, $\Omega_{m,0} = 0.3114$, and the quoted ± values are typed in, not fitted. The JSON labels the block `measurement_kind: "illustrative_hardcoded"`. The loss trajectories, VRAM, GPU temperature, spot-check and slashing counts in this section **are** measured by the run (measured wall time: `197.64 s` for 24 cycles of 12 inner steps per worker; the `01:00`..`24:00` cycle labels are schedule labels, not elapsed hours).
 
 <div align="center">
 <img src="docs/images/cosmology_deep_field_discovery.png" alt="Cosmology Large-Scale Structure, Dark Energy & JWST Biosignature Discoveries" width="100%"/>
 </div>
 
-- **Exoplanet Biosignature & Habitable-Zone Discoveries**: Identified **`EXO-8821c`** (`98.1%` MoE confidence, $R_p=1.58\,R_\oplus$, $T_{\text{eq}}=285\,\text{K}$, simultaneous $\text{H}_2\text{O}$ `1.4/1.9/2.7 µm` + $\text{CH}_4$ `2.3/3.3 µm` + $\text{CO}_2$ `4.3 µm` chemical disequilibrium at `4.7σ`) and **`KEPLER-HM-442b`** (`96.4%` confidence, $R_p=1.34\,R_\oplus$, $T_{\text{eq}}=261\,\text{K}$ rocky habitable-zone world).
-- **Ancient Galactic Halo Population II Relics (`SDSS DR12`)**: Isolated extremely metal-poor halo red giant **`SDSS-DR12-SpecID-18402`** (`[Fe/H] = -2.18 dex`, $v_r = -312.6\,\text{km/s}$) and retrograde halo turnoff subgiant **`SpecID-9019`** (`[Fe/H] = -1.38 dex`, $v_r = -265.4\,\text{km/s}$).
-- **Cosmological Dark Energy & Cosmic Acceleration Inflection Point**: Reconstructed $\Omega_{m,0} = 0.3114 \pm 0.0068$, $\Omega_{\Lambda,0} = 0.6886 \pm 0.0068$, $H_0 = 68.42 \pm 0.54\,\text{km}\,\text{s}^{-1}\,\text{Mpc}^{-1}$, $w_0 = -1.008 \pm 0.029$, and pinpointed the deceleration-to-acceleration transition redshift **$z_{\text{trans}} = 0.642$** ($\tau_{\text{trans}} = 6.08\,\text{Gyr}$ lookback time, where $q(z_{\text{trans}}) = 0$).
+- **Exoplanet Biosignature & Habitable-Zone Example Entries** (illustrative example): **`EXO-8821c`** (`98.1%` illustrative constant confidence, $R_p=1.58\,R_\oplus$, $T_{\text{eq}}=285\,\text{K}$, simultaneous $\text{H}_2\text{O}$ `1.4/1.9/2.7 µm` + $\text{CH}_4$ `2.3/3.3 µm` + $\text{CO}_2$ `4.3 µm` chemical disequilibrium at `4.7σ`) and **`KEPLER-HM-442b`** (`96.4%` illustrative constant confidence, $R_p=1.34\,R_\oplus$, $T_{\text{eq}}=261\,\text{K}$ rocky habitable-zone world).
+- **Ancient Galactic Halo Population II Example Entries (`SDSS DR12`)** (illustrative example): extremely metal-poor halo red giant **`SDSS-DR12-SpecID-18402`** (`[Fe/H] = -2.18 dex`, $v_r = -312.6\,\text{km/s}$) and retrograde halo turnoff subgiant **`SpecID-9019`** (`[Fe/H] = -1.38 dex`, $v_r = -265.4\,\text{km/s}$).
+- **Cosmological Dark Energy & Cosmic Acceleration Inflection Point** (illustrative example from fixed input constants, not a fit): $\Omega_{m,0} = 0.3114 \pm 0.0068$, $\Omega_{\Lambda,0} = 0.6886 \pm 0.0068$, $H_0 = 68.42 \pm 0.54\,\text{km}\,\text{s}^{-1}\,\text{Mpc}^{-1}$, $w_0 = -1.008 \pm 0.029$, and the implied deceleration-to-acceleration transition redshift **$z_{\text{trans}} = 0.642$** ($\tau_{\text{trans}} = 6.08\,\text{Gyr}$ lookback time, where $q(z_{\text{trans}}) = 0$).
 
 ---
 
