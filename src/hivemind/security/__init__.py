@@ -8,38 +8,45 @@ Provides:
 5. Phase S-5 25-Vector End-to-End Multi-Layer Attack Simulation & Guardrail Verification (`guardrail_attack_simulator.py`)
 """
 
-from hivemind.security.federated_learning_hardening import (
-    DPGradientSanitizerConfig,
-    FederatedDeltaAuditReport,
-    FederatedLearningSecurityGuard,
-    run_federated_hardening_self_test,
-)
-from hivemind.security.gpu_execution_circuit_breaker import (
-    CircuitBreakerStatus,
-    GPUExecutionCircuitBreaker,
-    GPUHardwareTelemetry,
-    query_live_gpu_hardware_telemetry,
-    run_gpu_circuit_breaker_self_test,
-)
-from hivemind.security.guardrail_attack_simulator import (
-    SimulatedAttackScenarioResult,
-    SwarmGuardrailAttackSimulator,
-    run_guardrail_attack_simulation,
-)
-from hivemind.security.pr_security_scanner import (
-    PRSecurityAuditResult,
-    PRSecurityScanner,
-    SecurityFinding,
-    SecuritySeverity,
-    run_cli_security_scan,
-)
-from hivemind.security.swarm_runtime_hardening import (
-    SwarmHardeningVerdict,
-    SwarmSecurityViolationError,
-    SwarmTrainingAndStoreGuard,
-    compute_shannon_entropy,
-    run_swarm_hardening_self_test,
-)
+from importlib import import_module
+from typing import Any
+
+# Resolved on first access so importing one submodule does not import the others:
+# eager imports here created a core.diloco_outer <-> boinc.coordinator_api cycle and
+# made the torch-free PR scanner require torch.
+_EXPORTS = {
+    "CircuitBreakerStatus": "gpu_execution_circuit_breaker",
+    "DPGradientSanitizerConfig": "federated_learning_hardening",
+    "FederatedDeltaAuditReport": "federated_learning_hardening",
+    "FederatedLearningSecurityGuard": "federated_learning_hardening",
+    "GPUExecutionCircuitBreaker": "gpu_execution_circuit_breaker",
+    "GPUHardwareTelemetry": "gpu_execution_circuit_breaker",
+    "PRSecurityAuditResult": "pr_security_scanner",
+    "PRSecurityScanner": "pr_security_scanner",
+    "SecurityFinding": "pr_security_scanner",
+    "SecuritySeverity": "pr_security_scanner",
+    "SimulatedAttackScenarioResult": "guardrail_attack_simulator",
+    "SwarmGuardrailAttackSimulator": "guardrail_attack_simulator",
+    "SwarmHardeningVerdict": "swarm_runtime_hardening",
+    "SwarmSecurityViolationError": "swarm_runtime_hardening",
+    "SwarmTrainingAndStoreGuard": "swarm_runtime_hardening",
+    "compute_shannon_entropy": "swarm_runtime_hardening",
+    "query_live_gpu_hardware_telemetry": "gpu_execution_circuit_breaker",
+    "run_cli_security_scan": "pr_security_scanner",
+    "run_federated_hardening_self_test": "federated_learning_hardening",
+    "run_gpu_circuit_breaker_self_test": "gpu_execution_circuit_breaker",
+    "run_guardrail_attack_simulation": "guardrail_attack_simulator",
+    "run_swarm_hardening_self_test": "swarm_runtime_hardening",
+}
+
+
+def __getattr__(name: str) -> Any:
+    module = _EXPORTS.get(name)
+    if module is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(f"{__name__}.{module}"), name)
+    globals()[name] = value
+    return value
 
 __all__ = [
     "CircuitBreakerStatus",
