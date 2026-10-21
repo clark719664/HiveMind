@@ -289,6 +289,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to write JSON hardening audit report",
     )
 
+    p_boinc_astro = sub.add_parser(
+        "run-boinc-astro",
+        help="Run a full Modified BOINC Astrophysics Campaign on the local GPU across 4 Hugging Face datasets",
+    )
+    p_boinc_astro.add_argument("--inner-steps", type=int, default=16, help="DiLoCo inner steps H per BOINC workunit")
+    p_boinc_astro.add_argument("--spot-check-interval", type=int, default=8, help="Micro-checkpoint interval s")
+    p_boinc_astro.add_argument("--lora-rank", type=int, default=16, help="QLoRA rank r")
+    p_boinc_astro.add_argument(
+        "--output-json",
+        default="artifacts/boinc_local_astrophysics_gpu_report.json",
+        help="Path to write BOINC Astrophysics campaign JSON report",
+    )
+
     args = parser.parse_args(argv)
     if args.command == "hardware-check":
         return cmd_hardware_check()
@@ -409,6 +422,16 @@ def main(argv: list[str] | None = None) -> int:
 
         report = run_swarm_hardening_self_test(output_json_path=args.output_json)
         console.print(json.dumps(report, indent=2))
+        return 0 if report.get("overall_passed") else 1
+    if args.command == "run-boinc-astro":
+        from hivemind.boinc.local_astrophysics_boinc import run_local_boinc_astrophysics_campaign
+
+        report = run_local_boinc_astrophysics_campaign(
+            inner_steps_H=args.inner_steps,
+            spot_check_interval_s=args.spot_check_interval,
+            lora_rank_r=args.lora_rank,
+            output_json_path=args.output_json,
+        )
         return 0 if report.get("overall_passed") else 1
     return 0
 

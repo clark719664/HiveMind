@@ -639,3 +639,30 @@ def test_phase_s5_25_vector_attack_simulation_and_ledger_ring_guardrails(tmp_pat
         ring.run_speculative_inference(None, None, torch.tensor([], dtype=torch.long), max_new_tokens=10, draft_gamma=5)  # type: ignore[arg-type]
     assert exc_empty_prompt.value.rule_id == "RING-02"
 
+
+def test_local_boinc_astrophysics_gpu_campaign_and_cli(tmp_path: Path) -> None:
+    out_json = tmp_path / "boinc_astro_report.json"
+    rc = cli_main(
+        [
+            "run-boinc-astro",
+            "--inner-steps",
+            "6",
+            "--spot-check-interval",
+            "3",
+            "--lora-rank",
+            "8",
+            "--output-json",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    assert out_json.exists()
+    data = json.loads(out_json.read_text(encoding="utf-8"))
+    assert data["overall_passed"] is True
+    assert len(data["astrophysics_branches"]) == 4
+    for dom, b in data["astrophysics_branches"].items():
+        assert b["loss_improved"] is True, f"Branch {dom} did not improve loss"
+        assert len(b["honest_workers_accepted"]) == 3
+        assert len(b["slashed_byzantine_nodes"]) == 1
+        assert b["cas_expert_cid"].startswith("cid://sha256/expert-")
+
