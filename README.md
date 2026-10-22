@@ -4,14 +4,14 @@
 
 <br/>
 
-[![Release](https://img.shields.io/badge/Release-v1.8.0%20(Season%206%20Wave%205%20Complete%20%26%20Season%207%20Roadmap)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases)
+[![Release](https://img.shields.io/badge/Release-v1.9.0%20(Season%208%20Iso--Sparse--FoMoE%20%26%2052%2F52%20PRs)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases)
 [![Test Suite](https://img.shields.io/badge/Tests-Full%20suite%20in%20CI%20(coverage%20gate%2095%25)-brightgreen?style=for-the-badge)](.github/workflows/ci_swarm_tests.yml)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-Machine--checked%20spec%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-82%20Machine--checked%20theorems%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(self--assessed%209.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
-[![Community PRs](https://img.shields.io/badge/Community%20PRs-45%2F45%20Merged%20(Waves%201--5)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
-[![Project Wiki](https://img.shields.io/badge/Project%20Wiki-8%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
-[![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..05%20(--62.1%25%20loss%2C%20synthetic%20eval)-ffd21e?style=for-the-badge)](docs/SWARM_STRATEGY_IMPROVEMENTS.md)
+[![Community PRs](https://img.shields.io/badge/Community%20PRs-52%2F52%20Merged%20(Waves%201--6)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
+[![Project Wiki](https://img.shields.io/badge/Project%20Wiki-11%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
+[![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..11%20(DiLoCo%20%2B%20FoMoE%20%2B%20IsoLoCo)-ffd21e?style=for-the-badge)](docs/DILOCO_ARXIV_LITERATURE_AND_IMPROVEMENTS.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
 [![PR Security Gate](https://img.shields.io/badge/5--Layer%20PR%20Security-Anti--Boubou%20%26%20Anti--Extortion%20Active-ef4444?style=for-the-badge)](SECURITY.md)
 
@@ -464,7 +464,16 @@ All core mathematical invariants of Project HiveMind are machine-checked in **Le
 | **[Issue `#47`](https://github.com/xaviercallens/HiveMind/issues/47)** | **`HM-S5-05`** | Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (`wan_fault_benchmark.py`) | ✅ [`PR #52`](https://github.com/xaviercallens/HiveMind/pull/52) (`@pedromineo`) | **MERGED (`+2,000 $HIVE`)** |
 | **[Issue `#48`](https://github.com/xaviercallens/HiveMind/issues/48)** | **`HM-S5-06`** | Formal Lean 4 Proofs (`Theorems 41–48`) for TIES Consensus, Guild Synergy, Bisection & Fisher SVD | ✅ Core (`@xaviercallens`) | **DELIVERED (`+2,500 $HIVE`)** |
 
-See **[`ROADMAP.md`](ROADMAP.md)**, **[`vision.md`](vision.md)**, **[`docs/SWARM_STRATEGY_IMPROVEMENTS.md`](docs/SWARM_STRATEGY_IMPROVEMENTS.md)**, **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)**, and the **[8-Page Project Wiki](https://github.com/xaviercallens/HiveMind/wiki)** for full details on **Wave 5 (`Season 6` — `45/45` PRs merged, `77` machine-checked Lean 4 theorems)**, the **Season 7 (`Wave 6`) Developer Community Tasks (`HM-S7-01`..`HM-S7-08`)**, and the **Opt-In Community GPU Benchmark Suite ([`scripts/run_community_gpu_benchmark.py`](scripts/run_community_gpu_benchmark.py))**.
+See **[`ROADMAP.md`](ROADMAP.md)**, **[`vision.md`](vision.md)**, **[`docs/DILOCO_ARXIV_LITERATURE_AND_IMPROVEMENTS.md`](docs/DILOCO_ARXIV_LITERATURE_AND_IMPROVEMENTS.md)**, **[`docs/ACKNOWLEDGMENTS_AND_CITATIONS.md`](docs/ACKNOWLEDGMENTS_AND_CITATIONS.md)**, **[`CITATION.cff`](CITATION.cff)**, and the **[11-Page Project Wiki](https://github.com/xaviercallens/HiveMind/wiki)** for full details on:
+- **Waves 1–6 (`52/52` PRs merged, `82` machine-checked Lean 4 theorems)** including `@clark719664`'s Season 7 PRs (`#88` Looped MoE Backbone, `#89` Terminal-KV Sharing, `#90` Speculative Token-Tree Prefetch Wiring, `#91` Automated `ZK-OPoI v4` Batch Fault Indemnification).
+- **Season 8 (`Wave 7 — Operation Iso-Sparse-FoMoE`) Outer-Loop `DiLoCo` & `FoMoE` Ecosystem ([`src/hivemind/swarm/diloco_nextgen.py`](src/hivemind/swarm/diloco_nextgen.py))**:
+  - `SI-06` (`CosineGatedAdamDecayOuterOptimizer`, Shah & Sun [`arXiv:2605.09126`](https://arxiv.org/abs/2605.09126)) & `SI-06B` (`CPUOffloadedFlatBucketOuterState`, adapted from [`PrimeIntellect-ai/prime-diloco`](https://github.com/PrimeIntellect-ai/prime-diloco), [`PrimeIntellect-ai/OpenDiLoCo`](https://github.com/PrimeIntellect-ai/OpenDiLoCo) [`arXiv:2407.07852`](https://arxiv.org/abs/2407.07852), and [`google-deepmind/asyncdiloco`](https://github.com/google-deepmind/asyncdiloco) [`arXiv:2401.09135`](https://arxiv.org/abs/2401.09135))
+  - `SI-07` (`ReputationWeightedIsoCTSMerger` & `TSVDecorrelatedMerger`, adapted from [`shoroi/isoloco`](https://github.com/shoroi/isoloco) [`arXiv:2607.03011`](https://arxiv.org/abs/2607.03011) and Gargiulo et al. [`arXiv:2412.00081`](https://arxiv.org/abs/2412.00081))
+  - `SI-08` (`HeLoCoDirectionCorrector` [`arXiv:2606.00271`](https://arxiv.org/abs/2606.00271) & `AutoLoCoIntervalCorrector` [`arXiv:2609.36662`](https://arxiv.org/abs/2609.36662))
+  - `SI-09` (`FoMoEPartialReplicaPlanner` [`arXiv:2606.19025`](https://arxiv.org/abs/2606.19025), `ComputeVisibleSparseLoCoCompressor` [`arXiv:2602.03839`](https://arxiv.org/abs/2602.03839) + [`one-covenant/SparseLoCo`](https://github.com/one-covenant/SparseLoCo) [`arXiv:2508.15706`](https://arxiv.org/abs/2508.15706), and `ChunkedOrthonormalDCTTransform` adapted from [`bloc97/DeMo`](https://github.com/bloc97/DeMo) [`arXiv:2411.19870`](https://arxiv.org/abs/2411.19870))
+  - `SI-10` (`SkipAttentionSpeculativeRouter` with Cache-Aware Routing `CAR` fallback, adapted from [`pmerolla/fomoe`](https://github.com/pmerolla/fomoe) and [`learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind) [`arXiv:2006.16668`](https://arxiv.org/abs/2006.16668))
+  - `SI-11` (`MuonNewtonSchulzLoRAPreconditioner`, synthesized from Morales [`arXiv:2610.19064`](https://arxiv.org/abs/2610.19064) & Thérien et al. `MuLoCo` [`arXiv:2607.12925`](https://arxiv.org/abs/2607.12925))
+- **Season 8 Developer & GPU Community Tasks (`HM-S8-01`..`HM-S8-10`)** in [`ROADMAP.md`](ROADMAP.md).
 
 > **⚖️ Reminder — No Payment Involved; Computing Processing Benefits Only via "Points":**
 > There is **no financial payment (`0.00 EUR / 0.00 USD`)** of any kind. Accumulated **"Points" (`PTS` / `$HIVE`)** confer **solely computing processing benefits** (priority Sparse MoE inference tokens, speculative decoding bandwidth, and distributed QLoRA fine-tuning slots) **when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.

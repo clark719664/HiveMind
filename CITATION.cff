@@ -1,0 +1,318 @@
+cff-version: 1.2.0
+title: "Project HiveMind: Decentralized Consumer-GPU Sparse Mixture-of-Experts (128x7B) & Outer-Loop DiLoCo Swarm"
+message: "If you use Project HiveMind or its integrated outer-loop DiLoCo / FoMoE / IsoLoCo / SparseLoCo / CGAD modules, please cite both Project HiveMind and the foundational open-source works and academic papers listed below."
+type: software
+authors:
+  - family-names: Callens
+    given-names: Xavier
+    alias: xaviercallens
+  - name: "Project HiveMind Open-Source Human & AI Contributor Community (@clark719664 et al.)"
+repository-code: "https://github.com/xaviercallens/HiveMind"
+url: "https://github.com/xaviercallens/HiveMind"
+license: MIT
+version: 1.9.0
+date-released: "2026-10-22"
+keywords:
+  - decentralized-training
+  - diloco
+  - mixture-of-experts
+  - sparse-moe
+  - consumer-gpu
+  - byzantine-resilience
+  - lean4-verification
+references:
+  - type: article
+    title: "DiLoCo: Distributed Low-Communication Training of Language Models"
+    authors:
+      - family-names: Douillard
+        given-names: Arthur
+      - family-names: Feng
+        given-names: Qixuan
+      - family-names: Rusu
+        given-names: Andrei A.
+      - family-names: Chhaparia
+        given-names: Rachita
+      - family-names: Donchev
+        given-names: Yani
+      - family-names: Kuncoro
+        given-names: Adhiguna
+      - family-names: Ranzato
+        given-names: Marc'Aurelio
+      - family-names: Szlam
+        given-names: Arthur
+      - family-names: Shen
+        given-names: Jiajun
+    year: 2023
+    url: "https://arxiv.org/abs/2311.08105"
+  - type: article
+    title: "Asynchronous Local-SGD Training for Language Modeling"
+    authors:
+      - family-names: Douillard
+        given-names: Arthur
+      - family-names: Feng
+        given-names: Qixuan
+      - family-names: Rusu
+        given-names: Andrei A.
+      - family-names: Chhaparia
+        given-names: Rachita
+      - family-names: Donchev
+        given-names: Yani
+      - family-names: Kuncoro
+        given-names: Adhiguna
+      - family-names: Ranzato
+        given-names: Marc'Aurelio
+      - family-names: Szlam
+        given-names: Arthur
+      - family-names: Shen
+        given-names: Jiajun
+    year: 2024
+    url: "https://arxiv.org/abs/2401.09135"
+    repository-code: "https://github.com/google-deepmind/asyncdiloco"
+  - type: article
+    title: "OpenDiLoCo: An Open-Source Framework for Globally Distributed Low-Communication Training"
+    authors:
+      - family-names: Jaghouar
+        given-names: Sami
+      - family-names: Ong
+        given-names: Jack Min
+      - family-names: Hagemann
+        given-names: Johannes
+    year: 2024
+    url: "https://arxiv.org/abs/2407.07852"
+    repository-code: "https://github.com/PrimeIntellect-ai/OpenDiLoCo"
+  - type: article
+    title: "DeMo: Decoupled Momentum Optimization"
+    authors:
+      - family-names: Peng
+        given-names: Bowen
+      - family-names: Quesnelle
+        given-names: Jeffrey
+      - family-names: Kingma
+        given-names: Diederik P.
+    year: 2024
+    url: "https://arxiv.org/abs/2411.19870"
+    repository-code: "https://github.com/bloc97/DeMo"
+  - type: article
+    title: "Streaming DiLoCo with overlapping communication: Towards a Distributed Free Lunch"
+    authors:
+      - family-names: Douillard
+        given-names: Arthur
+      - family-names: Donchev
+        given-names: Yani
+      - family-names: Rush
+        given-names: Keith
+      - family-names: Kale
+        given-names: Satyen
+      - family-names: Charles
+        given-names: Zachary
+      - family-names: Garrett
+        given-names: Zachary
+      - family-names: Testuggine
+        given-names: Davide
+      - family-names: Ramasesh
+        given-names: Vinay
+      - family-names: Shen
+        given-names: Jiajun
+    year: 2025
+    url: "https://arxiv.org/abs/2501.18512"
+  - type: article
+    title: "Communication-Efficient Language Model Training Scales Reliably and Robustly: Scaling Laws for DiLoCo"
+    authors:
+      - family-names: Charles
+        given-names: Zachary
+      - family-names: Testuggine
+        given-names: Davide
+      - family-names: Garrett
+        given-names: Zachary
+      - family-names: Rush
+        given-names: Keith
+      - family-names: Donchev
+        given-names: Yani
+      - family-names: Shen
+        given-names: Jiajun
+      - family-names: Douillard
+        given-names: Arthur
+    year: 2025
+    url: "https://arxiv.org/abs/2503.09799"
+  - type: article
+    title: "SparseLoCo: Communication-Efficient Distributed Training with Sparse Low-Bit Pseudo-Gradients"
+    authors:
+      - family-names: Sarfi
+        given-names: Amir
+      - family-names:Thérien
+        given-names: Benjamin
+      - family-names: Horoi
+        given-names: Stefan
+      - family-names: Belilovsky
+        given-names: Eugene
+    year: 2025
+    url: "https://arxiv.org/abs/2508.15706"
+    repository-code: "https://github.com/one-covenant/SparseLoCo"
+  - type: article
+    title: "Scaling Distributed Low-Communication Training with One-Bit Quantization (PoLoCo)"
+    authors:
+      - family-names: Kwon
+        given-names: Kisuk
+      - family-names: Kim
+        given-names: Junhyuk
+    year: 2025
+    url: "https://arxiv.org/abs/2510.17558"
+  - type: article
+    title: "Skip the Negatives: Clamp-Guided Quantization for Outer-Loop Distributed Training (SNQ-L)"
+    authors:
+      - family-names: Kwon
+        given-names: Kisuk
+      - family-names: Kim
+        given-names: Junhyuk
+    year: 2025
+    url: "https://arxiv.org/abs/2512.02042"
+  - type: article
+    title: "Skip the Invisible Updates: Checkpointing Pseudo-Gradient Sparsification for DiLoCo (PULSELoCo)"
+    authors:
+      - family-names: Miahi
+        given-names: Erfan
+      - family-names: Belilovsky
+        given-names: Eugene
+    year: 2026
+    url: "https://arxiv.org/abs/2602.03839"
+  - type: article
+    title: "Tighter Convergence Bounds for Distributed Low-Communication Training"
+    authors:
+      - family-names: Khaled
+        given-names: Ahmed
+      - family-names: Jin
+        given-names: Chi
+    year: 2026
+    url: "https://arxiv.org/abs/2602.06954"
+  - type: article
+    title: "Analysis of the Generalization Fidelity of DiLoCo vs Data-Parallel Training"
+    authors:
+      - family-names: Bogachev
+        given-names: Nikita
+      - family-names: Ryabinin
+        given-names: Max
+    year: 2026
+    url: "https://arxiv.org/abs/2602.23029"
+  - type: article
+    title: "Gradient-Less Federated Gradient Boosted Trees (FGBoost)"
+    authors:
+      - family-names: Sani
+        given-names: Lorenzo
+      - family-names: Lane
+        given-names: Nicholas D.
+    year: 2026
+    url: "https://arxiv.org/abs/2603.24124"
+  - type: article
+    title: "Decoupled DiLoCo: Asynchronous Distributed Training Without Global Barriers"
+    authors:
+      - family-names: Sani
+        given-names: Lorenzo
+      - family-names: Iacob
+        given-names: Alex
+      - family-names: Cao
+        given-names: Zeyu
+      - family-names: Qiu
+        given-names: Xinchi
+      - family-names: Lane
+        given-names: Nicholas D.
+    year: 2026
+    url: "https://arxiv.org/abs/2604.21428"
+  - type: article
+    title: "Cosine-Gated Adam-Decay (CGAD): Staleness-Aware Outer Optimization for Asynchronous DiLoCo"
+    authors:
+      - family-names: Shah
+        given-names: Neil
+      - family-names: Sun
+        given-names: Ming
+    year: 2026
+    url: "https://arxiv.org/abs/2605.09126"
+  - type: article
+    title: "HeLoCo: Direction-Aware Outer Optimization for Heterogeneous Non-IID DiLoCo"
+    authors:
+      - family-names: Asif
+        given-names: Muhammad
+      - family-names: Belilovsky
+        given-names: Eugene
+    year: 2026
+    url: "https://arxiv.org/abs/2606.00271"
+  - type: article
+    title: "FoMoE: Federated Mixture-of-Experts with Partial Expert Replication and Skip-Token"
+    authors:
+      - family-names: Sani
+        given-names: Lorenzo
+      - family-names: Iacob
+        given-names: Alex
+      - family-names: Lane
+        given-names: Nicholas D.
+    year: 2026
+    url: "https://arxiv.org/abs/2606.19025"
+  - type: software
+    title: "fomoe: Fast Opportunistic Mixture of Experts with Skip-Attention Speculative Expert Routing and Cache-Aware Routing"
+    authors:
+      - family-names: Merolla
+        given-names: Paul
+    year: 2026
+    repository-code: "https://github.com/pmerolla/fomoe"
+  - type: article
+    title: "IsoLoCo: Isotropic Subspace Merging for Scalable Low-Communication Training"
+    authors:
+      - family-names: Horoi
+        given-names: Stefan
+      - family-names: Sarfi
+        given-names: Amir
+      - family-names: Belilovsky
+        given-names: Eugene
+    year: 2026
+    url: "https://arxiv.org/abs/2607.03011"
+    repository-code: "https://github.com/shoroi/isoloco"
+  - type: article
+    title: "MuLoCo: Inner Muon Optimization for Low-Communication Distributed Training"
+    authors:
+      - family-names: Thérien
+        given-names: Benjamin
+      - family-names: Sarfi
+        given-names: Amir
+      - family-names: Belilovsky
+        given-names: Eugene
+    year: 2026
+    url: "https://arxiv.org/abs/2607.12925"
+  - type: article
+    title: "Subspace-Constrained Outer Optimization for DiLoCo"
+    authors:
+      - family-names: Wang
+        given-names: Yuxuan
+    year: 2026
+    url: "https://arxiv.org/abs/2608.05958"
+  - type: article
+    title: "FedLoCo: Federated Low-Communication Optimization with Drift Correction"
+    authors:
+      - family-names: Li
+        given-names: Haoran
+    year: 2026
+    url: "https://arxiv.org/abs/2609.02737"
+  - type: article
+    title: "AutoLoCo: Adaptive Synchronization Intervals and Outer Optimizer Correction for DiLoCo"
+    authors:
+      - family-names: He
+        given-names: Zexi
+      - family-names: Tao
+        given-names: Lin
+    year: 2026
+    url: "https://arxiv.org/abs/2609.36662"
+  - type: article
+    title: "How Inner Optimizers Shape Replica Scaling in Distributed Low-Communication Training"
+    authors:
+      - family-names: Morales
+        given-names: Lucas
+    year: 2026
+    url: "https://arxiv.org/abs/2610.19064"
+  - type: article
+    title: "Training Transformers Together (Learning@Home Hivemind)"
+    authors:
+      - family-names: Ryabinin
+        given-names: Max
+      - family-names: Gusev
+        given-names: Anton
+    year: 2020
+    url: "https://arxiv.org/abs/2006.16668"
+    repository-code: "https://github.com/learning-at-home/hivemind"

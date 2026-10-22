@@ -8,11 +8,17 @@ import torch
 
 from hivemind.swarm.diloco_nextgen import (
     AutoLoCoIntervalCorrector,
+    ChunkedOrthonormalDCTTransform,
     ComputeVisibleSparseLoCoCompressor,
     CosineGatedAdamDecayOuterOptimizer,
+    CPUOffloadedFlatBucketOuterState,
     FoMoEPartialReplicaPlanner,
     HeLoCoDirectionCorrector,
+    LEVERAGED_GITHUB_REPOSITORIES,
+    MuonNewtonSchulzLoRAPreconditioner,
     ReputationWeightedIsoCTSMerger,
+    SkipAttentionSpeculativeRouter,
+    TSVDecorrelatedMerger,
 )
 
 
@@ -162,3 +168,107 @@ def test_si09_fomoe_partial_replica_and_pulse_sparseloco_compressor() -> None:
     # Deterministic check: running a second time produces bitwise identical reconstruction
     recon2, _ = comp.compress_and_reconstruct(delta, reference_param=ref_param)
     assert torch.equal(recon, recon2)
+
+
+def test_si06b_cpu_offloaded_flat_bucket_outer_state_zero_vram() -> None:
+    """Verify `SI-06B` (`prime-diloco` / `OpenDiLoCo` `arXiv:2407.07852`) flat CPU buffer state."""
+    params = {
+        "expert_0.lora_A": torch.ones(8, 8, dtype=torch.float32),
+        "expert_0.lora_B": torch.full((8, 8), 2.0, dtype=torch.float32),
+    }
+    outer_state = CPUOffloadedFlatBucketOuterState(params)
+    mem = outer_state.memory_telemetry()
+    assert mem["extra_gpu_vram_bytes"] == 0
+    assert mem["is_contiguous"] is True
+    assert mem["total_parameters"] == 128
+
+    inner_after = {
+        "expert_0.lora_A": torch.full((8, 8), 0.75, dtype=torch.float32),
+        "expert_0.lora_B": torch.full((8, 8), 1.50, dtype=torch.float32),
+    }
+    pgrads = outer_state.compute_pseudo_gradients(inner_after)
+    assert torch.allclose(pgrads["expert_0.lora_A"], torch.full((8, 8), 0.25))
+    assert torch.allclose(pgrads["expert_0.lora_B"], torch.full((8, 8), 0.50))
+
+    opt = CosineGatedAdamDecayOuterOptimizer(lr=1e-2, alpha=0.2, tau_cut=16.0)
+    updated_master, _ = opt.step_fragments(params, pgrads)
+    synced_inner = outer_state.apply_outer_update_and_sync_inner(updated_master)
+    assert torch.allclose(synced_inner["expert_0.lora_A"], updated_master["expert_0.lora_A"])
+
+
+def test_si07b_tsv_decorrelated_merger_and_si09c_chunked_dct() -> None:
+    """Verify `SI-07B` (`TSVLoCo` `isoloco` `arXiv:2607.03011`) and `SI-09C` (`DeMo`/`SparseLoCo` chunked DCT)."""
+    torch.manual_seed(11)
+    d1 = torch.randn(16, 16)
+    d2 = torch.randn(16, 16)
+    merged_tsv, tsv_report = TSVDecorrelatedMerger.merge_2d_deltas(
+        [d1, d2], worker_reputation_weights=[0.8, 0.2]
+    )
+    assert merged_tsv.shape == (16, 16)
+    assert tsv_report["subspace_orthogonality_error"] < 1e-4
+
+    dct = ChunkedOrthonormalDCTTransform(chunk_size=8)
+    # Full k=64 must reconstruct the input matrix up to floating-point precision
+    full_recon, dct_full_stats = dct.encode_and_decode_topk(d1, topk_per_chunk=64)
+    assert torch.allclose(full_recon, d1, atol=1e-5)
+    assert math.isclose(dct_full_stats["dct_energy_retained_fraction"], 1.0, rel_tol=1e-5)
+
+    # Smooth low-frequency matrix retains >99.9% energy with only topk_per_chunk=4 (6.25% density)
+    grid = torch.linspace(0.0, 1.0, 16)
+    smooth = torch.outer(torch.cos(grid), torch.cos(grid))
+    sparse_recon, dct_sparse_stats = dct.encode_and_decode_topk(smooth, topk_per_chunk=4)
+    assert dct_sparse_stats["dct_energy_retained_fraction"] > 0.999
+    assert torch.allclose(sparse_recon, smooth, atol=0.05)
+
+
+def test_si10_skip_attention_speculative_router_and_car_fallback() -> None:
+    """Verify `SI-10` (`pmerolla/fomoe` Skip-Attention Speculative Prefetch + Cache-Aware Routing `CAR`)."""
+    torch.manual_seed(19)
+    router = SkipAttentionSpeculativeRouter(num_experts=16, top_k=2, car_threshold=0.50)
+    norm_w = torch.ones(32)
+    router_w = torch.randn(16, 32) * 0.25
+
+    post_ffn = torch.randn(8, 32)
+    # Post-attention residual is a small perturbation of post-FFN residual (residual stream persistence)
+    post_attn = post_ffn + 0.05 * torch.randn(8, 32)
+
+    out = router.route_with_cache_aware_fallback(
+        post_ffn_residual=post_ffn,
+        post_attn_residual=post_attn,
+        next_layer_norm_weight=norm_w,
+        next_layer_router_weight=router_w,
+        baseline_cached_experts=[0, 1, 2, 3],
+    )
+    assert out["routed_experts"].shape == (8, 2)
+    assert out["speculative_topk_accuracy"] >= 0.75
+    assert out["effective_vram_cache_hit_rate"] >= out["speculative_topk_accuracy"]
+
+
+def test_si11_muon_newton_schulz_lora_preconditioner_and_repo_registry() -> None:
+    """Verify `SI-11` (`arXiv:2610.19064` Newton-Schulz LoRA preconditioner) & GitHub citation registry."""
+    torch.manual_seed(23)
+    # Create an ill-conditioned 2D LoRA momentum matrix
+    u = torch.eye(16, 8)
+    s = torch.tensor([50.0, 10.0, 5.0, 2.0, 1.0, 0.5, 0.2, 0.1])
+    v = torch.eye(8, 16)
+    ill_grad = u @ torch.diag(s) @ v
+
+    precond = MuonNewtonSchulzLoRAPreconditioner(steps=5)
+    orth_grad, stats = precond.orthogonalize_2d(ill_grad)
+    assert orth_grad.shape == ill_grad.shape
+    assert stats["condition_number_before"] > 100.0
+    assert stats["condition_number_after"] < 3.0
+
+    # Verify all 8 cloned open-source reference repositories are attributed in LEVERAGED_GITHUB_REPOSITORIES
+    repo_names = {entry["name"] for entry in LEVERAGED_GITHUB_REPOSITORIES}
+    assert {
+        "SparseLoCo",
+        "isoloco",
+        "OpenDiLoCo",
+        "prime-diloco",
+        "DeMo",
+        "asyncdiloco",
+        "fomoe",
+        "hivemind",
+    }.issubset(repo_names)
+

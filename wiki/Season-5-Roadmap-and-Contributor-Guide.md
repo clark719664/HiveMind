@@ -49,4 +49,24 @@ All **48 Pull Requests across Waves 1, 2, 3, 4, and 5 (`Seasons 1–6`) + Depend
    PYTHONPATH=. pytest tests/ -q
    cd lean4 && lake build
    ```
-4. **Open a Pull Request against `main`:** Reference `Closes #<issue>` or `Implements HM-S7-XX`. The **3-Hour Autonomous Community Orchestrator** (`scripts/hivemind_autonomous_community_orchestrator.py`) automatically scans, verifies, and merges clean PRs every 3 hours (`0 */3 * * *`).
+4. **Open a Pull Request against `main`:** Reference `Closes #<issue>` or `Implements HM-S7-XX` / `Implements HM-S8-XX`. The **3-Hour Autonomous Community Orchestrator** (`scripts/hivemind_autonomous_community_orchestrator.py`) automatically scans, verifies, and merges clean PRs every 3 hours (`0 */3 * * *`).
+
+---
+
+## 🧬 4. Season 8 (`Wave 7` — "Operation Iso-Sparse-FoMoE") Tasks (`HM-S8-01`..`HM-S8-10`)
+
+Season 8 leverages **8 cloned open-source GitHub repositories** (`one-covenant/SparseLoCo`, `shoroi/isoloco`, `PrimeIntellect-ai/OpenDiLoCo`, `PrimeIntellect-ai/prime-diloco`, `bloc97/DeMo`, `google-deepmind/asyncdiloco`, `pmerolla/fomoe`, `learning-at-home/hivemind`) and **22 arXiv papers (2023–2026)** integrated in `src/hivemind/swarm/diloco_nextgen.py`. See **[Acknowledgments & Academic Citations](Acknowledgments-and-Academic-Citations)** for complete attributions and BibTeX.
+
+| Task ID | Branch Prefix | Leveraged GitHub / arXiv Work | Deliverable Summary | Reciprocal Compute Points (`0.00 EUR/USD`) |
+| :--- | :--- | :--- | :--- | :---: |
+| **`HM-S8-01`** | `feat/s8-pa-cgad-worker-wiring` | `CGAD` (`arXiv:2605.09126`) + `asyncdiloco` (`arXiv:2401.09135`) | Wire `CosineGatedAdamDecayOuterOptimizer` (`SI-06`) into `RealPeerTrainerNode` & `multi_moe_hf_campaign.py` | `3,500 PTS / $HIVE` |
+| **`HM-S8-02`** | `feat/s8-prime-cpu-flat-bucket-outer` | `prime-diloco` + `OpenDiLoCo` (`arXiv:2407.07852`) | Wire `CPUOffloadedFlatBucketOuterState` (`SI-06B`, `0 B` extra GPU VRAM) into `AsyncNodeWorker` | `3,500 PTS / $HIVE` |
+| **`HM-S8-03`** | `feat/s8-isoloco-tsv-upcycle-merge` | `shoroi/isoloco` (`arXiv:2607.03011`) + `TSV` (`arXiv:2412.00081`) | Wire `ReputationWeightedIsoCTSMerger` (`SI-07`) & `TSVDecorrelatedMerger` (`SI-07B`) into 128-Expert BTM upcycling | `3,500 PTS / $HIVE` |
+| **`HM-S8-04`** | `feat/s8-pulseloco-sparseloco-2bit-wire` | `one-covenant/SparseLoCo` (`arXiv:2508.15706`) + `PULSELoCo` (`arXiv:2602.03839`) | Wire `ComputeVisibleSparseLoCoCompressor` (`SI-09B`, `158x` wire compression) into `EF21DiLoCoErrorFeedbackBuffer` | `3,500 PTS / $HIVE` |
+| **`HM-S8-05`** | `feat/s8-demo-chunked-dct-ef21` | `bloc97/DeMo` (`arXiv:2411.19870`) + `SparseLoCo` | Integrate `ChunkedOrthonormalDCTTransform` (`SI-09C`) with per-worker error feedback | `3,000 PTS / $HIVE` |
+| **`HM-S8-06`** | `feat/s8-fomoe-partial-replica-skip-token` | `FoMoE` (`arXiv:2606.19025`) | Partial expert replication (`O_e = 4`, `32` local experts per 8 GB GPU) & Ghost-Expert `Skip-Token` (`SI-09A`) | `3,500 PTS / $HIVE` |
+| **`HM-S8-07`** | `feat/s8-skip-attention-car-dma-streamer` | `pmerolla/fomoe` (`Skip-Attention` + `CAR`) | Wire `SkipAttentionSpeculativeRouter` (`SI-10`, `~85.8%` prefetch accuracy + `CAR` fallback) into `PinnedRAMExpertDMAStreamer` | `3,500 PTS / $HIVE` |
+| **`HM-S8-08`** | `feat/s8-heloco-autoloco-cadence-bridge` | `HeLoCo` (`arXiv:2606.00271`) + `AutoLoCo` (`arXiv:2609.36662`) | Bridge `AdaptiveDiLoCoCadenceController` (`SI-03`) with `AutoLoCoIntervalCorrector` & `HeLoCoDirectionCorrector` (`SI-08`) | `3,000 PTS / $HIVE` |
+| **`HM-S8-09`** | `feat/s8-muon-newton-schulz-inner-lora` | `MuLoCo` (`arXiv:2607.12925`) + Morales (`arXiv:2610.19064`) | Integrate `MuonNewtonSchulzLoRAPreconditioner` (`SI-11`) into local QLoRA inner loop | `3,000 PTS / $HIVE` |
+| **`HM-S8-10`** | `formal/s8-isoloco-dct-newton-schulz-lean4` | `lean4/HiveMindSpec.lean` (`Theorems 83–90`) | Extend `Season10_OuterLoopDiLoCoEcosystem` in Lean 4 from `82` to `90` machine-checked theorems (`0 sorry`) | `3,500 PTS / $HIVE` |
+

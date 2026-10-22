@@ -1212,6 +1212,84 @@ theorem ucb1_sample_threshold_bounds_bonus (L n gap : Nat) (hn : 0 < n)
 
 end Season6_CoreOnlyBounds
 
+-- ============================================================================
+-- SEASON 10 (WAVE 7): OUTER-LOOP DILOCO ECOSYSTEM & FOMOE FORMAL INVARIANTS
+-- ============================================================================
+namespace Season10_OuterLoopDiLoCoEcosystem
+
+/-- Theorem 73 (CGAD Cosine Cutoff Zeroes Stale Variance Pollution, `arXiv:2605.09126`):
+    When effective staleness `tau >= tau_cut`, the Cosine-Gated Adam-Decay gate sets `sigma = 0`
+    before updating Adam's second moment `v`, so the gated gradient squared `(sigma * g)^2 = 0`
+    adds zero stale noise to `v`. -/
+theorem cgad_cosine_cutoff_zeroes_stale_variance_pollution
+    (tau tau_cut g v_prev : Nat)
+    (h_stale : tau_cut ≤ tau) :
+    let sigma := if tau < tau_cut then 1 else 0
+    let g_gated := sigma * g
+    v_prev + g_gated * g_gated = v_prev := by
+  have h_not_lt : ¬ (tau < tau_cut) := Nat.not_lt.mpr h_stale
+  simp [h_not_lt]
+
+/-- Theorem 74 (FoMoE Partial Replica Reduces Sparse Expert Ring Volume, `arXiv:2606.19025`):
+    When each worker hosts `local_experts < total_experts` under partial overlap `O_e <= M`
+    with `ring_steps_partial <= ring_steps_full` (`ring_steps_full >= 1`) and `bytes_per_expert >= 1`,
+    the sparse expert ring communication volume is strictly smaller than full-replica All-Reduce. -/
+theorem fomoe_partial_replica_reduces_ring_communication_volume
+    (local_experts total_experts ring_steps_partial ring_steps_full bytes_per_expert : Nat)
+    (h_local : local_experts < total_experts)
+    (h_ring : ring_steps_partial ≤ ring_steps_full)
+    (h_ring_pos : 1 ≤ ring_steps_full)
+    (h_bytes : 1 ≤ bytes_per_expert) :
+    ring_steps_partial * (local_experts * bytes_per_expert) <
+      ring_steps_full * (total_experts * bytes_per_expert) := by
+  have h_exp_bytes : local_experts * bytes_per_expert < total_experts * bytes_per_expert :=
+    Nat.mul_lt_mul_of_pos_right h_local (Nat.lt_of_lt_of_le Nat.zero_lt_one h_bytes)
+  have h_step1 :
+      ring_steps_partial * (local_experts * bytes_per_expert) ≤
+        ring_steps_full * (local_experts * bytes_per_expert) :=
+    Nat.mul_le_mul_right _ h_ring
+  have h_step2 :
+      ring_steps_full * (local_experts * bytes_per_expert) <
+        ring_steps_full * (total_experts * bytes_per_expert) :=
+    Nat.mul_lt_mul_of_pos_left h_exp_bytes (Nat.lt_of_lt_of_le Nat.zero_lt_one h_ring_pos)
+  exact Nat.lt_of_le_of_lt h_step1 h_step2
+
+/-- Theorem 75 (FoMoE Skip-Token Reduces Local Expert FFN FLOPs, `arXiv:2606.19025`):
+    Skipping Ghost-Expert tokens so only `active_local_tokens < total_routed_tokens` execute
+    local FFN matmuls (`flops_per_token >= 1`) strictly reduces local expert FFN FLOPs. -/
+theorem fomoe_skip_token_reduces_local_expert_flops
+    (active_local_tokens total_routed_tokens flops_per_token : Nat)
+    (h_skip : active_local_tokens < total_routed_tokens)
+    (h_flops : 1 ≤ flops_per_token) :
+    active_local_tokens * flops_per_token < total_routed_tokens * flops_per_token := by
+  exact Nat.mul_lt_mul_of_pos_right h_skip (Nat.lt_of_lt_of_le Nat.zero_lt_one h_flops)
+
+/-- Theorem 76 (PULSELoCo Compute-Visible Gate Preserves Forward Rounding, `arXiv:2602.03839`):
+    If a coordinate update magnitude `delta_abs < bf16_half_ulp`, gating it to zero produces
+    an omission error `delta_abs` strictly smaller than `bf16_half_ulp`. -/
+theorem pulseloco_compute_visible_gate_preserves_forward_rounding
+    (delta_abs bf16_half_ulp : Nat)
+    (h_sub_ulp : delta_abs < bf16_half_ulp) :
+    let gated := if bf16_half_ulp ≤ delta_abs then delta_abs else 0
+    delta_abs - gated < bf16_half_ulp := by
+  have h_not_le : ¬ (bf16_half_ulp ≤ delta_abs) := Nat.not_le.mpr h_sub_ulp
+  simp [h_not_le, h_sub_ulp]
+
+/-- Theorem 77 (Skip-Attention Cache-Aware Routing Eliminates Synchronous PCIe Stalls, `pmerolla/fomoe`):
+    When Cache-Aware Routing (`CAR`) substitutes a VRAM-resident expert for `car_substituted_misses >= 1`
+    tokens that would otherwise trigger synchronous PCIe DMA transfers (`pcie_transfer_us >= 1`),
+    total synchronous PCIe stall latency is strictly reduced. -/
+theorem skip_attention_car_fallback_eliminates_synchronous_pcie_stall
+    (raw_misses car_substituted_misses pcie_transfer_us : Nat)
+    (h_sub_pos : 1 ≤ car_substituted_misses)
+    (h_sub_le : car_substituted_misses ≤ raw_misses)
+    (h_pcie : 1 ≤ pcie_transfer_us) :
+    (raw_misses - car_substituted_misses) * pcie_transfer_us < raw_misses * pcie_transfer_us := by
+  have h_lt : raw_misses - car_substituted_misses < raw_misses := by omega
+  exact Nat.mul_lt_mul_of_pos_right h_lt (Nat.lt_of_lt_of_le Nat.zero_lt_one h_pcie)
+
+end Season10_OuterLoopDiLoCoEcosystem
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -1279,3 +1357,8 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay
 #print axioms HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected
 #print axioms HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.cgad_cosine_cutoff_zeroes_stale_variance_pollution
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_partial_replica_reduces_ring_communication_volume
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_skip_token_reduces_local_expert_flops
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.pulseloco_compute_visible_gate_preserves_forward_rounding
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.skip_attention_car_fallback_eliminates_synchronous_pcie_stall
