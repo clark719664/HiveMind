@@ -11,6 +11,8 @@ Implements:
          W_{ffn, e} = W_0_ffn + (alpha/r) * B_{e,ffn} @ A_{e,ffn}
     3. A Top-2 Softmax Router G(x) = Softmax(TopK(x @ W_g, k=2)) routes each token to its
        top-2 domain experts with Switch-style load-balancing auxiliary loss.
+- Season 7 (`HM-S7-01`): a looped `Prelude -> RecurrentCore x T -> Coda` wrapper that reuses
+  the core decoder layers T times instead of copying them, with optional per-step LoRA adapters.
 """
 
 from __future__ import annotations
@@ -726,6 +728,255 @@ class UpcycledSparseMoEModel(nn.Module):
                 total_aux = torch.stack(aux_losses).mean()
                 out.loss = out.loss + self.router_aux_loss_coef * total_aux
         return out
+
+
+LOOPED_INPUT_INJECTION_MODES = ("add", "none")
+
+
+def _unique_weight_bytes(module: nn.Module) -> int:
+    """Bytes of parameters and buffers as stored, counting tied storage once."""
+    seen: set[tuple[int, int]] = set()
+    total = 0
+    for tensor in [*module.parameters(), *module.buffers()]:
+        key = (tensor.untyped_storage().data_ptr(), tensor.storage_offset())
+        if key in seen:
+            continue
+        seen.add(key)
+        total += tensor.numel() * tensor.element_size()
+    return total
+
+
+def _causal_attention_mask(
+    attention_mask: torch.Tensor | None,
+    batch_size: int,
+    seq_len: int,
+    dtype: torch.dtype,
+    device: torch.device,
+) -> torch.Tensor:
+    """Additive 4-D causal mask `[B, 1, S, S]`, with padded key positions masked out."""
+    min_value = torch.finfo(dtype).min
+    mask = torch.full((seq_len, seq_len), min_value, dtype=dtype, device=device).triu(1)
+    mask = mask[None, None].expand(batch_size, 1, seq_len, seq_len).clone()
+    if attention_mask is not None:
+        padded_keys = attention_mask[:, None, None, :].to(device=device, dtype=torch.bool).logical_not()
+        mask = mask.masked_fill(padded_keys, min_value)
+    return mask
+
+
+class LoopStepLoRAAdapter(nn.Module):
+    """Residual low-rank adapter `h + B_t A_t h` applied before loop step t.
+
+    `B_t` starts at zero, so an untrained adapter is the identity and the loop
+    begins as plain weight-tied recurrence.
+    """
+
+    def __init__(self, hidden_size: int, rank: int, dtype: torch.dtype, device: torch.device) -> None:
+        super().__init__()
+        self.down = nn.Linear(hidden_size, rank, bias=False, dtype=dtype, device=device)
+        self.up = nn.Linear(rank, hidden_size, bias=False, dtype=dtype, device=device)
+        nn.init.normal_(self.down.weight, std=1.0 / hidden_size)
+        nn.init.zeros_(self.up.weight)
+
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        return hidden_states + self.up(self.down(hidden_states))
+
+
+@dataclass
+class LoopedBackboneReport:
+    """Season 7 (`HM-S7-01`): shape and measured weight bytes of a looped backbone.
+
+    Byte counts are tensors as stored on the device they were measured on (NF4
+    packed when the backbone is quantized, fp32 on a CPU test model). They are
+    not a VRAM measurement: activations and KV cache still grow with the loop.
+    """
+
+    source_depth: int
+    num_prelude_layers: int
+    num_core_layers: int
+    num_coda_layers: int
+    loop_steps: int
+    effective_depth: int
+    depth_multiplier: float
+    input_injection: str
+    per_step_lora_rank: int
+    source_weight_bytes: int
+    core_weight_bytes: int
+    loop_adapter_bytes: int
+    looped_weight_bytes: int
+    unrolled_weight_bytes: int
+
+    @property
+    def extra_weight_bytes(self) -> int:
+        """Bytes the looped model stores beyond the source model (only the step adapters)."""
+        return self.looped_weight_bytes - self.source_weight_bytes
+
+    @property
+    def saved_weight_bytes(self) -> int:
+        """Bytes saved versus unrolling the core into `loop_steps` separate copies."""
+        return self.unrolled_weight_bytes - self.looped_weight_bytes
+
+
+class LoopedExpertBackbone(nn.Module):
+    """Season 7 (`HM-S7-01`): `Prelude -> RecurrentCore x T -> Coda` over a decoder stack.
+
+    The first `num_prelude_layers` decoder layers run once, the middle (core)
+    layers run `loop_steps` times with the *same* modules (weight-tied, no
+    copies), and the last `num_coda_layers` layers plus the final norm and LM
+    head form the coda. Before each core pass after the first, `input_injection="add"`
+    adds the prelude output back into the recurrent state, and an optional
+    per-step LoRA adapter lets each pass differ.
+
+    Wraps either an `UpcycledSparseMoEModel` (routing telemetry, router aux loss
+    and `train_moe_router_gating` keep working) or a plain Qwen2-style causal LM.
+    Runs without a KV cache.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        num_prelude_layers: int = 1,
+        num_coda_layers: int = 1,
+        loop_steps: int = 2,
+        per_step_lora_rank: int = 4,
+        input_injection: str = "add",
+        router_aux_loss_coef: float | None = None,
+    ) -> None:
+        super().__init__()
+        moe_model = model if isinstance(model, UpcycledSparseMoEModel) else None
+        causal_lm = moe_model.backbone if moe_model is not None else model
+        decoder = getattr(causal_lm, "model", None)
+        layers = getattr(decoder, "layers", None)
+        if not isinstance(layers, nn.ModuleList) or not hasattr(causal_lm, "lm_head"):
+            raise ValueError("model must be a causal LM exposing .model.layers and .lm_head")
+        if loop_steps < 1:
+            raise ValueError("loop_steps must be at least 1")
+        if num_prelude_layers < 0 or num_coda_layers < 0:
+            raise ValueError("prelude and coda layer counts must be non-negative")
+        num_core = len(layers) - num_prelude_layers - num_coda_layers
+        if num_core < 1:
+            raise ValueError(
+                f"{len(layers)} decoder layers leave no core after {num_prelude_layers} prelude "
+                f"and {num_coda_layers} coda layers"
+            )
+        if input_injection not in LOOPED_INPUT_INJECTION_MODES:
+            raise ValueError(f"input_injection must be one of {LOOPED_INPUT_INJECTION_MODES}")
+        if per_step_lora_rank < 0:
+            raise ValueError("per_step_lora_rank must be non-negative")
+
+        self.source_model = model
+        self.moe_model = moe_model
+        self.embed_tokens = decoder.embed_tokens
+        self.rotary_emb = getattr(decoder, "rotary_emb", None)
+        self.norm = decoder.norm
+        self.lm_head = causal_lm.lm_head
+        self.prelude = nn.ModuleList(layers[:num_prelude_layers])
+        self.core = nn.ModuleList(layers[num_prelude_layers : num_prelude_layers + num_core])
+        self.coda = nn.ModuleList(layers[num_prelude_layers + num_core :])
+        self.loop_steps = loop_steps
+        self.input_injection = input_injection
+        self.per_step_lora_rank = per_step_lora_rank
+        if router_aux_loss_coef is None:
+            router_aux_loss_coef = moe_model.router_aux_loss_coef if moe_model is not None else 0.0
+        self.router_aux_loss_coef = router_aux_loss_coef
+
+        embed_weight = self.embed_tokens.weight
+        self.step_adapters = nn.ModuleList(
+            LoopStepLoRAAdapter(embed_weight.shape[1], per_step_lora_rank, embed_weight.dtype, embed_weight.device)
+            for _ in range(loop_steps if per_step_lora_rank > 0 else 0)
+        )
+        self.last_aux_loss: torch.Tensor = torch.tensor(0.0)
+
+    def get_moe_blocks(self) -> list[SparseMoEMLPBlock]:
+        return self.moe_model.get_moe_blocks() if self.moe_model is not None else []
+
+    def reset_routing_telemetry(self) -> None:
+        if self.moe_model is not None:
+            self.moe_model.reset_routing_telemetry()
+
+    def get_expert_utilization(self) -> dict[str, float]:
+        return self.moe_model.get_expert_utilization() if self.moe_model is not None else {}
+
+    def _run_layer(
+        self,
+        layer: nn.Module,
+        hidden_states: torch.Tensor,
+        attention_mask: torch.Tensor,
+        position_ids: torch.Tensor,
+        position_embeddings: tuple[torch.Tensor, torch.Tensor] | None,
+        aux_losses: list[torch.Tensor],
+    ) -> torch.Tensor:
+        out = layer(
+            hidden_states,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            position_embeddings=position_embeddings,
+            use_cache=False,
+        )
+        hidden_states = out[0] if isinstance(out, tuple) else out
+        aux_losses.extend(blk.last_aux_loss for blk in layer.modules() if isinstance(blk, SparseMoEMLPBlock))
+        return hidden_states
+
+    def forward(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None = None,
+        labels: torch.Tensor | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        from transformers.modeling_outputs import CausalLMOutputWithPast
+
+        hidden_states = self.embed_tokens(input_ids)
+        batch_size, seq_len = input_ids.shape
+        position_ids = torch.arange(seq_len, device=hidden_states.device).unsqueeze(0).expand(batch_size, -1)
+        position_embeddings = self.rotary_emb(hidden_states, position_ids) if self.rotary_emb is not None else None
+        mask = _causal_attention_mask(attention_mask, batch_size, seq_len, hidden_states.dtype, hidden_states.device)
+        run_args = (mask, position_ids, position_embeddings)
+        aux_losses: list[torch.Tensor] = []
+
+        for layer in self.prelude:
+            hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
+        injected = hidden_states
+        for step in range(self.loop_steps):
+            if step > 0 and self.input_injection == "add":
+                hidden_states = hidden_states + injected
+            if self.step_adapters:
+                hidden_states = self.step_adapters[step](hidden_states)
+            for layer in self.core:
+                hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
+        for layer in self.coda:
+            hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
+
+        logits = self.lm_head(self.norm(hidden_states))
+        self.last_aux_loss = torch.stack(aux_losses).mean() if aux_losses else torch.tensor(0.0, device=logits.device)
+        loss = None
+        if labels is not None:
+            shift_logits = logits[:, :-1, :].reshape(-1, logits.shape[-1]).float()
+            loss = F.cross_entropy(shift_logits, labels[:, 1:].reshape(-1), ignore_index=-100)
+            loss = loss + self.router_aux_loss_coef * self.last_aux_loss.to(loss.device)
+        return CausalLMOutputWithPast(loss=loss, logits=logits)
+
+    def report(self) -> LoopedBackboneReport:
+        source_depth = len(self.prelude) + len(self.core) + len(self.coda)
+        effective_depth = len(self.prelude) + len(self.core) * self.loop_steps + len(self.coda)
+        source_bytes = _unique_weight_bytes(self.source_model)
+        core_bytes = _unique_weight_bytes(self.core)
+        adapter_bytes = _unique_weight_bytes(self.step_adapters)
+        return LoopedBackboneReport(
+            source_depth=source_depth,
+            num_prelude_layers=len(self.prelude),
+            num_core_layers=len(self.core),
+            num_coda_layers=len(self.coda),
+            loop_steps=self.loop_steps,
+            effective_depth=effective_depth,
+            depth_multiplier=round(effective_depth / source_depth, 4),
+            input_injection=self.input_injection,
+            per_step_lora_rank=self.per_step_lora_rank,
+            source_weight_bytes=source_bytes,
+            core_weight_bytes=core_bytes,
+            loop_adapter_bytes=adapter_bytes,
+            looped_weight_bytes=_unique_weight_bytes(self),
+            unrolled_weight_bytes=source_bytes + core_bytes * (self.loop_steps - 1) + adapter_bytes,
+        )
 
 
 def measure_moe_vram_footprint_gb(
