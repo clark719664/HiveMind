@@ -22,6 +22,9 @@ and `coordinator_api.py`) against advanced federated learning attacks:
 5. **Rule FL-05 (`STALE_GRADIENT_AND_WORKUNIT_REPLAY_DEFENSE`)**:
    - Rejects replayed `wu_id` submissions (double-claiming PoUW rewards), branch mismatches, and
      straggler/stale pseudo-gradients where $t_{\text{coord}} - t_{\text{worker}} > \tau_{\max}$.
+   - A `wu_id` is marked consumed only once the spot-check validator has produced a verdict (pass or
+     fail), never on envelope acceptance alone, so a submission that is rejected or errors out before
+     a verdict leaves the workunit open for its assignee.
 6. **Rule FL-06 (`SYBIL_ONE_VOTE_PER_IDENTITY_QUORUM`)**:
    - Enforces at most **1 pseudo-gradient vote per unique `SteamID64`** in any outer aggregation step,
      preventing a single account from spawning multiple `worker_id` processes to capture the Multi-Krum majority.
@@ -29,6 +32,10 @@ and `coordinator_api.py`) against advanced federated learning attacks:
    - Optional $(\epsilon, \delta)$-Differential Privacy Gaussian mechanism ($\mathcal{N}(0, \sigma^2 C^2 I)$
      after sensitivity clipping to $C$) to protect local dataset shards against Gradient Inversion / DLG
      membership inference attacks.
+8. **Rule FL-08 (`WORKUNIT_ASSIGNEE_OWNERSHIP`)**:
+   - A workunit may only be submitted by the `(worker_id, SteamID64)` pair it was issued to
+     (recorded via `register_workunit_assignment` when the coordinator assigns it). Without this, any
+     node that learned a `wu_id` could submit against it and burn the honest assignee's workunit.
 """
 
 from __future__ import annotations
@@ -99,6 +106,7 @@ class FederatedLearningSecurityGuard:
         self.trimmed_mean_beta = float(trimmed_mean_beta)
         self.consumed_workunit_ids: Set[str] = set()
         self.step_steam_id_votes: Dict[Tuple[str, int], Dict[str, str]] = {}
+        self.workunit_assignees: Dict[str, Tuple[str, str]] = {}
 
     # ------------------------------------------------------------------
     # 1. Pre-Aggregation Worker Delta Sanitization (FL-01 & FL-02)
@@ -275,9 +283,13 @@ class FederatedLearningSecurityGuard:
         return aggregated, report
 
     # ------------------------------------------------------------------
-    # 3. Coordinator Workunit Replay, Staleness & Sybil One-Vote Gate (FL-05 & FL-06)
+    # 3. Coordinator Workunit Ownership, Replay, Staleness & Sybil One-Vote Gate (FL-05, FL-06 & FL-08)
     # ------------------------------------------------------------------
-    def verify_workunit_submission_envelope(
+    def register_workunit_assignment(self, wu_id: str, worker_id: str, steam_id64: str) -> None:
+        """Record which `(worker_id, steam_id64)` a workunit was issued to, for the FL-08 ownership check."""
+        self.workunit_assignees[str(wu_id)] = (str(worker_id), str(steam_id64))
+
+    def check_workunit_submission_envelope(
         self,
         wu_id: str,
         expected_branch: str,
@@ -290,12 +302,28 @@ class FederatedLearningSecurityGuard:
         expected_inner_steps: int,
         preempted_by_daemon: bool = False,
     ) -> None:
-        """Enforce anti-replay, staleness bounds, and 1-vote-per-SteamID64 Sybil protection."""
+        """Pure envelope check: raises on violation, records nothing.
+
+        Call `record_workunit_submission` once the validator has produced a verdict so that an
+        envelope that passed but never reached a verdict does not burn the workunit.
+        """
         if wu_id in self.consumed_workunit_ids:
             raise SwarmSecurityViolationError(
                 "FL-05",
                 "WORKUNIT_REPLAY_DETECTED",
                 f"Workunit '{wu_id}' has already been submitted and consumed.",
+            )
+
+        # Rule FL-08: only the (worker_id, steam_id64) the workunit was issued to may submit it.
+        # Workunits never registered via `register_workunit_assignment` (direct guard callers,
+        # the self-test, the attack simulator) are not ownership-checked.
+        assignee = self.workunit_assignees.get(str(wu_id))
+        if assignee is not None and assignee != (str(worker_id), str(steam_id64)):
+            raise SwarmSecurityViolationError(
+                "FL-08",
+                "WORKUNIT_ASSIGNEE_MISMATCH",
+                f"Workunit '{wu_id}' was assigned to worker '{assignee[0]}' (SteamID64 {assignee[1]}) "
+                f"but was submitted by worker '{worker_id}' (SteamID64 {steam_id64}).",
             )
 
         if str(expected_branch) != str(submitted_branch):
@@ -323,7 +351,7 @@ class FederatedLearningSecurityGuard:
 
         # Rule FL-06: 1 vote per unique SteamID64 per (branch, outer_step)
         step_key = (str(expected_branch), int(coordinator_outer_step))
-        votes_for_step = self.step_steam_id_votes.setdefault(step_key, {})
+        votes_for_step = self.step_steam_id_votes.get(step_key, {})
         if steam_id64 in votes_for_step and votes_for_step[steam_id64] != worker_id:
             raise SwarmSecurityViolationError(
                 "FL-06",
@@ -332,12 +360,65 @@ class FederatedLearningSecurityGuard:
                 f"for branch '{expected_branch}' at outer_step={coordinator_outer_step} (1 vote per SteamID64 enforced).",
             )
 
-        votes_for_step[steam_id64] = worker_id
+    def record_workunit_submission(
+        self,
+        wu_id: str,
+        expected_branch: str,
+        coordinator_outer_step: int,
+        steam_id64: str,
+        worker_id: str,
+    ) -> None:
+        """Commit a checked envelope: cast the FL-06 vote and mark the workunit consumed (FL-05).
+
+        Consumption is tied to the validator having rendered a verdict, pass or fail. A failed
+        spot-check still consumes the workunit: the shard and seed are deterministic, so letting the
+        same submitter retry the same `wu_id` would hand them a free oracle on the validator's tolerance.
+        """
+        step_key = (str(expected_branch), int(coordinator_outer_step))
+        self.step_steam_id_votes.setdefault(step_key, {})[steam_id64] = worker_id
         self.consumed_workunit_ids.add(wu_id)
+
+    def verify_workunit_submission_envelope(
+        self,
+        wu_id: str,
+        expected_branch: str,
+        submitted_branch: str,
+        coordinator_outer_step: int,
+        submitted_outer_step: int,
+        steam_id64: str,
+        worker_id: str,
+        steps_completed: int,
+        expected_inner_steps: int,
+        preempted_by_daemon: bool = False,
+    ) -> None:
+        """Check the envelope and immediately commit it (check + record in one call).
+
+        Kept for callers that have no separate verdict step; the coordinator uses the split form so
+        that it only consumes a workunit after the spot-check validator returns.
+        """
+        self.check_workunit_submission_envelope(
+            wu_id=wu_id,
+            expected_branch=expected_branch,
+            submitted_branch=submitted_branch,
+            coordinator_outer_step=coordinator_outer_step,
+            submitted_outer_step=submitted_outer_step,
+            steam_id64=steam_id64,
+            worker_id=worker_id,
+            steps_completed=steps_completed,
+            expected_inner_steps=expected_inner_steps,
+            preempted_by_daemon=preempted_by_daemon,
+        )
+        self.record_workunit_submission(
+            wu_id=wu_id,
+            expected_branch=expected_branch,
+            coordinator_outer_step=coordinator_outer_step,
+            steam_id64=steam_id64,
+            worker_id=worker_id,
+        )
 
 
 def run_federated_hardening_self_test(output_json_path: Optional[str] = None) -> Dict[str, Any]:
-    """Execute a comprehensive live self-test of all 7 Federated Learning Hardening Rules (`FL-01`..`FL-07`)."""
+    """Execute a comprehensive live self-test of all 8 Federated Learning Hardening Rules (`FL-01`..`FL-08`)."""
     from hivemind.core.diloco_outer import DiLoCoOuterOptimizer
 
     guard = FederatedLearningSecurityGuard()
@@ -441,6 +522,23 @@ def run_federated_hardening_self_test(output_json_path: Optional[str] = None) ->
     except SwarmSecurityViolationError as exc:
         stale_blocked = exc.rule_id == "FL-05"
 
+    assignee_blocked = False
+    guard.register_workunit_assignment("wu-astro-004", worker_id="worker-delta", steam_id64="76561198000000004")
+    try:
+        guard.verify_workunit_submission_envelope(
+            wu_id="wu-astro-004",
+            expected_branch="Kepler",
+            submitted_branch="Kepler",
+            coordinator_outer_step=5,
+            submitted_outer_step=5,
+            steam_id64="76561198000000005",  # Not the assignee of wu-astro-004!
+            worker_id="worker-hijacker",
+            steps_completed=12,
+            expected_inner_steps=12,
+        )
+    except SwarmSecurityViolationError as exc:
+        assignee_blocked = exc.rule_id == "FL-08" and "wu-astro-004" not in guard.consumed_workunit_ids
+
     # Also test DP-DiLoCo noise injection
     _, dp_report = guard.clip_and_aggregate_surviving_deltas(
         surviving_deltas={
@@ -459,6 +557,7 @@ def run_federated_hardening_self_test(output_json_path: Optional[str] = None) ->
         and sybil_blocked
         and replay_blocked
         and stale_blocked
+        and assignee_blocked
         and dp_report.dp_noise_sigma_applied == 0.05
     )
 
@@ -476,6 +575,7 @@ def run_federated_hardening_self_test(output_json_path: Optional[str] = None) ->
             "fl05_workunit_replay_blocked": replay_blocked,
             "fl05_stale_outer_step_blocked": stale_blocked,
             "fl06_sybil_multi_worker_per_steamid_blocked": sybil_blocked,
+            "fl08_non_assignee_submission_blocked": assignee_blocked,
             "fl07_dp_diloco_gaussian_sanitizer_verified": dp_report.dp_noise_sigma_applied == 0.05,
         },
         "dp_audit_summary": dp_report.to_dict(),
