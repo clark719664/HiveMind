@@ -66,7 +66,7 @@ def test_campaign_render_names_pillow_when_missing() -> None:
 
 
 def test_lazy_exports_resolve_every_public_name() -> None:
-    assert sorted(security._EXPORTS) == sorted(security.__all__)
+    assert sorted(security._LAZY_EXPORTS) == sorted(security.__all__)
     for name in security.__all__:
         assert getattr(security, name) is not None
     with pytest.raises(AttributeError):
