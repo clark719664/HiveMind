@@ -27,6 +27,7 @@ residual for Top-k + FP8 compressed outer-loop pseudo-gradients.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import asdict, dataclass
 import json
 import math
@@ -799,6 +800,16 @@ def _is_pareto_dominated(candidate: Dict[str, Any], points: Sequence[Dict[str, A
     return False
 
 
+def _finite_float(value: Any, name: str) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be numeric") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be finite")
+    return number
+
+
 class StrategyOptimizerTelemetryEngine:
     """Live `SI-01`..`SI-05` telemetry for the Season 6 HUD (`HM-S6-04`).
 
@@ -944,10 +955,7 @@ class StrategyOptimizerTelemetryEngine:
         link = dict(self.link_profile)
         for key in ("ring_rtt_ms", "bbr_pacing_mbps", "packet_loss_rate"):
             if key in payload and payload[key] is not None:
-                try:
-                    link[key] = float(payload[key])
-                except (TypeError, ValueError) as exc:
-                    raise ValueError(f"{key} must be numeric") from exc
+                link[key] = _finite_float(payload[key], key)
         if link["ring_rtt_ms"] <= 0.0:
             raise ValueError("ring_rtt_ms must be > 0")
         if link["bbr_pacing_mbps"] <= 0.0:
@@ -962,22 +970,33 @@ class StrategyOptimizerTelemetryEngine:
             domain = str(domain)
             if domain not in self.domains:
                 raise ValueError(f"unknown domain_name: {domain}")
-            try:
-                loss_before = float(payload["loss_before"])
-                loss_after = float(payload["loss_after"])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise ValueError("loss_before and loss_after are required numeric fields") from exc
-            gpu_seconds = float(payload.get("gpu_seconds", 1.0))
+            if "loss_before" not in payload or "loss_after" not in payload:
+                raise ValueError("loss_before and loss_after are required numeric fields")
+            loss_before = _finite_float(payload["loss_before"], "loss_before")
+            loss_after = _finite_float(payload["loss_after"], "loss_after")
+            gpu_seconds = _finite_float(payload.get("gpu_seconds", 1.0), "gpu_seconds")
             if gpu_seconds <= 0.0:
                 raise ValueError("gpu_seconds must be > 0")
+            observation = (domain, loss_before, loss_after, gpu_seconds)
+        else:
+            observation = None
+
+        previous = (self.link_profile, copy.deepcopy(self.scheduler), self.revision)
+        if observation is not None:
+            domain, loss_before, loss_after, gpu_seconds = observation
             self.scheduler.record_observation(
                 domain, loss_before, loss_after, gpu_seconds=gpu_seconds
             )
-
         self.link_profile = link
         self.revision += 1
         self._cache = None
-        return self.snapshot(force_refresh=True)
+        try:
+            return self.snapshot(force_refresh=True)
+        except (ArithmeticError, ValueError) as exc:
+            # A rejected update must not leave state that breaks every later snapshot.
+            self.link_profile, self.scheduler, self.revision = previous
+            self._cache = None
+            raise ValueError(f"observation rejected: {exc}") from exc
 
     def snapshot(self, force_refresh: bool = False) -> Dict[str, Any]:
         """Return the current SI-01..SI-05 telemetry snapshot (short-TTL cached)."""
