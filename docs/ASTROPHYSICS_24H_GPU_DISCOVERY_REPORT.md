@@ -1,15 +1,16 @@
-# Project HiveMind — 24-Cycle Full-Day Local GPU (`NVIDIA GeForce RTX 2070`) Astrophysics & Cosmology BOINC Discovery Report
+# Project HiveMind — 24-Cycle Local GPU (`NVIDIA GeForce RTX 2070`) Astrophysics & Cosmology BOINC Campaign Report
 
 ![Executive Astrophysics & Cosmology Promotion Dashboard](assets/hivemind_astrophysics_executive_dashboard.svg)
 
 ![Deep-Space Cosmology & Exoplanet Swarm Observatory Banner](images/cosmology_deep_field_banner.png)
 
 > **Executive Summary for the Open-Source & Citizen-Science Community**:
-> We executed a full **24-Cycle (24-Hour Full-Day Schedule, Cycles `#01` to `#24`) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing Campaign** entirely on a single consumer **NVIDIA GeForce RTX 2070 (`cuda:0`, 8.0 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps + `72` deterministic 10% spot-check verification replays + `24` `$HIVE` Proof-of-Useful-Work blocks + `6`-Expert Sparse MoE upcycling).
+> We executed a **24-Cycle (Cycles `#01` to `#24`, labelled `01:00`..`24:00` as a schedule; measured wall time `197.64 s` for 24 cycles of 12 inner steps per worker) Modified BOINC + DiLoCo-QLoRA + 6-Expert Sparse MoE Computing Campaign** entirely on a single consumer **NVIDIA GeForce RTX 2070 (`cuda:0`, 8.0 GB VRAM)** across **6 Astrophysics & Cosmology Domains** (`864` GPU inner-loop AdamW steps + `72` deterministic 10% spot-check verification replays + `24` `$HIVE` Proof-of-Useful-Work blocks + `6`-Expert Sparse MoE upcycling).
 > - **Peak GPU VRAM Footprint**: **`96.34 MB`** (`82.57 MB` steady-state allocated via 4-bit NormalFloat `NF4` + Double Quantization + `r=16` QLoRA adapters)
 > - **Thermal & Power Envelope (Phase S-4 Circuit-Breaker)**: **`27.0 °C`** steady-state GPU temperature, **`11.19 W – 23.55 W`** power draw (`HW-OK`, well below the `83.0 °C` and `166.25 W` hardware safety ceilings)
 > - **Byzantine Security**: **`24 / 24` (`100.0%`)** poisoned workunit submissions intercepted and slashed by the BOINC 10% Deterministic Spot-Check Validator (`0.00e+00` divergence across all `72` honest worker executions) + **`24 / 24` (`100.0%`)** stealth Multi-Krum outliers filtered by Phase S-3 Adaptive Median-$L_2$/$L_\infty$ Clipping & Coordinate-Wise $\beta$-Trimmed Mean
 > - **Financial Cloud Cost**: **`0.00 EUR / 0.00 USD`** (100% non-monetary volunteer & reciprocal compute model)
+> - **Scope of the measurements**: the telemetry above and in Section 1 is measured by the run. The catalog in Section 2 is an **illustrative example, not inferred from the run** (see the provenance notice there).
 
 ---
 
@@ -39,16 +40,18 @@
 
 ---
 
-## 2. Deep Cosmology & JWST Biosignature Discovery Figure (`docs/images/cosmology_deep_field_discovery.png`)
+## 2. Deep Cosmology & JWST Biosignature Figure (`docs/images/cosmology_deep_field_discovery.png`): Illustrative Example Catalog
+
+> **Provenance notice: illustrative example catalog, not inferred from the run.** The candidate tables, confidences and cosmological parameters below (and in the figure above) are constants typed into [`_compute_cosmology_discoveries_and_catalog()`](../src/hivemind/boinc/astrophysics_24h_campaign.py); no model output, dataset row, ledger entry or training result reaches them. The ΛCDM curves are integrated from the fixed inputs $H_0 = 68.42$, $\Omega_{m,0} = 0.3114$, and the quoted ± values are typed in, not fitted. The JSON labels the block `measurement_kind: "illustrative_hardcoded"`. The loss trajectories, VRAM, GPU temperature, spot-check and slashing counts in Section 1 **are** measured by the run (measured wall time: `197.64 s` for 24 cycles of 12 inner steps per worker; the `01:00`..`24:00` cycle labels are schedule labels, not elapsed hours).
 
 ![Cosmology Large-Scale Structure, Dark Energy & JWST Biosignature Discoveries](images/cosmology_deep_field_discovery.png)
 
-### Key Scientific Discoveries & Reconstructions
+### Illustrative Example Catalog (not inferred from the run)
 
 #### A. Exoplanet Habitable-Zone & Atmospheric Biosignature Candidates
-Our converged `Kepler_Exoplanet_Transit_Classifier`, `NASA_Exoplanet_Taxonomy_Classifier`, and `JWST_Atmosphere_Biosignature_Classifier` MoE experts screened transit photometry and NIRSpec/NIRISS transmission spectra (`0.8 – 5.2 µm`) to isolate four high-priority temperate worlds:
+Illustrative example: the four entries below are constants typed into the catalog function. They are the kind of table the `Kepler_Exoplanet_Transit_Classifier`, `NASA_Exoplanet_Taxonomy_Classifier` and `JWST_Atmosphere_Biosignature_Classifier` branches are meant to produce; no output of those branches reaches this table, and the confidence column is an illustrative constant, not a model score:
 
-| Candidate Designation | Source Catalog | Period (days) | Radius ($R_\oplus$) | $T_{\text{eq}}$ (K) | Insolation ($S_\oplus$) | Transit SNR | MoE Confidence | Scientific Significance |
+| Candidate Designation | Source Catalog | Period (days) | Radius ($R_\oplus$) | $T_{\text{eq}}$ (K) | Insolation ($S_\oplus$) | Transit SNR | Confidence (illustrative constant) | Scientific Significance |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
 | **`EXO-8821c (JWST-NIRSpec-HM1)`** | `Shoriful025/exoplanet_atmospheric_spectroscopy_results` | `34.82` | `1.58` | `285 K` | `1.08` | `41.2` | **`98.1%`** | **Class-I Temperate World**: Simultaneous $\text{H}_2\text{O}$ (`1.4, 1.9, 2.7 µm`), $\text{CH}_4$ (`2.3, 3.3 µm`), and $\text{CO}_2$ (`4.3 µm`) absorption (`4.7σ` chemical disequilibrium) |
 | **`KEPLER-HM-442b (KOI-4087.01)`** | `mzrk36/exoplanets-unified-dataset` | `112.31` | `1.34` | `261 K` | `0.86` | `28.4` | **`96.4%`** | **Rocky Terrestrial Habitable-Zone Planet** below the $1.6\,R_\oplus$ Fulton radius valley around a quiet K-dwarf ($T_{\text{eff}}=4410\,\text{K}$) |
@@ -56,7 +59,7 @@ Our converged `Kepler_Exoplanet_Transit_Classifier`, `NASA_Exoplanet_Taxonomy_Cl
 | **`EXO-6109b (JWST-NIRISS-HM2)`** | `Shoriful025/exoplanet_atmospheric_spectroscopy_results` | `19.40` | `1.92` | `258 K` | `0.81` | `33.7` | **`91.9%`** | **Class-II Temperate Sub-Neptune** with moderate cloud deck (`0.30 bar`) and strong `4.3 µm` $\text{CO}_2$ band |
 
 #### B. Ancient Galactic Halo Metal-Poor Fossil Stars (`SDSS DR12`)
-Using the `SDSS_Stellar_MK_Spectral_Classifier` expert on `BrunoBarreto/sdss_dr12_stars_regression`, we isolated ancient Population II halo stars whose extreme metal deficiency (`[Fe/H] < -1.38 dex`) and high retrograde radial velocities trace early proto-galactic mergers (such as the Gaia-Enceladus sausage):
+Illustrative example: the three entries below are constants typed into the catalog function, not selections made by the `SDSS_Stellar_MK_Spectral_Classifier` branch on `BrunoBarreto/sdss_dr12_stars_regression`. They illustrate ancient Population II halo stars whose extreme metal deficiency (`[Fe/H] < -1.38 dex`) and high retrograde radial velocities trace early proto-galactic mergers (such as the Gaia-Enceladus sausage):
 
 | SDSS DR12 Identifier | Coordinates (RA, Dec) | $T_{\text{eff}}$ (K) | $\log g$ (dex) | Metallicity $[\text{Fe/H}]$ | Radial Velocity $v_r$ | Astrophysical Classification |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -64,8 +67,8 @@ Using the `SDSS_Stellar_MK_Spectral_Classifier` expert on `BrunoBarreto/sdss_dr1
 | **`SDSS-DR12-SpecID-4346`** (`Plate 1039-125`) | `195.870°, +53.365°` | `5382.4 K` | `4.27` | **`-1.60 dex`** | `-155.8 km/s` | **Galactic Halo Population II Main-Sequence Dwarf** |
 | **`SDSS-DR12-SpecID-9019`** (`Plate 1507-38`) | `34.897°, -0.256°` | `6168.2 K` | `3.92` | **`-1.38 dex`** | `-265.4 km/s` | **High-Velocity Retrograde Halo Turnoff Subgiant** |
 
-#### C. Cosmological Dark Energy, BAO Standard Ruler & Cosmic Acceleration Onset ($z_{\text{trans}} = 0.642$)
-Combining `SDSS_DESI_Cosmology_Redshift_BAO_Analyzer` and `Pantheon_TypeIa_Supernova_DarkEnergy_Probe` across $z \in [0.015, 2.35]$:
+#### C. Cosmological Dark Energy, BAO Standard Ruler & Cosmic Acceleration Onset ($z_{\text{trans}} = 0.642$, from fixed inputs)
+Illustrative example (fixed input constants, not a fit): the numbers below are typed-in inputs, and the curves are an exact flat ΛCDM integration of those inputs across $z \in [0.015, 2.35]$. Nothing from the `SDSS_DESI_Cosmology_Redshift_BAO_Analyzer` or `Pantheon_TypeIa_Supernova_DarkEnergy_Probe` branches enters them:
 - **Hubble Constant & Density Parameters**: $H_0 = 68.42 \pm 0.54\,\text{km}\,\text{s}^{-1}\,\text{Mpc}^{-1}$, $\Omega_{m,0} = 0.3114 \pm 0.0068$, $\Omega_{\Lambda,0} = 0.6886 \pm 0.0068$, and dark-energy equation of state $w_0 = -1.008 \pm 0.029$.
 - **Cosmic Deceleration-to-Acceleration Inflection Point**:
   Solving $q(z_{\text{trans}}) = \frac{\frac{1}{2}\Omega_{m,0}(1+z)^3 - \Omega_{\Lambda,0}}{\Omega_{m,0}(1+z)^3 + \Omega_{\Lambda,0}} = 0$ yields:

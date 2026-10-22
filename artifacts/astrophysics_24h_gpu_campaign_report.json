@@ -1,5 +1,12 @@
 {
-  "campaign": "Project HiveMind \u2014 24-Cycle Full-Day Local RTX 2070 Astrophysics & Cosmology BOINC Campaign",
+  "campaign": "Project HiveMind \u2014 24-Cycle Local RTX 2070 Astrophysics & Cosmology BOINC Campaign",
+  "schedule_basis": {
+    "note": "The 24 cycle labels 01:00..24:00 (hourly_cycle_log[*].simulated_schedule_hour) are schedule labels, not elapsed hours. The campaign is 24 BOINC outer cycles of 12 inner steps per worker; the measured wall time is elapsed_wall_seconds.",
+    "measured_elapsed_wall_seconds": 197.64,
+    "total_boinc_outer_cycles": 24,
+    "inner_steps_per_worker": 12,
+    "cycle_labels_are_simulated": true
+  },
   "overall_passed": true,
   "execution_device": "cuda:0",
   "gpu_hardware": {
@@ -842,6 +849,8 @@
     "slashed_byzantine_count": 24
   },
   "scientific_discoveries": {
+    "measurement_kind": "illustrative_hardcoded",
+    "catalog_provenance": "Illustrative example catalog, not inferred from the run: every exoplanet candidate, halo-star entry, confidence value and cosmological parameter in this block is a constant typed into _compute_cosmology_discoveries_and_catalog(). No model output, dataset row, PoUW ledger entry or training result reaches these tables. The LambdaCDM curves are integrated from the fixed inputs H0 = 68.42 km/s/Mpc and Omega_m = 0.3114; the quoted +- uncertainties are typed in, not fitted.",
     "exoplanet_biosignature_candidates": [
       {
         "candidate_id": "KEPLER-HM-442b (KOI-4087.01)",
@@ -853,6 +862,7 @@
         "host_star_teff_k": 4410.0,
         "transit_snr": 28.4,
         "moe_biosignature_confidence": 0.964,
+        "confidence_basis": "illustrative constant",
         "classification": "Temperate Rocky Habitable-Zone World (High-Priority JWST Target)"
       },
       {
@@ -868,6 +878,7 @@
         "ch4_log_vmr": -6.2,
         "co2_log_vmr": -5.1,
         "moe_biosignature_confidence": 0.981,
+        "confidence_basis": "illustrative constant",
         "classification": "Class-I Temperate Hycean/Terrestrial \u2014 H2O + CH4/CO2 Chemical Disequilibrium (4.7 sigma)"
       },
       {
@@ -880,6 +891,7 @@
         "host_star_teff_k": 3980.0,
         "transit_snr": 24.9,
         "moe_biosignature_confidence": 0.938,
+        "confidence_basis": "illustrative constant",
         "classification": "Outer Habitable-Zone Super-Earth around Quiet K/M-Dwarf"
       },
       {
@@ -895,6 +907,7 @@
         "ch4_log_vmr": -6.8,
         "co2_log_vmr": -4.8,
         "moe_biosignature_confidence": 0.919,
+        "confidence_basis": "illustrative constant",
         "classification": "Class-II Temperate Sub-Neptune \u2014 Clear H2O 1.4/2.7um + CO2 4.3um Absorption"
       }
     ],
@@ -935,6 +948,7 @@
     ],
     "cosmology_dark_energy_reconstruction": {
       "hubble_constant_h0_kms_mpc": 68.42,
+      "parameters_source": "fixed input constants, not a fit",
       "h0_uncertainty": 0.54,
       "omega_matter_0": 0.3114,
       "omega_lambda_0": 0.6886,

@@ -319,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_astro_24h = sub.add_parser(
         "run-astro-24h",
-        help="Run a 24-Cycle Full-Day Intensive GPU Astrophysics & Cosmology Campaign and render PNG dashboards",
+        help="Run a 24-Cycle Intensive GPU Astrophysics & Cosmology Campaign and render PNG dashboards",
     )
     p_astro_24h.add_argument("--cycles", type=int, default=24, help="Number of BOINC outer cycles (default: 24)")
     p_astro_24h.add_argument("--inner-steps", type=int, default=12, help="DiLoCo inner steps H per worker per cycle")

@@ -1,6 +1,8 @@
-"""24-Cycle Full-Day Intensive GPU Astrophysics & Cosmology BOINC Campaign (`hivemind.boinc.astrophysics_24h_campaign`).
+"""24-Cycle Intensive GPU Astrophysics & Cosmology BOINC Campaign (`hivemind.boinc.astrophysics_24h_campaign`).
 
-Executes a 24-Cycle (Full-Day 24-Hour Schedule, Hours 01:00..24:00) Modified BOINC + DiLoCo-QLoRA +
+Executes a 24-Cycle (cycle labels 01:00..24:00 are schedule labels, not elapsed hours; the recorded run in
+`artifacts/astrophysics_24h_gpu_campaign_report.json` took 197.64 s of wall time for 24 cycles of 12 inner
+steps per worker) Modified BOINC + DiLoCo-QLoRA +
 Sparse MoE Computing & Scientific Discovery Campaign on the local NVIDIA GeForce RTX 2070 GPU (`cuda:0`)
 across 6 Astrophysics & Cosmology Domains:
   1. `Kepler_Exoplanet_Transit_Classifier` (`mzrk36/exoplanets-unified-dataset`)
@@ -14,6 +16,11 @@ Produces:
   - Full 24-cycle GPU telemetry & discovery JSON (`artifacts/astrophysics_24h_gpu_campaign_report.json`)
   - 6-Panel Astrophysics & GPU Telemetry Dashboard (`docs/images/astrophysics_gpu_24h_dashboard.png`)
   - 4-Panel Deep Cosmology & JWST Spectroscopy Discovery Figure (`docs/images/cosmology_deep_field_discovery.png`)
+
+Provenance of the `scientific_discoveries` block: the exoplanet, halo-star and cosmology tables are illustrative
+constants assembled by `_compute_cosmology_discoveries_and_catalog()`. No model output, dataset row, ledger entry
+or run output reaches them, so they are labelled `measurement_kind = "illustrative_hardcoded"`. The training
+losses, VRAM, GPU temperature, spot-check and slashing counts in the same report are measured by the run.
 """
 
 from __future__ import annotations
@@ -220,8 +227,99 @@ def _eval_loss(model: torch.nn.Module, token_sequences: torch.Tensor, device: to
     return round(float(out.loss.detach().cpu().item()), 6)
 
 
+CATALOG_MEASUREMENT_KIND = "illustrative_hardcoded"
+CATALOG_PROVENANCE_NOTICE = (
+    "Illustrative example catalog, not inferred from the run: every exoplanet candidate, halo-star entry, "
+    "confidence value and cosmological parameter in this block is a constant typed into "
+    "_compute_cosmology_discoveries_and_catalog(). No model output, dataset row, PoUW ledger entry or "
+    "training result reaches these tables. The LambdaCDM curves are integrated from the fixed inputs "
+    "H0 = 68.42 km/s/Mpc and Omega_m = 0.3114; the quoted +- uncertainties are typed in, not fitted."
+)
+CONFIDENCE_BASIS_ILLUSTRATIVE = "illustrative constant"
+COSMOLOGY_PARAMETERS_SOURCE = "fixed input constants, not a fit"
+
+
+def _insert_after_key(entry: Dict[str, Any], after: str, key: str, value: Any) -> Dict[str, Any]:
+    """Return `entry` with `key` placed directly after `after` (or appended when `after` is absent)."""
+    if after not in entry:
+        out = dict(entry)
+        out[key] = value
+        return out
+    out: Dict[str, Any] = {}
+    for k, v in entry.items():
+        if k == key:
+            continue
+        out[k] = v
+        if k == after:
+            out[key] = value
+    return out
+
+
+def annotate_discovery_catalog_provenance(catalog: Dict[str, Any]) -> Dict[str, Any]:
+    """Label the discovery catalog as illustrative constants. Adds keys only; idempotent.
+
+    The notice keys are placed first so they lead the block in the JSON report.
+    """
+    exo = [
+        _insert_after_key(e, "moe_biosignature_confidence", "confidence_basis", CONFIDENCE_BASIS_ILLUSTRATIVE)
+        for e in catalog.get("exoplanet_biosignature_candidates", [])
+    ]
+    cosmo = _insert_after_key(
+        catalog.get("cosmology_dark_energy_reconstruction", {}),
+        "hubble_constant_h0_kms_mpc",
+        "parameters_source",
+        COSMOLOGY_PARAMETERS_SOURCE,
+    )
+    out: Dict[str, Any] = {
+        "measurement_kind": CATALOG_MEASUREMENT_KIND,
+        "catalog_provenance": CATALOG_PROVENANCE_NOTICE,
+    }
+    for k, v in catalog.items():
+        if k in out:
+            continue
+        if k == "exoplanet_biosignature_candidates":
+            out[k] = exo
+        elif k == "cosmology_dark_energy_reconstruction":
+            out[k] = cosmo
+        else:
+            out[k] = v
+    return out
+
+
+def annotate_campaign_report_provenance(report: Dict[str, Any]) -> Dict[str, Any]:
+    """Add the schedule/wall-time note and catalog provenance to a campaign report. Adds keys only; idempotent.
+
+    `schedule_basis` is placed directly after `campaign` so it is the first thing a reader of the JSON sees
+    after the title. Every measured field is left untouched.
+    """
+    compute = report.get("compute_summary", {})
+    schedule_basis = {
+        "note": (
+            "The 24 cycle labels 01:00..24:00 (hourly_cycle_log[*].simulated_schedule_hour) are schedule "
+            "labels, not elapsed hours. The campaign is 24 BOINC outer cycles of 12 inner steps per worker; "
+            "the measured wall time is elapsed_wall_seconds."
+        ),
+        "measured_elapsed_wall_seconds": report.get("elapsed_wall_seconds"),
+        "total_boinc_outer_cycles": compute.get("total_boinc_outer_cycles"),
+        "inner_steps_per_worker": compute.get("inner_steps_per_worker"),
+        "cycle_labels_are_simulated": True,
+    }
+    out = _insert_after_key(report, "campaign", "schedule_basis", schedule_basis)
+    if isinstance(out.get("campaign"), str):
+        out["campaign"] = out["campaign"].replace("24-Cycle Full-Day", "24-Cycle")
+    if isinstance(out.get("scientific_discoveries"), dict):
+        out["scientific_discoveries"] = annotate_discovery_catalog_provenance(out["scientific_discoveries"])
+    return out
+
+
 def _compute_cosmology_discoveries_and_catalog() -> Dict[str, Any]:
-    """Synthesize quantitative Astrophysical & Cosmological discovery tables verified by the 6-Expert MoE."""
+    """Assemble the illustrative Astrophysical & Cosmological example tables for the report.
+
+    These tables are illustrative constants, not inferred from any model, dataset or run: the function takes
+    no arguments, every candidate, confidence and cosmological parameter is typed in below, and the LambdaCDM
+    curves are integrated from the fixed inputs H0 = 68.42 and Omega_m = 0.3114 (the +- values are typed in
+    too). The returned block is labelled accordingly by `annotate_discovery_catalog_provenance`.
+    """
     # 1. Top Habitable-Zone & Atmospheric Biosignature Exoplanet Candidates
     exoplanet_discoveries = [
         {
@@ -317,8 +415,8 @@ def _compute_cosmology_discoveries_and_catalog() -> Dict[str, Any]:
         },
     ]
 
-    # 3. Cosmological Dark Energy & Expansion History Reconstruction
-    # Exact flat LambdaCDM integration for H(z), q(z), and distance modulus mu(z)
+    # 3. Cosmological Dark Energy & Expansion History (illustrative)
+    # Exact flat LambdaCDM integration for H(z), q(z), and distance modulus mu(z) from fixed input constants
     h0 = 68.42
     omega_m = 0.3114
     omega_l = 1.0 - omega_m
@@ -369,11 +467,13 @@ def _compute_cosmology_discoveries_and_catalog() -> Dict[str, Any]:
         "deceleration_qz": qz_values,
     }
 
-    return {
-        "exoplanet_biosignature_candidates": exoplanet_discoveries,
-        "galactic_halo_metal_poor_stars": stellar_halo_discoveries,
-        "cosmology_dark_energy_reconstruction": cosmology_summary,
-    }
+    return annotate_discovery_catalog_provenance(
+        {
+            "exoplanet_biosignature_candidates": exoplanet_discoveries,
+            "galactic_halo_metal_poor_stars": stellar_halo_discoveries,
+            "cosmology_dark_energy_reconstruction": cosmology_summary,
+        }
+    )
 
 
 def render_astrophysics_24h_dashboard_png(
@@ -491,7 +591,7 @@ def render_astrophysics_24h_dashboard_png(
         draw.line(vram_pts, fill=(52, 211, 153), width=3)
 
     draw.text((px0 + 12, py0 + 30), "Orange: GPU Temp (C) | Cyan: Power (% of 175W TDP) | Green: 4-Bit NF4 VRAM (% of 500MB cap)", fill=(226, 232, 240), font=font)
-    draw.text((px0 + 140, py1 + 12), "24-Hour BOINC Compute Cycle Index (Cycle #01 .. Cycle #24)", fill=(148, 163, 184), font=font)
+    draw.text((px0 + 140, py1 + 12), "24-Cycle BOINC Compute Cycle Index (Cycle #01 .. Cycle #24)", fill=(148, 163, 184), font=font)
 
     # Panel 3 (Top-Right): Exoplanet Habitable-Zone & Biosignature Discovery Map (Rp vs Teq)
     px0, py0, px1, py1 = _draw_panel_box(
@@ -865,7 +965,11 @@ def run_24h_astrophysics_gpu_campaign(
     dashboard_png_path: str | Path | None = None,
     cosmology_png_path: str | Path | None = None,
 ) -> Dict[str, Any]:
-    """Execute a 24-Cycle Full-Day Intensive GPU Astrophysics & Cosmology BOINC Campaign on `cuda:0`."""
+    """Execute a 24-Cycle Intensive GPU Astrophysics & Cosmology BOINC Campaign on `cuda:0`.
+
+    The cycle labels 01:00..24:00 are schedule labels only; the report records the measured wall time in
+    `elapsed_wall_seconds` and the `scientific_discoveries` block is an illustrative example catalog.
+    """
     t0 = time.perf_counter()
     configure_deterministic_runtime(2026)
     hw_info = detect_local_hardware()
@@ -1241,7 +1345,7 @@ def run_24h_astrophysics_gpu_campaign(
     ledger_ok = ledger.verify_chain_integrity()
 
     report: Dict[str, Any] = {
-        "campaign": "Project HiveMind — 24-Cycle Full-Day Local RTX 2070 Astrophysics & Cosmology BOINC Campaign",
+        "campaign": "Project HiveMind — 24-Cycle Local RTX 2070 Astrophysics & Cosmology BOINC Campaign",
         "overall_passed": bool(all_improved and ledger_ok and cb_final.safe_to_continue),
         "execution_device": str(device),
         "gpu_hardware": hw_info,
@@ -1298,6 +1402,7 @@ def run_24h_astrophysics_gpu_campaign(
         },
         "scientific_discoveries": discoveries,
     }
+    report = annotate_campaign_report_provenance(report)
 
     dash_out = (
         Path(dashboard_png_path)
@@ -1335,7 +1440,7 @@ def _print_campaign_summary(
     cosmo_out: Path,
 ) -> None:
     t = Table(
-        title="24-Cycle Full-Day Local RTX 2070 Astrophysics & Cosmology BOINC Campaign (`cuda:0`)"
+        title="24-Cycle Local RTX 2070 Astrophysics & Cosmology BOINC Campaign (`cuda:0`)"
     )
     t.add_column("Astrophysics / Cosmology Branch", style="cyan")
     t.add_column("Dataset ID", style="yellow")
@@ -1354,3 +1459,8 @@ def _print_campaign_summary(
     console.print(f"[bold green]Saved 24-Cycle Report JSON:[/bold green] {json_out}")
     console.print(f"[bold cyan]Rendered Dashboard PNG:[/bold cyan]    {dash_out}")
     console.print(f"[bold magenta]Rendered Cosmology PNG:[/bold magenta]    {cosmo_out}")
+    console.print(
+        f"[bold yellow]Note:[/bold yellow] measured wall time {report['elapsed_wall_seconds']} s; "
+        "cycle labels 01:00..24:00 are schedule labels. The scientific_discoveries block is an "
+        "illustrative example catalog (measurement_kind=illustrative_hardcoded), not inferred from the run."
+    )
