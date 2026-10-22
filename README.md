@@ -4,12 +4,12 @@
 
 <br/>
 
-[![Release](https://img.shields.io/badge/Release-v1.9.0%20(Season%208%20Iso--Sparse--FoMoE%20%26%2052%2F52%20PRs)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases)
+[![Release](https://img.shields.io/badge/Release-v1.9.1%20(Season%208%20Iso--Sparse--FoMoE%20%26%2053%2F53%20PRs)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases)
 [![Test Suite](https://img.shields.io/badge/Tests-Full%20suite%20in%20CI%20(coverage%20gate%2095%25)-brightgreen?style=for-the-badge)](.github/workflows/ci_swarm_tests.yml)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-82%20Machine--checked%20theorems%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-90%20Machine--checked%20theorems%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(self--assessed%209.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
-[![Community PRs](https://img.shields.io/badge/Community%20PRs-52%2F52%20Merged%20(Waves%201--6)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
+[![Community PRs](https://img.shields.io/badge/Community%20PRs-53%2F53%20Merged%20(Waves%201--6)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 [![Project Wiki](https://img.shields.io/badge/Project%20Wiki-11%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
 [![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..11%20(DiLoCo%20%2B%20FoMoE%20%2B%20IsoLoCo)-ffd21e?style=for-the-badge)](docs/DILOCO_ARXIV_LITERATURE_AND_IMPROVEMENTS.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)

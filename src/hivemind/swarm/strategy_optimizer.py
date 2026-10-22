@@ -388,6 +388,60 @@ class AdaptiveDiLoCoCadenceController:
             "turn_relay_active": turn_relay_active,
         }
 
+    def recommend_cadence_with_autoloco_and_heloco(
+        self,
+        rtt_ms: float,
+        bbr_pacing_mbps: float,
+        packet_loss_rate: float = 0.0,
+        turn_relay_active: bool = False,
+        actual_inner_lr: float = 1e-3,
+        reference_inner_steps_h: int = 32,
+        stale_pseudo_grad: Optional[torch.Tensor] = None,
+        outer_momentum_ref: Optional[torch.Tensor] = None,
+    ) -> Dict[str, Any]:
+        """HM-S8-08 (`SI-03` <-> `SI-08` Bridge):
+        Combine `AdaptiveDiLoCoCadenceController.recommend_cadence` with `AutoLoCoIntervalCorrector`
+        (`arXiv:2609.36662`) to automatically rescale `(outer_lr, outer_momentum)` for the
+        recommended inner interval `H`, and optionally align `stale_pseudo_grad` against
+        `outer_momentum_ref` via `HeLoCoDirectionCorrector` (`arXiv:2606.00271`).
+        """
+        from hivemind.swarm.diloco_nextgen import (
+            AutoLoCoIntervalCorrector,
+            HeLoCoDirectionCorrector,
+        )
+
+        cadence = self.recommend_cadence(
+            rtt_ms=rtt_ms,
+            bbr_pacing_mbps=bbr_pacing_mbps,
+            packet_loss_rate=packet_loss_rate,
+            turn_relay_active=turn_relay_active,
+        )
+        autoloco = AutoLoCoIntervalCorrector(
+            reference_inner_steps_h=reference_inner_steps_h,
+            reference_inner_lr=actual_inner_lr,
+        )
+        outer_hyperparams = autoloco.correct_outer_hyperparams(
+            actual_inner_steps_h=int(cadence["recommended_inner_steps_H"]),
+            actual_inner_lr=actual_inner_lr,
+        )
+
+        heloco_telemetry: Optional[Dict[str, float]] = None
+        corrected_grad: Optional[torch.Tensor] = None
+        if stale_pseudo_grad is not None and outer_momentum_ref is not None:
+            heloco = HeLoCoDirectionCorrector(conflict_damping=0.25)
+            corrected_grad, heloco_telemetry = heloco.correct_pseudo_gradient(
+                stale_pseudo_grad, outer_momentum_ref
+            )
+
+        return {
+            "milestone": "HM-S8-08",
+            "cadence": cadence,
+            "autoloco_outer_hyperparams": outer_hyperparams,
+            "heloco_direction_telemetry": heloco_telemetry,
+            "corrected_pseudo_grad": corrected_grad,
+        }
+
+
 
 def reputation_weighted_ties_merge_lora(
     base_lora_state: Dict[str, torch.Tensor],
@@ -556,6 +610,78 @@ class EF21DiLoCoErrorFeedbackBuffer:
 
         self.last_outer_step = int(outer_step)
         return package
+
+    @torch.no_grad()
+    def compress_with_pulse_sparseloco_2bit(
+        self,
+        delta_dict: Dict[str, torch.Tensor],
+        reference_params: Optional[Dict[str, torch.Tensor]] = None,
+        outer_step: int = 1,
+        n_bins: int = 4,
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
+        """HM-S8-04 (`SI-09B`, `one-covenant/SparseLoCo` `arXiv:2508.15706` + `PULSELoCo` `arXiv:2602.03839`):
+        Compress `delta_dict` plus carried EF21 residual using compute-visible BF16 half-ulp gating
+        and 2-bit (`4`-bin) empirical centroid LUT quantization with deterministic `index_copy_`
+        reconstruction, updating `self.residuals` with exact error-feedback conservation.
+        """
+        from hivemind.swarm.diloco_nextgen import ComputeVisibleSparseLoCoCompressor
+
+        if self.residuals and set(delta_dict) != set(self.residuals):
+            raise KeyError(
+                "delta_dict keys differ from the buffered residual keys; call reset() first"
+            )
+        if self.last_outer_step is not None and outer_step <= self.last_outer_step:
+            raise ValueError(
+                f"outer_step must increase: got {outer_step} after {self.last_outer_step}"
+            )
+
+        carry = 1.0
+        if self.last_outer_step is not None:
+            carry = self.stale_decay ** (outer_step - self.last_outer_step)
+
+        compressor = ComputeVisibleSparseLoCoCompressor(
+            topk_ratio=self.topk_ratio,
+            n_bins=n_bins,
+        )
+        corrected: Dict[str, torch.Tensor] = {}
+        reconstructed: Dict[str, torch.Tensor] = {}
+        raw_bytes_total = 0
+        wire_bytes_total = 0
+        conservation_err_sq = 0.0
+
+        for name, delta in delta_dict.items():
+            d = delta.detach().to(torch.float32).cpu()
+            if name in self.residuals:
+                d = d + carry * self.residuals[name]
+            corrected[name] = d
+            ref_t = (reference_params or {}).get(name)
+            recon_t, stats = compressor.compress_and_reconstruct(d, reference_param=ref_t)
+            reconstructed[name] = recon_t
+            res_t = d - recon_t
+            self.residuals[name] = res_t
+            raw_bytes_total += int(stats["raw_bf16_bytes"])
+            wire_bytes_total += int(stats["compressed_wire_bytes"])
+            conservation_err_sq += float(((recon_t + res_t) - d).pow(2).sum().item())
+
+        if self.max_residual_norm is not None:
+            norm = self.residual_norm()
+            if norm > self.max_residual_norm:
+                scale = self.max_residual_norm / norm
+                self.residuals = {name: r * scale for name, r in self.residuals.items()}
+                self.clip_events += 1
+
+        self.last_outer_step = int(outer_step)
+        return reconstructed, {
+            "milestone": "HM-S8-04",
+            "strategy_id": "SI-09B-EF21-PULSE-SPARSELOCO-2BIT",
+            "outer_step": outer_step,
+            "raw_bf16_bytes": raw_bytes_total,
+            "compressed_wire_bytes": wire_bytes_total,
+            "wire_compression_ratio_x": round(raw_bytes_total / max(1, wire_bytes_total), 2),
+            "residual_l2_norm": round(self.residual_norm(), 6),
+            "conservation_error_l2": round(math.sqrt(conservation_err_sq), 8),
+        }
+
 
 
 class ParetoGuildCampaignPlanner:

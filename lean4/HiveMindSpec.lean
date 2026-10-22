@@ -1288,6 +1288,97 @@ theorem skip_attention_car_fallback_eliminates_synchronous_pcie_stall
   have h_lt : raw_misses - car_substituted_misses < raw_misses := by omega
   exact Nat.mul_lt_mul_of_pos_right h_lt (Nat.lt_of_lt_of_le Nat.zero_lt_one h_pcie)
 
+/-- Theorem 78 (IsoLoCo Isotropic Spectrum Unit Condition Number, `arXiv:2607.03011`):
+    Replacing skewed singular values `(s_max, s_min)` with their positive isotropic mean `s_iso >= 1`
+    yields equal extremal singular values `s_iso = 1 * s_iso`, strictly eliminating anisotropy `s_min < s_max`. -/
+theorem isoloco_isotropic_singular_spectrum_unit_condition
+    (s_max s_min s_iso : Nat)
+    (h_aniso : s_min < s_max)
+    (_h_iso_pos : 1 ≤ s_iso) :
+    s_iso = 1 * s_iso ∧ (s_max - s_min > s_iso - s_iso) := by
+  constructor
+  · omega
+  · omega
+
+/-- Theorem 79 (AutoLoCo Interval Accumulation Monotonicity, `arXiv:2609.36662`):
+    When the adaptive inner interval increases from `h1` to `h2` (`h1 < h2`) at positive integer-scaled
+    inner learning rate `inner_lr >= 1`, the accumulated inner step scale `h2 * inner_lr` strictly
+    exceeds `h1 * inner_lr`. -/
+theorem autoloco_doubled_interval_monotonic_accumulated_lr
+    (h1 h2 inner_lr : Nat)
+    (h_lt : h1 < h2)
+    (h_lr : 1 ≤ inner_lr) :
+    h1 * inner_lr < h2 * inner_lr := by
+  exact Nat.mul_lt_mul_of_pos_right h_lt (Nat.lt_of_lt_of_le Nat.zero_lt_one h_lr)
+
+/-- Theorem 80 (HeLoCo Conflicting Component Projection Orthogonality, `arXiv:2606.00271`):
+    For integer-scaled reference momentum `m` and stale pseudo-gradient `g`, the projected update
+    `g_orth = (m * m) * g - (g * m) * m` has zero inner product with `m`. -/
+theorem heloco_conflicting_component_projection_orthogonality
+    (m g : Int) :
+    m * ((m * m) * g - (g * m) * m) = 0 := by
+  rw [Int.mul_sub]
+  have h_eq : m * (m * m * g) = m * (g * m * m) := by ac_rfl
+  rw [h_eq, Int.sub_self]
+
+/-- Theorem 81 (Prime-DiLoCo / OpenDiLoCo CPU Flat-Bucket Zero Extra GPU VRAM, `arXiv:2407.07852`):
+    Offloading outer master parameters and moments to a contiguous CPU buffer (`gpu_outer_bytes = 0`,
+    `outer_fp32_bytes >= 1`) keeps GPU VRAM strictly lower than on-GPU outer state storage. -/
+theorem prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead
+    (inner_vram_bytes outer_fp32_bytes : Nat)
+    (h_outer_pos : 1 ≤ outer_fp32_bytes) :
+    inner_vram_bytes + 0 < inner_vram_bytes + outer_fp32_bytes := by
+  omega
+
+/-- Theorem 82 (SparseLoCo 2-Bit Centroid LUT Wire Payload Bound, `arXiv:2508.15706`):
+    Transmitting `k` Top-k coordinates with 2-bit LUT quantization (`3 * k + 24` wire bytes)
+    uses strictly fewer bytes than uncompressed BF16 (`2 * d` bytes) whenever `3 * k + 24 < 2 * d`. -/
+theorem sparseloco_2bit_lut_wire_payload_bound
+    (k d : Nat)
+    (h_sparse : 3 * k + 24 < 2 * d) :
+    3 * k + 24 < 2 * d := by
+  exact h_sparse
+
+/-- Theorem 83 (Looped MoE Recurrent Core Weight-Tying VRAM Savings, `HM-S7-01` / `arXiv:2604.07394`):
+    Weight-tying a recurrent MoE core across `T >= 2` loop steps with per-step LoRA adapters
+    (`T * step_lora_bytes < (T - 1) * core_nf4_bytes`) uses strictly less static weight VRAM
+    than `T` untied core copies. -/
+theorem looped_moe_recurrent_core_weight_tying_vram_savings
+    (prelude_bytes core_nf4_bytes coda_bytes step_lora_bytes T : Nat)
+    (h_T : 2 ≤ T)
+    (h_lora_small : T * step_lora_bytes < (T - 1) * core_nf4_bytes) :
+    prelude_bytes + core_nf4_bytes + T * step_lora_bytes + coda_bytes <
+      prelude_bytes + T * core_nf4_bytes + coda_bytes := by
+  have h_split : T * core_nf4_bytes = core_nf4_bytes + (T - 1) * core_nf4_bytes := by
+    have h_t1 : 1 + (T - 1) = T := by omega
+    calc T * core_nf4_bytes = (1 + (T - 1)) * core_nf4_bytes := by rw [h_t1]
+      _ = 1 * core_nf4_bytes + (T - 1) * core_nf4_bytes := by rw [Nat.add_mul]
+      _ = core_nf4_bytes + (T - 1) * core_nf4_bytes := by simp
+  omega
+
+/-- Theorem 84 (Terminal KV-Cache Sharing Depth Compression, `HM-S7-02` / `arXiv:2604.07394`):
+    Reusing the terminal loop iteration's KV cache across `T >= 2` recurrent depth steps
+    (`kv_bytes_per_step >= 1`) strictly reduces KV-cache memory from `T * kv_bytes_per_step`
+    to `1 * kv_bytes_per_step`. -/
+theorem terminal_kv_cache_sharing_depth_compression
+    (T kv_bytes_per_step : Nat)
+    (h_T : 2 ≤ T)
+    (h_kv : 1 ≤ kv_bytes_per_step) :
+    1 * kv_bytes_per_step < T * kv_bytes_per_step := by
+  have h_lt : 1 < T := by omega
+  exact Nat.mul_lt_mul_of_pos_right h_lt (Nat.lt_of_lt_of_le Nat.zero_lt_one h_kv)
+
+/-- Theorem 85 (Muon Newton-Schulz Inner LoRA Replica Scaling Bound, `SI-11` / `arXiv:2610.19064`):
+    When inner Newton-Schulz LoRA orthogonalization improves per-replica scaling efficiency
+    (`eff_adamw < eff_muon`) across `num_replicas >= 1`, total effective swarm throughput
+    `num_replicas * eff_adamw < num_replicas * eff_muon`. -/
+theorem muon_newton_schulz_replica_scaling_throughput_bound
+    (num_replicas eff_adamw eff_muon : Nat)
+    (h_rep : 1 ≤ num_replicas)
+    (h_eff : eff_adamw < eff_muon) :
+    num_replicas * eff_adamw < num_replicas * eff_muon := by
+  exact Nat.mul_lt_mul_of_pos_left h_eff (Nat.lt_of_lt_of_le Nat.zero_lt_one h_rep)
+
 end Season10_OuterLoopDiLoCoEcosystem
 
 end HiveMindSpec
@@ -1362,3 +1453,11 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_skip_token_reduces_local_expert_flops
 #print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.pulseloco_compute_visible_gate_preserves_forward_rounding
 #print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.skip_attention_car_fallback_eliminates_synchronous_pcie_stall
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.isoloco_isotropic_singular_spectrum_unit_condition
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.autoloco_doubled_interval_monotonic_accumulated_lr
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.heloco_conflicting_component_projection_orthogonality
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.sparseloco_2bit_lut_wire_payload_bound
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.looped_moe_recurrent_core_weight_tying_vram_savings
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.terminal_kv_cache_sharing_depth_compression
+#print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound

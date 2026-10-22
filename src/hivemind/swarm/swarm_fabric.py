@@ -410,6 +410,107 @@ class PinnedRAMExpertDMAStreamer:
             "staging_mode": self.staging_mode,
         }
 
+    def prefetch_and_route_skip_attention_car(
+        self,
+        post_ffn_residual: torch.Tensor,
+        post_attn_residual: torch.Tensor,
+        next_layer_norm_weight: torch.Tensor,
+        next_layer_router_weight: torch.Tensor,
+        expert_names: Sequence[str],
+        layer_idx: int = 0,
+        top_k: int = 2,
+        car_threshold: float = 0.35,
+        max_prefetch_experts: int = 4,
+        simulated_attention_compute_ms: float = 2.0,
+    ) -> Dict[str, Any]:
+        """HM-S8-07 (`SI-10`, adapted from `pmerolla/fomoe`):
+        1. Predict Layer `L+1` top-`k` experts immediately after Layer `L` FFN (`post_ffn_residual`)
+           and stream up to `max_prefetch_experts` from Pinned Host RAM into the lookahead DMA slot
+           overlapped with Layer `L+1`'s attention window.
+        2. Route `post_attn_residual` with Cache-Aware Routing (`CAR`) fallback so any marginal
+           cache miss within `car_threshold` is served by the best VRAM-resident expert without
+           a synchronous PCIe stall.
+        """
+        from hivemind.swarm.diloco_nextgen import SkipAttentionSpeculativeRouter
+
+        num_experts = int(next_layer_router_weight.shape[0])
+        if len(expert_names) < num_experts:
+            raise ValueError(f"expert_names length ({len(expert_names)}) < num_experts ({num_experts})")
+
+        spec_router = SkipAttentionSpeculativeRouter(
+            num_experts=num_experts,
+            top_k=top_k,
+            car_threshold=car_threshold,
+        )
+        spec_idx, spec_vals = spec_router.predict_next_layer_experts(
+            post_ffn_residual=post_ffn_residual,
+            next_layer_norm_weight=next_layer_norm_weight,
+            next_layer_router_weight=next_layer_router_weight,
+        )
+
+        # Rank predicted experts by aggregate speculative score across tokens
+        demand: Dict[int, float] = {}
+        for e_id, score in zip(spec_idx.reshape(-1).tolist(), spec_vals.reshape(-1).tolist()):
+            demand[int(e_id)] = demand.get(int(e_id), 0.0) + max(0.0, float(score)) + 1.0
+
+        ranked_ids = [
+            kv[0]
+            for kv in sorted(demand.items(), key=lambda kv: (-kv[1], kv[0]))[
+                : max(0, int(max_prefetch_experts))
+            ]
+        ]
+
+        active_slot = "slot_A" if layer_idx % 2 == 0 else "slot_B"
+        lookahead_slot = "slot_B" if active_slot == "slot_A" else "slot_A"
+        self.double_buffer_slots[lookahead_slot].clear()
+
+        baseline_cached_ids: List[int] = [
+            idx for idx, name in enumerate(expert_names[:num_experts]) if name in self.active_vram_cache
+        ]
+        transfers = []
+        for e_idx in ranked_ids:
+            e_name = expert_names[e_idx]
+            if e_name in self.pinned_host_cache:
+                transfers.append(
+                    self.async_dma_prefetch_to_vram(
+                        e_name,
+                        simulated_attention_compute_ms=simulated_attention_compute_ms,
+                        target_slot=lookahead_slot,
+                    )
+                )
+
+        resident_after_prefetch_ids: List[int] = sorted(
+            set(baseline_cached_ids)
+            | {
+                idx
+                for idx, name in enumerate(expert_names[:num_experts])
+                if name in self.active_vram_cache or name in self.double_buffer_slots[lookahead_slot]
+            }
+        )
+
+        car_out = spec_router.route_with_cache_aware_fallback(
+            post_ffn_residual=post_ffn_residual,
+            post_attn_residual=post_attn_residual,
+            next_layer_norm_weight=next_layer_norm_weight,
+            next_layer_router_weight=next_layer_router_weight,
+            baseline_cached_experts=resident_after_prefetch_ids,
+        )
+        total_raw_ms = round(sum(t["raw_dma_transfer_ms"] for t in transfers), 3)
+        return {
+            "milestone": "HM-S8-07",
+            "strategy_id": "SI-10-FOMOE-SKIP-ATTENTION-SPECULATIVE-CAR",
+            "current_layer": layer_idx,
+            "prefetched_layer": layer_idx + 1,
+            "lookahead_dma_slot": lookahead_slot,
+            "prefetched_experts": [t["expert_name"] for t in transfers],
+            "total_raw_dma_ms": total_raw_ms,
+            "exposed_swap_latency_ms_simulated": round(
+                max(0.0, total_raw_ms - simulated_attention_compute_ms), 3
+            ),
+            **car_out,
+        }
+
+
 # ============================================================================
 # M3: FP8 Hidden-State Wire Compression & Token Tree Speculation (gamma = 6)
 # ============================================================================

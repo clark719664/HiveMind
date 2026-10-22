@@ -520,6 +520,108 @@ def run_multi_moe_hf_campaign(
 
     stage5_ms = round((time.perf_counter() - t_stage5) * 1000.0, 2)
 
+    # Stage 6: Season 8 ("Operation Iso-Sparse-FoMoE") Outer-Loop DiLoCo & FoMoE Ecosystem (SI-06..SI-11 + HM-S7-01)
+    t_stage6 = time.perf_counter()
+    from hivemind.core.btm_upcycle import LoopedExpertBackbone
+    from hivemind.swarm.diloco_nextgen import (
+        CosineGatedAdamDecayOuterOptimizer,
+        CPUOffloadedFlatBucketOuterState,
+        FoMoEPartialReplicaPlanner,
+        LEVERAGED_GITHUB_REPOSITORIES,
+        MuonNewtonSchulzLoRAPreconditioner,
+        ReputationWeightedIsoCTSMerger,
+    )
+    from hivemind.swarm.strategy_optimizer import AdaptiveDiLoCoCadenceController
+
+    # HM-S8-01 & HM-S8-02: CPU-offloaded flat bucket outer state + PA-CGAD staleness-gated outer step
+    cpu_outer_state = CPUOffloadedFlatBucketOuterState(base_lora_state)
+    outer_pgrads = cpu_outer_state.compute_pseudo_gradients(primary_trained_state)
+    cgad_opt = CosineGatedAdamDecayOuterOptimizer(lr=1e-2, alpha=0.2, tau_cut=16.0)
+    cgad_updated_master, cgad_telemetry = cgad_opt.step_fragments(
+        base_lora_state,
+        outer_pgrads,
+        worker_delays={k: 1.0 for k in base_lora_state},
+    )
+    cpu_outer_state.apply_outer_update_and_sync_inner(cgad_updated_master)
+    cpu_mem_tel = cpu_outer_state.memory_telemetry()
+
+    # HM-S8-03: Reputation-Weighted ISO-CTS Subspace Merger across trained domain branches
+    iso_cts_merger = ReputationWeightedIsoCTSMerger(
+        common_space_fraction=0.75, trim_density=0.50, scaling_lambda=1.0
+    )
+    branch_states_list = list(trained_branch_states.values())
+    _, iso_cts_report = iso_cts_merger.merge_worker_deltas(
+        base_lora_state=base_lora_state,
+        worker_lora_states=branch_states_list,
+        worker_reputation_weights=[1.0 for _ in branch_states_list],
+    )
+
+    # HM-S8-04: EF21 + PULSELoCo/SparseLoCo 2-bit statistical centroid compression
+    ef21_pulse = EF21DiLoCoErrorFeedbackBuffer(topk_ratio=0.05)
+    _, pulse_2bit_stats = ef21_pulse.compress_with_pulse_sparseloco_2bit(
+        outer_pgrads,
+        reference_params=base_lora_state,
+        outer_step=1,
+        n_bins=4,
+    )
+
+    # HM-S8-06: FoMoE Partial Expert Replication (O_e = 4 across M = 16 workers)
+    fomoe_planner = FoMoEPartialReplicaPlanner(total_experts=128, active_top_k=2)
+    fomoe_plan = fomoe_planner.evaluate_overlap_configuration(
+        num_workers_m=16, overlap_factor_oe=4, reshuffle_frequency_gamma=0.0
+    )
+
+    # HM-S8-07: Skip-Attention Speculative Expert Prefetch + Cache-Aware Routing (CAR) in PinnedRAMExpertDMAStreamer
+    expert_name_list = list(trained_branch_states.keys())
+    num_dom_experts = len(expert_name_list)
+    post_ffn_res = torch.randn((8, 16), generator=gen_svd)
+    post_attn_res = post_ffn_res + 0.05 * torch.randn((8, 16), generator=gen_svd)
+    norm_w_s8 = torch.ones(16)
+    router_w_s8 = torch.randn((num_dom_experts, 16), generator=gen_svd) * 0.25
+    skip_attn_car_report = dma_streamer.prefetch_and_route_skip_attention_car(
+        post_ffn_residual=post_ffn_res,
+        post_attn_residual=post_attn_res,
+        next_layer_norm_weight=norm_w_s8,
+        next_layer_router_weight=router_w_s8,
+        expert_names=expert_name_list,
+        layer_idx=0,
+        top_k=min(2, num_dom_experts),
+        car_threshold=0.35,
+        max_prefetch_experts=min(2, num_dom_experts),
+    )
+
+    # HM-S8-08: Adaptive DiLoCo Cadence bridged with AutoLoCo & HeLoCo
+    cadence_ctrl = AdaptiveDiLoCoCadenceController()
+    first_key = next(iter(outer_pgrads))
+    first_pgrad = outer_pgrads[first_key]
+    cadence_bridge = cadence_ctrl.recommend_cadence_with_autoloco_and_heloco(
+        rtt_ms=35.0,
+        bbr_pacing_mbps=120.0,
+        packet_loss_rate=0.005,
+        turn_relay_active=False,
+        actual_inner_lr=float(learning_rate),
+        reference_inner_steps_h=max(1, steps_per_domain),
+        stale_pseudo_grad=-first_pgrad,
+        outer_momentum_ref=first_pgrad,
+    )
+
+    # HM-S8-09: Muon Newton-Schulz Orthogonalized Inner LoRA Preconditioner
+    muon_precond = MuonNewtonSchulzLoRAPreconditioner(steps=5)
+    _, muon_stats = muon_precond.orthogonalize_2d(first_pgrad)
+
+    # HM-S7-01 (PR #92): LoopedExpertBackbone (Prelude -> RecurrentCore x T -> Coda)
+    looped_moe = LoopedExpertBackbone(
+        moe_model,
+        num_prelude_layers=0,
+        num_coda_layers=0,
+        loop_steps=2,
+        per_step_lora_rank=2,
+    )
+    looped_out = looped_moe(input_ids=torch.tensor([[1, 2, 3, 4]]))
+    looped_logits_finite = bool(torch.isfinite(looped_out.logits).all().item())
+    stage6_ms = round((time.perf_counter() - t_stage6) * 1000.0, 2)
+
+
     peak_vram_mib = (
         round(torch.cuda.max_memory_allocated(train_device) / (1024 * 1024), 3)
         if train_device.type == "cuda"
@@ -558,6 +660,10 @@ def run_multi_moe_hf_campaign(
         and zk_verify["batch_passed"] is True
         and insurance_pool.total_holdings() == 400.0
         and peak_vram_mib <= hw["wddm_usable_budget_mib"]
+        and cpu_mem_tel["extra_gpu_vram_bytes"] == 0
+        and math.isclose(float(iso_cts_report["mean_condition_number_after"]), 1.0, rel_tol=1e-4)
+        and pulse_2bit_stats["conservation_error_l2"] <= 1e-4
+        and looped_logits_finite
     )
 
     symbolic_points_awarded = 1500 if hw["is_gpu"] else 750
@@ -617,6 +723,23 @@ def run_multi_moe_hf_campaign(
             "zk_opoi_v4_batch_passed": zk_verify["batch_passed"],
             "guild_insurance_pool_holdings_hive": insurance_pool.total_holdings(),
             "stage5_elapsed_ms": stage5_ms,
+        },
+        "stage6_season8_iso_sparse_fomoe": {
+            "hm_s8_01_pa_cgad_fragments_stepped": len(cgad_telemetry),
+            "hm_s8_02_cpu_flat_bucket_extra_vram_bytes": cpu_mem_tel["extra_gpu_vram_bytes"],
+            "hm_s8_03_iso_cts_condition_number_after": iso_cts_report["mean_condition_number_after"],
+            "hm_s8_04_pulse_sparseloco_2bit_compression_x": pulse_2bit_stats["wire_compression_ratio_x"],
+            "hm_s8_04_pulse_conservation_error_l2": pulse_2bit_stats["conservation_error_l2"],
+            "hm_s8_06_fomoe_local_experts_per_worker": fomoe_plan["local_experts_per_worker"],
+            "hm_s8_06_fomoe_wan_payload_reduction_x": fomoe_plan["wan_payload_reduction_x"],
+            "hm_s8_07_skip_attn_speculative_accuracy": skip_attn_car_report["speculative_topk_accuracy"],
+            "hm_s8_07_effective_vram_cache_hit_rate": skip_attn_car_report["effective_vram_cache_hit_rate"],
+            "hm_s8_08_autoloco_corrected_outer_lr": cadence_bridge["autoloco_outer_hyperparams"]["corrected_outer_lr"],
+            "hm_s8_08_heloco_conflict_detected": (cadence_bridge["heloco_direction_telemetry"] or {}).get("conflict_detected", 0.0),
+            "hm_s8_09_muon_condition_number_after": muon_stats["condition_number_after"],
+            "hm_s7_01_looped_moe_backbone_logits_finite": looped_logits_finite,
+            "leveraged_github_repos_count": len(LEVERAGED_GITHUB_REPOSITORIES),
+            "stage6_elapsed_ms": stage6_ms,
         },
     }
 

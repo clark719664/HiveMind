@@ -272,3 +272,71 @@ def test_si11_muon_newton_schulz_lora_preconditioner_and_repo_registry() -> None
         "hivemind",
     }.issubset(repo_names)
 
+
+def test_hm_s8_04_07_08_end_to_end_bridges_in_strategy_and_dma_streamer() -> None:
+    """Verify `HM-S8-04` (`EF21` + `PULSELoCo`/`SparseLoCo` 2-bit), `HM-S8-07` (`PinnedRAMExpertDMAStreamer`
+    Skip-Attention + `CAR`), and `HM-S8-08` (`AdaptiveDiLoCoCadenceController` + `AutoLoCo`/`HeLoCo`).
+    """
+    from hivemind.swarm.strategy_optimizer import (
+        AdaptiveDiLoCoCadenceController,
+        EF21DiLoCoErrorFeedbackBuffer,
+    )
+    from hivemind.swarm.swarm_fabric import PinnedRAMExpertDMAStreamer
+
+    torch.manual_seed(31)
+    # 1. HM-S8-04: EF21 + PULSELoCo/SparseLoCo 2-bit statistical centroid compression
+    ef21 = EF21DiLoCoErrorFeedbackBuffer(topk_ratio=0.05)
+    deltas = {"lora_A": torch.randn(32, 32) * 0.1}
+    refs = {"lora_A": torch.ones(32, 32)}
+    recon, stats = ef21.compress_with_pulse_sparseloco_2bit(deltas, reference_params=refs, outer_step=1)
+    assert "lora_A" in recon
+    assert stats["conservation_error_l2"] <= 1e-6
+    assert stats["wire_compression_ratio_x"] > 10.0
+
+    # 2. HM-S8-07: PinnedRAMExpertDMAStreamer Skip-Attention + Cache-Aware Routing (CAR)
+    streamer = PinnedRAMExpertDMAStreamer(device=torch.device("cpu"))
+    expert_names = [f"expert_{i}" for i in range(8)]
+    for name in expert_names:
+        streamer.stage_expert_in_pinned_ram(name, {"w": torch.ones(4, 4)})
+    post_ffn = torch.randn(6, 16)
+    post_attn = post_ffn + 0.03 * torch.randn(6, 16)
+    norm_w = torch.ones(16)
+    router_w = torch.randn(8, 16) * 0.25
+    car_report = streamer.prefetch_and_route_skip_attention_car(
+        post_ffn_residual=post_ffn,
+        post_attn_residual=post_attn,
+        next_layer_norm_weight=norm_w,
+        next_layer_router_weight=router_w,
+        expert_names=expert_names,
+        layer_idx=2,
+        top_k=2,
+        car_threshold=0.40,
+        max_prefetch_experts=3,
+    )
+    assert car_report["milestone"] == "HM-S8-07"
+    assert len(car_report["prefetched_experts"]) == 3
+    assert car_report["effective_vram_cache_hit_rate"] >= car_report["speculative_topk_accuracy"]
+
+    # 3. HM-S8-08: AdaptiveDiLoCoCadenceController + AutoLoCo + HeLoCo
+    cadence_ctrl = AdaptiveDiLoCoCadenceController()
+    m_ref = torch.tensor([1.0, 2.0, 0.0, 0.0])
+    stale_g = torch.tensor([-1.5, -1.0, 0.5, 0.25])
+    bridge = cadence_ctrl.recommend_cadence_with_autoloco_and_heloco(
+        rtt_ms=110.0,
+        bbr_pacing_mbps=25.0,
+        packet_loss_rate=0.02,
+        turn_relay_active=True,
+        actual_inner_lr=1e-3,
+        reference_inner_steps_h=16,
+        stale_pseudo_grad=stale_g,
+        outer_momentum_ref=m_ref,
+    )
+    assert bridge["milestone"] == "HM-S8-08"
+    assert bridge["cadence"]["sla_8pct_satisfied"] is True
+    assert bridge["heloco_direction_telemetry"]["conflict_detected"] == 1.0
+    assert (
+        bridge["heloco_direction_telemetry"]["cosine_after"]
+        > bridge["heloco_direction_telemetry"]["cosine_before"]
+    )
+
+

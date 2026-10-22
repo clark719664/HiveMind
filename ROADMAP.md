@@ -1,7 +1,7 @@
-# 🗺️ Project HiveMind — Master Roadmap, Vision, Community GPU Testing & Season 8 (`Operation Iso-Sparse-FoMoE`) Tasks (`v1.9.0`)
+# 🗺️ Project HiveMind — Master Roadmap, Vision, Community GPU Testing & Season 8 (`Operation Iso-Sparse-FoMoE`) Tasks (`v1.9.1`)
 
 <div align="center">
-<img src="docs/assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.9.0 — 52/52 Merged PRs, 82 Lean 4 Theorems, Season 8 Outer-Loop DiLoCo & FoMoE Ecosystem" width="100%"/>
+<img src="docs/assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.9.1 — 53/53 Merged PRs, 90 Lean 4 Theorems, Season 8 Outer-Loop DiLoCo & FoMoE Ecosystem" width="100%"/>
 </div>
 
 > [!IMPORTANT]
@@ -11,7 +11,7 @@
 
 ---
 
-## 🏆 1. Completed Milestones Summary (`Waves 1–6` — `52/52` Pull Requests Merged, `100%` Merge Rate)
+## 🏆 1. Completed Milestones Summary (`Waves 1–6` — `53/53` Pull Requests Merged, `100%` Merge Rate)
 
 | Wave / Season | Release Tag | Issues Closed | Merged Pull Requests & Contributors | Key Technical & Formal Deliverables |
 | :--- | :---: | :---: | :--- | :--- |
@@ -21,7 +21,7 @@
 | **Wave 3.5: Season 4.5 `aioquic`, WebGL & 40 Proofs** | `v1.6.0` | — | `PR #39`, `#40`, `#41`, `#42` (`@clark719664`) | Real `aioquic` 0-RTT & RFC 5389/5766 STUN/TURN (`PR #40`), Raw WebGL 3D Globe (`PR #42`), Non-Circular 40-Theorem Lean 4 Spec & Compiler Audit (`PR #39`, `#41`), 7-Page Project Wiki |
 | **Wave 4: Season 5 64-MoE, Guild Wars, WAN Faults & Strategy (`SI-01..05`)** | `v1.7.0` | `#43`–`#48` | `PR #52`, `#53`, `#54`, `#55` (`@pedromineo`) + Core (`@xaviercallens`) | HF Hub Push/Pull & 64 KB CAS Chunk Seeding (`PR #55`), 64-Expert Hierarchical MoE & FP8 KV-Cache (`PR #54`), `ZK-OPoI v3` Interactive Bisection (`HM-S5-03`), Guild Wars Missions 17–20 (`PR #53`), WAN QUIC/TURN Fault Benchmark (`PR #52`), 48 Lean 4 Theorems (`HM-S5-06`), Pareto Strategy Engine (`SI-01..05`) |
 | **Wave 5: Season 6 `EF21-DiLoCo`, 128-MoE 3-Tier, `ZK-OPoI v4`, Agent Arena & 77 Lean Proofs** | `v1.8.0` | `#56`–`#60` | `PR #63`–`#65`, `#67`–`#77`, `#79`–`#82` (`@clark719664`), `PR #78` (`@radialmonster`) | `EF21DiLoCoErrorFeedbackBuffer` + Worker Integration (`PR #63`, `#69`), 128-Expert `ThreeTierHierarchicalMoERouter` (`8x` gating reduction) + Ring Token-Tree Prefetch (`PR #71`, `#75`), `ZK-OPoI v4` Batch Commitments & `GuildSlashingInsurancePool` (`PR #79`), Season 6 Agent Arena Missions 21–24 & HUD (`PR #78`), `FL-08` Workunit Ownership (`PR #72`), RFC 5766 Per-Allocation TURN `ChannelBind` (`PR #73`), 77 Machine-Checked Lean 4 `theorem` Declarations (`PR #68`) |
-| **Wave 6 & 7: Season 7 Looped MoE / Terminal-KV & Season 8 Outer-Loop `DiLoCo` Ecosystem (`SI-06..11`)** | **`v1.9.0`** | **`#66` + `S8`** | **`PR #88`, `#89`, `#90`, `#91` (`@clark719664`) + Core (`@xaviercallens`)** | **Looped MoE Backbone (`PR #88`), Terminal-KV Sharing (`PR #89`), Live Speculative Token-Tree Prefetch Wiring (`PR #90`), Automated `ZK-OPoI v4` Fault Indemnification (`PR #91`), Next-Gen Outer-Loop `DiLoCo` Suite (`SI-06` `PA-CGAD`, `SI-06B` `CPUOffloadedFlatBucketOuterState`, `SI-07` `IsoLoCo`/`TSVLoCo`, `SI-08` `HeLoCo`/`AutoLoCo`, `SI-09` `FoMoE`/`PULSELoCo`/`SparseLoCo`/`DeMo`, `SI-10` `SkipAttentionSpeculativeRouter`, `SI-11` `MuonNewtonSchulzLoRAPreconditioner`), and `82` Machine-Checked Lean 4 Theorems (`0 sorry`, `0` user axioms)** |
+| **Wave 6 & 7: Season 7 Looped MoE / Terminal-KV & Season 8 Outer-Loop `DiLoCo` Ecosystem (`SI-06..11`)** | **`v1.9.1`** | **`#66` + `S8`** | **`PR #88`, `#89`, `#90`, `#91`, `#92` (`@clark719664`) + Core (`@xaviercallens`)** | **Looped MoE Backbone (`PR #88`, `#92`), Terminal-KV Sharing (`PR #89`), Live Speculative Token-Tree Prefetch Wiring (`PR #90`), Automated `ZK-OPoI v4` Fault Indemnification (`PR #91`), Next-Gen Outer-Loop `DiLoCo` Suite (`SI-06` `PA-CGAD`, `SI-06B` `CPUOffloadedFlatBucketOuterState`, `SI-07` `IsoLoCo`/`TSVLoCo`, `SI-08` `HeLoCo`/`AutoLoCo`, `SI-09` `FoMoE`/`PULSELoCo`/`SparseLoCo`/`DeMo`, `SI-10` `SkipAttentionSpeculativeRouter`, `SI-11` `MuonNewtonSchulzLoRAPreconditioner`), and `90` Machine-Checked Lean 4 Theorems (`0 sorry`, `0` user axioms)** |
 
 ---
 
