@@ -774,7 +774,9 @@ class TokenTreeSpeculativeVerifier:
             "tree_attention_mask_shape": list(tree_mask_info.shape),
             "accepted_tokens": best_path,
             "accepted_length": len(best_path),
-            "effective_rtt_speedup": round(float(len(best_path)), 2),
+            "accepted_tokens_per_verification_pass": len(best_path),
+            "effective_rtt_speedup": None,
+            "rtt_speedup_status": "not_measured: accepted_length is a token count, not a timing",
         }
 
 
@@ -1694,7 +1696,7 @@ class HiveLayer2StateChannel:
             provider_node_ids=self.provider_ids,
             domain_expert=domain_expert,
             verified_tokens=self.cumulative_tokens,
-            rtt_speedup=6.0,
+            rtt_speedup=None,
             rate_per_token=self.rate_per_token,
         )
         return {

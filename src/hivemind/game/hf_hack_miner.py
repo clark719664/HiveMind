@@ -3143,7 +3143,7 @@ def run_hf_hack_mining_game(
             provider_node_ids=[pg.node_id for pg in provider_gamers],
             domain_expert=contract.domain_expert,
             verified_tokens=45,
-            rtt_speedup=5.0,
+            rtt_speedup=None,
             rate_per_token=0.005,
         )
 
@@ -3458,7 +3458,7 @@ def run_hf_hack_mining_game(
         )
     t_missions.add_row(
         f"OMEGA BOSS RAID\n({moe_model.num_experts}-Expert Sparse MoE)",
-        f"Router Loss: {r_init:.2f} -> {r_final:.2f}\n(Speculative gamma={spec_res.draft_gamma}, {spec_res.latency_reduction_factor:.2f}x | Tree gamma=6)",
+        f"Router Loss: {r_init:.2f} -> {r_final:.2f}\n(Speculative gamma={spec_res.draft_gamma}, {spec_res.latency_reduction_factor:.2f} tokens/verification pass, simulated RTT | Tree gamma=6)",
         generated_boss_solution[:95] + "...",
         f"{best_miner.gamer_tag}\n+{best_miner.boss_raid_points} RAID PTS",
     )
@@ -3844,7 +3844,8 @@ def execute_interactive_bounty_probe(
         "expert_routing_weights": routing_weights,
         "generated_solution": synthesized_solution,
         "speculative_gamma": 6,
-        "rtt_speedup": 5.6,
+        "rtt_speedup": None,
+        "rtt_speedup_status": "not_measured: no network round trip is timed in the hack-miner demo",
         "fee_settled_hive": fee_hive,
         "solution_bounty_pts_awarded": bounty_pts_awarded,
         "swarm_contribution_pts_awarded": swarm_pts_awarded,

@@ -1097,8 +1097,8 @@
     "gamer_tag": "CyberValkyrie_FR",
     "steam_id64": "76561198000000001",
     "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
-    "total_points": 49413,
-    "hive_balance": 210.0,
+    "total_points": 55581,
+    "hive_balance": 240.0,
     "best_loss_reduction_pct": 96.39,
     "achievements_unlocked": [
       "FIRST_HF_SHARD_BREACH",
@@ -1121,18 +1121,18 @@
       "node_id": "seti-node-paris-01",
       "region": "EU-West-Paris",
       "specialty_focus": "Code, Rust & Francophone Synthesis",
-      "total_points": 53871,
+      "total_points": 60039,
       "data_discovery_points": 2170,
-      "lora_training_points": 14116,
-      "solution_bounty_points": 29455,
-      "swarm_contribution_points": 8130,
+      "lora_training_points": 15834,
+      "solution_bounty_points": 33355,
+      "swarm_contribution_points": 8680,
       "boss_raid_points": 886,
-      "hive_balance": 240.0,
+      "hive_balance": 270.0,
       "reputation_score": 160,
       "shards_mined": 6,
-      "bounties_solved": 28,
+      "bounties_solved": 32,
       "boss_raids_cleared": 1,
-      "swarm_tokens_served": 530,
+      "swarm_tokens_served": 594,
       "best_loss_reduction_pct": 96.39,
       "rank_title": "Rank VI: Singularity Core // Omega Hive Sovereign",
       "steam_sybil_verified": true,
@@ -1167,16 +1167,16 @@
       "node_id": "seti-node-lyon-02",
       "region": "EU-Central-Frankfurt",
       "specialty_focus": "Biomedical & Zero-Day Cyber Audit",
-      "total_points": 37119,
+      "total_points": 39312,
       "data_discovery_points": 2160,
-      "lora_training_points": 11441,
-      "solution_bounty_points": 18805,
+      "lora_training_points": 12264,
+      "solution_bounty_points": 20175,
       "swarm_contribution_points": 4713,
       "boss_raid_points": 769,
-      "hive_balance": 210.0,
+      "hive_balance": 225.0,
       "reputation_score": 160,
       "shards_mined": 6,
-      "bounties_solved": 14,
+      "bounties_solved": 15,
       "boss_raids_cleared": 1,
       "swarm_tokens_served": 146,
       "best_loss_reduction_pct": 95.86,
@@ -2939,7 +2939,7 @@
       term.textContent =
         `[OMEGA FINAL BOSS STAGE] ${moe.num_experts || 6}-EXPERT SPARSE MoE MULTI-DOMAIN SPECULATIVE RAID\n` +
         `[REGIONAL RING] ${raid.region_ring || 'EU-West-Swarm-Ring'} (${raid.active_ring_peers || 3} Peers | Mean Ping: ${raid.mean_ring_ping_ms || 14.1} ms)\n` +
-        `[SPECULATIVE DECODING] Ring gamma=${raid.draft_gamma || 5} (${raid.latency_reduction_factor || 5.6}x) | Token-Tree gamma=${tree.tree_depth_gamma || 6} (Accepted: ${tree.accepted_length || 7} toks)\n` +
+        `[SPECULATIVE DECODING] Ring gamma=${raid.draft_gamma || 5} (${raid.latency_reduction_factor ?? 'n/a'} tokens/pass, simulated RTT) | Token-Tree gamma=${tree.tree_depth_gamma || 6} (Accepted: ${tree.accepted_length || 7} toks)\n` +
         `[TOP-2 ROUTER CALIBRATION] Loss: ${Number(moe.router_initial_loss || 2.45).toFixed(4)} -> ${Number(moe.router_final_loss || 1.71).toFixed(4)}\n\n` +
         `--- MULTI-DOMAIN BOSS PROMPT ---\n${raid.prompt || 'Write a memory-safe function atp_hive_yield(cells, blocks)...'}\n` +
         `--- MULTI-EXPERT SPARSE MoE SPECULATIVE OUTPUT ---\n${raid.generated_boss_solution || 'def atp_hive_yield(cells, blocks): return cells * blocks * 50'}`;
@@ -2959,8 +2959,8 @@
         <ul>
           ${Object.entries(util).map(([k, v]) => `<li>${k}: <strong>${(v * 100).toFixed(1)}%</strong></li>`).join('')}
         </ul>
-        <p><strong>2-Slot Double-Buffered Pinned RAM DMA (HM-M2-01):</strong> <span style="color:#00ff9d;">${dma.length || 6} Experts Staged (0.0 ms Exposed Swap Latency)</span></p>
-        <p><strong>Speculative Swarm Ring (&gamma;=${raid.draft_gamma || 5} / Tree &gamma;=6):</strong> <span style="color:#00f0ff;">${raid.latency_reduction_factor || 5.6}x RTT Speedup</span> (${raid.effective_tokens_per_sec || 28.5} tok/s)</p>
+        <p><strong>2-Slot Double-Buffered Pinned RAM DMA (HM-M2-01):</strong> <span style="color:#00ff9d;">${dma.length || 6} Experts Staged (simulated swap latency, not measured)</span></p>
+        <p><strong>Speculative Swarm Ring (&gamma;=${raid.draft_gamma || 5} / Tree &gamma;=6):</strong> <span style="color:#00f0ff;">${raid.latency_reduction_factor ?? 'n/a'} tokens/pass (simulated RTT, not a measured speedup)</span> (${raid.effective_tokens_per_sec || 28.5} tok/s)</p>
         <p><strong>Steamworks Anti-Cheat Firewall:</strong> <span style="color:#ff007f;">Sybil_Bot_Limited_00 Blocked ($0 &lt; $5)</span> | <span style="color:#ff007f;">DarkNet_Spoofer_99 Slashed (Multi-Krum 2&sigma;)</span></p>
         <p><strong>Peak RTX 2070 VRAM:</strong> ${vram.peak_allocated_mb || 1192.6} MiB (${vram.free_vram_gb || 5.62} GiB Free)</p>
       `;

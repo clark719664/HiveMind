@@ -786,7 +786,7 @@ def _render_poc_tables(
     )
     for dom, gen in generations.items():
         t2.add_row(
-            f"Swarm Gen [{dom}] ({gen['latency_reduction_factor']}x RTT, {gen['effective_tokens_per_sec']} tok/s)",
+            f"Swarm Gen [{dom}] ({gen['latency_reduction_factor']} tokens/verification pass, simulated RTT; {gen['effective_tokens_per_sec']} tok/s)",
             repr(gen["full_text"]),
         )
     console.print(t2)

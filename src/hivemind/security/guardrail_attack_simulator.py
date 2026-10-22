@@ -562,7 +562,7 @@ class SwarmGuardrailAttackSimulator:
                 provider_node_ids=["prov-1"],
                 domain_expert="Astro",
                 verified_tokens=-5000,
-                rtt_speedup=4.0,
+                rtt_speedup=None,
             )
         except SwarmSecurityViolationError as exc:
             neg_tok_blocked = exc.rule_id == "LEDGER-01"

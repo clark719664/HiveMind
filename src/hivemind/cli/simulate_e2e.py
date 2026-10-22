@@ -423,7 +423,7 @@ def _render_summary_tables(
     t2.add_row(
         f"Swarm Ring ({spec_result.region_ring})",
         f"{spec_result.active_ring_peers} Fiber Peers (mean ping {spec_result.mean_ring_ping_ms} ms) | "
-        f"Draft gamma={spec_result.draft_gamma} -> {spec_result.latency_reduction_factor}x RTT reduction ({spec_result.effective_tokens_per_sec} tok/s)",
+        f"Draft gamma={spec_result.draft_gamma} -> {spec_result.latency_reduction_factor} tokens per verification pass under simulated RTT ({spec_result.effective_tokens_per_sec} tok/s)",
     )
     t2.add_row(
         "Win32 Zero-Intrusion Daemon",

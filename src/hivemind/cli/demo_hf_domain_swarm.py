@@ -568,7 +568,7 @@ _GENERIC_FALLBACK_SAMPLE = (
 UNMEASURED_RTT_SPEEDUP_STATUS = "not_measured: no network round trip is timed; the former value was a fixed 5.0"
 PERPLEXITY_EVAL_ROWS = (
     "first 4 rows of the first worker's training shard (seen during training, not held out); "
-    "padded positions (pad = EOS) are scored"
+    "padding positions are masked (pad = EOS, so a genuine final EOS is masked too)"
 )
 CLASSIFICATION_ACCURACY_STATUS = (
     "not_measured: no labelled predictions are scored; shared_swarm_generation is one greedy continuation"
@@ -652,15 +652,26 @@ def label_astrophysics_report_evidence(report: Dict[str, Any]) -> Dict[str, Any]
     return report
 
 
-def _evaluate_batch_perplexity(model: torch.nn.Module, token_batch: torch.Tensor) -> float:
-    """Compute causal LM perplexity on a domain token batch."""
+def _evaluate_batch_perplexity(
+    model: torch.nn.Module, token_batch: torch.Tensor, pad_token_id: int | None = None
+) -> float:
+    """Causal LM perplexity on a token batch; padding positions are masked when `pad_token_id` is given.
+
+    The demos pad with the EOS id, so a genuine final EOS is masked along with the padding.
+    """
     import math
 
     device = next(model.parameters()).device
     ids = token_batch.to(device)
+    labels = ids.clone()
+    attention_mask = None
+    if pad_token_id is not None:
+        keep = ids != pad_token_id
+        labels = labels.masked_fill(~keep, -100)
+        attention_mask = keep.long()
     model.eval()
     with torch.no_grad():
-        out = model(input_ids=ids, labels=ids)
+        out = model(input_ids=ids, attention_mask=attention_mask, labels=labels)
         loss_val = (
             float(out.loss.detach().cpu().item())
             if hasattr(out, "loss") and out.loss is not None
@@ -740,7 +751,7 @@ def _execute_single_domain_on_loaded_model(
         token_sequences = enc["input_ids"].to(torch.long)
         if domain_token_batch is None:
             domain_token_batch = token_sequences[:4].clone()
-            pre_lora_ppl = _evaluate_batch_perplexity(model, domain_token_batch)
+            pre_lora_ppl = _evaluate_batch_perplexity(model, domain_token_batch, tokenizer.pad_token_id)
 
         seed_i = exp_index * 100 + idx
         inner_res = run_diloco_inner_loop(
@@ -881,7 +892,11 @@ def _execute_single_domain_on_loaded_model(
     daemon_consumer_state = daemon.resolve_seti_agent_state(consumer_query_active=True)
     load_lora_state_dict(model, converged_domain_lora)
     model.eval()
-    post_lora_ppl = _evaluate_batch_perplexity(model, domain_token_batch) if domain_token_batch is not None else 1.0
+    post_lora_ppl = (
+        _evaluate_batch_perplexity(model, domain_token_batch, tokenizer.pad_token_id)
+        if domain_token_batch is not None
+        else 1.0
+    )
     inp = tokenizer(eval_prompt, return_tensors="pt").to(device)
     with torch.no_grad():
         gen_ids = model.generate(
