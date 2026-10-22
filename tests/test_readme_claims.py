@@ -21,6 +21,11 @@ STALE = (
 )
 
 
+def _states_a_figure(badge: str) -> bool:
+    """A percentage or an `Nx` multiplier in a shields.io badge."""
+    return re.search(r"\d%25|\d(?:x|%C3%97)(?![a-z])", badge, flags=re.I) is not None
+
+
 def test_stale_or_unmeasured_figures_are_gone() -> None:
     for text in STALE:
         assert text not in README, text
@@ -36,7 +41,16 @@ def test_badges_do_not_hardcode_counts_that_drift() -> None:
     paper_badge = next(b for b in badges if "Foundation%20Paper" in b)
     assert "self--assessed" in paper_badge
     strategy_badge = next(b for b in badges if "Strategy%20Engine" in b)
-    assert "synthetic" in strategy_badge
+    if _states_a_figure(strategy_badge):
+        assert "synthetic" in strategy_badge
+
+
+def test_figure_detection_catches_percentages_and_multipliers_only() -> None:
+    assert _states_a_figure("Pareto%20SI--01..05%20(--62.1%25%20loss%2C%20synthetic%20eval)")
+    assert _states_a_figure("Speedup-6x%20RTT")
+    assert _states_a_figure("Speedup-1.79%C3%97%20prefill")
+    assert not _states_a_figure("Pareto%20SI--01..11%20(DiLoCo%20%2B%20FoMoE%20%2B%20IsoLoCo)")
+    assert not _states_a_figure("Lean%204-0%20sorry")
 
 
 def test_lean_spec_still_meets_the_ci_minimum_the_badge_relies_on() -> None:
