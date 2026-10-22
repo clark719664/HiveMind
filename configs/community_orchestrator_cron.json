@@ -1,0 +1,28 @@
+{
+  "service": "Project HiveMind 3-Hour Autonomous PR Review, Merge & Discussion Orchestrator",
+  "cron_expression": "0 */3 * * *",
+  "interval_hours": 3,
+  "repository": "xaviercallens/HiveMind",
+  "entrypoint_hivemind": "python scripts/run_community_orchestrator.py --execute-live",
+  "entrypoint_autoevolve": "PYTHONPATH=. .venv/bin/python scripts/hivemind_autonomous_community_orchestrator.py --execute-live",
+  "discussions_monitored": [
+    "https://github.com/xaviercallens/HiveMind/discussions/83",
+    "https://github.com/xaviercallens/HiveMind/discussions/84",
+    "https://github.com/xaviercallens/HiveMind/discussions/85",
+    "https://github.com/xaviercallens/HiveMind/discussions/51",
+    "https://github.com/xaviercallens/HiveMind/discussions/50",
+    "https://github.com/xaviercallens/HiveMind/discussions/49",
+    "https://github.com/xaviercallens/HiveMind/discussions/38"
+  ],
+  "security_gates": [
+    "5-Layer PRSecurityScanner (PAY-01..03, CB-01..04, SEC-01..05)",
+    "AutoevolveAI AntiStubGuard",
+    "Lean 4 77-Theorem Kernel Verification (0 sorry, 0 axioms)",
+    "Mergeability & Non-Draft Check"
+  ],
+  "non_monetary_charter": {
+    "financial_payment_usd_eur": 0.0,
+    "reward_nature": "non_monetary_compute_reciprocity_points_only",
+    "statement": "No money or financial payment (0.00 EUR / 0.00 USD) is ever involved. Accumulated points (PTS / $HIVE) confer exclusively computing processing benefits when the live production HiveMind Swarm is deployed, available, and used by a large community."
+  }
+}

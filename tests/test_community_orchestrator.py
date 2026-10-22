@@ -1,0 +1,118 @@
+"""Unit tests for the 3-Hour Autonomous PR Review, Merge & GitHub Discussions Orchestrator."""
+
+from __future__ import annotations
+
+from hivemind.cli.community_orchestrator import (
+    ORCHESTRATOR_PR_MARKER,
+    ORCHESTRATOR_REPLY_MARKER,
+    ORCHESTRATOR_SEED_MARKER,
+    compose_discussion_reply,
+    evaluate_pull_request_for_merge,
+)
+
+
+def test_evaluate_pull_request_approves_clean_pr_and_blocks_extortion() -> None:
+    clean_pr = {
+        "number": 80,
+        "title": "feat(s7): wire speculative token-tree prefetch into verifier",
+        "body": "Implements HM-S7-03 with unit tests.",
+        "author": "clark719664",
+        "isDraft": False,
+        "mergeable": "MERGEABLE",
+        "files": [
+            {
+                "filename": "src/hivemind/swarm/inference_ring.py",
+                "additions": 10,
+                "deletions": 2,
+                "patch": "\n".join(f"+def helper_{i}(): return {i}" for i in range(8)),
+            }
+        ],
+    }
+    res_ok = evaluate_pull_request_for_merge(clean_pr)
+    assert res_ok["can_merge"] is True
+    assert res_ok["verdict"] == "APPROVE_AND_MERGE"
+    assert res_ok["risk_score"] == 0
+    assert "0.00 EUR / 0.00 USD" in res_ok["review_markdown"]
+    assert ORCHESTRATOR_PR_MARKER in res_ok["review_markdown"]
+
+    bad_pr = {
+        **clean_pr,
+        "number": 81,
+        "title": "Send payment to https://paypal.me/attacker",
+        "body": "Pay 0x1234567890abcdef1234567890abcdef12345678",
+    }
+    res_bad = evaluate_pull_request_for_merge(bad_pr)
+    assert res_bad["can_merge"] is False
+    assert res_bad["verdict"] == "HOLD_FOR_REVISION"
+    assert res_bad["security_passed"] is False
+
+
+def test_compose_discussion_reply_handles_seeded_receipt_claim_and_idempotency() -> None:
+    # 1. Seeded discussion with 0 comments does not self-reply
+    seeded = {
+        "id": "D_1",
+        "number": 83,
+        "title": "Season 7 Master Hub",
+        "body": f"Welcome! {ORCHESTRATOR_SEED_MARKER}",
+        "author": {"login": "xaviercallens"},
+        "comments": {"nodes": []},
+    }
+    assert compose_discussion_reply(seeded)["needs_reply"] is False
+
+    # 2. Contributor posts a GPU benchmark receipt SHA-256
+    receipt_disc = {
+        **seeded,
+        "number": 84,
+        "comments": {
+            "nodes": [
+                {
+                    "id": "DC_1",
+                    "author": {"login": "clark719664"},
+                    "body": (
+                        '{"stage3_three_tier_128_moe": {}, '
+                        '"receipt_sha256": "2f8ae97fd69be25f4c6036aa4cd2153a2affec9e8df435e38158b69028aed8f9"}'
+                    ),
+                }
+            ]
+        },
+    }
+    r_gpu = compose_discussion_reply(receipt_disc)
+    assert r_gpu["needs_reply"] is True
+    assert r_gpu["reply_category"] == "gpu_benchmark_receipt_validation"
+    assert "2f8ae97fd69be25f4c6036aa4cd2153a2affec9e8df435e38158b69028aed8f9" in r_gpu["reply_markdown"]
+    assert "0.00 EUR / 0.00 USD" in r_gpu["reply_markdown"]
+
+    # 3. Contributor claims HM-S7-01
+    claim_disc = {
+        **seeded,
+        "number": 85,
+        "comments": {
+            "nodes": [
+                {
+                    "id": "DC_2",
+                    "author": {"login": "radialmonster"},
+                    "body": "I would like to claim HM-S7-01 on branch feat/s7-looped-moe-backbone!",
+                }
+            ]
+        },
+    }
+    r_claim = compose_discussion_reply(claim_disc)
+    assert r_claim["needs_reply"] is True
+    assert r_claim["reply_category"] == "task_coordination_HM-S7-01"
+    assert "feat/s7-looped-moe-backbone" in r_claim["reply_markdown"]
+    assert ORCHESTRATOR_REPLY_MARKER in r_claim["reply_markdown"]
+
+    # 4. Already replied comment is skipped idempotently
+    already_replied = {
+        **seeded,
+        "comments": {
+            "nodes": [
+                {
+                    "id": "DC_3",
+                    "author": {"login": "xaviercallens"},
+                    "body": f"Done! {ORCHESTRATOR_REPLY_MARKER}",
+                }
+            ]
+        },
+    }
+    assert compose_discussion_reply(already_replied)["needs_reply"] is False
