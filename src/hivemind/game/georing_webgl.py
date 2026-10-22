@@ -327,7 +327,9 @@ GEORING_PANEL_HTML = r"""
       var c = CONT[p.cont].rgb;
       pushV(pd, p.pos, c, 0.25, p.bridge ? 34 : 26);
       pushV(pd, p.pos, c, 1.0, p.bridge ? 16 : 11);
-      pushV(pd, p.pos, [1, 1, 1], 0.9, 5);
+      // Keep the hot core in the continent hue so the US/EU/APAC colors survive
+      // compositing; a white core washed every marker out to white.
+      pushV(pd, p.pos, c, 0.9, 5);
     });
     batches.pts = makeBatch(pd, [[0, peers.length * 3]], batches.pts);
   }
@@ -378,11 +380,6 @@ GEORING_PANEL_HTML = r"""
         bind(b);
         b.ranges.forEach(function (r) { gl.drawArrays(gl.LINE_STRIP, r[0], r[1]); });
       });
-      if (batches.pts && peers.length) {
-        gl.uniform1f(loc.uRound, 1);
-        bind(batches.pts);
-        gl.drawArrays(gl.POINTS, 0, peers.length * 3);
-      }
       if (raidArcs.length) {
         updateRaidBatch(t / 1000);
         if (raidBatch) {
@@ -400,6 +397,17 @@ GEORING_PANEL_HTML = r"""
           bind(raidHeadBatch);
           gl.drawArrays(gl.POINTS, 0, raidHeadBatch.count);
         }
+      }
+      // Peer markers are drawn last so a guild node sharing the same home node
+      // cannot paint over the continent color.
+      if (batches.pts && peers.length) {
+        gl.uniform1f(loc.uRound, 1);
+        bind(batches.pts);
+        // Standard alpha compositing keeps the continent color stable; additive
+        // blending saturated the glow + core layers to white.
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.drawArrays(gl.POINTS, 0, peers.length * 3);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
       }
       updateLabel(M);
       stats.frames++;

@@ -111,13 +111,14 @@ def test_headless_browser_renders_rotating_continent_colored_globe(server_url, t
     us = lambda r, g, bl: r > 200 and 90 < g < 180 and bl < 110
     apac = lambda r, g, bl: g > 180 and r < 130 and bl < 160 and g > bl + 40
 
-    # Tokyo sits on the far side of the globe from Paris/Virginia, so view it at a second yaw.
-    c = tmp_path / "c.png"
-    _shot(server_url + "&georing_yaw=3.3", 8000, c)
-    cc = _crop(c, attrs["canvas-rect"])
+    # The initial view contains EU, US and APAC peers; peer markers are drawn last so
+    # the continent hue is not painted over by the guild node sharing a home node.
+    apac_view = tmp_path / "c.png"
+    _shot(server_url + "&georing_yaw=3.3", 8000, apac_view)
+    cc = _crop(apac_view, attrs["canvas-rect"])
     assert count(ca, eu) > 0, "no EU (blue) pixels"
     assert count(ca, us) > 0, "no US (orange) pixels"
-    assert count(cc, apac) > 0, "no APAC (green) pixels"
+    assert count(cc, apac) > 0, "no APAC (green) pixels at the APAC-facing yaw"
 
     from PIL import ImageChops
 
