@@ -16,6 +16,7 @@ Implements:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 import torch
 
 from hivemind.security.federated_learning_hardening import (
@@ -51,6 +52,9 @@ class OuterStepResult:
     aggregated_delta_norm: float
     filter_report: ByzantineFilterReport
     federated_security_report: FederatedDeltaAuditReport | None = None
+    outer_optimizer_mode: str = "nesterov"
+    mean_cosine_gate: float | None = None
+    extra_gpu_vram_bytes: int = 0
 
 
 def flatten_delta_dict(delta_dict: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -176,7 +180,11 @@ def filter_byzantine_deltas_multikrum(
 
 
 class DiLoCoOuterOptimizer:
-    """Server-side DiLoCo Nesterov Momentum Outer Optimizer with Multi-Krum & Phase S-3 Federated Hardening."""
+    """Hardened CPU outer aggregation with Nesterov or branch-isolated CGAD state.
+
+    CGAD consumes fresh, synchronous aggregates, so its cosine gate is 1.0.
+    ``velocity_updated`` contains Nesterov velocity or CGAD's first moment.
+    """
 
     def __init__(
         self,
@@ -185,7 +193,22 @@ class DiLoCoOuterOptimizer:
         max_byzantine_f: int = 1,
         cosine_sigma: float = 2.0,
         dp_config: DPGradientSanitizerConfig | None = None,
+        outer_optimizer_mode: str = "nesterov",
+        use_cpu_flat_bucket: bool = False,
+        beta1: float = 0.9,
+        beta2: float = 0.99,
+        weight_decay: float = 0.01,
     ) -> None:
+        if outer_optimizer_mode not in ("nesterov", "cosine_gated_adam_decay"):
+            raise ValueError("outer_optimizer_mode must be nesterov or cosine_gated_adam_decay")
+        if not (0.0 <= beta1 < 1.0 and 0.0 <= beta2 < 1.0):
+            raise ValueError("beta1 and beta2 must be in [0, 1)")
+        if not math.isfinite(weight_decay) or weight_decay < 0.0:
+            raise ValueError("weight_decay must be finite and non-negative")
+        if (outer_optimizer_mode != "nesterov" or use_cpu_flat_bucket) and (
+            not math.isfinite(outer_lr_eta) or outer_lr_eta <= 0.0
+        ):
+            raise ValueError("outer_lr_eta must be finite and positive")
         self.outer_lr_eta = outer_lr_eta
         self.outer_momentum_mu = outer_momentum_mu
         self.max_byzantine_f = max_byzantine_f
@@ -194,6 +217,12 @@ class DiLoCoOuterOptimizer:
         self.fl_guard = FederatedLearningSecurityGuard()
         # Velocity buffers per expert branch: branch_name -> {param_name: tensor}
         self.velocities: dict[str, dict[str, torch.Tensor]] = {}
+        self.outer_optimizer_mode = outer_optimizer_mode
+        self.use_cpu_flat_bucket = use_cpu_flat_bucket
+        self.beta1, self.beta2 = beta1, beta2
+        self.weight_decay = weight_decay
+        self.cgad_optimizers = {}
+        self.cpu_flat_buckets = {}
 
     def step(
         self,
@@ -202,7 +231,7 @@ class DiLoCoOuterOptimizer:
         theta_prev: dict[str, torch.Tensor],
         worker_deltas: dict[str, dict[str, torch.Tensor]],
     ) -> OuterStepResult:
-        """Aggregate valid worker deltas via Multi-Krum + Adaptive Norm Clipping + Trimmed Mean and apply Nesterov outer update."""
+        """Filter and clip worker deltas before applying the selected CPU outer update."""
         filter_report = filter_byzantine_deltas_multikrum(
             worker_deltas=worker_deltas,
             max_byzantine_f=self.max_byzantine_f,
@@ -217,6 +246,66 @@ class DiLoCoOuterOptimizer:
             total_submitted_count=filter_report.total_submissions,
             dp_config=self.dp_config,
         )
+
+        mean_cosine_gate = None
+        if self.outer_optimizer_mode != "nesterov" or self.use_cpu_flat_bucket:
+            if set(aggregated_deltas) != set(theta_prev) or any(
+                aggregated_deltas[k].shape != param.shape for k, param in theta_prev.items()
+            ):
+                raise ValueError("aggregated deltas must match all branch parameter keys and shapes")
+            if branch_name not in self.velocities:
+                # Preserve the branch-reset convention used by existing coordinator clients.
+                self.cgad_optimizers.pop(branch_name, None)
+                self.cpu_flat_buckets.pop(branch_name, None)
+            # Convert directly to CPU FP32 without a temporary FP32 allocation on the GPU.
+            params_cpu = {
+                k: v.detach().to(device="cpu", dtype=torch.float32)
+                for k, v in theta_prev.items()
+            }
+            if self.use_cpu_flat_bucket:
+                from hivemind.swarm.diloco_nextgen import CPUOffloadedFlatBucketOuterState
+
+                bucket = self.cpu_flat_buckets.get(branch_name)
+                if bucket is None:
+                    bucket = CPUOffloadedFlatBucketOuterState(params_cpu)
+                    self.cpu_flat_buckets[branch_name] = bucket
+                else:
+                    if set(params_cpu) != set(bucket.keys) or any(
+                        params_cpu[k].shape != bucket.shapes[k] for k in bucket.keys
+                    ):
+                        raise ValueError("branch parameters must match the existing flat bucket")
+                    bucket.apply_outer_update_and_sync_inner(params_cpu)
+
+            if self.outer_optimizer_mode == "cosine_gated_adam_decay":
+                from hivemind.swarm.diloco_nextgen import CosineGatedAdamDecayOuterOptimizer
+
+                cgad = self.cgad_optimizers.get(branch_name)
+                if cgad is None:
+                    cgad = CosineGatedAdamDecayOuterOptimizer(
+                        lr=self.outer_lr_eta, betas=(self.beta1, self.beta2),
+                        weight_decay=self.weight_decay,
+                    )
+                    self.cgad_optimizers[branch_name] = cgad
+                theta_updated, telemetry = cgad.step_fragments(params_cpu, aggregated_deltas)
+                vel_branch = {k: v.clone() for k, v in cgad.m_buffers.items()}
+                mean_cosine_gate = sum(t.cosine_gate_gamma for t in telemetry) / len(telemetry)
+                if self.use_cpu_flat_bucket:
+                    bucket.apply_outer_update_and_sync_inner(theta_updated)
+            else:
+                theta_updated, vel_branch = bucket.outer_nesterov_step(
+                    aggregated_deltas, lr=self.outer_lr_eta, momentum=self.outer_momentum_mu,
+                )
+            self.velocities[branch_name] = vel_branch
+            return OuterStepResult(
+                branch_name=branch_name, outer_step=outer_step,
+                theta_updated=theta_updated, velocity_updated=vel_branch,
+                aggregated_delta_norm=round(sum(
+                    float((delta**2).sum().item()) for delta in aggregated_deltas.values()
+                ) ** 0.5, 6),
+                filter_report=filter_report, federated_security_report=fl_report,
+                outer_optimizer_mode=self.outer_optimizer_mode,
+                mean_cosine_gate=mean_cosine_gate,
+            )
 
         if branch_name not in self.velocities:
             self.velocities[branch_name] = {
