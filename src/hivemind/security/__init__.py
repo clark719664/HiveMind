@@ -6,62 +6,68 @@ Provides:
 3. Phase S-3 Federated Learning & Byzantine-Resilient DiLoCo Hardening (`federated_learning_hardening.py`)
 4. Phase S-4 Federated GPU Execution & Hardware Safety Circuit-Breaker (`gpu_execution_circuit_breaker.py`)
 5. Phase S-5 25-Vector End-to-End Multi-Layer Attack Simulation & Guardrail Verification (`guardrail_attack_simulator.py`)
+
+Exports are resolved lazily (PEP 562) so the lightweight PR security scanner can be imported by the
+security gate without installing the full Torch/GPU runtime stack.
 """
 
-from hivemind.security.federated_learning_hardening import (
-    DPGradientSanitizerConfig,
-    FederatedDeltaAuditReport,
-    FederatedLearningSecurityGuard,
-    run_federated_hardening_self_test,
-)
-from hivemind.security.gpu_execution_circuit_breaker import (
-    CircuitBreakerStatus,
-    GPUExecutionCircuitBreaker,
-    GPUHardwareTelemetry,
-    query_live_gpu_hardware_telemetry,
-    run_gpu_circuit_breaker_self_test,
-)
-from hivemind.security.guardrail_attack_simulator import (
-    SimulatedAttackScenarioResult,
-    SwarmGuardrailAttackSimulator,
-    run_guardrail_attack_simulation,
-)
-from hivemind.security.pr_security_scanner import (
-    PRSecurityAuditResult,
-    PRSecurityScanner,
-    SecurityFinding,
-    SecuritySeverity,
-    run_cli_security_scan,
-)
-from hivemind.security.swarm_runtime_hardening import (
-    SwarmHardeningVerdict,
-    SwarmSecurityViolationError,
-    SwarmTrainingAndStoreGuard,
-    compute_shannon_entropy,
-    run_swarm_hardening_self_test,
-)
+from __future__ import annotations
 
-__all__ = [
-    "CircuitBreakerStatus",
-    "DPGradientSanitizerConfig",
-    "FederatedDeltaAuditReport",
-    "FederatedLearningSecurityGuard",
-    "GPUExecutionCircuitBreaker",
-    "GPUHardwareTelemetry",
-    "PRSecurityAuditResult",
-    "PRSecurityScanner",
-    "SecurityFinding",
-    "SecuritySeverity",
-    "SimulatedAttackScenarioResult",
-    "SwarmGuardrailAttackSimulator",
-    "SwarmHardeningVerdict",
-    "SwarmSecurityViolationError",
-    "SwarmTrainingAndStoreGuard",
-    "compute_shannon_entropy",
-    "query_live_gpu_hardware_telemetry",
-    "run_cli_security_scan",
-    "run_federated_hardening_self_test",
-    "run_gpu_circuit_breaker_self_test",
-    "run_guardrail_attack_simulation",
-    "run_swarm_hardening_self_test",
-]
+from importlib import import_module
+from typing import Any
+
+_LAZY_MODULES: dict[str, tuple[str, ...]] = {
+    "hivemind.security.federated_learning_hardening": (
+        "DPGradientSanitizerConfig",
+        "FederatedDeltaAuditReport",
+        "FederatedLearningSecurityGuard",
+        "run_federated_hardening_self_test",
+    ),
+    "hivemind.security.gpu_execution_circuit_breaker": (
+        "CircuitBreakerStatus",
+        "GPUExecutionCircuitBreaker",
+        "GPUHardwareTelemetry",
+        "query_live_gpu_hardware_telemetry",
+        "run_gpu_circuit_breaker_self_test",
+    ),
+    "hivemind.security.guardrail_attack_simulator": (
+        "SimulatedAttackScenarioResult",
+        "SwarmGuardrailAttackSimulator",
+        "run_guardrail_attack_simulation",
+    ),
+    "hivemind.security.pr_security_scanner": (
+        "PRSecurityAuditResult",
+        "PRSecurityScanner",
+        "SecurityFinding",
+        "SecuritySeverity",
+        "run_cli_security_scan",
+    ),
+    "hivemind.security.swarm_runtime_hardening": (
+        "SwarmHardeningVerdict",
+        "SwarmSecurityViolationError",
+        "SwarmTrainingAndStoreGuard",
+        "compute_shannon_entropy",
+        "run_swarm_hardening_self_test",
+    ),
+}
+_LAZY_EXPORTS: dict[str, str] = {
+    symbol: module_name
+    for module_name, symbols in _LAZY_MODULES.items()
+    for symbol in symbols
+}
+
+__all__ = sorted(_LAZY_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    """Import a security symbol on first access instead of eagerly loading Torch modules."""
+    module_name = _LAZY_EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(module_name), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))

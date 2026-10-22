@@ -334,16 +334,27 @@ def test_coordinator_service_and_fastapi_endpoints(tiny_qwen_bundle, tmp_path: P
     )
     assert verdict_pass.passed is True
 
+    # A workunit is consumed by the first spot-check verdict (FL-05 anti-replay), so the
+    # Byzantine miner must receive its own workunit rather than reusing the honest one.
+    wu_byz, state_byz = coordinator.assign_workunit(
+        worker_id="w-byz",
+        steam_id64="76561198000000066",
+        branch_name="Code",
+        inner_steps_H=2,
+        spot_check_interval_s=1,
+        num_sequences=4,
+        seq_len=8,
+    )
     worker_byz = HiveMindWorkerNode(
         worker_id="w-byz",
         steam_id64="76561198000000066",
         persona_name="ByzMiner",
         model=bundle.model,
     )
-    sub_byz = worker_byz.execute_workunit(wu1, state1, byzantine_poison_scale=10.0)
+    sub_byz = worker_byz.execute_workunit(wu_byz, state_byz, byzantine_poison_scale=10.0)
     verdict_fail = coordinator.validate_and_record_submission(
         validator_model=bundle.model,
-        workunit=wu1,
+        workunit=wu_byz,
         submission=sub_byz,
         steam_id64="76561198000000066",
     )
