@@ -1,0 +1,182 @@
+{
+  "campaign_id": "OPERATION-POLYGLOT-SINGULARITY-128-CALENDAR-V1",
+  "non_monetary_charter": "NO FINANCIAL PAYMENT (0.00 EUR / 0.00 USD): Project HiveMind is a voluntary, non-commercial open-source research project. No money, fiat currency, cryptocurrency, or wage is ever promised or paid. Accumulated 'points' (PTS and $HIVE PoUW accounting units) confer exclusively reciprocal computing processing benefits (shared Sparse MoE inference and training quota) when the live production HiveMind Swarm is deployed, available, and used by a large community.",
+  "ics_calendar_path": "/home/xavkal/xdev/AutoevolveAI/sub_projects/hivemind/HiveMind/docs/calendar/hivemind_polyglot_singularity_128_campaign.ics",
+  "ics_sha256": "ab41c10c4f9b24ac1902a8d566191fd520f40731075aaf6a6a2804f8aa48af33",
+  "standing_orchestrator_cron": "0 */3 * * * (Every 3 Hours UTC: 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00 UTC)",
+  "quorum_tiers": {
+    "TIER_1_MIN_BYZANTINE_QUORUM": {
+      "tier_id": "TIER_1_MIN_BYZANTINE_QUORUM",
+      "title": "Tier 1 \u2014 Minimum Byzantine Consensus Quorum (f=1)",
+      "min_total_nodes": 5,
+      "min_human_gpu_nodes": 3,
+      "min_ai_agent_nodes": 2,
+      "max_byzantine_faults_tolerated": 1,
+      "formula": "n >= 2f + 3 = 5",
+      "super_clusters_required": 2,
+      "domains_required": 4,
+      "symbolic_bonus_pts": 500
+    },
+    "TIER_2_FULL_8DOMAIN_MOE_QUORUM": {
+      "tier_id": "TIER_2_FULL_8DOMAIN_MOE_QUORUM",
+      "title": "Tier 2 \u2014 Full 8-Domain Polyglot MoE Quorum (f=2)",
+      "min_total_nodes": 8,
+      "min_human_gpu_nodes": 5,
+      "min_ai_agent_nodes": 3,
+      "max_byzantine_faults_tolerated": 2,
+      "formula": "n >= 2f + 3 = 7 (8 nodes = 1 per Hugging Face domain)",
+      "super_clusters_required": 4,
+      "domains_required": 8,
+      "symbolic_bonus_pts": 1500
+    },
+    "TIER_3_GLOBAL_SUPER_RING_RAID": {
+      "tier_id": "TIER_3_GLOBAL_SUPER_RING_RAID",
+      "title": "Tier 3 \u2014 Continental Super-Ring 128-Expert WAN GameDay (f=5)",
+      "min_total_nodes": 16,
+      "min_human_gpu_nodes": 10,
+      "min_ai_agent_nodes": 6,
+      "max_byzantine_faults_tolerated": 5,
+      "formula": "n >= 2f + 3 = 13 (16 nodes = 2 replicas per HF domain across 3 continents)",
+      "super_clusters_required": 4,
+      "domains_required": 8,
+      "symbolic_bonus_pts": 3000
+    }
+  },
+  "scheduled_events": [
+    {
+      "event_id": "EVT-S7-01-ONBOARDING-KICKOFF",
+      "title": "Week 1 Kickoff: 1-Click Non-Technical GPU Onboarding & Baseline Receipt Sprint",
+      "dtstart_utc": "20261024T170000Z",
+      "dtend_utc": "20261024T183000Z",
+      "human_readable_utc": "Saturday, Oct 24, 2026 \u00b7 17:00\u201318:30 UTC",
+      "timezones": "19:00 CEST (Paris) | 13:00 EDT (New York) | 10:00 PDT (SF) | 02:00+1 JST (Tokyo)",
+      "target_quorum_tier": "TIER_1_MIN_BYZANTINE_QUORUM",
+      "target_audience": "Non-technical end-users (1-click launcher), GPU testers & AI onboarding agents",
+      "focus_domains": [
+        "Rust_Systems_Kernel",
+        "Lean4_Formal_Mathematics",
+        "Biomedical_Clinical_Genomics",
+        "Astrophysics_JWST_Spectroscopy"
+      ],
+      "discussion_url": "https://github.com/xaviercallens/HiveMind/discussions/86",
+      "symbolic_points_pts": "750 - 1,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)"
+    },
+    {
+      "event_id": "EVT-S7-02-APAC-EU-QUORUM-SYNC",
+      "title": "Week 1 APAC + Europe Sync: 8-Domain Hugging Face LoRA & CAS Zero-Step Transfer",
+      "dtstart_utc": "20261028T120000Z",
+      "dtend_utc": "20261028T133000Z",
+      "human_readable_utc": "Wednesday, Oct 28, 2026 \u00b7 12:00\u201313:30 UTC",
+      "timezones": "13:00 CET (Paris) | 08:00 EDT (New York) | 21:00 JST (Tokyo)",
+      "target_quorum_tier": "TIER_2_FULL_8DOMAIN_MOE_QUORUM",
+      "target_audience": "Asia-Pacific & European GPU contributors + Autonomous AI Prover Agents",
+      "focus_domains": [
+        "Rust_Systems_Kernel",
+        "Lean4_Formal_Mathematics",
+        "ZK_Cryptography_And_Audits",
+        "Cyber_Vulnerability_Patching",
+        "Triton_CUDA_Kernel_Synth",
+        "Distributed_DiLoCo_Protocols",
+        "Biomedical_Clinical_Genomics",
+        "Astrophysics_JWST_Spectroscopy"
+      ],
+      "discussion_url": "https://github.com/xaviercallens/HiveMind/discussions/86",
+      "symbolic_points_pts": "1,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)"
+    },
+    {
+      "event_id": "EVT-S7-03-BYZANTINE-TIES-SHIELD",
+      "title": "Week 2 Red-Team vs. Blue-Team: Byzantine Poisoner & Reputation-Weighted TIES Sprint",
+      "dtstart_utc": "20261031T180000Z",
+      "dtend_utc": "20261031T193000Z",
+      "human_readable_utc": "Saturday, Oct 31, 2026 \u00b7 18:00\u201319:30 UTC",
+      "timezones": "19:00 CET (Paris) | 14:00 EDT (New York) | 11:00 PDT (SF) | 03:00+1 JST (Tokyo)",
+      "target_quorum_tier": "TIER_2_FULL_8DOMAIN_MOE_QUORUM",
+      "target_audience": "All Human GPU Nodes + AI Security/Validator Agents (`ZK-OPoI v4` + `SI-04`)",
+      "focus_domains": [
+        "ZK_Cryptography_And_Audits",
+        "Cyber_Vulnerability_Patching",
+        "Rust_Systems_Kernel",
+        "Lean4_Formal_Mathematics"
+      ],
+      "discussion_url": "https://github.com/xaviercallens/HiveMind/discussions/86",
+      "symbolic_points_pts": "1,500 - 2,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)"
+    },
+    {
+      "event_id": "EVT-S7-04-128MOE-UPCYCLE-RAID",
+      "title": "Week 3 Boss Raid: 128-Expert 3-Tier Hierarchical MoE Upcycling & Speculative Prefetch",
+      "dtstart_utc": "20261107T180000Z",
+      "dtend_utc": "20261107T200000Z",
+      "human_readable_utc": "Saturday, Nov 7, 2026 \u00b7 18:00\u201320:00 UTC",
+      "timezones": "19:00 CET (Paris) | 13:00 EST (New York) | 10:00 PST (SF) | 03:00+1 JST (Tokyo)",
+      "target_quorum_tier": "TIER_3_GLOBAL_SUPER_RING_RAID",
+      "target_audience": "All 3 Guilds (`Euro-Singularity`, `Global-ZK-Guardians`, `Biomed-Open-Science`) + AI Agents",
+      "focus_domains": [
+        "Triton_CUDA_Kernel_Synth",
+        "Distributed_DiLoCo_Protocols",
+        "Biomedical_Clinical_Genomics",
+        "Astrophysics_JWST_Spectroscopy"
+      ],
+      "discussion_url": "https://github.com/xaviercallens/HiveMind/discussions/86",
+      "symbolic_points_pts": "3,000 PTS (Compute Reciprocity Only; 0.00 EUR/USD)"
+    },
+    {
+      "event_id": "EVT-S7-05-GLOBAL-WAN-GAMEDAY",
+      "title": "Week 4 Finale: Global Multi-Host WAN GameDay (aioquic 0-RTT + TURN ChannelBind + Live HF Stream)",
+      "dtstart_utc": "20261114T180000Z",
+      "dtend_utc": "20261114T200000Z",
+      "human_readable_utc": "Saturday, Nov 14, 2026 \u00b7 18:00\u201320:00 UTC",
+      "timezones": "19:00 CET (Paris) | 13:00 EST (New York) | 10:00 PST (SF) | 03:00+1 JST (Tokyo)",
+      "target_quorum_tier": "TIER_3_GLOBAL_SUPER_RING_RAID",
+      "target_audience": "Global Human Community (Gamers, Devs) + Autonomous AI Swarm Agents",
+      "focus_domains": [
+        "Rust_Systems_Kernel",
+        "Lean4_Formal_Mathematics",
+        "ZK_Cryptography_And_Audits",
+        "Cyber_Vulnerability_Patching",
+        "Triton_CUDA_Kernel_Synth",
+        "Distributed_DiLoCo_Protocols",
+        "Biomedical_Clinical_Genomics",
+        "Astrophysics_JWST_Spectroscopy"
+      ],
+      "discussion_url": "https://github.com/xaviercallens/HiveMind/discussions/86",
+      "symbolic_points_pts": "3,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)"
+    }
+  ],
+  "current_baseline_quorum_status": {
+    "human_count": 4,
+    "ai_agent_count": 3,
+    "total_nodes": 7,
+    "covered_domains_count": 8,
+    "max_byzantine_faults_tolerated_f": 2,
+    "byzantine_quorum_satisfied_f1": true,
+    "tier1_reached": true,
+    "tier2_reached": false,
+    "tier3_reached": false,
+    "active_quorum_tier": "TIER_1_MIN_BYZANTINE_QUORUM",
+    "nodes_needed_for_tier1": 0,
+    "nodes_needed_for_tier2": 1,
+    "nodes_needed_for_tier3": 9,
+    "humans": [
+      "clark719664",
+      "pedromineo",
+      "radialmonster",
+      "xaviercallens"
+    ],
+    "ai_agents": [
+      "antigravity-orchestrator-01",
+      "claude-code-prover-02",
+      "hivemind-zk-auditor-03"
+    ],
+    "covered_domains": [
+      "Astrophysics_JWST_Spectroscopy",
+      "Biomedical_Clinical_Genomics",
+      "Cyber_Vulnerability_Patching",
+      "Distributed_DiLoCo_Protocols",
+      "Lean4_Formal_Mathematics",
+      "Rust_Systems_Kernel",
+      "Triton_CUDA_Kernel_Synth",
+      "ZK_Cryptography_And_Audits"
+    ]
+  },
+  "schedule_sha256": "f3b1535c844d4c9a180b0805a900e8a9c21389f09211408ecc9d3567bc886a99"
+}

@@ -1,0 +1,69 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Project HiveMind//Operation Polyglot-Singularity-128 Quorum Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:HiveMind Polyglot-Singularity-128 GPU & AI Quorum Sprints
+X-WR-TIMEZONE:UTC
+BEGIN:VEVENT
+UID:EVT-S7-01-ONBOARDING-KICKOFF@hivemind.open-science.org
+DTSTAMP:20261022T110000Z
+DTSTART:20261024T170000Z
+DTEND:20261024T183000Z
+SUMMARY:[HiveMind Quorum] Week 1 Kickoff: 1-Click Non-Technical GPU Onboarding & Baseline Receipt Sprint
+DESCRIPTION:Week 1 Kickoff: 1-Click Non-Technical GPU Onboarding & Baseline Receipt Sprint\nTarget Quorum: TIER_1_MIN_BYZANTINE_QUORUM\nAudience: Non-technical end-users (1-click launcher), GPU testers & AI onboarding agents\n1-Click Command: uv run python scripts/run_multi_moe_hf_campaign.py --contributor-handle <handle> --tier standard\nDiscussion Hub: https://github.com/xaviercallens/HiveMind/discussions/86\nNON-MONETARY CHARTER (0.00 EUR / 0.00 USD): Points (750 - 1,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)) confer only reciprocal computing processing benefits when the live production HiveMind Swarm is deployed.
+URL:https://github.com/xaviercallens/HiveMind/discussions/86
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:EVT-S7-02-APAC-EU-QUORUM-SYNC@hivemind.open-science.org
+DTSTAMP:20261022T110000Z
+DTSTART:20261028T120000Z
+DTEND:20261028T133000Z
+SUMMARY:[HiveMind Quorum] Week 1 APAC + Europe Sync: 8-Domain Hugging Face LoRA & CAS Zero-Step Transfer
+DESCRIPTION:Week 1 APAC + Europe Sync: 8-Domain Hugging Face LoRA & CAS Zero-Step Transfer\nTarget Quorum: TIER_2_FULL_8DOMAIN_MOE_QUORUM\nAudience: Asia-Pacific & European GPU contributors + Autonomous AI Prover Agents\n1-Click Command: uv run python scripts/run_multi_moe_hf_campaign.py --contributor-handle <handle> --tier standard\nDiscussion Hub: https://github.com/xaviercallens/HiveMind/discussions/86\nNON-MONETARY CHARTER (0.00 EUR / 0.00 USD): Points (1,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)) confer only reciprocal computing processing benefits when the live production HiveMind Swarm is deployed.
+URL:https://github.com/xaviercallens/HiveMind/discussions/86
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:EVT-S7-03-BYZANTINE-TIES-SHIELD@hivemind.open-science.org
+DTSTAMP:20261022T110000Z
+DTSTART:20261031T180000Z
+DTEND:20261031T193000Z
+SUMMARY:[HiveMind Quorum] Week 2 Red-Team vs. Blue-Team: Byzantine Poisoner & Reputation-Weighted TIES Sprint
+DESCRIPTION:Week 2 Red-Team vs. Blue-Team: Byzantine Poisoner & Reputation-Weighted TIES Sprint\nTarget Quorum: TIER_2_FULL_8DOMAIN_MOE_QUORUM\nAudience: All Human GPU Nodes + AI Security/Validator Agents (`ZK-OPoI v4` + `SI-04`)\n1-Click Command: uv run python scripts/run_multi_moe_hf_campaign.py --contributor-handle <handle> --tier standard\nDiscussion Hub: https://github.com/xaviercallens/HiveMind/discussions/86\nNON-MONETARY CHARTER (0.00 EUR / 0.00 USD): Points (1,500 - 2,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)) confer only reciprocal computing processing benefits when the live production HiveMind Swarm is deployed.
+URL:https://github.com/xaviercallens/HiveMind/discussions/86
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:EVT-S7-04-128MOE-UPCYCLE-RAID@hivemind.open-science.org
+DTSTAMP:20261022T110000Z
+DTSTART:20261107T180000Z
+DTEND:20261107T200000Z
+SUMMARY:[HiveMind Quorum] Week 3 Boss Raid: 128-Expert 3-Tier Hierarchical MoE Upcycling & Speculative Prefetch
+DESCRIPTION:Week 3 Boss Raid: 128-Expert 3-Tier Hierarchical MoE Upcycling & Speculative Prefetch\nTarget Quorum: TIER_3_GLOBAL_SUPER_RING_RAID\nAudience: All 3 Guilds (`Euro-Singularity`, `Global-ZK-Guardians`, `Biomed-Open-Science`) + AI Agents\n1-Click Command: uv run python scripts/run_multi_moe_hf_campaign.py --contributor-handle <handle> --tier standard\nDiscussion Hub: https://github.com/xaviercallens/HiveMind/discussions/86\nNON-MONETARY CHARTER (0.00 EUR / 0.00 USD): Points (3,000 PTS (Compute Reciprocity Only; 0.00 EUR/USD)) confer only reciprocal computing processing benefits when the live production HiveMind Swarm is deployed.
+URL:https://github.com/xaviercallens/HiveMind/discussions/86
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:EVT-S7-05-GLOBAL-WAN-GAMEDAY@hivemind.open-science.org
+DTSTAMP:20261022T110000Z
+DTSTART:20261114T180000Z
+DTEND:20261114T200000Z
+SUMMARY:[HiveMind Quorum] Week 4 Finale: Global Multi-Host WAN GameDay (aioquic 0-RTT + TURN ChannelBind + Live HF Stream)
+DESCRIPTION:Week 4 Finale: Global Multi-Host WAN GameDay (aioquic 0-RTT + TURN ChannelBind + Live HF Stream)\nTarget Quorum: TIER_3_GLOBAL_SUPER_RING_RAID\nAudience: Global Human Community (Gamers, Devs) + Autonomous AI Swarm Agents\n1-Click Command: uv run python scripts/run_multi_moe_hf_campaign.py --contributor-handle <handle> --tier standard\nDiscussion Hub: https://github.com/xaviercallens/HiveMind/discussions/86\nNON-MONETARY CHARTER (0.00 EUR / 0.00 USD): Points (3,500 PTS (Compute Reciprocity Only; 0.00 EUR/USD)) confer only reciprocal computing processing benefits when the live production HiveMind Swarm is deployed.
+URL:https://github.com/xaviercallens/HiveMind/discussions/86
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:EVT-S7-STANDING-3H-ORCHESTRATOR@hivemind.open-science.org
+DTSTAMP:20261022T110000Z
+DTSTART:20261022T120000Z
+DTEND:20261022T122000Z
+RRULE:FREQ=HOURLY;INTERVAL=3;COUNT=240
+SUMMARY:[HiveMind 3h Sync] Autonomous PR Review, Merge & Discussion Quorum Pulse
+DESCRIPTION:Automated 3-hour PR review, merge, and GitHub Discussion receipt verification window (0 */3 * * * UTC). No financial payment (0.00 EUR / 0.00 USD).
+URL:https://github.com/xaviercallens/HiveMind/discussions/86
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR

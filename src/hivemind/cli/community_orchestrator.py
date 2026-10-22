@@ -104,7 +104,13 @@ WIKI_PAGE_CATALOG: tuple[dict[str, Any], ...] = (
         "slug": "Community-GPU-Benchmark-and-WAN-GameDay",
         "title": "Opt-In Community GPU Benchmark & Multi-Host WAN GameDay Guide",
         "url": f"{WIKI_BASE_URL}/Community-GPU-Benchmark-and-WAN-GameDay",
-        "keywords": ("benchmark", "gpu", "receipt", "receipt_sha256", "gameday", "wan", "vram", "hm-s7-06", "hm-s7-07"),
+        "keywords": ("benchmark", "gpu", "receipt", "receipt_sha256", "campaign_sha256", "polyglot", "gameday", "wan", "vram", "hm-s7-06", "hm-s7-07", "hm-s7-09"),
+    },
+    {
+        "slug": "User-Guide-and-Quorum-Calendar",
+        "title": "Non-Technical 1-Click User Guide & Synchronized Campaign Quorum Calendar (.ics)",
+        "url": f"{WIKI_BASE_URL}/User-Guide-and-Quorum-Calendar",
+        "keywords": ("guide", "beginner", "non-technical", "calendar", "quorum", "schedule", "event", "evt-s7", "join-quorum", "ics", "launcher"),
     },
 )
 

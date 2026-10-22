@@ -40,8 +40,11 @@ Welcome to the official **Project HiveMind** Wiki! This knowledgebase is synchro
    - Step-by-Step Workflow for Human Developers & Autonomous AI Agents (`Antigravity`, `Claude Code`, `Cursor`, `Codex`)
    - 5-Layer Anti-"Code Boubou" `PRSecurityScanner` (`PAY-01..03`, `CB-01..04`, `SEC-01..05`), `AntiStubGuard`, and 3-Hour Autonomous PR Review & Discussion Orchestrator (`0 */3 * * *`)
 9. **[🔬 9. Opt-In Community GPU Benchmark & Multi-Host WAN GameDay Guide](Community-GPU-Benchmark-and-WAN-GameDay)**
-   - How to run `scripts/run_community_gpu_benchmark.py` (`< 1.5 GB` peak VRAM) on NVIDIA CUDA, AMD ROCm, Apple Silicon MPS, or CPU
-   - How to verify and share signed `community_gpu_benchmark_receipt.json` (`receipt_sha256`) in [Discussion #84](https://github.com/xaviercallens/HiveMind/discussions/84) and join the Multi-Host WAN GameDay (`HM-S7-07`)
+   - How to run `scripts/run_community_gpu_benchmark.py` and `scripts/run_multi_moe_hf_campaign.py` (`Operation Polyglot-Singularity-128`, `< 1.5 GB` peak VRAM) on NVIDIA CUDA, AMD ROCm, Apple Silicon MPS, or CPU
+   - How to verify and share signed `receipt_sha256` / `campaign_sha256` receipts in [Discussion #84](https://github.com/xaviercallens/HiveMind/discussions/84) and [Discussion #86](https://github.com/xaviercallens/HiveMind/discussions/86)
+10. **[📅 10. Non-Technical 1-Click User Guide & Synchronized Quorum Calendar](User-Guide-and-Quorum-Calendar)**
+   - 60-Second 1-Click Launcher (`scripts/Join_HiveMind_Campaign_Windows.bat` & `scripts/join_hivemind_campaign.sh`) for gamers and citizen scientists with zero coding skills
+   - 4-Week Synchronized Campaign Calendar (`EVT-S7-01`..`EVT-S7-05` + downloadable `.ics` calendar) & Byzantine Quorum Tiers (`Tier 1 >= 5 nodes`, `Tier 2 >= 8 nodes`, `Tier 3 >= 16 nodes`)
 
 ---
 

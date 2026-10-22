@@ -10,10 +10,12 @@
 - ⚡ **[7. Pareto Strategy & EF21-DiLoCo](Swarm-Strategy-Improvements-and-Pareto-Optimizer)**
 - 🤖 **[8. AI Agent & Human Contributor Playbook](AI-Agent-and-Human-Contributor-Playbook)**
 - 🔬 **[9. Community GPU Benchmark & WAN GameDay](Community-GPU-Benchmark-and-WAN-GameDay)**
+- 📅 **[10. 1-Click User Guide & Quorum Calendar](User-Guide-and-Quorum-Calendar)**
 
 ---
 **Community Discussions & Links**
 - [📢 #83 Season 7 Master Hub](https://github.com/xaviercallens/HiveMind/discussions/83)
 - [🎮 #84 GPU Benchmark Board](https://github.com/xaviercallens/HiveMind/discussions/84)
 - [🤖 #85 Agent & Human Coord Hub](https://github.com/xaviercallens/HiveMind/discussions/85)
+- [🚀 #86 Multi-MoE 8-Domain HF Campaign](https://github.com/xaviercallens/HiveMind/discussions/86)
 - [⚖️ Non-Monetary Charter (`0.00 EUR/USD`)](https://github.com/xaviercallens/HiveMind/blob/main/LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)
