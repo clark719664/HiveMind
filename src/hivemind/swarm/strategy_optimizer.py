@@ -800,6 +800,46 @@ def _is_pareto_dominated(candidate: Dict[str, Any], points: Sequence[Dict[str, A
     return False
 
 
+_EF21_TELEMETRY_MAX_ENTRIES = 256
+_EF21_TELEMETRY_BASIS = (
+    "Posted by workers after each compressed upload (self-reported; the server does not verify "
+    "it): residual and raw-delta L2 norms, contraction_factor = residual_norm / raw_delta_norm. "
+    "Cumulative conservation error is not tracked per worker."
+)
+
+
+def _ef21_entry(raw: Any) -> Dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise ValueError("each ef21 entry must be an object")
+    entry: Dict[str, Any] = {}
+    for key in ("worker_id", "branch_name"):
+        value = raw.get(key)
+        if not isinstance(value, str) or not value.strip() or len(value) > 128:
+            raise ValueError(f"ef21.{key} must be a non-empty string of at most 128 characters")
+        entry[key] = value
+    for key in ("residual_norm", "raw_delta_norm"):
+        value = _finite_float(raw.get(key), f"ef21.{key}")
+        if value < 0.0:
+            raise ValueError(f"ef21.{key} must be >= 0")
+        entry[key] = value
+    contraction = raw.get("contraction_factor")
+    entry["contraction_factor"] = (
+        None if contraction is None else _finite_float(contraction, "ef21.contraction_factor")
+    )
+    for key in ("outer_step", "clip_events"):
+        value = _finite_float(raw.get(key, 0), f"ef21.{key}")
+        if value < 0 or value != int(value):
+            raise ValueError(f"ef21.{key} must be a non-negative integer")
+        entry[key] = int(value)
+    for key in ("topk_ratio", "stale_decay"):
+        if raw.get(key) is not None:
+            value = _finite_float(raw[key], f"ef21.{key}")
+            if not 0.0 < value <= 1.0:
+                raise ValueError(f"ef21.{key} must be within (0, 1]")
+            entry[key] = value
+    return entry
+
+
 def _finite_float(value: Any, name: str) -> float:
     try:
         number = float(value)
@@ -859,6 +899,7 @@ class StrategyOptimizerTelemetryEngine:
         self._cache_revision = -1
         self._cache_time = 0.0
         self._si01_cache: Optional[Dict[str, Any]] = None
+        self.ef21_telemetry: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
     def _si01_report(self) -> Dict[str, Any]:
         if self._si01_cache is None:
@@ -981,7 +1022,27 @@ class StrategyOptimizerTelemetryEngine:
         else:
             observation = None
 
-        previous = (self.link_profile, copy.deepcopy(self.scheduler), self.revision)
+        ef21_block = payload.get("ef21")
+        if ef21_block is None:
+            ef21_entries: List[Dict[str, Any]] = []
+        else:
+            items = ef21_block if isinstance(ef21_block, list) else [ef21_block]
+            if len(items) > _EF21_TELEMETRY_MAX_ENTRIES:
+                raise ValueError(f"at most {_EF21_TELEMETRY_MAX_ENTRIES} ef21 entries per update")
+            ef21_entries = [_ef21_entry(item) for item in items]
+
+        previous = (
+            self.link_profile,
+            copy.deepcopy(self.scheduler),
+            self.revision,
+            dict(self.ef21_telemetry),
+        )
+        for entry in ef21_entries:
+            key = (entry["worker_id"], entry["branch_name"])
+            self.ef21_telemetry.pop(key, None)
+            self.ef21_telemetry[key] = entry
+        while len(self.ef21_telemetry) > _EF21_TELEMETRY_MAX_ENTRIES:
+            self.ef21_telemetry.pop(next(iter(self.ef21_telemetry)))
         if observation is not None:
             domain, loss_before, loss_after, gpu_seconds = observation
             self.scheduler.record_observation(
@@ -994,9 +1055,13 @@ class StrategyOptimizerTelemetryEngine:
             return self.snapshot(force_refresh=True)
         except (ArithmeticError, ValueError) as exc:
             # A rejected update must not leave state that breaks every later snapshot.
-            self.link_profile, self.scheduler, self.revision = previous
+            self.link_profile, self.scheduler, self.revision, self.ef21_telemetry = previous
             self._cache = None
             raise ValueError(f"observation rejected: {exc}") from exc
+
+    def ingest_worker_ef21(self, worker: Any) -> Dict[str, Any]:
+        """Pull a worker's measured EF21 telemetry (`HiveMindWorkerNode.ef21_telemetry()`)."""
+        return self.update({"ef21": worker.ef21_telemetry()})
 
     def snapshot(self, force_refresh: bool = False) -> Dict[str, Any]:
         """Return the current SI-01..SI-05 telemetry snapshot (short-TTL cached)."""
@@ -1049,6 +1114,12 @@ class StrategyOptimizerTelemetryEngine:
             "si04_reputation_weighted_ties": si04,
             "si05_pareto_strategy_frontier": si05,
             "live_inputs": dict(self.link_profile),
+            "ef21_live_telemetry": {
+                "workers": [
+                    dict(self.ef21_telemetry[key]) for key in sorted(self.ef21_telemetry)
+                ],
+                "basis": _EF21_TELEMETRY_BASIS,
+            },
             "telemetry_endpoint": "/api/strategy-optimizer",
             "honesty": {
                 "measured": [
