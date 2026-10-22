@@ -6,8 +6,10 @@ from hivemind.cli.community_orchestrator import (
     ORCHESTRATOR_PR_MARKER,
     ORCHESTRATOR_REPLY_MARKER,
     ORCHESTRATOR_SEED_MARKER,
+    WIKI_BASE_URL,
     compose_discussion_reply,
     evaluate_pull_request_for_merge,
+    recommend_wiki_references,
 )
 
 
@@ -100,6 +102,8 @@ def test_compose_discussion_reply_handles_seeded_receipt_claim_and_idempotency()
     assert r_claim["needs_reply"] is True
     assert r_claim["reply_category"] == "task_coordination_HM-S7-01"
     assert "feat/s7-looped-moe-backbone" in r_claim["reply_markdown"]
+    assert WIKI_BASE_URL in r_claim["reply_markdown"]
+    assert len(r_claim["recommended_wiki_pages"]) >= 2
     assert ORCHESTRATOR_REPLY_MARKER in r_claim["reply_markdown"]
 
     # 4. Already replied comment is skipped idempotently
@@ -116,3 +120,14 @@ def test_compose_discussion_reply_handles_seeded_receipt_claim_and_idempotency()
         },
     }
     assert compose_discussion_reply(already_replied)["needs_reply"] is False
+
+
+def test_recommend_wiki_references_matches_topic_keywords() -> None:
+    refs_zk = recommend_wiki_references("How does ZK-OPoI v4 and Lean 4 theorem verification work?")
+    slugs_zk = [r["slug"] for r in refs_zk]
+    assert "Byzantine-Defense-ZK-OPoI-and-Lean4-Proofs" in slugs_zk
+    assert all(r["url"].startswith(WIKI_BASE_URL) for r in refs_zk)
+
+    refs_gpu = recommend_wiki_references("Here is my GPU benchmark receipt_sha256 for 8GB VRAM")
+    slugs_gpu = [r["slug"] for r in refs_gpu]
+    assert "Community-GPU-Benchmark-and-WAN-GameDay" in slugs_gpu

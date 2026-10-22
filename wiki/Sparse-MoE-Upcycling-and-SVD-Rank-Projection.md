@@ -1,12 +1,12 @@
-# 🧬 Sparse MoE Upcycling & SVD Rank Projection
+# 🧬 Sparse MoE Upcycling, 128-Expert 3-Tier Router & SVD Rank Projection (`v1.8.0`)
 
-Project HiveMind enables independent miners to train domain-specialized QLoRA adapters at arbitrary ranks (`r=8, 16, 32, 64`) and seamlessly fuse them into a single **Branch-Train-Mix (BTM) Sparse Mixture-of-Experts (`UpcycledSparseMoEModel`)** within an **8 GB VRAM envelope**.
+Project HiveMind enables independent miners to train domain-specialized QLoRA adapters at arbitrary ranks (`r=8, 16, 32, 64`) and seamlessly fuse them into a single **Branch-Train-Mix (BTM) Sparse Mixture-of-Experts (`UpcycledSparseMoEModel`)** within an **8 GB VRAM envelope** (`<= 6,656 MiB` usable WDDM budget).
 
 ---
 
 ## 1. Factored SwiGLU LoRA Expert Architecture (`src/hivemind/core/btm_moe.py`)
 
-Instead of duplicating the dense SwiGLU FFN weights ($W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}$) across $E$ experts—which would immediately exhaust 8 GB of VRAM—HiveMind keeps the **4-bit NF4 base backbone frozen and shared**, and stores each domain expert as a compact **factored low-rank residual** $(A_e, B_e)$ routed via Top-2 gating:
+Instead of duplicating dense SwiGLU FFN weights ($W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}$) across $E$ experts, HiveMind keeps the **4-bit NF4 base backbone frozen and shared**, and stores each domain expert as a compact **factored low-rank residual** $(A_e, B_e)$ routed via Top-2 gating:
 
 $$y(x) = W_{\text{NF4}}(x) + \sum_{e \in \text{Top-2}(G(x))} g_e(x) \cdot \frac{\alpha_e}{r_e} B_e A_e x$$
 
@@ -15,12 +15,24 @@ $$y(x) = W_{\text{NF4}}(x) + \sum_{e \in \text{Top-2}(G(x))} g_e(x) \cdot \frac{
 
 ---
 
-## 2. Dynamic Truncated-SVD Rank-Adaptive Projection (`HM-S4-05` / `PR #33` & `#34`)
+## 2. 128-Expert 3-Tier Hierarchical MoE Router (`HM-S6-02` / `PR #71`)
 
-Community miners often train adapters with different LoRA ranks (`r=8` on 6 GB laptops, `r=16` on 8 GB RTX 2070, `r=32` or `r=64` on 12 GB–24 GB GPUs). [`project_lora_rank_svd`](https://github.com/xaviercallens/HiveMind/blob/main/src/hivemind/core/btm_upcycle.py) normalizes any adapter to a canonical rank $r_{\text{target}} = 16$:
+Implemented in [`ThreeTierHierarchicalMoERouter`](https://github.com/xaviercallens/HiveMind/blob/main/src/hivemind/core/btm_moe.py) (`PR #71` by `@clark719664`), HiveMind factors a 128-expert pool into a **3-tier hierarchy (`4 Super-Clusters × 4 Macro-Domains × 8 Micro-Experts = 128`)**:
 
-1. **Down-Projection ($r_{\text{src}} > r_{\text{target}}$):** Computes the QR-factored singular value decomposition of $\frac{\alpha_{\text{src}}}{r_{\text{src}}} B A = U \Sigma V^\top$ without materializing the full $d_{\text{out}} \times d_{\text{in}}$ matrix, retaining the top $r_{\text{target}}$ singular triples:
-   $$B' = U_{[:, :r_{\text{target}}]} \sqrt{\Sigma_{[:r_{\text{target}}]}}, \quad A' = \sqrt{\Sigma_{[:r_{\text{target}}]}} V^\top_{[:r_{\text{target}}, :]}$$
-   By the Eckart–Young–Mirsky theorem, this minimizes Frobenius norm reconstruction error and retains **`>= 99.4%` spectral energy**.
-2. **Up-Padding ($r_{\text{src}} < r_{\text{target}}$):** Zero-pads $(A, B)$ to $r_{\text{target}}$ while rescaling by $\sqrt{(\alpha_{\text{src}}/r_{\text{src}}) / (\alpha_{\text{target}}/r_{\text{target}})}$ so forward outputs are **bit-for-bit identical (`max_diff = 0.0`)**.
-3. **32-Expert Heterogeneous Hot-Plug (`hotplug_rank_adaptive_experts`):** Hot-plugs 32 mixed-rank (`r=8/16/32/64`) experts into `UpcycledSparseMoEModel` in **`0.107 GB` VRAM** (`< 2.0 GB` budget).
+- **Gating FLOP Reduction (`8.0x`):** Evaluates only `4 + 4 + 8 = 16` inner products per token instead of `128` (`gating_reduction_factor = 8.0`).
+- **Ragged Hot-Plug Index Realignment:** `hotplug_three_tier_experts` and `SparseMoELayer.forward` use cumulative cluster offsets so uneven cluster growth (`128 -> 129+` experts) never aliases expert indices or leaves a trailing expert unreachable.
+
+---
+
+## 3. Speculative Token-Tree Expert Prefetching (`HM-S6-02` / `PR #75`)
+
+Implemented in [`RegionalDHTSwarmRing.prefetch_speculative_token_tree`](https://github.com/xaviercallens/HiveMind/blob/main/src/hivemind/swarm/inference_ring.py) (`PR #75` by `@clark719664`), the inference ring computes branch prefix probabilities (`prefix_trie_branch_probabilities`) over the speculative token tree and pre-stages the highest-probability Layer $L+1$ experts into the lookahead DMA slot (`slot_A` / `slot_B`) of `PinnedRAMExpertDMAStreamer`.
+
+---
+
+## 4. Dynamic Truncated-SVD Rank Projection & Season 7 Looped MoE (`Issue #66`)
+
+- **Truncated-SVD Rank Normalization (`HM-S4-05` / `PR #34`):** `project_lora_rank_svd` normalizes mixed-rank community adapters (`r=8/16/32/64 -> r=16`) via QR-SVD while retaining `>= 99.4%` spectral energy, paired with `SI-01` `DynamicFisherSVDSelector`.
+- **Season 7 Open Tasks (`HM-S7-01` & `HM-S7-02` in [`Issue #66`](https://github.com/xaviercallens/HiveMind/issues/66)):**
+  - **`HM-S7-01` (`feat/s7-looped-moe-backbone`):** Factor `Qwen2.5-0.5B` upcycling into `Prelude -> RecurrentCore × T -> Coda` with per-step LoRA adapters (`0 Bytes` extra static NF4 weight VRAM).
+  - **`HM-S7-02` (`feat/s7-terminal-kv-sharing`):** Stack terminal fixed-point KV-cache sharing across recurrent loop steps on top of `float8_e4m3fn` paged KV-cache (`~5.6x` combined KV-cache reduction under `2,200 MiB`).

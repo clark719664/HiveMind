@@ -43,6 +43,109 @@ ORCHESTRATOR_REPLY_MARKER = "<!-- hivemind-orchestrator-reply -->"
 ORCHESTRATOR_SEED_MARKER = "<!-- hivemind-orchestrator-seed -->"
 ORCHESTRATOR_PR_MARKER = "<!-- hivemind-orchestrator-pr-review -->"
 
+WIKI_BASE_URL = "https://github.com/xaviercallens/HiveMind/wiki"
+
+WIKI_PAGE_CATALOG: tuple[dict[str, Any], ...] = (
+    {
+        "slug": "Home",
+        "title": "Wiki Home & 10-Page Sitemap (v1.8.0)",
+        "url": f"{WIKI_BASE_URL}/Home",
+        "keywords": ("overview", "home", "wiki", "welcome", "charter", "points"),
+    },
+    {
+        "slug": "Architecture-and-5-Layer-Stack",
+        "title": "Architecture & 5-Layer Stack (EF21-DiLoCo, TURN ChannelBind, WebGL)",
+        "url": f"{WIKI_BASE_URL}/Architecture-and-5-Layer-Stack",
+        "keywords": ("architecture", "ef21", "diloco", "quic", "turn", "channelbind", "webgl", "p2p"),
+    },
+    {
+        "slug": "Consumer-GPU-Node-Setup-and-Steam-Tool",
+        "title": "Consumer GPU Node Setup & Steam Background Overlay (< 1.5s Preemption)",
+        "url": f"{WIKI_BASE_URL}/Consumer-GPU-Node-Setup-and-Steam-Tool",
+        "keywords": ("steam", "setup", "install", "windows", "linux", "watchdog", "preemption", "8gb"),
+    },
+    {
+        "slug": "Sparse-MoE-Upcycling-and-SVD-Rank-Projection",
+        "title": "Sparse MoE Upcycling, 128-Expert 3-Tier Router & Speculative Token-Tree Prefetch",
+        "url": f"{WIKI_BASE_URL}/Sparse-MoE-Upcycling-and-SVD-Rank-Projection",
+        "keywords": ("moe", "expert", "upcycle", "svd", "kv", "prefetch", "looped", "btm", "hm-s7-01", "hm-s7-02", "hm-s7-03"),
+    },
+    {
+        "slug": "Byzantine-Defense-ZK-OPoI-and-Lean4-Proofs",
+        "title": "Byzantine Defense, ZK-OPoI v4, Guild Insurance Pool & 77 Lean 4 Theorems",
+        "url": f"{WIKI_BASE_URL}/Byzantine-Defense-ZK-OPoI-and-Lean4-Proofs",
+        "keywords": ("zk-opoi", "byzantine", "lean", "theorem", "krum", "slashing", "insurance", "fl-08", "hm-s7-04", "hm-s7-08"),
+    },
+    {
+        "slug": "HF-Community-Hub-Guilds-and-Joined-Campaigns",
+        "title": "HF Community Hub, Rarest-First Seeding, Guilds & Missions 1-24",
+        "url": f"{WIKI_BASE_URL}/HF-Community-Hub-Guilds-and-Joined-Campaigns",
+        "keywords": ("guild", "hub", "huggingface", "bundle", "rarest", "mission", "elo"),
+    },
+    {
+        "slug": "Swarm-Strategy-Improvements-and-Pareto-Optimizer",
+        "title": "Swarm Strategy Improvements (SI-01..SI-08) & Pareto Optimizer",
+        "url": f"{WIKI_BASE_URL}/Swarm-Strategy-Improvements-and-Pareto-Optimizer",
+        "keywords": ("strategy", "pareto", "si-01", "si-02", "si-03", "si-04", "si-05", "si-06", "ties", "ucb1", "hm-s7-05"),
+    },
+    {
+        "slug": "Season-5-Roadmap-and-Contributor-Guide",
+        "title": "Season 7 (Wave 6) Roadmap, Tasks (HM-S7-01..08) & Non-Monetary Points Charter",
+        "url": f"{WIKI_BASE_URL}/Season-5-Roadmap-and-Contributor-Guide",
+        "keywords": ("roadmap", "season", "wave", "task", "bounty", "claim", "hm-s7"),
+    },
+    {
+        "slug": "AI-Agent-and-Human-Contributor-Playbook",
+        "title": "AI Agent & Human Contributor Playbook (3-Hour Autonomous Orchestrator & Quality Gates)",
+        "url": f"{WIKI_BASE_URL}/AI-Agent-and-Human-Contributor-Playbook",
+        "keywords": ("agent", "claude", "antigravity", "orchestrator", "pr", "scanner", "security", "playbook"),
+    },
+    {
+        "slug": "Community-GPU-Benchmark-and-WAN-GameDay",
+        "title": "Opt-In Community GPU Benchmark & Multi-Host WAN GameDay Guide",
+        "url": f"{WIKI_BASE_URL}/Community-GPU-Benchmark-and-WAN-GameDay",
+        "keywords": ("benchmark", "gpu", "receipt", "receipt_sha256", "gameday", "wan", "vram", "hm-s7-06", "hm-s7-07"),
+    },
+)
+
+
+def recommend_wiki_references(context_text: str, max_pages: int = 4) -> list[dict[str, str]]:
+    """Return the most relevant Project HiveMind Wiki pages for a discussion or PR context."""
+    lower = (context_text or "").lower()
+    scored: list[tuple[int, int, dict[str, Any]]] = []
+    for idx, page in enumerate(WIKI_PAGE_CATALOG):
+        hits = sum(1 for kw in page["keywords"] if kw in lower)
+        scored.append((hits, -idx, page))
+    scored.sort(reverse=True)
+    selected: list[dict[str, str]] = [
+        {"slug": p["slug"], "title": p["title"], "url": p["url"]}
+        for hits, _, p in scored
+        if hits > 0
+    ][:max_pages]
+
+    default_slugs = (
+        "Home",
+        "Season-5-Roadmap-and-Contributor-Guide",
+        "AI-Agent-and-Human-Contributor-Playbook",
+        "Community-GPU-Benchmark-and-WAN-GameDay",
+    )
+    existing_slugs = {item["slug"] for item in selected}
+    for slug in default_slugs:
+        if len(selected) >= max_pages:
+            break
+        if slug not in existing_slugs:
+            for page in WIKI_PAGE_CATALOG:
+                if page["slug"] == slug:
+                    selected.append({"slug": page["slug"], "title": page["title"], "url": page["url"]})
+                    existing_slugs.add(slug)
+                    break
+    return selected
+
+
+def _format_wiki_links_markdown(pages: list[dict[str, str]]) -> str:
+    """Format a list of Wiki page references as a Markdown bullet list."""
+    return "\n".join(f"  - [{p['title']}]({p['url']})" for p in pages)
+
 SEASON7_TASK_CATALOG: dict[str, dict[str, str]] = {
     "HM-S7-01": {
         "branch": "feat/s7-looped-moe-backbone",
@@ -135,6 +238,8 @@ def evaluate_pull_request_for_merge(
         and len(changed_files) > 0
     )
     verdict = "APPROVE_AND_MERGE" if can_merge else "HOLD_FOR_REVISION"
+    wiki_refs = recommend_wiki_references(f"{title}\n{body}", max_pages=3)
+    wiki_links_md = _format_wiki_links_markdown(wiki_refs)
 
     review_markdown = (
         f"### 🤖 Autonomous 3-Hour Orchestrator Review — PR #{pr_number} (`{verdict}`)\n\n"
@@ -143,6 +248,7 @@ def evaluate_pull_request_for_merge(
         f"`risk_score={sec_report.risk_score}` | `functional_lines={sec_report.functional_lines_added}` | "
         f"`findings={len(sec_report.findings)}`\n"
         f"- **Draft / Mergeable State:** `isDraft={is_draft}` | `mergeable={mergeable}`\n"
+        f"- **📚 Project HiveMind Wiki References:**\n{wiki_links_md}\n"
         f"- **Non-Monetary Charter:** `0.00 EUR / 0.00 USD` (Symbolic compute-reciprocity points `PTS` / `$HIVE` "
         f"confer exclusively computing processing benefits when the live production HiveMind Swarm is deployed "
         f"and used by a large community).\n\n"
@@ -159,6 +265,7 @@ def evaluate_pull_request_for_merge(
         "risk_score": sec_report.risk_score,
         "functional_lines_added": sec_report.functional_lines_added,
         "findings_count": len(sec_report.findings),
+        "recommended_wiki_pages": wiki_refs,
         "review_markdown": review_markdown,
     }
 
@@ -195,6 +302,8 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
         target_author = disc_author
 
     lower_text = f"{title}\n{target_body}".lower()
+    wiki_refs = recommend_wiki_references(f"{title}\n{target_body}", max_pages=4)
+    wiki_links_md = _format_wiki_links_markdown(wiki_refs)
 
     # 1. Check for shared GPU benchmark receipt SHA-256
     sha_match = re.search(r"\b([a-f0-9]{64})\b", target_body)
@@ -205,6 +314,7 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
             f"- **Receipt Signature Check:** `{receipt_hash}` (64-hex SHA-256 format verified)\n"
             f"- **Next Step:** Feel free to open a PR adding your hardware profile under `HM-S7-06` "
             f"(`feat/s7-community-gpu-swarm-bench`) or join our Multi-Host WAN GameDay (`HM-S7-07`).\n"
+            f"- **📚 Project HiveMind Wiki References:**\n{wiki_links_md}\n"
             f"- **⚖️ Non-Monetary Reminder:** `{NON_MONETARY_COMPUTE_RECIPROCITY_NOTICE}`\n\n"
             f"{ORCHESTRATOR_REPLY_MARKER}"
         )
@@ -214,6 +324,7 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
             "needs_reply": True,
             "reply_category": "gpu_benchmark_receipt_validation",
             "target_author": target_author,
+            "recommended_wiki_pages": wiki_refs,
             "reply_markdown": reply,
         }
 
@@ -230,7 +341,8 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
             f"- **Recommended Branch:** `{spec['branch']}`\n"
             f"- **Target File:** `{spec['target']}`\n"
             f"- **Verification Command:** `{spec['verify']}`\n"
-            f"- **Symbolic Reciprocal Compute Points:** `{spec['points']}`\n\n"
+            f"- **Symbolic Reciprocal Compute Points:** `{spec['points']}`\n"
+            f"- **📚 Project HiveMind Wiki References:**\n{wiki_links_md}\n\n"
             f"> **⚖️ Non-Monetary Charter:** {NON_MONETARY_COMPUTE_RECIPROCITY_NOTICE}\n\n"
             f"{ORCHESTRATOR_REPLY_MARKER}"
         )
@@ -240,19 +352,21 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
             "needs_reply": True,
             "reply_category": f"task_coordination_{tid}",
             "target_author": target_author,
+            "recommended_wiki_pages": wiki_refs,
             "reply_markdown": reply,
         }
 
     # 3. General Q&A / Technical Support Reply
     reply = (
         f"👋 Hi `@{target_author}`, thanks for posting in the **Project HiveMind Community Discussions**!\n\n"
-        f"- **Current Architecture Status (`v1.8.0`):** `45/45` Community PRs merged across Waves 1–5 and "
+        f"- **Current Architecture Status (`v1.8.0`):** `48/48` Community & Dependabot PRs merged across Waves 1–5 and "
         f"`77` machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` custom axioms) in `lean4/HiveMindSpec.lean`.\n"
         f"- **Open Season 7 (`Wave 6`) Tasks (`HM-S7-01`..`HM-S7-08`):** See [`ROADMAP.md`](https://github.com/xaviercallens/HiveMind/blob/main/ROADMAP.md) "
         f"and [`vision.md`](https://github.com/xaviercallens/HiveMind/blob/main/vision.md) for Looped Expert-Backbone (`#66`), "
         f"Terminal Fixed-Point KV-Cache Sharing, Speculative Token-Tree Prefetch Wiring, and `ZK-OPoI v4` Auto-Indemnification.\n"
         f"- **Opt-In Community GPU Benchmark:** Run `uv run python scripts/run_community_gpu_benchmark.py --contributor-handle {target_author}` "
-        f"to test your GPU (`< 1.5 GB` peak VRAM) and share your receipt in [Discussion #84](https://github.com/xaviercallens/HiveMind/discussions/84).\n\n"
+        f"to test your GPU (`< 1.5 GB` peak VRAM) and share your receipt in [Discussion #84](https://github.com/xaviercallens/HiveMind/discussions/84).\n"
+        f"- **📚 Project HiveMind Wiki References:**\n{wiki_links_md}\n\n"
         f"> **⚖️ Non-Monetary Charter:** {NON_MONETARY_COMPUTE_RECIPROCITY_NOTICE}\n\n"
         f"{ORCHESTRATOR_REPLY_MARKER}"
     )
@@ -262,6 +376,7 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
         "needs_reply": True,
         "reply_category": "general_community_support",
         "target_author": target_author,
+        "recommended_wiki_pages": wiki_refs,
         "reply_markdown": reply,
     }
 
