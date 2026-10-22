@@ -1,7 +1,10 @@
-# Project HiveMind v2 ("SETI-Swarm") — Architectural Vision & Implementation Plan
+# Project HiveMind v2 ("SETI-Swarm") — Architectural Vision, Reciprocal Compute-Points Model & Season 7 Horizon (`v1.8.0`)
 
 > [!IMPORTANT]
-> **Status:** **Implemented, Integrated & Verified on Local NVIDIA GeForce RTX 2070** (`src/hivemind/swarm/ledger.py`, `src/hivemind/swarm/dht_storage.py`, `src/hivemind/client/daemon.py`, `src/hivemind/core/btm_upcycle.py`, and `src/hivemind/cli/demo_hf_domain_swarm.py`).
+> **Status:** **Implemented, Integrated & Verified on Local NVIDIA GeForce RTX 2070 (`45/45` Community PRs Merged across Waves 1–5, `77` Machine-Checked Lean 4 Theorems)** (`src/hivemind/swarm/ledger.py`, `src/hivemind/swarm/dht_storage.py`, `src/hivemind/swarm/strategy_optimizer.py`, `src/hivemind/core/btm_moe.py`, `src/hivemind/swarm/swarm_fabric.py`, and `src/hivemind/cli/community_gpu_benchmark.py`).
+>
+> **⚖️ Binding Non-Monetary Charter — No Payment Involved; Computing Processing Benefits Only via "Points" ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
+> **Project HiveMind is a 100% voluntary, non-commercial, open-source scientific project. There is NO money, fiat currency, cryptocurrency, wage, or financial payment of any kind (`0.00 EUR / 0.00 USD`) involved now or ever.** All "points" (`PTS` and `$HIVE` PoUW accounting units) earned via code contributions, Pull Requests, dataset seeding, or opt-in GPU testing provide **exclusively reciprocal computing processing benefits** (priority Sparse MoE inference tokens, speculative decoding bandwidth, and distributed QLoRA training quota) **when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.
 
 Building on the verified Project HiveMind PoC (`D:\xdev\DecentralizedAI`, commit `3bbf0fe` running on the local **NVIDIA GeForce RTX 2070** with zero-copy safetensors streaming and 4-bit NF4 QLoRA), **HiveMind v2 ("SETI-Swarm")** evolves the system from a coordinator-centric BOINC topology into a **fully decentralized, self-sustaining P2P AI Swarm**.
 
@@ -497,4 +500,27 @@ To transform decentralized AI training into an engaging, self-sustaining Free-to
 2. **Local QLoRA Neural Forge (`lora_training_pts`)**: Gamers train 4-bit NormalFloat (NF4) `Qwen/Qwen2.5-0.5B` QLoRA adapters on their consumer GPU and earn points proportional to verified Cross-Entropy loss reduction.
 3. **HF Challenge Solution Bounty (`solution_bounty_pts`)**: The swarm's converged LoRA adapter is evaluated on held-out Hugging Face Bounty Challenges, measuring pre-LoRA vs. post-LoRA solution perplexity and live generated outputs.
 4. **Swarm Contribution & 3-Expert Sparse MoE Boss Raid (`swarm_contribution_pts` + `boss_raid_points`)**: All 3 gamer-mined Hugging Face experts are hot-plugged (`E=2 -> E=3`) into a unified **3-Expert Sparse MoE** and execute a multi-domain speculative decoding raid ($\gamma=5$) over `RegionalDHTSwarmRing`, while `SteamworksSDKBridge` signs `ISteamLeaderboards` HMAC score receipts and syncs `ISteamRemoteStorage` Cloud Saves in [`steam_dist/HiveMind_Steam_FreeEdition`](steam_dist/HiveMind_Steam_FreeEdition).
+
+---
+
+## 6. Season 6 (`Wave 5` Complete) & Season 7 (`Wave 6`) Vision: Looped Expert-Backbones, Terminal KV Sharing & Community GPU Federation
+
+With all **45 Community Pull Requests across Waves 1–5 merged** (`PR #63`–`#65`, `#67`–`#79` completing Season 6 Issues `#56`–`#60`) and **77 machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` custom axioms)** verified in [`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), Project HiveMind's architecture now includes:
+- **`EF21-DiLoCo` Error-Feedback Residual Buffer (`HM-S6-01`, `PR #63` & `#69`)**: Per-worker FP32 compression residuals in CPU RAM (`0 MiB` GPU VRAM overhead) with staleness decay $\gamma^{\max(0,s-1)}$ and uncompressed `raw_delta` preservation for the 10% deterministic spot-check.
+- **128-Expert 3-Tier Hierarchical MoE (`HM-S6-02`, `PR #71` & `#75`)**: `4 × 4 × 8 = 128` routing hierarchy cutting gating FLOPs by **`8.0x`** (`16` vs `128` inner products per token) plus speculative token-tree expert prefetching in `RegionalDHTSwarmRing`.
+- **`ZK-OPoI v4` Batch Commitments & Slashing Insurance Pool (`HM-S6-03`, `PR #79`)**: Single 32-byte domain-separated (`0x00`/`0x01`) Merkle root committing all $\gamma \times L$ speculative activations with position-bound openings and supply-conserving `GuildSlashingInsurancePool`.
+- **Season 6 Autonomous Agent Arena (`HM-S6-04`, `PR #78`)**: Sandboxed `SelfPlayCodeRepairArena`, `Lean4AutoformalizerArena`, and live `/api/strategy-optimizer` HUD (`SI-01..05`).
+
+### 6.1 Season 7 (`Wave 6`) Architectural Vision (`HM-S7-01`..`HM-S7-08`)
+
+1. **Depth Scaling Without VRAM Bloat — Looped Expert-Backbone (`HM-S7-01`, [`Issue #66`](https://github.com/xaviercallens/HiveMind/issues/66) Part I)**:
+   - Consumer 8 GB GPUs hit a hard static parameter wall (`<= 6,656 MiB` WDDM usable ceiling). By factoring the `Qwen2.5-0.5B` / `1.5B` Sparse MoE into **`Prelude -> RecurrentCore × T -> Coda`** with weight-tied recurrent MoE blocks and per-iteration LoRA adapters $(\Delta W^{(t)})_{t=1}^T$, a single 8 GB GPU executes $2\times$–$3\times$ deeper multi-step reasoning at **`0 Bytes` extra static NF4 weight VRAM**.
+2. **Terminal Fixed-Point KV-Cache Sharing (`HM-S7-02`, [`Issue #66`](https://github.com/xaviercallens/HiveMind/issues/66) Part II)**:
+   - Because the recurrent core converges toward a Banach fixed point $h^{(T)} \approx F_\theta(h^{(T-1)}, x)$, non-terminal iterations $t < T$ can reuse the terminal iteration's KV cache during autoregressive generation. Stacking this $3\times$ depth KV collapse on top of our `1.88x` FP8 (`float8_e4m3fn`) paged KV-cache yields an effective **`~5.6x` combined KV-cache reduction** under the `2,200 MiB` KV budget.
+3. **End-to-End Cross-Module Wiring (`HM-S7-03`..`HM-S7-05`)**:
+   - Wire `RegionalDHTSwarmRing.prefetch_speculative_token_tree` (`PR #75`) directly into `SpeculativeDraftVerifier.verify_step_with_prefix_trie`, connect `OptimisticProofOfInferenceAuditor.verify_speculative_batch` (`PR #79`) to auto-trigger `GuildSlashingInsurancePool.indemnify_proven_fault`, and stream live worker `EF21DiLoCoErrorFeedbackBuffer` telemetry (`PR #63`/`#69`) into the Strategy Optimizer HUD (`PR #78`).
+4. **Opt-In Community GPU Testing & Reciprocal Compute-Points Federation (`HM-S7-06` & `HM-S7-07`)**:
+   - Interested developers with consumer GPUs (`NVIDIA CUDA RTX 20/30/40/50`, `AMD ROCm RX 6000/7000`, `Apple Silicon M1–M4 MPS`) can run the opt-in `< 1.5 GB` VRAM hardware benchmark (`uv run python scripts/run_community_gpu_benchmark.py --contributor-handle <github_handle>`) and participate in multi-host WAN GameDays.
+   - **Zero Payment, Reciprocal Compute Only**: All accumulated **"points" (`PTS` / `$HIVE`)** carry **zero monetary value (`0.00 EUR / 0.00 USD`)** and serve strictly to unlock **computing processing benefits** (priority Sparse MoE inference tokens, speculative decoding throughput, and distributed fine-tuning quota) **when the live production HiveMind Swarm is deployed, available, and used by a large community**.
+
 

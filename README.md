@@ -4,12 +4,12 @@
 
 <br/>
 
-[![Release](https://img.shields.io/badge/Release-v1.7.0%20(Pareto%20Swarm%20Strategy%20%26%20Wave%204%20Complete)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.7.0)
+[![Release](https://img.shields.io/badge/Release-v1.8.0%20(Season%206%20Wave%205%20Complete%20%26%20Season%207%20Roadmap)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases)
 [![Test Suite](https://img.shields.io/badge/Tests-Full%20suite%20in%20CI%20(coverage%20gate%2095%25)-brightgreen?style=for-the-badge)](.github/workflows/ci_swarm_tests.yml)
 [![Lean 4 Verified](https://img.shields.io/badge/Lean%204-Machine--checked%20spec%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
 [![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(self--assessed%209.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
-[![Community PRs](https://img.shields.io/badge/Community%20PRs-29%2F29%20Merged%20(Waves%201--4)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
+[![Community PRs](https://img.shields.io/badge/Community%20PRs-45%2F45%20Merged%20(Waves%201--5)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 [![Project Wiki](https://img.shields.io/badge/Project%20Wiki-8%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
 [![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..05%20(--62.1%25%20loss%2C%20synthetic%20eval)-ffd21e?style=for-the-badge)](docs/SWARM_STRATEGY_IMPROVEMENTS.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
@@ -464,4 +464,7 @@ All core mathematical invariants of Project HiveMind are machine-checked in **Le
 | **[Issue `#47`](https://github.com/xaviercallens/HiveMind/issues/47)** | **`HM-S5-05`** | Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (`wan_fault_benchmark.py`) | ✅ [`PR #52`](https://github.com/xaviercallens/HiveMind/pull/52) (`@pedromineo`) | **MERGED (`+2,000 $HIVE`)** |
 | **[Issue `#48`](https://github.com/xaviercallens/HiveMind/issues/48)** | **`HM-S5-06`** | Formal Lean 4 Proofs (`Theorems 41–48`) for TIES Consensus, Guild Synergy, Bisection & Fisher SVD | ✅ Core (`@xaviercallens`) | **DELIVERED (`+2,500 $HIVE`)** |
 
-See **[`ROADMAP.md`](ROADMAP.md)**, **[`docs/SWARM_STRATEGY_IMPROVEMENTS.md`](docs/SWARM_STRATEGY_IMPROVEMENTS.md)**, **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)**, and the **[8-Page Project Wiki](https://github.com/xaviercallens/HiveMind/wiki)** for full details and Season 6 (`Wave 5`) proposals.
+See **[`ROADMAP.md`](ROADMAP.md)**, **[`vision.md`](vision.md)**, **[`docs/SWARM_STRATEGY_IMPROVEMENTS.md`](docs/SWARM_STRATEGY_IMPROVEMENTS.md)**, **[`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)**, and the **[8-Page Project Wiki](https://github.com/xaviercallens/HiveMind/wiki)** for full details on **Wave 5 (`Season 6` — `45/45` PRs merged, `77` machine-checked Lean 4 theorems)**, the **Season 7 (`Wave 6`) Developer Community Tasks (`HM-S7-01`..`HM-S7-08`)**, and the **Opt-In Community GPU Benchmark Suite ([`scripts/run_community_gpu_benchmark.py`](scripts/run_community_gpu_benchmark.py))**.
+
+> **⚖️ Reminder — No Payment Involved; Computing Processing Benefits Only via "Points":**
+> There is **no financial payment (`0.00 EUR / 0.00 USD`)** of any kind. Accumulated **"Points" (`PTS` / `$HIVE`)** confer **solely computing processing benefits** (priority Sparse MoE inference tokens, speculative decoding bandwidth, and distributed QLoRA fine-tuning slots) **when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.

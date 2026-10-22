@@ -134,8 +134,21 @@ Want to add a new domain expert (e.g., `Rust_Systems`, `Cybersecurity_Audit`, `L
 
 ---
 
-## 7. `$HIVE` Contributor Bounties & Steam Leaderboard Recognition
+## 7. Non-Monetary Reciprocal Compute Points (`PTS` / `$HIVE`) & Opt-In Community GPU Testing
 
-Merged Pull Requests that advance **Swarm Fabric (M1–M4)** or add verified **Hugging Face Domain Experts** receive:
-- **Genesis Contributor Allocation** recorded in the repository's PoUW Contributor Registry.
+> [!IMPORTANT]
+> **⚖️ Binding Non-Monetary Notice — No Financial Payment (`0.00 EUR / 0.00 USD`):**
+> **Project HiveMind is a 100% voluntary, non-commercial open-source research project. No money, fiat currency, cryptocurrency, wage, or financial payment of any kind is or will ever be involved or paid.**
+> All references to **"Points" (`PTS`)**, **`$HIVE`**, or **"Bounties"** represent **strictly non-monetary, symbolic compute-reciprocity accounting units** (like SETI@home or BOINC credits). They confer **exclusively computing processing benefits**—priority Sparse MoE inference tokens, speculative decoding bandwidth, and distributed QLoRA fine-tuning slots—**when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.
+
+Merged Pull Requests that advance **Swarm Fabric (M1–M4)**, **Season 7 (`Wave 6`) Tasks (`HM-S7-01`..`HM-S7-08` in [`ROADMAP.md`](ROADMAP.md))**, or add verified **Hugging Face Domain Experts** receive:
+- **Genesis Contributor Compute-Points Allocation** recorded in the repository's non-monetary PoUW Contributor Registry.
 - **Apex Architect Badge** in the `HiveMind: Neural Breach` Free Steam Edition (`AppID: 3133700`) Global Leaderboard.
+
+### Opt-In Community GPU Testing (If Interested & Possible)
+If you have a consumer GPU (`NVIDIA RTX 20/30/40/50`, `AMD Radeon RX 6000/7000 ROCm`, or `Apple Silicon MPS`) and want to help verify cross-vendor hardware performance (`< 1.5 GB` peak VRAM), run:
+
+```bash
+uv run python scripts/run_community_gpu_benchmark.py --contributor-handle <your-github-handle>
+uv run pytest tests/test_community_gpu_benchmark.py -v
+```

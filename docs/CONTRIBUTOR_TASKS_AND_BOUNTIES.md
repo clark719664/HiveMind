@@ -1,23 +1,24 @@
-# 🛠️ Project HiveMind — Large-Scale Contributor Tasks, Empirical Results & `$HIVE` Bounties (`v1.7.0`)
+# 🛠️ Project HiveMind — Developer Community Tasks, Opt-In GPU Testing & Reciprocal Compute Points (`v1.8.0`)
 
 <div align="center">
-<img src="assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.7.0 — 29/29 Merged PRs, 48/48 Lean 4 Proofs & Autonomous Pareto Strategy Optimizer (SI-01 to SI-05)" width="100%"/>
+<img src="assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.8.0 — 45/45 Merged PRs, 77 Lean 4 Theorems & Season 7 Developer Community Roadmap" width="100%"/>
 </div>
 
 > [!IMPORTANT]
-> **⚖️ Binding Legal Notice — No Money or Financial Payment Involved ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](../LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
-> **No money, fiat currency, cryptocurrency, or financial payment of any kind is or will ever be involved or paid (`0.00 EUR / USD`).** All `$HIVE` amounts, "Bounties", and PoUW credits listed in this document and across GitHub Issues/PRs are **strictly non-monetary, symbolic compute-reciprocity accounting units**. Any retribution for contributions consists **solely of reciprocal computing power** (shared Sparse MoE inference and training quota) provided back to contributors **when the decentralized Swarm and Federation are in place**. By contributing, you waive any claim to monetary compensation.
+> **⚖️ Binding Legal Notice — No Money or Financial Payment Involved; Computing Processing Benefits Only via "Points" ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](../LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
+> **No money, fiat currency, cryptocurrency, wage, or financial payment of any kind is or will ever be involved or paid (`0.00 EUR / 0.00 USD`).** All references to **"Points" (`PTS`)**, **`$HIVE`**, **"Bounties"**, and **PoUW credits** in this document and across GitHub Issues/PRs are **strictly non-monetary, symbolic compute-reciprocity accounting units**. Any retribution for code contributions, Pull Requests, or opt-in GPU testing consists **solely of reciprocal computing processing benefits** (priority Sparse MoE inference tokens, speculative decoding bandwidth, and distributed fine-tuning quota) provided back to contributors **when the live production HiveMind Swarm is deployed, available, and actively used by a large community**. By contributing, you waive any claim to monetary compensation.
 
 > **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
 >
-> **Current Status (`v1.7.0`):**
-> - **All 29 Pull Requests Merged (`100%` Merge Rate across Waves 1, 2, 3, 3.5 & 4):**
+> **Current Status (`v1.8.0` — Season 6 / Wave 5 Complete):**
+> - **All 45 Community Pull Requests Merged (`100%` Merge Rate across Waves 1, 2, 3, 3.5, 4 & 5):**
 >   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5`.
 >   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18`.
 >   - **Wave 3 Season 4 (`PR #32`, `#34`–`#37` by `@clark719664` & `PR #33` by `@pedromineo`):** Closed Issues `#26`–`#31`.
 >   - **Wave 3.5 Season 4.5 (`PR #39`, `#40`, `#41`, `#42` by `@clark719664`):** Real `aioquic` 0-RTT & RFC 5389/5766 STUN/TURN (`PR #40`), raw WebGL 3D Globe (`PR #42`), and non-circular 40-theorem Lean 4 spec (`PR #41` & `#39`).
 >   - **Wave 4 Season 5 (`PR #52`, `#53`, `#54`, `#55` by `@pedromineo` + Core `@xaviercallens`):** Closed Issues `#43`–`#48` (`HM-S5-01` through `HM-S5-06`) + **Pareto Swarm Strategy Optimizer (`SI-01`..`SI-05`)**.
-> - **Hardware & Formal Verification:** **`271+` automated pytest tests passing (`100%` pass rate)** on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)** and **`48 / 48` machine-checked Lean 4 theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean).
+>   - **Wave 5 Season 6 (`PR #63`–`#65`, `#67`–`#77`, `#79` by `@clark719664` & `PR #78` by `@radialmonster`):** Closed Issues `#56`–`#60` (`HM-S6-01` through `HM-S6-05`) + `FL-08` ownership hardening (`PR #72`), RFC 5766 per-allocation TURN `ChannelBind` (`PR #73`), real-token LoRA smoke test (`PR #64`), and scientific provenance hygiene (`PR #65`, `#67`, `#70`, `#74`, `#76`, `#77`).
+> - **Hardware & Formal Verification:** **`77 / 77` machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean) and full Season 6/7 verification suite passing on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)**.
 
 ---
 
@@ -54,4 +55,45 @@
 | **HM-S5-04** ([`#46`](https://github.com/xaviercallens/HiveMind/issues/46)) | **Wave 4 / S5** | Guild Wars Co-Op Tournament, Season 5 Missions 17–20 & 3D WebGL Raid Arcs (`:8090`) | ✅ **[`PR #53`](https://github.com/xaviercallens/HiveMind/pull/53)** (`@pedromineo`) | `CONTRACT-HF-17..20`, `/api/guild-tournament` & 3D WebGL Raid Arcs | `2,500 $HIVE` |
 | **HM-S5-05** ([`#47`](https://github.com/xaviercallens/HiveMind/issues/47)) | **Wave 4 / S5** | Multi-Host WAN QUIC 0-RTT & RFC 5766 TURN Fault-Injection Benchmark (`wan_fault_benchmark.py`) | ✅ **[`PR #52`](https://github.com/xaviercallens/HiveMind/pull/52)** (`@pedromineo`) | `18/18` fault scenarios (`0%`, `1%`, `5%`, `15%` loss + NAT rebind) verified | `2,000 $HIVE` |
 | **HM-S5-06** ([`#48`](https://github.com/xaviercallens/HiveMind/issues/48)) | **Wave 4 / S5** | Formal Lean 4 Proofs (`Theorems 41–48`) for TIES Consensus, Guild Synergy, Bisection & Fisher SVD | ✅ **Core** (`@xaviercallens`) | **48/48 Lean 4 Theorems (`0 sorry`, `0` custom axioms)** | `2,500 $HIVE` |
-| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all `271+` CI checks | `Automated` |
+| **HM-S6-01** ([`#56`](https://github.com/xaviercallens/HiveMind/issues/56)) | **Wave 5 / S6** | `EF21DiLoCoErrorFeedbackBuffer` in CPU FP32 RAM & Opt-In Worker Upload Integration | ✅ **[`PR #63`](https://github.com/xaviercallens/HiveMind/pull/63) & [`PR #69`](https://github.com/xaviercallens/HiveMind/pull/69)** (`@clark719664`) | Exact $\mathbb{Q}$ conservation & `raw_delta` spot-check preserved | `3,000 $HIVE` |
+| **HM-S6-02** ([`#57`](https://github.com/xaviercallens/HiveMind/issues/57)) | **Wave 5 / S6** | 128-Expert `ThreeTierHierarchicalMoERouter` (`4×4×8=128`, `8x` gating reduction) & Speculative Ring Prefetch | ✅ **[`PR #71`](https://github.com/xaviercallens/HiveMind/pull/71) & [`PR #75`](https://github.com/xaviercallens/HiveMind/pull/75)** (`@clark719664`) | `16 vs 128` gating inner products + ragged hot-plug fix | `3,500 $HIVE` |
+| **HM-S6-03** ([`#58`](https://github.com/xaviercallens/HiveMind/issues/58)) | **Wave 5 / S6** | `ZK-OPoI v4` Position-Bound Batch Merkle Commitments & `GuildSlashingInsurancePool` | ✅ **[`PR #79`](https://github.com/xaviercallens/HiveMind/pull/79)** (`@clark719664`) | 32-byte domain-separated root (`0x00`/`0x01`) + supply conservation | `3,000 $HIVE` |
+| **HM-S6-04** ([`#59`](https://github.com/xaviercallens/HiveMind/issues/59)) | **Wave 5 / S6** | Season 6 Autonomous Agent Arena (Missions 21–24), Code Repair & Live Strategy HUD | ✅ **[`PR #78`](https://github.com/xaviercallens/HiveMind/pull/78)** (`@radialmonster`) | AST-sandboxed code repair + `/api/strategy-optimizer` | `2,500 $HIVE` |
+| **HM-S6-05** ([`#60`](https://github.com/xaviercallens/HiveMind/issues/60)) | **Wave 5 / S6** | Formal Lean 4 Proofs (`Theorems 65–72` + 5 helper theorems = `77` total) for EF21, Top-$k$ & UCB1 | ✅ **[`PR #68`](https://github.com/xaviercallens/HiveMind/pull/68)** (`@clark719664`) | **77/77 Lean 4 `theorem` declarations (`0 sorry`, `0` axioms)** | `3,000 $HIVE` |
+| **HM-SEC-FL08** | **Wave 5 / Sec** | `FL-08` BOINC Workunit Single-Assignee Binding & Post-Verdict Consumption | ✅ **[`PR #72`](https://github.com/xaviercallens/HiveMind/pull/72)** (`@clark719664`) | Blocks third-party hijacking & workunit replay | `2,000 $HIVE` |
+| **HM-SEC-TURN** | **Wave 5 / M1** | RFC 5766 Per-Allocation TURN `ChannelBind` Scoping & Honest QUIC 0-RTT Probe | ✅ **[`PR #73`](https://github.com/xaviercallens/HiveMind/pull/73)** (`@clark719664`) | Isolates `0x4000–0x7FFE` channels per client allocation | `2,000 $HIVE` |
+| **HM-EVAL-64..77** | **Wave 5 / QA** | Real-Token Causal-LM LoRA Smoke Test, WebGL `uRing` Shader, Pad Masking & Provenance | ✅ **[`PR #64, #65, #67, #70, #74, #76, #77`](https://github.com/xaviercallens/HiveMind/pulls)** (`@clark719664`) | `168 passed` across all 16 Season 6 PR suites | `4,500 $HIVE` |
+| **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all CI checks | `Automated` |
+
+---
+
+## 🚀 2. Open Season 7 (`Wave 6`) Tasks for the Developer Community
+
+> **⚖️ Non-Monetary Compute-Reciprocity Reminder:**
+> There is **no financial payment (`0.00 EUR / 0.00 USD`)** for any task. All **"Points" (`PTS` / `$HIVE`)** are symbolic, non-monetary compute-reciprocity credits that grant **only computing processing benefits** (shared Sparse MoE inference tokens, speculative decoding bandwidth, and distributed QLoRA training slots) **when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.
+
+| Task ID | Branch Prefix | Target Module | Season 7 (`Wave 6`) Developer Task Description | Reciprocal Compute Points (No Money) |
+| :--- | :--- | :--- | :--- | :---: |
+| **`HM-S7-01`** ([`#66`](https://github.com/xaviercallens/HiveMind/issues/66)) | `feat/s7-looped-moe-backbone` | `src/hivemind/core/btm_upcycle.py` | **Looped Expert-Backbone (`Prelude -> RecurrentCore × T -> Coda`) on 8 GB GPUs**: Factor `Qwen2.5-0.5B` upcycling into a shallow prelude, a weight-tied recurrent MoE core looped $T \in \{2, 3, 4\}$ times with per-step LoRA adapters, and a coda projection (`0 Bytes` extra static NF4 weight VRAM). | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-02`** ([`#66`](https://github.com/xaviercallens/HiveMind/issues/66)) | `feat/s7-terminal-kv-sharing` | `src/hivemind/core/btm_moe.py` | **Terminal Fixed-Point KV-Cache Sharing Stacked on FP8 Paged KV-Cache**: Reuse terminal loop iteration $T$'s KV states across non-terminal steps $t < T$ (`~5.6x` combined KV-cache reduction under `2,200 MiB`). | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-03`** | `feat/s7-live-trie-prefetch-wiring` | `src/hivemind/swarm/inference_ring.py` | **End-to-End Speculative Token-Tree Prefetch Wiring (`PR #75` $\leftrightarrow$ `SpeculativeDraftVerifier`)**: Wire `RegionalDHTSwarmRing.prefetch_speculative_token_tree` directly into `verify_step_with_prefix_trie`. | `2,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-04`** | `feat/s7-auto-indemnify-zk-opoi-v4` | `src/hivemind/swarm/swarm_fabric.py` | **Automated `ZK-OPoI v4` Batch Fault Indemnification (`PR #79` $\leftrightarrow$ `HiveSwarmLedger`)**: Connect `OptimisticProofOfInferenceAuditor.verify_speculative_batch` to auto-trigger `GuildSlashingInsurancePool.indemnify_proven_fault`. | `2,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-05`** | `feat/s7-live-ef21-hud-telemetry` | `src/hivemind/game/steam_edition.py` | **Live Worker `EF21-DiLoCo` Residual Telemetry in Strategy HUD (`PR #63`/`#69` $\leftrightarrow$ `PR #78`)**: Feed real `WorkerNodeClient.last_ef21_telemetry` into `/api/strategy-optimizer` (`SI-01..05`). | `2,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-06`** | `feat/s7-community-gpu-swarm-bench` | `src/hivemind/cli/community_gpu_benchmark.py` | **Opt-In Community GPU Benchmark & Hardware Verification Suite (`CUDA` / `ROCm` / `MPS`)**: Expand hardware profiles and contribute signed GPU benchmark receipts (`artifacts/community_gpu_benchmark_receipt.json`). | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-07`** | `feat/s7-multi-host-wan-gameday` | `src/hivemind/swarm/wan_fault_benchmark.py` | **Multi-Host Community WAN GameDay (`aioquic` 0-RTT + RFC 5766 TURN + Real-Token DiLoCo)**: Run 3-to-8 node cross-internet tests with interested community GPUs to measure live P2P p50/p95/p99 latency and outer-step convergence. | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-08`** | `formal/s7-banach-kv-and-fl08-proofs` | `lean4/HiveMindSpec.lean` | **Formal Lean 4 Proofs (`Theorems 73–80`)**: Prove Terminal-KV Banach contraction stability, `FL-08` single-assignee non-replayability, and `ZK-OPoI v4` position-bound leaf binding (`0 sorry`, `0` axioms). | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
+
+---
+
+## 🎮 3. How to Run the Opt-In Community GPU Benchmark (If Interested & Possible)
+
+Developers who wish to test their own GPU (`NVIDIA RTX 20/30/40/50`, `AMD Radeon RX 6000/7000 ROCm`, or `Apple Silicon MPS`) on the HiveMind stack can execute our opt-in `< 1.5 GB` peak-VRAM benchmark suite:
+
+```bash
+# Run the 5-stage opt-in GPU benchmark and emit a SHA-256 signed receipt
+uv run python scripts/run_community_gpu_benchmark.py --contributor-handle <your-github-handle>
+
+# Run the automated pytest verification suite
+uv run pytest tests/test_community_gpu_benchmark.py -v
+```
+
