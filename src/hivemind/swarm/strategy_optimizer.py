@@ -453,6 +453,110 @@ def reputation_weighted_ties_merge_lora(
     return merged_state
 
 
+class EF21DiLoCoErrorFeedbackBuffer:
+    """HM-S6-01: per-worker error-feedback residual for Top-k + FP8 pseudo-gradients.
+
+    Each call compresses `Delta^(t) + gamma^s * e^(t)` and keeps what the compressor
+    dropped (Top-k truncation and FP8 rounding) as the next residual:
+
+        e^(t+1) = Delta^(t) + gamma^s * e^(t) - C(Delta^(t) + gamma^s * e^(t))
+
+    where `s` is the number of outer steps since the previous call and `gamma` is
+    `stale_decay`. With `stale_decay=1` and no clipping, everything a worker computed is
+    eventually transmitted: sum(sent) + e^(T) == sum(Delta). Clipping and decay trade
+    that exactness for a bounded residual when a worker falls behind.
+
+    The update rule is the classic error-feedback scheme (Seide et al. 2014; Stich et al.
+    2018) as specified in issue #56. EF21 (Richtarik et al. 2021) instead compresses the
+    change in a running gradient estimate; the class keeps the issue's name only.
+    """
+
+    def __init__(
+        self,
+        topk_ratio: float = 0.01,
+        stale_decay: float = 1.0,
+        max_residual_norm: Optional[float] = None,
+    ) -> None:
+        if not (0.0 < topk_ratio <= 1.0):
+            raise ValueError(f"topk_ratio must be in (0, 1], got {topk_ratio}")
+        if not (0.0 < stale_decay <= 1.0):
+            raise ValueError(f"stale_decay must be in (0, 1], got {stale_decay}")
+        if max_residual_norm is not None and max_residual_norm <= 0.0:
+            raise ValueError(f"max_residual_norm must be positive, got {max_residual_norm}")
+        self.topk_ratio = float(topk_ratio)
+        self.stale_decay = float(stale_decay)
+        self.max_residual_norm = None if max_residual_norm is None else float(max_residual_norm)
+        self.residuals: Dict[str, torch.Tensor] = {}
+        self.last_outer_step: Optional[int] = None
+        self.clip_events = 0
+
+    def residual_norm(self) -> float:
+        """Global L2 norm of the residual across all parameters."""
+        if not self.residuals:
+            return 0.0
+        return float(torch.sqrt(sum((r.pow(2).sum() for r in self.residuals.values()))).item())
+
+    def reset(self) -> None:
+        self.residuals = {}
+        self.last_outer_step = None
+        self.clip_events = 0
+
+    def compress(
+        self,
+        delta_dict: Dict[str, torch.Tensor],
+        worker_id: str,
+        branch_name: str,
+        outer_step: int,
+        inner_steps_completed: int = 500,
+    ) -> CompressedDeltaPackage:
+        """Compress `delta_dict` plus the carried residual and update the residual."""
+        if self.residuals and set(delta_dict) != set(self.residuals):
+            raise KeyError(
+                "delta_dict keys differ from the buffered residual keys; call reset() first"
+            )
+        if self.last_outer_step is not None and outer_step <= self.last_outer_step:
+            raise ValueError(
+                f"outer_step must increase: got {outer_step} after {self.last_outer_step}"
+            )
+
+        carry = 1.0
+        if self.last_outer_step is not None:
+            carry = self.stale_decay ** (outer_step - self.last_outer_step)
+
+        corrected: Dict[str, torch.Tensor] = {}
+        for name, delta in delta_dict.items():
+            d = delta.detach().to(torch.float32).cpu()
+            if name in self.residuals:
+                if self.residuals[name].shape != d.shape:
+                    raise ValueError(
+                        f"shape of '{name}' changed from {tuple(self.residuals[name].shape)} "
+                        f"to {tuple(d.shape)}"
+                    )
+                d = d + carry * self.residuals[name]
+            corrected[name] = d
+
+        package = compress_lora_delta(
+            corrected,
+            worker_id=worker_id,
+            branch_name=branch_name,
+            outer_step=outer_step,
+            inner_steps_completed=inner_steps_completed,
+            topk_ratio=self.topk_ratio,
+        )
+        sent = decompress_lora_delta(package)
+        self.residuals = {name: corrected[name] - sent[name] for name in corrected}
+
+        if self.max_residual_norm is not None:
+            norm = self.residual_norm()
+            if norm > self.max_residual_norm:
+                scale = self.max_residual_norm / norm
+                self.residuals = {name: r * scale for name, r in self.residuals.items()}
+                self.clip_events += 1
+
+        self.last_outer_step = int(outer_step)
+        return package
+
+
 class ParetoGuildCampaignPlanner:
     """SI-05: Game-Theoretic Multi-Objective Pareto Optimizer for Swarm Guilds & Co-Op Campaigns."""
 
@@ -622,107 +726,3 @@ class ParetoGuildCampaignPlanner:
             output_report_path.parent.mkdir(parents=True, exist_ok=True)
             output_report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
         return report
-
-
-class EF21DiLoCoErrorFeedbackBuffer:
-    """HM-S6-01: per-worker error-feedback residual for Top-k + FP8 pseudo-gradients.
-
-    Each call compresses `Delta^(t) + gamma^s * e^(t)` and keeps what the compressor
-    dropped (Top-k truncation and FP8 rounding) as the next residual:
-
-        e^(t+1) = Delta^(t) + gamma^s * e^(t) - C(Delta^(t) + gamma^s * e^(t))
-
-    where `s` is the number of outer steps since the previous call and `gamma` is
-    `stale_decay`. With `stale_decay=1` and no clipping, everything a worker computed is
-    eventually transmitted: sum(sent) + e^(T) == sum(Delta). Clipping and decay trade
-    that exactness for a bounded residual when a worker falls behind.
-
-    The update rule is the classic error-feedback scheme (Seide et al. 2014; Stich et al.
-    2018) as specified in issue #56. EF21 (Richtarik et al. 2021) instead compresses the
-    change in a running gradient estimate; the class keeps the issue's name only.
-    """
-
-    def __init__(
-        self,
-        topk_ratio: float = 0.01,
-        stale_decay: float = 1.0,
-        max_residual_norm: Optional[float] = None,
-    ) -> None:
-        if not (0.0 < topk_ratio <= 1.0):
-            raise ValueError(f"topk_ratio must be in (0, 1], got {topk_ratio}")
-        if not (0.0 < stale_decay <= 1.0):
-            raise ValueError(f"stale_decay must be in (0, 1], got {stale_decay}")
-        if max_residual_norm is not None and max_residual_norm <= 0.0:
-            raise ValueError(f"max_residual_norm must be positive, got {max_residual_norm}")
-        self.topk_ratio = float(topk_ratio)
-        self.stale_decay = float(stale_decay)
-        self.max_residual_norm = None if max_residual_norm is None else float(max_residual_norm)
-        self.residuals: Dict[str, torch.Tensor] = {}
-        self.last_outer_step: Optional[int] = None
-        self.clip_events = 0
-
-    def residual_norm(self) -> float:
-        """Global L2 norm of the residual across all parameters."""
-        if not self.residuals:
-            return 0.0
-        return float(torch.sqrt(sum((r.pow(2).sum() for r in self.residuals.values()))).item())
-
-    def reset(self) -> None:
-        self.residuals = {}
-        self.last_outer_step = None
-        self.clip_events = 0
-
-    def compress(
-        self,
-        delta_dict: Dict[str, torch.Tensor],
-        worker_id: str,
-        branch_name: str,
-        outer_step: int,
-        inner_steps_completed: int = 500,
-    ) -> CompressedDeltaPackage:
-        """Compress `delta_dict` plus the carried residual and update the residual."""
-        if self.residuals and set(delta_dict) != set(self.residuals):
-            raise KeyError(
-                "delta_dict keys differ from the buffered residual keys; call reset() first"
-            )
-        if self.last_outer_step is not None and outer_step <= self.last_outer_step:
-            raise ValueError(
-                f"outer_step must increase: got {outer_step} after {self.last_outer_step}"
-            )
-
-        carry = 1.0
-        if self.last_outer_step is not None:
-            carry = self.stale_decay ** (outer_step - self.last_outer_step)
-
-        corrected: Dict[str, torch.Tensor] = {}
-        for name, delta in delta_dict.items():
-            d = delta.detach().to(torch.float32).cpu()
-            if name in self.residuals:
-                if self.residuals[name].shape != d.shape:
-                    raise ValueError(
-                        f"shape of '{name}' changed from {tuple(self.residuals[name].shape)} "
-                        f"to {tuple(d.shape)}"
-                    )
-                d = d + carry * self.residuals[name]
-            corrected[name] = d
-
-        package = compress_lora_delta(
-            corrected,
-            worker_id=worker_id,
-            branch_name=branch_name,
-            outer_step=outer_step,
-            inner_steps_completed=inner_steps_completed,
-            topk_ratio=self.topk_ratio,
-        )
-        sent = decompress_lora_delta(package)
-        self.residuals = {name: corrected[name] - sent[name] for name in corrected}
-
-        if self.max_residual_norm is not None:
-            norm = self.residual_norm()
-            if norm > self.max_residual_norm:
-                scale = self.max_residual_norm / norm
-                self.residuals = {name: r * scale for name, r in self.residuals.items()}
-                self.clip_events += 1
-
-        self.last_outer_step = int(outer_step)
-        return package
