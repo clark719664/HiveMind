@@ -731,11 +731,11 @@ end Season5_StrategyAndBisection
 
 namespace Season6_ErrorFeedbackAnd128MoE
 
-/-- Theorem 49 (EF21-DiLoCo Top-k Error-Feedback Residual Contraction):
-    For any uncompressed pseudo-gradient energy E_total > 0 where Top-k compression
-    retains at least k_pct ≥ 1 percent of energy (E_sent * 100 ≥ k_pct * E_total
-    and E_sent ≤ E_total), the residual energy E_res = E_total - E_sent is strictly
-    contracted (E_res * 100 ≤ (100 - k_pct) * E_total and E_res < E_total). -/
+/-- Theorem 49 (Residual Energy Arithmetic for Top-k Error Feedback):
+    an arithmetic bound on two energy totals: if at least 1% of `E_total > 0` is sent
+    (`E_sent * 100 ≥ E_total`, `E_sent ≤ E_total`), the remainder is at most 99% of it.
+    It does not model the error-feedback update itself; Theorems 65-67 in
+    `Season6_ErrorFeedbackModel` do. -/
 theorem ef21_error_feedback_residual_contraction (E_total E_sent : Nat)
     (h_pos : E_total > 0)
     (h_sent_le : E_sent ≤ E_total)
@@ -756,9 +756,9 @@ theorem hierarchical_128_expert_3tier_gating_savings (hidden_dim : Nat)
   omega
 
 /-- Theorem 51 (UCB1 Bandit Exploration Bonus Monotonicity in Pull Count):
-    For any fixed total exploration numerator 	wo_ln_N > 0 and domain pull counts
+    For any fixed total exploration numerator two_ln_N > 0 and domain pull counts
     1 ≤ n_unexplored ≤ n_explored, the integer-scaled UCB1 exploration bonus
-    	wo_ln_N / n_unexplored is at least 	wo_ln_N / n_explored (prioritizing under-explored domains). -/
+    two_ln_N / n_unexplored is at least two_ln_N / n_explored (prioritizing under-explored domains). -/
 theorem ucb1_bandit_exploration_bonus_monotonicity (two_ln_N n_unexplored n_explored : Nat)
     (h_unexp : 1 ≤ n_unexplored)
     (h_lt : n_unexplored ≤ n_explored) :
@@ -933,6 +933,285 @@ theorem speculative_decoding_gamma_bound_limits_forward_width (promptLen draftGa
 
 end Season9_LedgerAndInferenceRingHardening
 
+-- ============================================================================
+-- SEASON 6 (HM-S6-01 / #60): ERROR-FEEDBACK UPDATE MODEL
+-- ============================================================================
+namespace Season6_ErrorFeedbackModel
+
+/-- One worker's error-feedback state over `T` rounds for a single coordinate, as in
+    `EF21DiLoCoErrorFeedbackBuffer` with `stale_decay = 1` and no clipping: each round
+    compresses `delta + residual` with an arbitrary compressor `C` and carries the rest. -/
+def efStep (C : Int → Int) (residual delta : Int) : Int × Int :=
+  let corrected := delta + residual
+  (C corrected, corrected - C corrected)
+
+/-- Final residual and total transmitted value after running every delta in order. -/
+def efRun (C : Int → Int) : Int → List Int → Int × Int
+  | residual, [] => (residual, 0)
+  | residual, delta :: rest =>
+    let (sent, nextResidual) := efStep C residual delta
+    let (finalResidual, sentRest) := efRun C nextResidual rest
+    (finalResidual, sent + sentRest)
+
+/-- Theorem 65 (Error-Feedback Conservation for Any Compressor):
+    whatever the compressor drops is carried, never lost: after any sequence of rounds,
+    total transmitted plus final residual equals initial residual plus every delta. -/
+theorem ef_conservation_any_compressor (C : Int → Int) (residual0 : Int) (deltas : List Int) :
+    (efRun C residual0 deltas).2 + (efRun C residual0 deltas).1 = residual0 + deltas.sum := by
+  induction deltas generalizing residual0 with
+  | nil => simp [efRun]
+  | cons d rest ih =>
+    have h := ih (d + residual0 - C (d + residual0))
+    simp only [efRun, efStep, List.sum_cons] at h ⊢
+    omega
+
+/-- Squares of integers are non-negative. -/
+theorem int_mul_self_nonneg (a : Int) : 0 ≤ a * a := by
+  rcases Int.le_total 0 a with h | h
+  · exact Int.mul_nonneg h h
+  · have h' : 0 ≤ -a := by omega
+    have := Int.mul_nonneg h' h'
+    rwa [Int.neg_mul_neg] at this
+
+/-- A sparsifying compressor keeps a coordinate whole or drops it (Top-k is one). -/
+def sparsify (keep : List Bool) (x : List Int) : List Int :=
+  List.zipWith (fun k xi => if k then xi else 0) keep x
+
+def energy (x : List Int) : Int := (x.map (fun xi => xi * xi)).sum
+
+def residualOf (keep : List Bool) (x : List Int) : List Int :=
+  List.zipWith (fun a b => a - b) x (sparsify keep x)
+
+theorem energy_nonneg (x : List Int) : 0 ≤ energy x := by
+  induction x with
+  | nil => simp [energy]
+  | cons y ys ih =>
+    have := int_mul_self_nonneg y
+    simp only [energy, List.map_cons, List.sum_cons] at ih ⊢
+    omega
+
+/-- Theorem 66 (Sparsifier Residual Energy Never Exceeds Input Energy):
+    for any keep-mask (Top-k is one choice of mask), the error-feedback residual
+    `x - sparsify keep x` has energy at most the energy of `x`. -/
+theorem sparsify_residual_energy_le (keep : List Bool) (x : List Int) :
+    energy (residualOf keep x) ≤ energy x := by
+  induction x generalizing keep with
+  | nil => cases keep <;> simp [energy, residualOf, sparsify]
+  | cons xi xs ih =>
+    cases keep with
+    | nil =>
+      have := energy_nonneg (xi :: xs)
+      simpa [residualOf, sparsify, energy] using this
+    | cons k ks =>
+      have h := ih ks
+      have hsq : 0 ≤ xi * xi := int_mul_self_nonneg xi
+      cases k <;> simp [energy, residualOf, sparsify] at h ⊢ <;> omega
+
+/-- Theorem 67 (Sparsifier Energy Split and Strict Contraction):
+    when the mask covers every coordinate, the input energy splits exactly into what is
+    sent and what is carried, so the residual energy strictly drops whenever the sent
+    part has positive energy. -/
+theorem sparsify_energy_split (keep : List Bool) (x : List Int) (h_len : keep.length = x.length) :
+    energy (residualOf keep x) + energy (sparsify keep x) = energy x := by
+  induction x generalizing keep with
+  | nil => cases keep <;> simp [energy, residualOf, sparsify]
+  | cons xi xs ih =>
+    cases keep with
+    | nil => simp at h_len
+    | cons k ks =>
+      have h := ih ks (by simpa using h_len)
+      cases k <;> simp [energy, residualOf, sparsify] at h ⊢ <;> omega
+
+theorem sparsify_strict_contraction (keep : List Bool) (x : List Int)
+    (h_len : keep.length = x.length) (h_sent : 0 < energy (sparsify keep x)) :
+    energy (residualOf keep x) < energy x := by
+  have := sparsify_energy_split keep x h_len
+  omega
+
+/-- Error feedback where the carried residual first passes through an arbitrary map `D`
+    (stale-step decay, norm clipping, or both). Returns (final residual, total sent,
+    total removed by `D`). -/
+def efRunCarry (C D : Int → Int) : Int → List Int → Int × Int × Int
+  | residual, [] => (residual, 0, 0)
+  | residual, delta :: rest =>
+    let corrected := delta + D residual
+    let r := efRunCarry C D (corrected - C corrected) rest
+    (r.1, C corrected + r.2.1, (residual - D residual) + r.2.2)
+
+/-- Theorem 68 (Error-Feedback Conservation Under Decay and Clipping):
+    with any compressor `C` and any carry map `D`, total sent plus final residual equals
+    initial residual plus every delta, minus exactly what `D` removed. With `D = id`
+    nothing is removed and this is Theorem 65. -/
+theorem ef_conservation_with_carry_map (C D : Int → Int) (residual0 : Int) (deltas : List Int) :
+    (efRunCarry C D residual0 deltas).2.1 + (efRunCarry C D residual0 deltas).1 =
+      residual0 + deltas.sum - (efRunCarry C D residual0 deltas).2.2 := by
+  induction deltas generalizing residual0 with
+  | nil => simp [efRunCarry]
+  | cons d rest ih =>
+    have h := ih (d + D residual0 - C (d + D residual0))
+    simp only [efRunCarry, List.sum_cons] at h ⊢
+    omega
+
+def keptSum : List Bool → List Nat → Nat
+  | true :: ks, s :: ss => s + keptSum ks ss
+  | false :: ks, _ :: ss => keptSum ks ss
+  | _, _ => 0
+
+def droppedSum : List Bool → List Nat → Nat
+  | true :: ks, _ :: ss => droppedSum ks ss
+  | false :: ks, s :: ss => s + droppedSum ks ss
+  | _, _ => 0
+
+def keptCount : List Bool → Nat
+  | [] => 0
+  | true :: ks => keptCount ks + 1
+  | false :: ks => keptCount ks
+
+/-- Every kept squared magnitude is at least `t` and every dropped one at most `t`:
+    the defining property of a Top-k mask, with `t` its k-th largest value. -/
+def thresholdMask (t : Nat) : List Bool → List Nat → Prop
+  | true :: ks, s :: ss => t ≤ s ∧ thresholdMask t ks ss
+  | false :: ks, s :: ss => s ≤ t ∧ thresholdMask t ks ss
+  | _, _ => True
+
+theorem keptCount_le_length (keep : List Bool) : keptCount keep ≤ keep.length := by
+  induction keep with
+  | nil => simp [keptCount]
+  | cons k ks ih => cases k <;> simp [keptCount] <;> omega
+
+theorem threshold_bounds (t : Nat) (keep : List Bool) (s : List Nat)
+    (h_len : keep.length = s.length) (h : thresholdMask t keep s) :
+    keptCount keep * t ≤ keptSum keep s ∧
+      droppedSum keep s ≤ (s.length - keptCount keep) * t := by
+  induction s generalizing keep with
+  | nil => cases keep <;> simp_all [keptCount, keptSum, droppedSum]
+  | cons x xs ih =>
+    cases keep with
+    | nil => simp at h_len
+    | cons k ks =>
+      have hl : ks.length = xs.length := by simpa using h_len
+      have hc := keptCount_le_length ks
+      cases k with
+      | true =>
+        obtain ⟨hx, hrest⟩ := h
+        have ⟨h1, h2⟩ := ih ks hl hrest
+        simp only [keptCount, keptSum, droppedSum, List.length_cons]
+        constructor
+        · rw [Nat.add_mul]; omega
+        · have : xs.length + 1 - (keptCount ks + 1) = xs.length - keptCount ks := by omega
+          rw [this]; exact h2
+      | false =>
+        obtain ⟨hx, hrest⟩ := h
+        have ⟨h1, h2⟩ := ih ks hl hrest
+        simp only [keptCount, keptSum, droppedSum, List.length_cons]
+        constructor
+        · exact h1
+        · have : xs.length + 1 - keptCount ks = (xs.length - keptCount ks) + 1 := by omega
+          rw [this, Nat.add_mul]; omega
+
+/-- Theorem 69 (Top-k Contraction Rate):
+    for a threshold (Top-k) mask over `d` coordinates keeping `k` of them, the carried
+    energy satisfies `d * residual ≤ (d - k) * input`, i.e. Top-k keeps at least a `k/d`
+    share of the energy. Stated over per-coordinate squared magnitudes. -/
+theorem topk_contraction_rate (t : Nat) (keep : List Bool) (s : List Nat)
+    (h_len : keep.length = s.length) (h : thresholdMask t keep s) :
+    s.length * droppedSum keep s ≤
+      (s.length - keptCount keep) * (droppedSum keep s + keptSum keep s) := by
+  have ⟨hk, hd⟩ := threshold_bounds t keep s h_len h
+  have hkd : keptCount keep ≤ s.length := h_len ▸ keptCount_le_length keep
+  generalize keptCount keep = k at hk hd hkd ⊢
+  generalize droppedSum keep s = R at hk hd ⊢
+  generalize keptSum keep s = K at hk hd ⊢
+  generalize s.length = d at hk hd hkd ⊢
+  have step1 : k * R ≤ (d - k) * K := by
+    calc k * R ≤ k * ((d - k) * t) := Nat.mul_le_mul_left k hd
+      _ = (d - k) * (k * t) := by rw [← Nat.mul_assoc, Nat.mul_comm k (d - k), Nat.mul_assoc]
+      _ ≤ (d - k) * K := Nat.mul_le_mul_left (d - k) hk
+  have split : d * R = k * R + (d - k) * R := by
+    rw [← Nat.add_mul]; congr 1; omega
+  rw [split, Nat.mul_add]
+  omega
+
+end Season6_ErrorFeedbackModel
+
+-- ============================================================================
+-- SEASON 6 (#60): BOUNDED RESIDUALS AND THE DETERMINISTIC HALF OF UCB1, CORE LEAN ONLY
+-- ============================================================================
+namespace Season6_CoreOnlyBounds
+
+/-- Theorem 70 (Error-Feedback Residual Stays Bounded Under Decay):
+    scale the stale-step decay as `r / (r + s)` with `s ≥ 1` (so the carried residual
+    shrinks by that factor) and let each round inject at most `B` new residual energy
+    (what Top-k + FP8 drop from a bounded delta). If every step satisfies
+    `(r + s) * e (t+1) ≤ r * e t + (r + s) * B`, then for all `t`
+    `s * e t ≤ s * e 0 + (r + s) * B`, i.e. the residual never exceeds
+    `e 0 + (r + s) * B / s`. Exact natural-number arithmetic; no limits involved. -/
+theorem ef_residual_stays_bounded_under_decay (r s B : Nat) (e : Nat → Nat)
+    (hs : 0 < s)
+    (hstep : ∀ t, (r + s) * e (t + 1) ≤ r * e t + (r + s) * B) :
+    ∀ t, s * e t ≤ s * e 0 + (r + s) * B := by
+  intro t
+  induction t with
+  | zero => exact Nat.le_add_right _ _
+  | succ t ih =>
+    have hD : 0 < r + s := Nat.lt_of_lt_of_le hs (Nat.le_add_left s r)
+    have h1 : s * ((r + s) * e (t + 1)) ≤ s * (r * e t + (r + s) * B) :=
+      Nat.mul_le_mul_left s (hstep t)
+    have h2 : r * (s * e t) ≤ r * (s * e 0 + (r + s) * B) :=
+      Nat.mul_le_mul_left r ih
+    have key : (r + s) * (s * e (t + 1)) ≤ (r + s) * (s * e 0 + (r + s) * B) := by
+      have e1 : (r + s) * (s * e (t + 1)) = s * ((r + s) * e (t + 1)) := by ac_rfl
+      have e2 : s * (r * e t + (r + s) * B) = r * (s * e t) + s * ((r + s) * B) := by
+        rw [Nat.mul_add]; congr 1; ac_rfl
+      have e3 : r * (s * e 0 + (r + s) * B) + s * ((r + s) * B)
+          = r * (s * e 0) + (r + s) * ((r + s) * B) := by
+        rw [Nat.mul_add, Nat.add_assoc, ← Nat.add_mul]
+      have e4 : r * (s * e 0) ≤ (r + s) * (s * e 0) :=
+        Nat.mul_le_mul_right _ (Nat.le_add_right r s)
+      calc (r + s) * (s * e (t + 1)) = s * ((r + s) * e (t + 1)) := e1
+        _ ≤ s * (r * e t + (r + s) * B) := h1
+        _ = r * (s * e t) + s * ((r + s) * B) := e2
+        _ ≤ r * (s * e 0 + (r + s) * B) + s * ((r + s) * B) := Nat.add_le_add_right h2 _
+        _ = r * (s * e 0) + (r + s) * ((r + s) * B) := e3
+        _ ≤ (r + s) * (s * e 0) + (r + s) * ((r + s) * B) := Nat.add_le_add_right e4 _
+        _ = (r + s) * (s * e 0 + (r + s) * B) := by rw [Nat.mul_add]
+    exact Nat.le_of_mul_le_mul_left key hD
+
+/-- Theorem 71 (UCB1 Separation on the Concentration Event, deterministic half):
+    if a suboptimal arm has been pulled often enough that twice its exploration bonus
+    is at most its gap to the best arm (`mu_i + 2 * b_i ≤ mu_star`), and both empirical
+    means lie within their bonuses of the true means, then the suboptimal arm's UCB index
+    cannot exceed the best arm's index, so UCB1 does not pull it. The probability that
+    the concentration event holds is the probabilistic half of the regret bound and is
+    not stated in this dependency-free specification. -/
+theorem ucb1_well_sampled_suboptimal_arm_is_not_selected
+    (mu_i mu_star hat_i hat_star b_i b_star : Int)
+    (h_gap : mu_i + 2 * b_i ≤ mu_star)
+    (h_conc_i : hat_i ≤ mu_i + b_i)
+    (h_conc_star : mu_star ≤ hat_star + b_star) :
+    hat_i + b_i ≤ hat_star + b_star := by
+  omega
+
+/-- Theorem 72 (UCB1 Sample-Count Threshold):
+    with squared bonus `2 * L / n` (integer-scaled `2 ln N / n`), pulling an arm at least
+    `8 * L / gap²` times makes `4 * bonus² ≤ gap²`, which is the hypothesis Theorem 71 needs
+    (`2 * bonus ≤ gap`). -/
+theorem ucb1_sample_threshold_bounds_bonus (L n gap : Nat) (hn : 0 < n)
+    (h : 8 * L ≤ n * (gap * gap)) :
+    4 * (2 * L / n) ≤ gap * gap := by
+  have h1 : (2 * L / n) * n ≤ 2 * L := Nat.div_mul_le_self (2 * L) n
+  have h2 : 4 * ((2 * L / n) * n) ≤ 4 * (2 * L) := Nat.mul_le_mul_left 4 h1
+  have h3 : (4 * (2 * L / n)) * n ≤ n * (gap * gap) := by
+    calc (4 * (2 * L / n)) * n = 4 * ((2 * L / n) * n) := by rw [Nat.mul_assoc]
+      _ ≤ 4 * (2 * L) := h2
+      _ = 8 * L := by omega
+      _ ≤ n * (gap * gap) := h
+  have h4 : n * (4 * (2 * L / n)) ≤ n * (gap * gap) := by
+    rw [Nat.mul_comm n]; exact h3
+  exact Nat.le_of_mul_le_mul_left h4 hn
+
+end Season6_CoreOnlyBounds
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -987,3 +1266,16 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_supply_cap_conservation_bound
 #print axioms HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ring_peer_admission_sla_rejects_high_loss_or_zero_ping
 #print axioms HiveMindSpec.Season9_LedgerAndInferenceRingHardening.speculative_decoding_gamma_bound_limits_forward_width
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_any_compressor
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.int_mul_self_nonneg
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.energy_nonneg
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_with_carry_map
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds
+#print axioms HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate
+#print axioms HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay
+#print axioms HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected
+#print axioms HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus
