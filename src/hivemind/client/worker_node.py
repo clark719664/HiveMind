@@ -19,6 +19,7 @@ from hivemind.client.steamworks import SteamAuthSessionTicket, SteamworksSDKBrid
 from hivemind.config import ARTIFACTS_ROOT
 from hivemind.core.diloco_inner import InnerLoopResult, run_diloco_inner_loop
 from hivemind.core.quantization import load_lora_state_dict
+from hivemind.swarm.strategy_optimizer import EF21DiLoCoErrorFeedbackBuffer
 
 
 class HiveMindWorkerNode:
@@ -33,6 +34,9 @@ class HiveMindWorkerNode:
         steamworks: SteamworksSDKBridge | None = None,
         daemon: ZeroIntrusionDaemon | None = None,
         account_spend_usd: float = 49.99,
+        enable_error_feedback: bool = False,
+        error_feedback_stale_decay: float = 1.0,
+        error_feedback_max_residual_norm: float | None = None,
     ) -> None:
         self.worker_id = worker_id
         self.steam_id64 = steam_id64
@@ -44,6 +48,28 @@ class HiveMindWorkerNode:
             steam_id64=steam_id64,
             account_spend_usd=account_spend_usd,
         )
+        self.enable_error_feedback = enable_error_feedback
+        self.error_feedback_stale_decay = error_feedback_stale_decay
+        self.error_feedback_max_residual_norm = error_feedback_max_residual_norm
+        self.error_feedback_buffers: dict[str, EF21DiLoCoErrorFeedbackBuffer] = {}
+
+    def _error_feedback_for(self, branch_name: str, topk_ratio: float) -> EF21DiLoCoErrorFeedbackBuffer | None:
+        """Return this worker's residual buffer for `branch_name`, creating it on first use.
+
+        One buffer per branch: a residual is only meaningful against the branch whose
+        pseudo-gradients produced it.
+        """
+        if not self.enable_error_feedback:
+            return None
+        buffer = self.error_feedback_buffers.get(branch_name)
+        if buffer is None:
+            buffer = EF21DiLoCoErrorFeedbackBuffer(
+                topk_ratio=topk_ratio,
+                stale_decay=self.error_feedback_stale_decay,
+                max_residual_norm=self.error_feedback_max_residual_norm,
+            )
+            self.error_feedback_buffers[branch_name] = buffer
+        return buffer
 
     def execute_workunit(
         self,
@@ -86,6 +112,7 @@ class HiveMindWorkerNode:
             use_paged_8bit_adamw=use_paged_8bit_adamw,
             should_preempt_fn=self.daemon.should_preempt,
             emergency_checkpoint_dir=ARTIFACTS_ROOT / "emergency_checkpoints",
+            error_feedback=self._error_feedback_for(workunit.branch_name, topk_ratio),
         )
 
         # Optional Byzantine attack injection for Multi-Krum & Spot-Check testing
@@ -139,5 +166,6 @@ class HiveMindWorkerNode:
             use_paged_8bit_adamw=True,
             should_preempt_fn=self.daemon.should_preempt,
             emergency_checkpoint_dir=ARTIFACTS_ROOT / "emergency_checkpoints",
+            error_feedback=self._error_feedback_for(domain_name, topk_ratio),
         )
 
