@@ -770,6 +770,31 @@
       <div class="terminal" id="season5-terminal">[SEASON 5] Loading bounty contracts 17-20 from /api/season5-missions...</div>
     </div>
 
+    <div class="card" id="season6-missions-panel" style="grid-column: 1 / -1;">
+      <h2>SEASON 6 AUTONOMOUS AGENT ARENA (MISSIONS 21-24) &amp; LIVE SI-01..SI-05 PARETO STRATEGY TAB</h2>
+      <p style="font-size:0.84rem; color:#cbd5e1;">
+        Multi-agent self-play code repair, Lean 4 autoformalization, and a live Pareto strategy
+        optimizer (<code>SI-01</code>..<code>SI-05</code>). Arena verification runs curated tests in an
+        isolated subprocess after AST import rejection; Lean audits are structural and CI remains the
+        kernel-checking authority.
+      </p>
+      <div id="season6-mission-buttons">
+        <button class="btn" onclick="selectSeason6Mission(0)">S6 M21: Self-Play Repair</button>
+        <button class="btn" onclick="selectSeason6Mission(1)">S6 M22: Lean 4 Agent</button>
+        <button class="btn" onclick="selectSeason6Mission(2)">S6 M23: Pareto Strategy</button>
+        <button class="btn btn-cyan" onclick="selectSeason6Mission(3)">S6 M24: Arena Finals</button>
+      </div>
+      <div class="terminal" id="season6-terminal">[SEASON 6] Loading Agent Arena contracts 21-24 from /api/season6-missions...</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+        <button class="btn btn-cyan" onclick="runAgentArena()">Run 4-Agent Self-Play Arena</button>
+        <button class="btn" onclick="runLean4Arena()">Run Lean 4 Autoformalizer</button>
+        <button class="btn" onclick="loadStrategyOptimizer()">Refresh SI-01..05 Telemetry</button>
+        <button class="btn" onclick="pushStrategyTelemetry()">Feed TURN Relay Link Telemetry</button>
+      </div>
+      <div class="terminal" id="agent-arena-terminal">[AGENT ARENA READY] Launch the self-play code-repair arena or the Lean 4 autoformalizer to populate the Season 6 telemetry.</div>
+      <div class="terminal" id="strategy-optimizer-terminal">[STRATEGY OPTIMIZER] Loading live SI-01..SI-05 Pareto telemetry from /api/strategy-optimizer...</div>
+    </div>
+
     <div class="card" id="guild-tournament-panel" style="grid-column: 1 / -1;">
       <h2>GUILD WARS CO-OP TOURNAMENT (GUILD-01 / GUILD-02 / GUILD-03) &amp; LIVE 3D WEBGL RAID ARCS</h2>
       <p style="font-size:0.84rem; color:#cbd5e1;">
@@ -3254,6 +3279,155 @@
         term.textContent = `[GUILD WARS MATCHMAKING FAILED] ${guildId}: ${e}`;
       }
     }
+    // ---- Season 6 Missions 21-24, Agent Arena & SI-01..05 strategy tab (HM-S6-04) ----
+    let SEASON6_MISSIONS = [];
+    let STRATEGY_TELEMETRY = null;
+
+    async function loadSeason6Missions() {
+      const term = document.getElementById('season6-terminal');
+      if (!term) return;
+      try {
+        const resp = await fetch('/api/season6-missions');
+        if (!resp.ok) throw new Error('offline');
+        const res = await resp.json();
+        SEASON6_MISSIONS = res.contracts || [];
+        const ids = res.missions || [];
+        term.textContent =
+          `[SEASON 6 BOUNTY CONTRACTS] ${ids.length} missions loaded (pool: ${res.bounty_pool_hive} $HIVE)\n` +
+          ids.map((id, i) => `  [${i + 21}] ${id}`).join('\n');
+        if (SEASON6_MISSIONS.length) selectSeason6Mission(0);
+      } catch (e) {
+        term.textContent =
+          `[SEASON 6 OFFLINE MODE] Missions 21-24 unavailable (HUD opened from file:// or server offline).\n` +
+          `  [21] CONTRACT-HF-21-SELFPLAY-CODE-REPAIR | [22] CONTRACT-HF-22-LEAN4-AGENT-FORMALIZER\n` +
+          `  [23] CONTRACT-HF-23-PARETO-STRATEGY-OPTIMIZER | [24] CONTRACT-HF-24-AUTONOMOUS-AGENT-ARENA`;
+      }
+    }
+
+    function selectSeason6Mission(idx) {
+      const m = SEASON6_MISSIONS[idx];
+      if (!m) return;
+      const term = document.getElementById('season6-terminal');
+      term.textContent =
+        `[SEASON 6 CONTRACT] ${m.contract_id} // ${m.mission_codename}\n` +
+        `[ARENA DATASET NODE] ${m.dataset_id} -> Expert: ${m.domain_expert}\n` +
+        `[DIFFICULTY] ${'*'.repeat(m.difficulty_skulls || 5)} | [BASE BOUNTY] ${m.base_bounty_pts} PTS\n` +
+        `[ENDPOINTS] /api/agent-arena | /api/strategy-optimizer | /api/forge-lora-mission`;
+    }
+
+    function renderAgentArena(a) {
+      const term = document.getElementById('agent-arena-terminal');
+      if (!term || !a) return;
+      const code = a.self_play_code_repair || {};
+      const lean = a.lean4_autoformalization || {};
+      const standing = (code.agent_standing || []).map(s =>
+        `  ${s.agent_id} - ${s.cumulative_reward} reward | ${s.wins} wins`).join('\n');
+      const proofs = (lean.best_proof_by_task || {});
+      const proofLines = Object.keys(proofs).map(k =>
+        `  ${k} -> ${proofs[k].policy} (valid=${proofs[k].valid})`).join('\n');
+      term.textContent =
+        `[AGENT ARENA] ${a.arena_id} | ${a.status} | ${a.num_agents} agents\n` +
+        `[CODE REPAIR] champion ${code.champion_agent} / ${code.champion_policy} | validated ${code.validated_repairs}/${code.num_tasks} | trials ${code.total_tests_executed}\n` +
+        `[LEAN 4] champion ${lean.champion_agent} | validated ${lean.validated_proofs} | zero-sorry ${lean.zero_sorry_proofs} | kernel-checked=${false}\n` +
+        `[LEARNING CURVE] ${(code.learning_curve || []).join(' -> ')}\n` +
+        `[AGENT STANDING]\n${standing}\n[LEAN PROOFS]\n${proofLines}`;
+    }
+
+    async function runAgentArena() {
+      const term = document.getElementById('agent-arena-terminal');
+      const gamer = document.getElementById('scan-gamer') ? document.getElementById('scan-gamer').value : 'CyberValkyrie_FR';
+      term.textContent = '[AGENT ARENA] Running 4-agent self-play code repair + Lean 4 autoformalizer...';
+      try {
+        const resp = await fetch('/api/agent-arena', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rounds: 12, seed: 42, gamer_tag: gamer })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        renderAgentArena(await resp.json());
+      } catch (e) {
+        term.textContent = `[AGENT ARENA OFFLINE] ${e}`;
+      }
+    }
+
+    async function runLean4Arena() {
+      const term = document.getElementById('agent-arena-terminal');
+      term.textContent = '[LEAN 4 ARENA] Running structural autoformalizer proof search...';
+      try {
+        const resp = await fetch('/api/agent-arena', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rounds: 9, seed: 7 })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const state = await resp.json();
+        const lean = state.lean4_autoformalization || {};
+        term.textContent =
+          `[LEAN 4 ARENA] champion ${lean.champion_agent} | validated ${lean.validated_proofs}/${lean.num_tasks} | zero-sorry ${lean.zero_sorry_proofs}\n` +
+          `[HONESTY] ${(lean.honesty || {}).not_verified || 'structural lint only'}`;
+      } catch (e) {
+        term.textContent = `[LEAN 4 ARENA OFFLINE] ${e}`;
+      }
+    }
+
+    function renderStrategyOptimizer(s) {
+      const term = document.getElementById('strategy-optimizer-terminal');
+      if (!term || !s) return;
+      STRATEGY_TELEMETRY = s;
+      const si01 = s.si01_dynamic_fisher_svd || {};
+      const si02 = s.si02_ucb1_curriculum_bandit || {};
+      const si03 = s.si03_adaptive_diloco_cadence || {};
+      const link = si03.current_link_profile || {};
+      const si04 = s.si04_reputation_weighted_ties || {};
+      const frontier = (s.si05_pareto_strategy_frontier || []).map(p =>
+        `  ${p.strategy_profile} - loss ${p.holdout_loss} | ${p.parallel_speedup_x}x | ${p.hive_per_gpu_hour} HIVE/GPU-hr | overhead ${p.comm_overhead_pct}% | pareto=${p.pareto_optimal}`).join('\n');
+      term.textContent =
+        `[STRATEGY OPTIMIZER] ${s.schema_version} | seq ${s.sequence} | ${s.strategy_ids.join(' ')}\n` +
+        `[SI-01 FISHER RANKS] ${JSON.stringify(si01.allocated_ranks_by_domain || {})} | budget conserved=${si01.vram_budget_conserved}\n` +
+        `[SI-02 UCB1] top2 ${(si02.top2_prioritized_domains || []).join(', ')} | scores ${JSON.stringify(si02.ucb1_scores || {})}\n` +
+        `[SI-03 CADENCE] H=${link.recommended_inner_steps_H} | top-k ${link.recommended_topk_ratio} | overhead ${(Number(link.communication_overhead_ratio || 0) * 100).toFixed(2)}% | SLA=${link.sla_8pct_satisfied}\n` +
+        `[SI-04 REPUTATION TIES] uniform ${si04.uniform_ties_holdout_loss} -> weighted ${si04.reputation_weighted_ties_holdout_loss} (improved=${si04.reputation_weighted_beats_uniform})\n` +
+        `[SI-05 PARETO FRONTIER]\n${frontier}\n` +
+        `[HONESTY] ${(s.honesty || {}).note || ''}`;
+    }
+
+    async function loadStrategyOptimizer() {
+      const term = document.getElementById('strategy-optimizer-terminal');
+      if (!term) return;
+      try {
+        const resp = await fetch('/api/strategy-optimizer');
+        if (!resp.ok) throw new Error('offline');
+        renderStrategyOptimizer(await resp.json());
+      } catch (e) {
+        term.textContent = '[STRATEGY OPTIMIZER OFFLINE] /api/strategy-optimizer unavailable (HUD opened from file:// or server offline).';
+      }
+    }
+
+    async function pushStrategyTelemetry() {
+      const term = document.getElementById('strategy-optimizer-terminal');
+      term.textContent = '[STRATEGY OPTIMIZER] Feeding a 145 ms TURN relay link + holdout observation...';
+      try {
+        const resp = await fetch('/api/strategy-optimizer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ring_rtt_ms: 145.0,
+            bbr_pacing_mbps: 18.0,
+            packet_loss_rate: 0.03,
+            turn_relay_active: true,
+            domain_name: 'Rust_Systems_Security',
+            loss_before: 1.0,
+            loss_after: 0.4,
+            gpu_seconds: 0.5
+          })
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        renderStrategyOptimizer(await resp.json());
+      } catch (e) {
+        term.textContent = `[STRATEGY OPTIMIZER OFFLINE] ${e}`;
+      }
+    }
+
     renderLeaderboard();
     selectMission(0);
     renderMoE();
@@ -3261,6 +3435,8 @@
     connectSwarmTelemetry();
     loadSeason5Missions();
     loadGuildTournament();
+    loadSeason6Missions();
+    loadStrategyOptimizer();
   </script>
 </body>
 </html>

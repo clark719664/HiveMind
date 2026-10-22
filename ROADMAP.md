@@ -37,5 +37,23 @@ See **[`docs/SWARM_STRATEGY_IMPROVEMENTS.md`](docs/SWARM_STRATEGY_IMPROVEMENTS.m
 | **`HM-S6-01`** | `src/hivemind/swarm/strategy_optimizer.py` | **Asynchronous Error-Feedback Residual Buffer (`EF21-DiLoCo`)** for Ultra-Sparse `Top-1%` FP8 Outer Loops over Satellite/High-Jitter Links | `@clark719664`, `@pedromineo` (`GUILD-01`) | `3,000 $HIVE` |
 | **`HM-S6-02`** | `src/hivemind/core/btm_moe.py` | **128-Expert 3-Tier Hierarchical MoE (`E=128`, Top-2)** with Speculative Expert Prefetching from NVMe CAS using Token-Tree Lookahead | `@pedromineo`, `@clark719664` (`GUILD-01`) | `3,500 $HIVE` |
 | **`HM-S6-03`** | `src/hivemind/swarm/swarm_fabric.py` | **Zero-Knowledge Succinct Activation Commitments (`ZK-OPoI v4`)** with Batch Polynomial Evaluation & Cross-Guild Slashing Insurance Pool | `@clark719664`, `@xaviercallens` (`GUILD-02`) | `3,000 $HIVE` |
-| **`HM-S6-04`** | `src/hivemind/game/hf_hack_miner.py` | **Season 6 Autonomous Agent Arena (Missions 21–24):** Self-Play Code Repair, Lean 4 Auto-Formalization & Live Strategy Optimizer HUD Tab | `@radialmonster`, `@pedromineo` (`GUILD-03`) | `2,500 $HIVE` |
+| **`HM-S6-04`** | `src/hivemind/game/hf_hack_miner.py` | ✅ **Implemented on `feat/s6-agent-arena` (PR pending)** — **Season 6 Autonomous Agent Arena (Missions 21–24):** Self-Play Code Repair, Lean 4 Auto-Formalization & Live Strategy Optimizer HUD Tab | `@radialmonster`, `@pedromineo` (`GUILD-03`) | `2,500 $HIVE` |
 | **`HM-S6-05`** | `lean4/HiveMindSpec.lean` | **Formal Lean 4 Proofs (`Theorems 49–56`)** for `EF21-DiLoCo` Error-Feedback Contraction & UCB1 Bandit Regret Bounds | `@clark719664`, `@xaviercallens` (`GUILD-02`) | `3,000 $HIVE` |
+
+### 3.1 `HM-S6-04` Delivery Note — Autonomous Agent Arena
+
+See **[`docs/SEASON6_AGENT_ARENA.md`](docs/SEASON6_AGENT_ARENA.md)** for the full design and
+honesty boundaries. Delivered surfaces:
+
+- **Missions 21–24** (`SEASON_6_HF_BOUNTY_CONTRACTS`) with curated offline corpora and
+  `GET /api/season6-missions`.
+- **`SelfPlayCodeRepairArena`** — four agents learn per-task repair policies; curated assertions run
+  in an isolated Python subprocess after AST import rejection, with a 2 s timeout. Only shipped
+  patches are executed.
+- **`Lean4AutoformalizerArena`** — multi-agent tactic search with structural `sorry`/axiom rejection.
+  This is explicitly **not** kernel checking; CI's pinned `lake build` remains the kernel authority.
+- **Live `SI-01`..`SI-05` telemetry** via `GET/POST /api/strategy-optimizer`, backed by
+  `StrategyOptimizerTelemetryEngine`. Modeled frontier coordinates are labeled as such.
+- **HUD Season 6 panel** with arena runs, strategy refresh and TURN-relay link telemetry injection.
+- **`tests/test_season6_agent_arena.py`** covering catalogs, arena verifiers, achievements, telemetry
+  validation and HUD endpoints.

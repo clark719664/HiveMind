@@ -16,15 +16,21 @@ Allows gamers to:
 
 from __future__ import annotations
 
+import ast
 import gc
 import json
 import math
 import os
+import random
 import re
+import subprocess
+import sys
+import tempfile
 import time
 from dataclasses import asdict, dataclass, field
+from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
@@ -137,6 +143,14 @@ STEAM_ACHIEVEMENTS_CATALOG: Dict[str, Dict[str, str]] = {
         "title": "Guild Wars Co-Op Raid Commander (Season 5)",
         "description": "Forge a Season 5 frontier mission (Missions 17-20) and lead a GUILD-01/02/03 Co-Op squad through the cross-guild tournament raid arcs.",
     },
+    "S6_AGENT_ARENA_CHAMPION": {
+        "title": "Autonomous Arena Champion (Season 6)",
+        "description": "Forge all four Season 6 Agent Arena missions (21-24) and field a self-play repair squad that clears the arena.",
+    },
+    "S6_LEAN4_AUTOFORMALIZER": {
+        "title": "Zero-Sorry Autoformalizer (Season 6)",
+        "description": "Forge the Season 6 Lean 4 Agent Autoformalizer mission with a structurally verified, sorry-free proof tree.",
+    },
 }
 
 
@@ -197,6 +211,8 @@ class GamerMinerProfile:
     boss_raids_cleared: int = 0
     swarm_tokens_served: int = 0
     season5_missions_forged: int = 0
+    season6_missions_forged: int = 0
+    agent_arena_wins: int = 0
     best_loss_reduction_pct: float = 0.0
     rank_title: str = "Rank I: Script Kiddie"
     steam_sybil_verified: bool = True
@@ -248,6 +264,15 @@ class GamerMinerProfile:
             and "HF_COOP_RAID_COMMANDER" not in self.achievements_unlocked
         ):
             self.achievements_unlocked.append("HF_COOP_RAID_COMMANDER")
+        if (
+            self.season6_missions_forged >= 4 or self.agent_arena_wins >= 1
+        ) and "S6_AGENT_ARENA_CHAMPION" not in self.achievements_unlocked:
+            self.achievements_unlocked.append("S6_AGENT_ARENA_CHAMPION")
+        if (
+            "Lean4_Agent_Autoformalizer" in self.domains_forged
+            and "S6_LEAN4_AUTOFORMALIZER" not in self.achievements_unlocked
+        ):
+            self.achievements_unlocked.append("S6_LEAN4_AUTOFORMALIZER")
         if is_top_miner and "TOP_1_APEX_MINER" not in self.achievements_unlocked:
             self.achievements_unlocked.append("TOP_1_APEX_MINER")
 
@@ -931,11 +956,14 @@ def fetch_season5_curated_corpus(dataset_id: str, num_samples: int = 12) -> List
 
 
 def fetch_offline_curated_corpus(dataset_id: str, num_samples: int = 12) -> List[str]:
-    """Return the curated offline corpus of any shipped season (Season 4 or Season 5)."""
+    """Return the curated offline corpus of any shipped season (Season 4, 5 or 6)."""
     rows = fetch_season4_curated_corpus(dataset_id, num_samples=num_samples)
     if rows:
         return rows
-    return fetch_season5_curated_corpus(dataset_id, num_samples=num_samples)
+    rows = fetch_season5_curated_corpus(dataset_id, num_samples=num_samples)
+    if rows:
+        return rows
+    return fetch_season6_curated_corpus(dataset_id, num_samples=num_samples)
 
 
 def build_season5_mission_catalog() -> Dict[str, Any]:
@@ -962,6 +990,1106 @@ def build_season5_mission_catalog() -> Dict[str, Any]:
         "bounty_pool_hive": SEASON_5_BOUNTY_POOL_HIVE,
         "telemetry_endpoint": "/ws/swarm-telemetry",
         "guild_tournament_endpoint": "/api/guild-tournament",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Season 6 (`HM-S6-04`): Autonomous Agent Arena, Missions 21-24
+# ---------------------------------------------------------------------------
+SEASON_6_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = [
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-21-SELFPLAY-CODE-REPAIR",
+        mission_codename="Mission 21: Self-Play Code Repair Arena",
+        dataset_id="hivemind/selfplay-code-repair-arena",
+        domain_expert="SelfPlay_Code_Repair",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 6 Self-Play Repair Task:\nFour repair agents receive the same failing test "
+            "and must debate a minimal patch before the verifier accepts it.\n"
+            "### Verified Patch:\n"
+        ),
+        reference_solution=(
+            "def binary_search(arr, target):\n"
+            "    low, high = 0, len(arr) - 1\n"
+            "    while low <= high:\n"
+            "        mid = low + (high - low) // 2\n"
+            "        if arr[mid] == target:\n"
+            "            return mid\n"
+            "        if arr[mid] < target:\n"
+            "            low = mid + 1\n"
+            "        else:\n"
+            "            high = mid - 1\n"
+            "    return -1"
+        ),
+        target_keywords=["agent", "patch", "test", "verifier", "repair", "def", "return"],
+        base_bounty_pts=2600,
+        season=6,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-22-LEAN4-AGENT-FORMALIZER",
+        mission_codename="Mission 22: Lean 4 Agent Autoformalizer",
+        dataset_id="hivemind/lean4-agent-autoformalizer",
+        domain_expert="Lean4_Agent_Autoformalizer",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 6 Formalization Task:\nA proof-search agent must autoformalize the statement "
+            "and return a tactic script with zero `sorry` placeholders.\n"
+            "### Verified Lean 4 Proof:\n"
+        ),
+        reference_solution=(
+            "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+            "  omega"
+        ),
+        target_keywords=["lean4", "theorem", "tactic", "sorry", "omega", "proof"],
+        base_bounty_pts=2700,
+        season=6,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-23-PARETO-STRATEGY-OPTIMIZER",
+        mission_codename="Mission 23: Pareto Strategy Optimizer",
+        dataset_id="hivemind/pareto-guild-strategy-optimizer",
+        domain_expert="Pareto_Guild_Strategy_Optimizer",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 6 Strategy Task:\nAllocate guild GPU-hours across four domains to maximize "
+            "the Pareto frontier of holdout loss, speedup, HIVE yield and communication overhead.\n"
+            "### Verified Strategy:\n"
+        ),
+        reference_solution=(
+            "def plan_pareto_campaign(domains, gpu_hours):\n"
+            "    return {'frontier_size': 3, 'champion': 'Proposed_v1.7', "
+            "'rank_conserved': True, 'overhead_pct': 7.4}"
+        ),
+        target_keywords=["pareto", "frontier", "guild", "strategy", "hive", "def", "return"],
+        base_bounty_pts=2800,
+        season=6,
+    ),
+    HFBountyChallenge(
+        contract_id="CONTRACT-HF-24-AUTONOMOUS-AGENT-ARENA",
+        mission_codename="Mission 24: Autonomous Agent Arena Finals",
+        dataset_id="hivemind/autonomous-agent-arena",
+        domain_expert="Autonomous_Agent_Arena",
+        difficulty_skulls=5,
+        bounty_question_prompt=(
+            "### Season 6 Arena Finals:\nRun the multi-agent self-play tournament, promote the "
+            "champion policy, and broadcast the final arena telemetry.\n"
+            "### Verified Arena Result:\n"
+        ),
+        reference_solution=(
+            "def run_agent_arena(agents, rounds):\n"
+            "    return {'rounds': rounds, 'champion_agent': agents[0], "
+            "'validated_repairs': 4, 'arena_status': 'settled'}"
+        ),
+        target_keywords=["arena", "agent", "self-play", "champion", "rounds", "def", "return"],
+        base_bounty_pts=2900,
+        season=6,
+    ),
+]
+
+SEASON_6_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_5_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS + SEASON_6_HF_BOUNTY_CONTRACTS
+)
+SEASON_6_EXTENDED_HF_BOUNTY_CONTRACTS: List[HFBountyChallenge] = (
+    SEASON_5_EXTENDED_HF_BOUNTY_CONTRACTS + SEASON_6_HF_BOUNTY_CONTRACTS
+)
+SEASON_6_BOUNTY_POOL_HIVE = 2500.0
+
+# Curated offline Season 6 corpora so Missions 21-24 stay playable without network access.
+SEASON_6_OFFLINE_CURATED_CORPUS: Dict[str, List[str]] = {
+    "hivemind/selfplay-code-repair-arena": [
+        "### Season 6 Self-Play Repair Task:\nFour repair agents receive the same failing test "
+        "and must debate a minimal patch before the verifier accepts it.\n"
+        "### Verified Patch:\n"
+        "def binary_search(arr, target):\n"
+        "    low, high = 0, len(arr) - 1\n"
+        "    while low <= high:\n"
+        "        mid = low + (high - low) // 2\n"
+        "        if arr[mid] == target:\n"
+        "            return mid\n"
+        "        if arr[mid] < target:\n"
+        "            low = mid + 1\n"
+        "        else:\n"
+        "            high = mid - 1\n"
+        "    return -1",
+        "### Season 6 Self-Play Repair Task:\nRepair an off-by-one quorum threshold used by the "
+        "agent council and prove the failing boundary test now passes.\n### Verified Patch:\n"
+        "def quorum_reached(votes, threshold):\n"
+        "    return votes >= threshold",
+        "### Season 6 Self-Play Repair Task:\nRepair a saturating counter that silently clamps "
+        "zero-valued increments and re-run the verifier tests.\n### Verified Patch:\n"
+        "def saturating_add(a, b, cap):\n"
+        "    return min(max(a + b, 0), cap)",
+    ],
+    "hivemind/lean4-agent-autoformalizer": [
+        "### Season 6 Formalization Task:\nA proof-search agent must autoformalize the statement "
+        "and return a tactic script with zero `sorry` placeholders.\n"
+        "### Verified Lean 4 Proof:\n"
+        "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+        "  omega",
+        "### Season 6 Formalization Task:\nAutoformalize the arena conservation invariant and "
+        "discharge it without adding custom axioms.\n### Verified Lean 4 Proof:\n"
+        "theorem arena_step_conservation (a b : Nat) : a + b = b + a := by\n"
+        "  omega",
+        "### Season 6 Formalization Task:\nFormalize the two-tier router cardinality bound and "
+        "close the proof with `simp` only.\n### Verified Lean 4 Proof:\n"
+        "theorem arena_router_bound (n : Nat) : n <= n + 1 := by\n"
+        "  simp",
+    ],
+    "hivemind/pareto-guild-strategy-optimizer": [
+        "### Season 6 Strategy Task:\nAllocate guild GPU-hours across four domains to maximize "
+        "the Pareto frontier of holdout loss, speedup, HIVE yield and communication overhead.\n"
+        "### Verified Strategy:\n"
+        "def plan_pareto_campaign(domains, gpu_hours):\n"
+        "    return {'frontier_size': 3, 'champion': 'Proposed_v1.7', "
+        "'rank_conserved': True, 'overhead_pct': 7.4}",
+        "### Season 6 Strategy Task:\nRecompute the Fisher rank budget after a new Solidity "
+        "adapter joins the guild and confirm the budget is still conserved.\n### Verified Strategy:\n"
+        "def plan_pareto_campaign(domains, gpu_hours):\n"
+        "    return {'frontier_size': 4, 'champion': 'Proposed_v1.7', "
+        "'rank_conserved': True, 'overhead_pct': 6.9}",
+        "### Season 6 Strategy Task:\nChoose the DiLoCo cadence for a 145 ms TURN relay and "
+        "report the resulting communication overhead.\n### Verified Strategy:\n"
+        "def plan_pareto_campaign(domains, gpu_hours):\n"
+        "    return {'frontier_size': 3, 'champion': 'Proposed_v1.7', "
+        "'rank_conserved': True, 'overhead_pct': 7.8}",
+    ],
+    "hivemind/autonomous-agent-arena": [
+        "### Season 6 Arena Finals:\nRun the multi-agent self-play tournament, promote the "
+        "champion policy, and broadcast the final arena telemetry.\n### Verified Arena Result:\n"
+        "def run_agent_arena(agents, rounds):\n"
+        "    return {'rounds': rounds, 'champion_agent': agents[0], "
+        "'validated_repairs': 4, 'arena_status': 'settled'}",
+        "### Season 6 Arena Finals:\nRun a second arena cycle with a challenger policy and "
+        "confirm the champion retains the highest cumulative verifier reward.\n"
+        "### Verified Arena Result:\n"
+        "def run_agent_arena(agents, rounds):\n"
+        "    return {'rounds': rounds, 'champion_agent': agents[0], "
+        "'validated_repairs': 4, 'arena_status': 'champion_retained'}",
+        "### Season 6 Arena Finals:\nExport the final policy weights and the validated repair "
+        "patches for the Steam HUD telemetry feed.\n### Verified Arena Result:\n"
+        "def run_agent_arena(agents, rounds):\n"
+        "    return {'rounds': rounds, 'champion_agent': agents[0], "
+        "'validated_repairs': 4, 'arena_status': 'telemetry_exported'}",
+    ],
+}
+
+
+def fetch_season6_curated_corpus(dataset_id: str, num_samples: int = 12) -> List[str]:
+    """Return the curated offline Season 6 corpus for a mission dataset (no network required)."""
+    bank = SEASON_6_OFFLINE_CURATED_CORPUS.get(dataset_id, [])
+    if not bank:
+        return []
+    return [bank[i % len(bank)] for i in range(num_samples)]
+
+
+def build_season6_mission_catalog() -> Dict[str, Any]:
+    """Build the Season 6 (Missions 21-24) campaign catalog served by `/api/season6-missions`."""
+    contracts = SEASON_6_HF_BOUNTY_CONTRACTS
+    return {
+        "season": 6,
+        "milestone": "HM-S6-04",
+        "num_missions": len(contracts),
+        "mission_ids": [c.contract_id for c in contracts],
+        "missions": [asdict(c) for c in contracts],
+        "contracts": [
+            {
+                "contract_id": c.contract_id,
+                "mission_codename": c.mission_codename,
+                "dataset_id": c.dataset_id,
+                "domain_expert": c.domain_expert,
+                "difficulty_skulls": c.difficulty_skulls,
+                "base_bounty_pts": c.base_bounty_pts,
+                "season": c.season,
+            }
+            for c in contracts
+        ],
+        "total_bounty_pts": sum(c.base_bounty_pts for c in contracts),
+        "bounty_pool_hive": SEASON_6_BOUNTY_POOL_HIVE,
+        "agent_arena_endpoint": "/api/agent-arena",
+        "strategy_optimizer_endpoint": "/api/strategy-optimizer",
+        "telemetry_endpoint": "/ws/swarm-telemetry",
+    }
+
+
+# --------------------------- Self-play code repair arena ---------------------------
+
+SELF_PLAY_AGENT_POLICIES: Tuple[str, ...] = (
+    "test_driven",
+    "static_analysis",
+    "mutation_search",
+    "reflection",
+)
+_SELF_PLAY_MAX_ROUNDS = 48
+_REPAIR_SANDBOX_TIMEOUT_SECONDS = 2.0
+
+
+@dataclass(frozen=True)
+class CodeRepairTask:
+    """A deterministic failing-test repair task for the Season 6 self-play arena."""
+
+    task_id: str
+    title: str
+    bug_family: str
+    buggy_code: str
+    failing_test: str
+    reference_fix: str
+    tests: Tuple[str, ...]
+    candidate_fixes: Dict[str, str]
+
+
+SELF_PLAY_CODE_REPAIR_TASKS: Tuple[CodeRepairTask, ...] = (
+    CodeRepairTask(
+        task_id="REPAIR-21-BINARY-SEARCH-BOUNDARY",
+        title="Binary-search upper-bound off-by-one",
+        bug_family="off_by_one_boundary",
+        buggy_code=(
+            "def binary_search(arr, target):\n"
+            "    low, high = 0, len(arr)\n"
+            "    while low <= high:\n"
+            "        mid = (low + high) // 2\n"
+            "        if arr[mid] == target:\n"
+            "            return mid\n"
+            "        if arr[mid] < target:\n"
+            "            low = mid + 1\n"
+            "        else:\n"
+            "            high = mid - 1\n"
+            "    return -1\n"
+        ),
+        failing_test="binary_search([1, 3, 5], 4) raises IndexError instead of returning -1",
+        reference_fix=(
+            "def binary_search(arr, target):\n"
+            "    low, high = 0, len(arr) - 1\n"
+            "    while low <= high:\n"
+            "        mid = (low + high) // 2\n"
+            "        if arr[mid] == target:\n"
+            "            return mid\n"
+            "        if arr[mid] < target:\n"
+            "            low = mid + 1\n"
+            "        else:\n"
+            "            high = mid - 1\n"
+            "    return -1"
+        ),
+        tests=(
+            "assert binary_search([1, 3, 5], 3) == 1",
+            "assert binary_search([1, 3, 5], 5) == 2",
+            "assert binary_search([1, 3, 5], 4) == -1",
+            "assert binary_search([], 1) == -1",
+        ),
+        candidate_fixes={
+            "test_driven": (
+                "def binary_search(arr, target):\n"
+                "    low, high = 0, len(arr) - 1\n"
+                "    while low <= high:\n"
+                "        mid = (low + high) // 2\n"
+                "        if arr[mid] == target:\n"
+                "            return mid\n"
+                "        if arr[mid] < target:\n"
+                "            low = mid + 1\n"
+                "        else:\n"
+                "            high = mid - 1\n"
+                "    return -1"
+            ),
+            "static_analysis": (
+                "def binary_search(arr, target):\n"
+                "    low, high = 0, len(arr) - 1\n"
+                "    while low <= high:\n"
+                "        mid = low + (high - low) // 2\n"
+                "        if arr[mid] == target:\n"
+                "            return mid\n"
+                "        if arr[mid] < target:\n"
+                "            low = mid + 1\n"
+                "        else:\n"
+                "            high = mid - 1\n"
+                "    return -1"
+            ),
+            "mutation_search": (
+                "def binary_search(arr, target):\n"
+                "    low, high = 0, len(arr) - 1\n"
+                "    while low <= high:\n"
+                "        mid = (low + high) // 2\n"
+                "        if arr[mid] == target:\n"
+                "            return mid\n"
+                "        if arr[mid] < target:\n"
+                "            low = mid + 1\n"
+                "        else:\n"
+                "            high = mid - 1\n"
+                "    return low"
+            ),
+            "reflection": (
+                "def binary_search(arr, target):\n"
+                "    low, high = 0, len(arr) - 1\n"
+                "    while low <= high:\n"
+                "        mid = low + (high - low) // 2\n"
+                "        if arr[mid] == target:\n"
+                "            return mid\n"
+                "        if arr[mid] < target:\n"
+                "            low = mid + 1\n"
+                "        else:\n"
+                "            high = mid - 1\n"
+                "    return -1"
+            ),
+        },
+    ),
+    CodeRepairTask(
+        task_id="REPAIR-22-QUORUM-THRESHOLD",
+        title="Inclusive quorum threshold",
+        bug_family="inclusive_comparison",
+        buggy_code=(
+            "def quorum_reached(votes, threshold):\n"
+            "    return votes > threshold\n"
+        ),
+        failing_test="quorum_reached(3, 3) must be True for an inclusive quorum",
+        reference_fix=(
+            "def quorum_reached(votes, threshold):\n"
+            "    return votes >= threshold"
+        ),
+        tests=(
+            "assert quorum_reached(3, 3) is True",
+            "assert quorum_reached(2, 3) is False",
+            "assert quorum_reached(5, 4) is True",
+            "assert quorum_reached(0, 0) is True",
+        ),
+        candidate_fixes={
+            "test_driven": (
+                "def quorum_reached(votes, threshold):\n"
+                "    return votes >= threshold"
+            ),
+            "static_analysis": (
+                "def quorum_reached(votes, threshold):\n"
+                "    return not (votes < threshold)"
+            ),
+            "mutation_search": (
+                "def quorum_reached(votes, threshold):\n"
+                "    return votes > threshold"
+            ),
+            "reflection": (
+                "def quorum_reached(votes, threshold):\n"
+                "    required = max(0, threshold)\n"
+                "    return votes >= required"
+            ),
+        },
+    ),
+    CodeRepairTask(
+        task_id="REPAIR-23-SATURATING-COUNTER",
+        title="Saturating counter clamp",
+        bug_family="min_max_clamp",
+        buggy_code=(
+            "def saturating_add(a, b, cap):\n"
+            "    return max(a + b, cap)\n"
+        ),
+        failing_test="saturating_add(2, 3, 10) must return 5, not the cap",
+        reference_fix=(
+            "def saturating_add(a, b, cap):\n"
+            "    return min(max(a + b, 0), cap)"
+        ),
+        tests=(
+            "assert saturating_add(2, 3, 10) == 5",
+            "assert saturating_add(8, 5, 10) == 10",
+            "assert saturating_add(0, 0, 0) == 0",
+            "assert saturating_add(-5, 2, 10) == 0",
+        ),
+        candidate_fixes={
+            "test_driven": (
+                "def saturating_add(a, b, cap):\n"
+                "    return min(max(a + b, 0), cap)"
+            ),
+            "static_analysis": (
+                "def saturating_add(a, b, cap):\n"
+                "    total = a + b\n"
+                "    if total < 0:\n"
+                "        return 0\n"
+                "    return cap if total > cap else total"
+            ),
+            "mutation_search": (
+                "def saturating_add(a, b, cap):\n"
+                "    return min(a + b, cap)"
+            ),
+            "reflection": (
+                "def saturating_add(a, b, cap):\n"
+                "    return max(0, min(a + b, cap))"
+            ),
+        },
+    ),
+    CodeRepairTask(
+        task_id="REPAIR-24-RETRY-BACKOFF",
+        title="Exponential retry backoff length",
+        bug_family="off_by_one_range",
+        buggy_code=(
+            "def retry_delays(base_ms, attempts, cap_ms=1000):\n"
+            "    return [base_ms * (2 ** i) for i in range(attempts + 1)]\n"
+        ),
+        failing_test="retry_delays(100, 3) must return exactly three attempts",
+        reference_fix=(
+            "def retry_delays(base_ms, attempts, cap_ms=1000):\n"
+            "    return [min(cap_ms, base_ms * (2 ** i)) for i in range(attempts)]"
+        ),
+        tests=(
+            "assert retry_delays(100, 3) == [100, 200, 400]",
+            "assert retry_delays(100, 4) == [100, 200, 400, 800]",
+            "assert retry_delays(400, 3) == [400, 800, 1000]",
+            "assert retry_delays(100, 0) == []",
+        ),
+        candidate_fixes={
+            "test_driven": (
+                "def retry_delays(base_ms, attempts, cap_ms=1000):\n"
+                "    return [min(cap_ms, base_ms * (2 ** i)) for i in range(attempts)]"
+            ),
+            "static_analysis": (
+                "def retry_delays(base_ms, attempts, cap_ms=1000):\n"
+                "    delays = []\n"
+                "    for i in range(attempts):\n"
+                "        delays.append(min(cap_ms, base_ms * (2 ** i)))\n"
+                "    return delays"
+            ),
+            "mutation_search": (
+                "def retry_delays(base_ms, attempts, cap_ms=1000):\n"
+                "    return [base_ms * (2 ** i) for i in range(attempts)]"
+            ),
+            "reflection": (
+                "def retry_delays(base_ms, attempts, cap_ms=1000):\n"
+                "    return [min(cap_ms, base_ms * (2 ** i)) for i in range(max(0, attempts))]"
+            ),
+        },
+    ),
+)
+
+
+_REPAIR_FORBIDDEN_CALLS = frozenset(
+    {
+        "__import__",
+        "breakpoint",
+        "compile",
+        "delattr",
+        "eval",
+        "exec",
+        "getattr",
+        "globals",
+        "input",
+        "locals",
+        "open",
+        "setattr",
+    }
+)
+
+
+def _repair_patch_safety_error(patch_code: str) -> str:
+    """Statically reject imports and dangerous calls before sandboxed execution."""
+    if len(patch_code) > 20_000:
+        return "PatchTooLarge"
+    try:
+        tree = ast.parse(patch_code)
+    except SyntaxError as exc:
+        return f"SyntaxError:{exc.msg}"
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            return "ImportStatementsForbidden"
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name) and func.id in _REPAIR_FORBIDDEN_CALLS:
+                return f"ForbiddenCall:{func.id}"
+            if isinstance(func, ast.Attribute) and func.attr in {
+                "__globals__",
+                "__subclasses__",
+            }:
+                return f"ForbiddenAttribute:{func.attr}"
+    return ""
+
+
+def _failed_repair_results(tests: Sequence[str], error: str) -> Tuple[Dict[str, Any], ...]:
+    return tuple(
+        {"test": test, "passed": False, "error": error} for test in tests
+    )
+
+
+@lru_cache(maxsize=256)
+def _run_repair_candidate_sandbox(
+    patch_code: str,
+    tests: Tuple[str, ...],
+) -> Tuple[Dict[str, Any], ...]:
+    """Run a curated patch + curated assertions in an isolated Python subprocess.
+
+    Only the shipped `SELF_PLAY_CODE_REPAIR_TASKS` patch strings are ever passed here;
+    imports and dangerous builtins are rejected by `_repair_patch_safety_error()` before
+    the subprocess starts, and the child is capped by `_REPAIR_SANDBOX_TIMEOUT_SECONDS`.
+    """
+    harness_lines = ["import json, sys", "", patch_code, "", "_results = []", ""]
+    for test in tests:
+        harness_lines.append("try:")
+        for test_line in test.splitlines():
+            harness_lines.append(f"    {test_line}")
+        harness_lines.append("    _results.append({'passed': True})")
+        harness_lines.append("except Exception as _exc:")
+        harness_lines.append(
+            "    _results.append({'passed': False, 'error': type(_exc).__name__})"
+        )
+        harness_lines.append("")
+    harness_lines.extend(
+        [
+            "with open(sys.argv[1], 'w', encoding='utf-8') as _fh:",
+            "    json.dump(_results, _fh)",
+            "",
+        ]
+    )
+    with tempfile.TemporaryDirectory(prefix="hivemind-repair-") as tmp_dir:
+        script_path = Path(tmp_dir) / "candidate_harness.py"
+        result_path = Path(tmp_dir) / "candidate_results.json"
+        script_path.write_text("\n".join(harness_lines), encoding="utf-8")
+        try:
+            completed = subprocess.run(
+                [sys.executable, "-I", str(script_path), str(result_path)],
+                capture_output=True,
+                text=True,
+                timeout=_REPAIR_SANDBOX_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return _failed_repair_results(tests, type(exc).__name__)
+        if completed.returncode != 0 or not result_path.exists():
+            return _failed_repair_results(tests, f"SandboxExit{completed.returncode}")
+        try:
+            raw_results = json.loads(result_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return _failed_repair_results(tests, "SandboxResultUnreadable")
+    if (
+        not isinstance(raw_results, list)
+        or len(raw_results) != len(tests)
+        or any(not isinstance(raw, dict) for raw in raw_results)
+    ):
+        return _failed_repair_results(tests, "SandboxResultShapeMismatch")
+    return tuple(
+        {
+            "test": test,
+            "passed": bool(raw.get("passed", False)),
+            **({"error": str(raw["error"])} if raw.get("error") else {}),
+        }
+        for test, raw in zip(tests, raw_results)
+    )
+
+
+def _evaluate_repair_candidate(patch_code: str, tests: Sequence[str]) -> Dict[str, Any]:
+    """Statically screen, then verify a curated patch against curated test assertions."""
+    normalized_tests = tuple(str(test) for test in tests)
+    safety_error = _repair_patch_safety_error(patch_code)
+    if safety_error:
+        results = _failed_repair_results(normalized_tests, safety_error)
+    else:
+        results = _run_repair_candidate_sandbox(patch_code, normalized_tests)
+    passed = sum(1 for result in results if result["passed"])
+    return {
+        "score": round(passed / max(1, len(normalized_tests)), 4),
+        "tests_passed": passed,
+        "tests_total": len(normalized_tests),
+        "test_results": [dict(result) for result in results],
+    }
+
+
+def _choose_strategy(preferences: Dict[str, float], rng: Any, policies: Sequence[str]) -> str:
+    total = sum(max(0.0, float(preferences.get(p, 1.0))) for p in policies)
+    if total <= 1e-9:
+        return policies[0]
+    threshold = rng.random() * total
+    cumulative = 0.0
+    for policy in policies:
+        cumulative += max(0.0, float(preferences.get(policy, 1.0)))
+        if threshold <= cumulative:
+            return policy
+    return policies[-1]
+
+
+def _update_preferences(
+    preferences: Dict[str, float],
+    chosen: str,
+    reward: float,
+    mean_reward: float,
+    policies: Sequence[str],
+    learning_rate: float,
+) -> None:
+    for policy in policies:
+        prior = max(1e-3, float(preferences.get(policy, 1.0)))
+        preferences[policy] = prior * math.exp(learning_rate * (reward - mean_reward))
+    mean_pref = sum(preferences[p] for p in policies) / len(policies)
+    for policy in policies:
+        preferences[policy] = max(1e-3, min(1e4, preferences[policy] / max(1e-6, mean_pref)))
+
+
+class SelfPlayCodeRepairArena:
+    """Four-agent bandit self-play over the curated code-repair tasks.
+
+    Every agent maintains a per-task mixed strategy over the four repair policies.
+    After each round the verifier scores every submitted patch and the agents
+    multiplicatively update their policy weights from the relative reward.
+    """
+
+    def __init__(self, seed: int = 42, learning_rate: float = 1.5) -> None:
+        self.seed = int(seed)
+        self.learning_rate = float(learning_rate)
+        self.tasks = SELF_PLAY_CODE_REPAIR_TASKS
+        self.policies = list(SELF_PLAY_AGENT_POLICIES)
+        self.agent_ids = [f"agent-{idx + 1:02d}" for idx in range(len(self.policies))]
+        self.preferences: Dict[str, Dict[str, Dict[str, float]]] = {
+            agent: {
+                task.task_id: {policy: 1.0 for policy in self.policies}
+                for task in self.tasks
+            }
+            for agent in self.agent_ids
+        }
+
+    def run(self, rounds: int = 12) -> Dict[str, Any]:
+        rounds = max(1, min(_SELF_PLAY_MAX_ROUNDS, int(rounds)))
+        rng = random.Random(self.seed)
+        cumulative_reward = {agent: 0.0 for agent in self.agent_ids}
+        wins = {agent: 0 for agent in self.agent_ids}
+        round_telemetry: List[Dict[str, Any]] = []
+        best_patch_by_task: Dict[str, Dict[str, Any]] = {}
+        learning_curve: List[float] = []
+
+        for round_idx in range(rounds):
+            task = self.tasks[round_idx % len(self.tasks)]
+            submissions: List[Dict[str, Any]] = []
+            for agent in self.agent_ids:
+                policy = _choose_strategy(
+                    self.preferences[agent][task.task_id], rng, self.policies
+                )
+                patch = task.candidate_fixes.get(policy, task.reference_fix)
+                evaluation = _evaluate_repair_candidate(patch, task.tests)
+                submissions.append(
+                    {
+                        "agent_id": agent,
+                        "policy": policy,
+                        "score": evaluation["score"],
+                        "tests_passed": evaluation["tests_passed"],
+                        "tests_total": evaluation["tests_total"],
+                        "patch_code": patch,
+                    }
+                )
+
+            best_score = max(sub["score"] for sub in submissions)
+            best_subs = [sub for sub in submissions if sub["score"] == best_score]
+            best_subs.sort(key=lambda sub: (len(sub["patch_code"]), sub["agent_id"]))
+            winner = best_subs[0]
+            wins[winner["agent_id"]] += 1
+            mean_reward = sum(sub["score"] for sub in submissions) / len(submissions)
+            learning_curve.append(round(mean_reward, 4))
+
+            for agent in self.agent_ids:
+                sub = next(s for s in submissions if s["agent_id"] == agent)
+                cumulative_reward[agent] += sub["score"]
+                chosen = sub["policy"]
+                _update_preferences(
+                    self.preferences[agent][task.task_id],
+                    chosen,
+                    sub["score"],
+                    mean_reward,
+                    self.policies,
+                    self.learning_rate,
+                )
+
+            existing = best_patch_by_task.get(task.task_id)
+            if existing is None or best_score > existing["score"]:
+                best_patch_by_task[task.task_id] = {
+                    "task_id": task.task_id,
+                    "bug_family": task.bug_family,
+                    "score": best_score,
+                    "tests_passed": winner["tests_passed"],
+                    "tests_total": winner["tests_total"],
+                    "policy": winner["policy"],
+                    "agent_id": winner["agent_id"],
+                    "patch_code": winner["patch_code"],
+                }
+            round_telemetry.append(
+                {
+                    "round": round_idx,
+                    "task_id": task.task_id,
+                    "bug_family": task.bug_family,
+                    "winner_agent": winner["agent_id"],
+                    "winning_policy": winner["policy"],
+                    "best_score": best_score,
+                    "mean_reward": round(mean_reward, 4),
+                    "submissions": [
+                        {
+                            key: sub[key]
+                            for key in ("agent_id", "policy", "score", "tests_passed", "tests_total")
+                        }
+                        for sub in submissions
+                    ],
+                }
+            )
+
+        total_tests = sum(
+            sub["tests_total"]
+            for round_data in round_telemetry
+            for sub in round_data["submissions"]
+        )
+        champion_agent = max(
+            self.agent_ids, key=lambda agent: (cumulative_reward[agent], wins[agent])
+        )
+        aggregate_weights = {
+            policy: round(
+                sum(
+                    self.preferences[agent][task.task_id][policy]
+                    for agent in self.agent_ids
+                    for task in self.tasks
+                )
+                / max(1, len(self.agent_ids) * len(self.tasks)),
+                4,
+            )
+            for policy in self.policies
+        }
+        champion_policy = max(aggregate_weights, key=lambda policy: aggregate_weights[policy])
+        validated = sum(1 for patch in best_patch_by_task.values() if patch["score"] == 1.0)
+        first_mean = learning_curve[0] if learning_curve else 0.0
+        final_mean = learning_curve[-1] if learning_curve else 0.0
+        return {
+            "schema_version": "hm-s6-04/self-play-code-repair/v1",
+            "milestone": "HM-S6-04",
+            "season": 6,
+            "arena_id": "SELF-PLAY-CODE-REPAIR-4X",
+            "num_agents": len(self.agent_ids),
+            "rounds_executed": rounds,
+            "num_tasks": len(self.tasks),
+            "policies": self.policies,
+            "champion_agent": champion_agent,
+            "champion_policy": champion_policy,
+            "agent_standing": sorted(
+                [
+                    {
+                        "agent_id": agent,
+                        "cumulative_reward": round(cumulative_reward[agent], 4),
+                        "wins": wins[agent],
+                        "mean_reward": round(cumulative_reward[agent] / max(1, rounds), 4),
+                    }
+                    for agent in self.agent_ids
+                ],
+                key=lambda row: (row["cumulative_reward"], row["wins"]),
+                reverse=True,
+            ),
+            "final_policy_weights": aggregate_weights,
+            "best_patch_by_task": best_patch_by_task,
+            "validated_repairs": validated,
+            "total_tests_executed": total_tests,
+            "learning_curve": learning_curve,
+            "mean_first_round_score": first_mean,
+            "mean_final_round_score": final_mean,
+            "self_play_improved": final_mean > first_mean,
+            "round_telemetry": round_telemetry,
+            "honesty": {
+                "verification": (
+                    "curated assertions executed in an isolated Python subprocess "
+                    "(AST import rejection + 2 s timeout)"
+                ),
+                "not_verified": (
+                    "arbitrary player or network-supplied code is never executed by this arena"
+                ),
+            },
+        }
+
+
+# --------------------------- Lean 4 autoformalizer arena ---------------------------
+
+LEAN4_KNOWN_TACTICS: Tuple[str, ...] = (
+    "rfl",
+    "simp",
+    "omega",
+    "ring",
+    "positivity",
+    "norm_num",
+    "exact",
+    "intro",
+    "apply",
+)
+_LEAN4_MAX_ROUNDS = 36
+
+
+@dataclass(frozen=True)
+class Lean4ProofTask:
+    """A curated autoformalization task structurally audited by the arena."""
+
+    task_id: str
+    title: str
+    natural_language: str
+    reference_proof: str
+    candidate_proofs: Dict[str, str]
+
+
+def audit_lean4_proof(proof: str) -> Dict[str, Any]:
+    """Structurally audit a Lean 4 proof script (not a substitute for `lake build`)."""
+    text = str(proof or "").strip()
+    checks = {
+        "declares_theorem": bool(re.search(r"\btheorem\s+[A-Za-z_][A-Za-z0-9_']*", text)),
+        "has_by_proof": ":= by" in text,
+        "no_sorry_or_admit": not bool(re.search(r"\b(sorry|admit)\b", text)),
+        "no_custom_axiom": not bool(re.search(r"\baxiom\s+[A-Za-z_]", text)),
+        "balanced_delimiters": (
+            text.count("(") == text.count(")")
+            and text.count("[") == text.count("]")
+            and text.count("{") == text.count("}")
+        ),
+        "uses_known_tactic": any(
+            bool(re.search(rf"\b{tactic}\b", text)) for tactic in LEAN4_KNOWN_TACTICS
+        ),
+    }
+    passed = sum(1 for value in checks.values() if value)
+    return {
+        "checks": checks,
+        "passed_checks": passed,
+        "total_checks": len(checks),
+        "score": round(passed / len(checks), 4),
+        "valid": all(checks.values()),
+        "kernel_checked": False,
+        "note": "Structural lint only; CI runs the pinned Lean 4 kernel via lake build.",
+    }
+
+
+LEAN4_PROOF_TASKS: Tuple[Lean4ProofTask, ...] = (
+    Lean4ProofTask(
+        task_id="LEAN4-22-ADDITION-COMMUTATION",
+        title="Arena step conservation",
+        natural_language="Prove that natural-number addition commutes for every pair of army sizes.",
+        reference_proof=(
+            "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+            "  omega"
+        ),
+        candidate_proofs={
+            "simp": (
+                "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+                "  simp"
+            ),
+            "omega": (
+                "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+                "  omega"
+            ),
+            "ring": (
+                "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+                "  ring"
+            ),
+            "sorry": (
+                "theorem selfplay_agent_conservation (a b : Nat) : a + b = b + a := by\n"
+                "  sorry"
+            ),
+        },
+    ),
+    Lean4ProofTask(
+        task_id="LEAN4-22-ROUTER-CARDINALITY",
+        title="Two-tier router cardinality bound",
+        natural_language="Prove that adding one expert never reduces the router's capacity below n.",
+        reference_proof=(
+            "theorem arena_router_bound (n : Nat) : n <= n + 1 := by\n"
+            "  simp"
+        ),
+        candidate_proofs={
+            "simp": (
+                "theorem arena_router_bound (n : Nat) : n <= n + 1 := by\n"
+                "  simp"
+            ),
+            "omega": (
+                "theorem arena_router_bound (n : Nat) : n <= n + 1 := by\n"
+                "  omega"
+            ),
+            "ring": (
+                "theorem arena_router_bound (n : Nat) : n <= n + 1 := by\n"
+                "  ring"
+            ),
+            "sorry": (
+                "theorem arena_router_bound (n : Nat) : n <= n + 1 := by\n"
+                "  sorry"
+            ),
+        },
+    ),
+    Lean4ProofTask(
+        task_id="LEAN4-22-QUORUM-INCLUSION",
+        title="Inclusive quorum reachability",
+        natural_language="Prove that a quorum of n voters is reachable from exactly n votes.",
+        reference_proof=(
+            "theorem arena_quorum_reachable (n : Nat) : n <= n := by\n"
+            "  rfl"
+        ),
+        candidate_proofs={
+            "rfl": (
+                "theorem arena_quorum_reachable (n : Nat) : n <= n := by\n"
+                "  rfl"
+            ),
+            "simp": (
+                "theorem arena_quorum_reachable (n : Nat) : n <= n := by\n"
+                "  simp"
+            ),
+            "omega": (
+                "theorem arena_quorum_reachable (n : Nat) : n <= n := by\n"
+                "  omega"
+            ),
+            "sorry": (
+                "theorem arena_quorum_reachable (n : Nat) : n <= n := by\n"
+                "  sorry"
+            ),
+        },
+    ),
+)
+
+
+class Lean4AutoformalizerArena:
+    """Multi-agent proof-search arena with a structural Lean 4 audit."""
+
+    def __init__(self, seed: int = 7, learning_rate: float = 1.4) -> None:
+        self.seed = int(seed)
+        self.learning_rate = float(learning_rate)
+        self.tasks = LEAN4_PROOF_TASKS
+        self.policies = ["simp", "omega", "ring", "rfl", "sorry"]
+        self.agent_ids = [f"proof-agent-{idx + 1:02d}" for idx in range(4)]
+        self.preferences: Dict[str, Dict[str, Dict[str, float]]] = {
+            agent: {
+                task.task_id: {policy: 1.0 for policy in self.policies}
+                for task in self.tasks
+            }
+            for agent in self.agent_ids
+        }
+
+    def run(self, rounds: int = 9) -> Dict[str, Any]:
+        rounds = max(1, min(_LEAN4_MAX_ROUNDS, int(rounds)))
+        rng = random.Random(self.seed)
+        cumulative_reward = {agent: 0.0 for agent in self.agent_ids}
+        wins = {agent: 0 for agent in self.agent_ids}
+        round_telemetry: List[Dict[str, Any]] = []
+        best_proof_by_task: Dict[str, Dict[str, Any]] = {}
+        learning_curve: List[float] = []
+
+        for round_idx in range(rounds):
+            task = self.tasks[round_idx % len(self.tasks)]
+            submissions: List[Dict[str, Any]] = []
+            for agent in self.agent_ids:
+                policy = _choose_strategy(
+                    self.preferences[agent][task.task_id], rng, self.policies
+                )
+                proof = task.candidate_proofs.get(policy, task.reference_proof)
+                audit = audit_lean4_proof(proof)
+                submissions.append(
+                    {
+                        "agent_id": agent,
+                        "policy": policy,
+                        "score": audit["score"],
+                        "valid": audit["valid"],
+                        "proof": proof,
+                        "checks": audit["checks"],
+                    }
+                )
+            best_score = max(sub["score"] for sub in submissions)
+            best_subs = [sub for sub in submissions if sub["score"] == best_score]
+            best_subs.sort(key=lambda sub: (len(sub["proof"]), sub["agent_id"]))
+            winner = best_subs[0]
+            wins[winner["agent_id"]] += 1
+            mean_reward = sum(sub["score"] for sub in submissions) / len(submissions)
+            learning_curve.append(round(mean_reward, 4))
+            for agent in self.agent_ids:
+                sub = next(s for s in submissions if s["agent_id"] == agent)
+                cumulative_reward[agent] += sub["score"]
+                _update_preferences(
+                    self.preferences[agent][task.task_id],
+                    sub["policy"],
+                    sub["score"],
+                    mean_reward,
+                    self.policies,
+                    self.learning_rate,
+                )
+            existing = best_proof_by_task.get(task.task_id)
+            if existing is None or best_score > existing["score"]:
+                best_proof_by_task[task.task_id] = {
+                    "task_id": task.task_id,
+                    "title": task.title,
+                    "natural_language": task.natural_language,
+                    "score": best_score,
+                    "valid": winner["valid"],
+                    "policy": winner["policy"],
+                    "agent_id": winner["agent_id"],
+                    "proof": winner["proof"],
+                }
+            round_telemetry.append(
+                {
+                    "round": round_idx,
+                    "task_id": task.task_id,
+                    "winner_agent": winner["agent_id"],
+                    "winning_policy": winner["policy"],
+                    "best_score": best_score,
+                    "mean_reward": round(mean_reward, 4),
+                    "submissions": [
+                        {
+                            key: sub[key]
+                            for key in ("agent_id", "policy", "score", "valid")
+                        }
+                        for sub in submissions
+                    ],
+                }
+            )
+
+        champion_agent = max(
+            self.agent_ids, key=lambda agent: (cumulative_reward[agent], wins[agent])
+        )
+        validated_proofs = [
+            entry for entry in best_proof_by_task.values() if entry["valid"]
+        ]
+        zero_sorry_proofs = [
+            entry
+            for entry in validated_proofs
+            if not re.search(r"\b(sorry|admit)\b", entry["proof"])
+        ]
+        return {
+            "schema_version": "hm-s6-04/lean4-agent-autoformalizer/v1",
+            "milestone": "HM-S6-04",
+            "season": 6,
+            "arena_id": "LEAN4-AUTOFORMALIZER-4X",
+            "num_agents": len(self.agent_ids),
+            "rounds_executed": rounds,
+            "num_tasks": len(self.tasks),
+            "champion_agent": champion_agent,
+            "agent_standing": sorted(
+                [
+                    {
+                        "agent_id": agent,
+                        "cumulative_reward": round(cumulative_reward[agent], 4),
+                        "wins": wins[agent],
+                    }
+                    for agent in self.agent_ids
+                ],
+                key=lambda row: (row["cumulative_reward"], row["wins"]),
+                reverse=True,
+            ),
+            "best_proof_by_task": best_proof_by_task,
+            "validated_proofs": len(validated_proofs),
+            "zero_sorry_proofs": len(zero_sorry_proofs),
+            "all_proofs_sorry_free": len(zero_sorry_proofs) == len(best_proof_by_task),
+            "learning_curve": learning_curve,
+            "self_play_improved": (
+                learning_curve[-1] > learning_curve[0] if len(learning_curve) > 1 else False
+            ),
+            "round_telemetry": round_telemetry,
+            "honesty": {
+                "verification": "structural Lean 4 lint (theorem/by/sorry/axiom/tactic/balance)",
+                "not_verified": (
+                    "This arena does not invoke the Lean kernel; CI's pinned lake build is "
+                    "the machine-checking authority."
+                ),
+            },
+        }
+
+
+def build_agent_arena_state(seed: int = 42, rounds: int = 12) -> Dict[str, Any]:
+    """Run both Season 6 arenas and return the `/api/agent-arena` payload."""
+    code_repair = SelfPlayCodeRepairArena(seed=seed).run(rounds=rounds)
+    lean4 = Lean4AutoformalizerArena(seed=seed + 1).run(rounds=max(6, rounds // 2))
+    return {
+        "schema_version": "hm-s6-04/agent-arena/v1",
+        "milestone": "HM-S6-04",
+        "season": 6,
+        "arena_id": "SEASON-6-AUTONOMOUS-AGENT-ARENA",
+        "status": "settled",
+        "num_agents": code_repair["num_agents"],
+        "missions": [asdict(c) for c in SEASON_6_HF_BOUNTY_CONTRACTS],
+        "mission_ids": [c.contract_id for c in SEASON_6_HF_BOUNTY_CONTRACTS],
+        "self_play_code_repair": code_repair,
+        "lean4_autoformalization": lean4,
+        "champion_agent": code_repair["champion_agent"],
+        "validated_repairs": code_repair["validated_repairs"],
+        "zero_sorry_proofs": lean4["zero_sorry_proofs"],
+        "strategy_optimizer_endpoint": "/api/strategy-optimizer",
+        "season6_missions_endpoint": "/api/season6-missions",
+        "telemetry_endpoint": "/ws/swarm-telemetry",
     }
 
 
@@ -1478,6 +2606,7 @@ def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
     contracts = SEASON_4_HF_BOUNTY_CONTRACTS
     active = contracts[seq % len(contracts)]
     season5_contracts = SEASON_5_HF_BOUNTY_CONTRACTS
+    season6_contracts = SEASON_6_HF_BOUNTY_CONTRACTS
     guild_tournament = _DEFAULT_GUILD_TOURNAMENT_ENGINE.build_state()
     now = time.time()
     return {
@@ -1493,6 +2622,9 @@ def build_swarm_telemetry_frame(seq: int = 0) -> Dict[str, Any]:
         "season5_missions": len(season5_contracts),
         "season5_mission_ids": [c.contract_id for c in season5_contracts],
         "season5_mission_details": [asdict(c) for c in season5_contracts],
+        "season6_missions": len(season6_contracts),
+        "season6_mission_ids": [c.contract_id for c in season6_contracts],
+        "season6_mission_details": [asdict(c) for c in season6_contracts],
         "active_mission": {
             "contract_id": active.contract_id,
             "mission_codename": active.mission_codename,
@@ -1579,6 +2711,7 @@ def build_georing_3d_topology_snapshot() -> Dict[str, Any]:
         "season3_missions": [asdict(c) for c in SEASON_3_HF_BOUNTY_CONTRACTS],
         "season4_missions": [asdict(c) for c in SEASON_4_HF_BOUNTY_CONTRACTS],
         "season5_missions": [asdict(c) for c in SEASON_5_HF_BOUNTY_CONTRACTS],
+        "season6_missions": [asdict(c) for c in SEASON_6_HF_BOUNTY_CONTRACTS],
     }
 
 
@@ -1718,12 +2851,16 @@ def run_hf_hack_mining_game(
         contracts = SEASON_4_HF_BOUNTY_CONTRACTS
     elif s_norm in ("5", "s5", "season5"):
         contracts = SEASON_5_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("6", "s6", "season6"):
+        contracts = SEASON_6_HF_BOUNTY_CONTRACTS
     elif s_norm in ("s1-s3", "full", "all_seasons"):
         contracts = FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     elif s_norm in ("s1-s4", "all_seasons_s4"):
         contracts = SEASON_4_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     elif s_norm in ("s1-s5", "all_seasons_s5"):
         contracts = SEASON_5_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
+    elif s_norm in ("s1-s6", "all_seasons_s6"):
+        contracts = SEASON_6_FULL_CAMPAIGN_HF_BOUNTY_CONTRACTS
     else:
         contracts = ALL_HF_BOUNTY_CONTRACTS
     num_missions = len(contracts)
@@ -1742,9 +2879,12 @@ def run_hf_hack_mining_game(
         )
     )
 
-    # Pre-cache Hugging Face dataset subsets before CUDA model load
+    # Pre-cache dataset subsets before CUDA model load. Season 4-6 missions ship a
+    # curated offline corpus so the campaign remains playable without network access.
     for c in contracts:
-        _ = fetch_hf_domain_subset(dataset_id=c.dataset_id, num_samples=36)
+        _ = fetch_offline_curated_corpus(c.dataset_id, num_samples=36) or fetch_hf_domain_subset(
+            dataset_id=c.dataset_id, num_samples=36
+        )
     gc.collect()
 
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=hf_token)
@@ -1779,7 +2919,9 @@ def run_hf_hack_mining_game(
         )
 
         # Step 1: Gamers Scan & Curate High-Signal Training Shards from Hugging Face
-        raw_samples = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=36)
+        raw_samples = fetch_offline_curated_corpus(
+            contract.dataset_id, num_samples=36
+        ) or fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=36)
         storage_receipts: List[StorageProofReceipt] = []
         gamer_shards: Dict[str, List[str]] = {}
         gamer_shard_cids: Dict[str, str] = {}
@@ -2716,11 +3858,11 @@ def execute_interactive_lora_micro_forge(
 ) -> Dict[str, Any]:
     """Execute a fast interactive QLoRA Micro-Forge burst & Steam Rich Presence broadcast from the Web HUD."""
     ensure_local_drive_caches()
-    contract_map = {c.contract_id: c for c in SEASON_5_EXTENDED_HF_BOUNTY_CONTRACTS}
+    contract_map = {c.contract_id: c for c in SEASON_6_EXTENDED_HF_BOUNTY_CONTRACTS}
     contract = contract_map.get(contract_id, SEASON_2_HF_BOUNTY_CONTRACTS[0])
 
-    # Season 4 Missions 13-16 and Season 5 Missions 17-20 ship curated offline
-    # corpora (no Hugging Face round-trip required).
+    # Season 4-6 missions ship curated offline corpora (no Hugging Face
+    # round-trip required).
     rows = fetch_offline_curated_corpus(contract.dataset_id, num_samples=12)
     if not rows:
         rows = fetch_hf_domain_subset(dataset_id=contract.dataset_id, num_samples=12)
@@ -2765,6 +3907,21 @@ def execute_interactive_lora_micro_forge(
                     if "HF_COOP_RAID_COMMANDER" not in unlocked:
                         unlocked.append("HF_COOP_RAID_COMMANDER")
                     g["achievements_unlocked"] = unlocked
+                if contract.season == 6:
+                    # Season 6 Agent Arena missions feed the autonomous arena badges.
+                    g["season6_missions_forged"] = int(g.get("season6_missions_forged", 0)) + 1
+                    unlocked = list(g.get("achievements_unlocked", []))
+                    if (
+                        int(g.get("season6_missions_forged", 0)) >= 4
+                        and "S6_AGENT_ARENA_CHAMPION" not in unlocked
+                    ):
+                        unlocked.append("S6_AGENT_ARENA_CHAMPION")
+                    if (
+                        contract.domain_expert == "Lean4_Agent_Autoformalizer"
+                        and "S6_LEAN4_AUTOFORMALIZER" not in unlocked
+                    ):
+                        unlocked.append("S6_LEAN4_AUTOFORMALIZER")
+                    g["achievements_unlocked"] = unlocked
                 break
         data["leaderboard"] = sorted(
             data.get("leaderboard", []),
@@ -2799,6 +3956,11 @@ def execute_interactive_lora_micro_forge(
         "steam_rich_presence": rp.status_string,
         "rich_presence_hmac": rp.rich_presence_hmac,
         "guild_wars_badge": "HF_COOP_RAID_COMMANDER" if contract.season == 5 else "",
+        "agent_arena_badge": (
+            "S6_LEAN4_AUTOFORMALIZER"
+            if contract.domain_expert == "Lean4_Agent_Autoformalizer"
+            else ("S6_AGENT_ARENA_CHAMPION" if contract.season == 6 else "")
+        ),
     }
 
 

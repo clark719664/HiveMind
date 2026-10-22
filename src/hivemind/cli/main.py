@@ -240,8 +240,23 @@ def main(argv: list[str] | None = None) -> int:
     p_game.add_argument(
         "--season",
         default="all",
-        choices=["1", "2", "all"],
-        help="Campaign season to run: '1' (3 missions), '2' (3 new missions), or 'all' (6 missions + 6-Expert MoE)",
+        choices=[
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "s1-s3",
+            "s1-s4",
+            "s1-s5",
+            "s1-s6",
+            "all",
+        ],
+        help=(
+            "Campaign season to run: '1'/'2' (6 missions), '3'..'6' (frontier waves), "
+            "'s1-s3'..'s1-s6' (cumulative), or 'all' (Season 1+2 + 6-Expert MoE)"
+        ),
     )
 
     p_hud = sub.add_parser(
