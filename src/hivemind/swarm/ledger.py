@@ -65,7 +65,7 @@ class InferenceSettlementReceipt:
     expert_provider_nodes: List[str]
     domain_expert: str
     verified_tokens: int
-    rtt_speedup: float
+    rtt_speedup: Optional[float]
     fee_paid_hive: float
 
 
@@ -295,7 +295,7 @@ class HiveSwarmLedger:
         provider_node_ids: List[str],
         domain_expert: str,
         verified_tokens: int,
-        rtt_speedup: float,
+        rtt_speedup: Optional[float],
         rate_per_token: float = 0.005,
     ) -> InferenceSettlementReceipt:
         # Rule LEDGER-01: Prevent negative token / negative rate balance minting exploit

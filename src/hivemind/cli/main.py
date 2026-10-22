@@ -224,7 +224,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p_astro = sub.add_parser(
         "run-astro-experiments",
-        help="Execute 4 sequential Astrophysics Planet & Star Classification QLoRA Swarm experiments on real Hugging Face datasets + 4-Expert MoE Hot-Plug",
+        help="Run 4 sequential single-process astrophysics QLoRA swarm demos (HF rows when reachable, curated fallback text otherwise) + 4-expert MoE hot-plug; reports training-row perplexity, not classification accuracy",
     )
     p_astro.add_argument("--model-id", default="Qwen/Qwen2.5-0.5B", help="Hugging Face model ID")
     p_astro.add_argument("--lora-rank", type=int, default=8, help="LoRA rank r")
