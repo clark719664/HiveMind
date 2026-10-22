@@ -886,6 +886,8 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
       const si04 = s.si04_reputation_weighted_ties || {{}};
       const frontier = (s.si05_pareto_strategy_frontier || []).map(p =>
         `  ${{p.strategy_profile}} - loss ${{p.holdout_loss}} | ${{p.parallel_speedup_x}}x | ${{p.hive_per_gpu_hour}} HIVE/GPU-hr | overhead ${{p.comm_overhead_pct}}% | pareto=${{p.pareto_optimal}}`).join('\\n');
+      const ef21 = ((s.ef21_live_telemetry || {{}}).workers || []).map(w =>
+        `  ${{w.worker_id}}/${{w.branch_name}} step ${{w.outer_step}} | residual ${{w.residual_norm}} | raw ${{w.raw_delta_norm}} | contraction ${{w.contraction_factor}} | clips ${{w.clip_events}}`).join('\\n') || '  (no worker has posted EF21 telemetry yet)';
       term.textContent =
         `[STRATEGY OPTIMIZER] ${{s.schema_version}} | seq ${{s.sequence}} | ${{s.strategy_ids.join(' ')}}\\n` +
         `[SI-01 FISHER RANKS] ${{JSON.stringify(si01.allocated_ranks_by_domain || {{}})}} | budget conserved=${{si01.vram_budget_conserved}}\\n` +
@@ -893,6 +895,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
         `[SI-03 CADENCE] H=${{link.recommended_inner_steps_H}} | top-k ${{link.recommended_topk_ratio}} | overhead ${{(Number(link.communication_overhead_ratio || 0) * 100).toFixed(2)}}% | SLA=${{link.sla_8pct_satisfied}}\\n` +
         `[SI-04 REPUTATION TIES] uniform ${{si04.uniform_ties_holdout_loss}} -> weighted ${{si04.reputation_weighted_ties_holdout_loss}} (improved=${{si04.reputation_weighted_beats_uniform}})\\n` +
         `[SI-05 PARETO FRONTIER]\\n${{frontier}}\\n` +
+        `[EF21 RESIDUALS] self-reported by workers\\n${{ef21}}\\n` +
         `[HONESTY] ${{(s.honesty || {{}}).note || ''}}`;
     }}
 

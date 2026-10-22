@@ -10,6 +10,8 @@ Integrates:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
+
 import torch
 import torch.nn as nn
 
@@ -52,6 +54,7 @@ class HiveMindWorkerNode:
         self.error_feedback_stale_decay = error_feedback_stale_decay
         self.error_feedback_max_residual_norm = error_feedback_max_residual_norm
         self.error_feedback_buffers: dict[str, EF21DiLoCoErrorFeedbackBuffer] = {}
+        self.last_ef21_telemetry: dict[str, dict[str, Any]] = {}
 
     def _error_feedback_for(self, branch_name: str, topk_ratio: float) -> EF21DiLoCoErrorFeedbackBuffer | None:
         """Return this worker's residual buffer for `branch_name`, creating it on first use.
@@ -70,6 +73,29 @@ class HiveMindWorkerNode:
             )
             self.error_feedback_buffers[branch_name] = buffer
         return buffer
+
+    def _record_ef21_telemetry(self, result: InnerLoopResult) -> None:
+        """Store the measured residual state of the branch this upload came from."""
+        if result.error_feedback_residual_norm is None:
+            return
+        buffer = self.error_feedback_buffers[result.branch_name]
+        raw_norm = sum(float(t.detach().float().pow(2).sum().item()) for t in result.raw_delta.values()) ** 0.5
+        residual = float(result.error_feedback_residual_norm)
+        self.last_ef21_telemetry[result.branch_name] = {
+            "worker_id": self.worker_id,
+            "branch_name": result.branch_name,
+            "outer_step": int(result.outer_step),
+            "residual_norm": round(residual, 8),
+            "raw_delta_norm": round(raw_norm, 8),
+            "contraction_factor": round(residual / raw_norm, 8) if raw_norm > 0.0 else None,
+            "clip_events": int(buffer.clip_events),
+            "topk_ratio": float(buffer.topk_ratio),
+            "stale_decay": float(buffer.stale_decay),
+        }
+
+    def ef21_telemetry(self) -> list[dict[str, Any]]:
+        """Measured error-feedback state per branch, as of this worker's last compressed upload."""
+        return [dict(entry) for entry in self.last_ef21_telemetry.values()]
 
     def execute_workunit(
         self,
@@ -114,6 +140,7 @@ class HiveMindWorkerNode:
             emergency_checkpoint_dir=ARTIFACTS_ROOT / "emergency_checkpoints",
             error_feedback=self._error_feedback_for(workunit.branch_name, topk_ratio),
         )
+        self._record_ef21_telemetry(result)
 
         # Optional Byzantine attack injection for Multi-Krum & Spot-Check testing
         if byzantine_poison_scale is not None:
@@ -150,7 +177,7 @@ class HiveMindWorkerNode:
         self.daemon.resolve_seti_agent_state(consumer_query_active=False)
         load_lora_state_dict(self.model, global_lora_state)
 
-        return run_diloco_inner_loop(
+        result = run_diloco_inner_loop(
             model=self.model,
             token_sequences=token_sequences,
             worker_id=self.worker_id,
@@ -168,4 +195,6 @@ class HiveMindWorkerNode:
             emergency_checkpoint_dir=ARTIFACTS_ROOT / "emergency_checkpoints",
             error_feedback=self._error_feedback_for(domain_name, topk_ratio),
         )
+        self._record_ef21_telemetry(result)
+        return result
 

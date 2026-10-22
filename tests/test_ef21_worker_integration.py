@@ -276,3 +276,39 @@ def test_inner_loop_rejects_topk_ratio_that_disagrees_with_buffer(tiny_qwen_bund
             topk_ratio=0.2,
             error_feedback=EF21DiLoCoErrorFeedbackBuffer(topk_ratio=0.05),
         )
+
+
+def test_worker_records_measured_ef21_telemetry_per_branch(tiny_qwen_bundle, tmp_path: Path) -> None:
+    from hivemind.swarm.strategy_optimizer import StrategyOptimizerTelemetryEngine
+
+    bundle, init_lora, base_sha = tiny_qwen_bundle
+    plain = _worker(bundle, "w-ef-off")
+    plain.execute_workunit(_workunit(tmp_path, base_sha, "Code", 1, 51), _clone(init_lora), topk_ratio=TOPK)
+    assert plain.ef21_telemetry() == []
+
+    worker = _worker(bundle, "w-ef-tele", enable_error_feedback=True)
+    res = worker.execute_workunit(
+        _workunit(tmp_path, base_sha, "Code", 2, 52), _clone(init_lora), topk_ratio=TOPK
+    )
+    honest_norm = sum(float(t.pow(2).sum()) for t in res.raw_delta.values()) ** 0.5
+    poisoned = worker.execute_workunit(
+        _workunit(tmp_path, base_sha, "STEM", 2, 53),
+        _clone(init_lora),
+        topk_ratio=TOPK,
+        byzantine_poison_scale=10.0,
+    )
+    poisoned_norm = sum(float(t.pow(2).sum()) for t in poisoned.raw_delta.values()) ** 0.5
+
+    by_branch = {e["branch_name"]: e for e in worker.ef21_telemetry()}
+    code = by_branch["Code"]
+    assert code["worker_id"] == "w-ef-tele" and code["outer_step"] == 2
+    assert code["residual_norm"] == pytest.approx(res.error_feedback_residual_norm, abs=1e-6)
+    assert code["raw_delta_norm"] == pytest.approx(honest_norm, rel=1e-5)
+    assert code["contraction_factor"] == pytest.approx(code["residual_norm"] / code["raw_delta_norm"], rel=1e-5)
+    assert code["topk_ratio"] == TOPK and code["clip_events"] == 0
+    # Telemetry is taken before the Byzantine test hook rewrites raw_delta.
+    assert by_branch["STEM"]["raw_delta_norm"] < poisoned_norm
+
+    engine = StrategyOptimizerTelemetryEngine(seed=2026)
+    served = engine.ingest_worker_ef21(worker)["ef21_live_telemetry"]["workers"]
+    assert {(w["worker_id"], w["branch_name"]) for w in served} == {("w-ef-tele", "Code"), ("w-ef-tele", "STEM")}
