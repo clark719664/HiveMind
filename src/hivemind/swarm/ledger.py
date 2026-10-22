@@ -26,7 +26,7 @@ import math
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from hivemind.security.swarm_runtime_hardening import SwarmSecurityViolationError
 
@@ -412,3 +412,207 @@ class HiveSwarmLedger:
                 "settlement_history": [asdict(s) for s in self.settlement_history],
             }
             self.ledger_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+@dataclass
+class IndemnityReceipt:
+    """HM-S6-03: settlement record for one consumer indemnified after a proven batch fault."""
+
+    fault_id: str
+    commitment_root: str
+    step: int
+    layer: int
+    fault_reason: str
+    faulty_peer_id: str
+    faulty_guild_id: str
+    consumer_node_id: str
+    claimed_hive: float
+    paid_from_peer_stake: float
+    paid_from_reserve: float
+    indemnified_hive: float
+    shortfall_hive: float
+    stake_surplus_to_reserve: float
+    settlement_ms: float
+
+
+class GuildSlashingInsurancePool:
+    """HM-S6-03: cross-guild stake pool that indemnifies consumers when a batch fault is proven.
+
+    Peers bond `$HIVE` stake and guilds fund a shared reserve; both are transfers out of
+    `HiveSwarmLedger.balances`, so nothing is minted and
+    `ledger.total_circulating_supply() + pool.total_holdings()` is conserved. A claim is paid
+    only after the pool re-runs the auditor's batch challenge itself, first from the faulty
+    peer's slashed stake and then from the shared reserve. Settlement is a local, synchronous
+    ledger update: `IndemnityReceipt.settlement_ms` measures it, and there is no on-chain step.
+    """
+
+    def __init__(self, ledger: HiveSwarmLedger, max_claim_hive: float = 1_000.0) -> None:
+        self.ledger = ledger
+        self.max_claim_hive = self._require_amount(max_claim_hive, "INVALID_CLAIM_CAP")
+        self.peer_stakes: Dict[str, float] = {}
+        self.peer_guilds: Dict[str, str] = {}
+        self.reserve_hive = 0.0
+        self.guild_reserve_contributions: Dict[str, float] = {}
+        self.receipts: Dict[str, IndemnityReceipt] = {}
+
+    @staticmethod
+    def _require_amount(amount_hive: float, category: str) -> float:
+        try:
+            value = float(amount_hive)
+        except (TypeError, ValueError):
+            value = float("nan")
+        if not math.isfinite(value) or value <= 0.0:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", category, f"amount ({amount_hive}) must be finite and > 0.0"
+            )
+        return round(value, 6)
+
+    def _debit(self, node_id: str, amount: float) -> None:
+        if not str(node_id).strip():
+            raise SwarmSecurityViolationError("LEDGER-05", "EMPTY_NODE_ID", "node_id must be non-empty")
+        if node_id in self.ledger.slashed_registry:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", "SLASHED_NODE_BLOCKED", f"Node '{node_id}' is in the slashed_registry."
+            )
+        balance = self.ledger.balances.get(node_id, 0.0)
+        if balance < amount:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05",
+                "INSUFFICIENT_BALANCE",
+                f"Node '{node_id}' holds {balance} $HIVE, needs {amount}.",
+            )
+        self.ledger.balances[node_id] = round(balance - amount, 6)
+
+    def bond_stake(self, guild_id: str, peer_id: str, amount_hive: float) -> float:
+        """Move `amount_hive` from `peer_id`'s balance into its bonded stake."""
+        if not str(guild_id).strip():
+            raise SwarmSecurityViolationError("LEDGER-05", "EMPTY_GUILD_ID", "guild_id must be non-empty")
+        bonded_guild = self.peer_guilds.get(peer_id)
+        if bonded_guild is not None and bonded_guild != guild_id:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05",
+                "PEER_ALREADY_BONDED_ELSEWHERE",
+                f"Peer '{peer_id}' is bonded to guild '{bonded_guild}'.",
+            )
+        amount = self._require_amount(amount_hive, "NON_POSITIVE_OR_NON_FINITE_STAKE")
+        self._debit(peer_id, amount)
+        self.peer_guilds[peer_id] = guild_id
+        self.peer_stakes[peer_id] = round(self.peer_stakes.get(peer_id, 0.0) + amount, 6)
+        self.ledger._persist()
+        return self.peer_stakes[peer_id]
+
+    def contribute_reserve(self, guild_id: str, contributor_id: str, amount_hive: float) -> float:
+        """Move `amount_hive` from `contributor_id`'s balance into the shared cross-guild reserve."""
+        if not str(guild_id).strip():
+            raise SwarmSecurityViolationError("LEDGER-05", "EMPTY_GUILD_ID", "guild_id must be non-empty")
+        amount = self._require_amount(amount_hive, "NON_POSITIVE_OR_NON_FINITE_RESERVE")
+        self._debit(contributor_id, amount)
+        self.reserve_hive = round(self.reserve_hive + amount, 6)
+        self.guild_reserve_contributions[guild_id] = round(
+            self.guild_reserve_contributions.get(guild_id, 0.0) + amount, 6
+        )
+        self.ledger._persist()
+        return self.reserve_hive
+
+    def total_holdings(self) -> float:
+        """`$HIVE` held by the pool: every bonded stake plus the shared reserve."""
+        return round(sum(self.peer_stakes.values()) + self.reserve_hive, 6)
+
+    def indemnify_proven_fault(
+        self,
+        auditor: Any,
+        commitment: Any,
+        opening: Any,
+        claimed_activation: Any,
+        recomputed_activation: Any,
+        consumer_node_id: str,
+        claimed_hive: float,
+    ) -> IndemnityReceipt:
+        """Re-verify one challenged leaf with `auditor`, then slash the peer and pay the consumer.
+
+        One indemnity is paid per batch commitment root, however many of its leaves are bad.
+        """
+        verdict = auditor.verify_speculative_batch_challenge(
+            commitment, opening, claimed_activation, recomputed_activation
+        )
+        if not verdict.get("fault_proven"):
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", "FAULT_NOT_PROVEN", "The challenged leaf opened and passed the audit."
+            )
+        fault_id = hashlib.sha256(
+            f"hivemind/opoi-batch/fault|{commitment.root}".encode("ascii")
+        ).hexdigest()
+        if fault_id in self.receipts:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", "DUPLICATE_FAULT_CLAIM", f"Batch {commitment.root[:16]} was already indemnified."
+            )
+        peer_id = str(commitment.peer_id)
+        if peer_id not in self.peer_stakes:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", "UNBONDED_PEER", f"Peer '{peer_id}' has no bonded stake in this pool."
+            )
+        if not str(consumer_node_id).strip():
+            raise SwarmSecurityViolationError("LEDGER-05", "EMPTY_NODE_ID", "consumer_node_id must be non-empty")
+        if consumer_node_id == peer_id:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", "SELF_INDEMNIFICATION_BLOCKED", "A peer cannot claim against its own fault."
+            )
+        if consumer_node_id in self.ledger.slashed_registry:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05", "SLASHED_NODE_BLOCKED", f"Node '{consumer_node_id}' is in the slashed_registry."
+            )
+        claimed = self._require_amount(claimed_hive, "NON_POSITIVE_OR_NON_FINITE_CLAIM")
+        if claimed > self.max_claim_hive:
+            raise SwarmSecurityViolationError(
+                "LEDGER-05",
+                "CLAIM_EXCEEDS_COVERAGE_CAP",
+                f"claimed {claimed} $HIVE exceeds the {self.max_claim_hive} $HIVE coverage cap.",
+            )
+
+        started = time.perf_counter()
+        stake = self.peer_stakes.pop(peer_id)
+        from_stake = round(min(stake, claimed), 6)
+        from_reserve = round(min(self.reserve_hive, claimed - from_stake), 6)
+        surplus = round(stake - from_stake, 6)
+        self.reserve_hive = round(self.reserve_hive - from_reserve + surplus, 6)
+        paid = round(from_stake + from_reserve, 6)
+        self.ledger.balances[consumer_node_id] = round(
+            self.ledger.balances.get(consumer_node_id, 0.0) + paid, 6
+        )
+        if peer_id not in self.ledger.slashed_registry:
+            self.ledger.slashed_registry.append(peer_id)
+        self.ledger.reputation_scores[peer_id] = 0
+        settlement_ms = (time.perf_counter() - started) * 1000.0
+
+        receipt = IndemnityReceipt(
+            fault_id=fault_id,
+            commitment_root=str(commitment.root),
+            step=int(verdict["step"]),
+            layer=int(verdict["layer"]),
+            fault_reason=str(verdict.get("fault_reason")),
+            faulty_peer_id=peer_id,
+            faulty_guild_id=self.peer_guilds.get(peer_id, ""),
+            consumer_node_id=consumer_node_id,
+            claimed_hive=claimed,
+            paid_from_peer_stake=from_stake,
+            paid_from_reserve=from_reserve,
+            indemnified_hive=paid,
+            shortfall_hive=round(claimed - paid, 6),
+            stake_surplus_to_reserve=surplus,
+            settlement_ms=round(settlement_ms, 4),
+        )
+        self.receipts[fault_id] = receipt
+        self.ledger._persist()
+        return receipt
+
+    def snapshot(self) -> Dict[str, Any]:
+        """JSON-serializable view of stakes, reserve and settled indemnities."""
+        return {
+            "peer_stakes": dict(self.peer_stakes),
+            "peer_guilds": dict(self.peer_guilds),
+            "reserve_hive": self.reserve_hive,
+            "guild_reserve_contributions": dict(self.guild_reserve_contributions),
+            "total_holdings": self.total_holdings(),
+            "max_claim_hive": self.max_claim_hive,
+            "indemnities": [asdict(r) for r in self.receipts.values()],
+        }

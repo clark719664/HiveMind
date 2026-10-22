@@ -739,6 +739,98 @@ class MerkleInclusionProof:
         }
 
 
+# HM-S6-03: batched speculative activation commitments. Hash-based (SHA-256) and binding, not hiding:
+# an opening reveals the activation it opens, so this is not a zero-knowledge proof.
+_BATCH_DOMAIN = b"hivemind/opoi-batch/v1"
+
+
+def _batch_leaf_digest(step: int, layer: int, layer_leaf_hex: str) -> bytes:
+    return hashlib.sha256(
+        b"\x00"
+        + _BATCH_DOMAIN
+        + int(step).to_bytes(4, "big")
+        + int(layer).to_bytes(4, "big")
+        + bytes.fromhex(layer_leaf_hex)
+    ).digest()
+
+
+def _batch_node_digest(left: bytes, right: bytes) -> bytes:
+    return hashlib.sha256(b"\x01" + left + right).digest()
+
+
+def _batch_root_hex(peer_id: str, num_steps: int, num_layers: int, top: bytes) -> str:
+    peer = peer_id.encode("utf-8")
+    return hashlib.sha256(
+        b"\x02"
+        + _BATCH_DOMAIN
+        + len(peer).to_bytes(4, "big")
+        + peer
+        + int(num_steps).to_bytes(4, "big")
+        + int(num_layers).to_bytes(4, "big")
+        + top
+    ).hexdigest()
+
+
+def _batch_level_sizes(leaf_count: int) -> List[int]:
+    sizes = [leaf_count]
+    while sizes[-1] > 1:
+        sizes.append((sizes[-1] + 1) // 2)
+    return sizes
+
+
+@dataclass(frozen=True)
+class SpeculativeBatchCommitment:
+    """HM-S6-03: one root committing every layer of every speculative step in a batch.
+
+    The root binds the peer id, the batch shape (`num_steps` x `num_layers`) and every
+    position-tagged FP8 + FP16-scale leaf, so the commitment is 32 bytes whatever `gamma` is.
+    """
+
+    peer_id: str
+    root: str
+    num_steps: int
+    num_layers: int
+
+    @property
+    def leaf_count(self) -> int:
+        return self.num_steps * self.num_layers
+
+    @property
+    def max_opening_siblings(self) -> int:
+        """Upper bound on sibling hashes in one opening: `ceil(log2(num_steps * num_layers))`."""
+        return len(_batch_level_sizes(self.leaf_count)) - 1
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "peer_id": self.peer_id,
+            "root": self.root,
+            "num_steps": self.num_steps,
+            "num_layers": self.num_layers,
+            "leaf_count": self.leaf_count,
+            "max_opening_siblings": self.max_opening_siblings,
+        }
+
+
+@dataclass(frozen=True)
+class SpeculativeBatchOpening:
+    """HM-S6-03: sibling path opening one `(step, layer)` leaf of a batch commitment."""
+
+    step: int
+    layer: int
+    siblings: Tuple[str, ...]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"step": self.step, "layer": self.layer, "siblings": list(self.siblings)}
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SpeculativeBatchOpening":
+        return cls(
+            step=int(data["step"]),
+            layer=int(data["layer"]),
+            siblings=tuple(str(s) for s in data["siblings"]),
+        )
+
+
 class OptimisticProofOfInferenceAuditor:
     """M4: Probabilistic 5% Optimistic Proof-of-Inference (OPoI) Activation Auditor & Merkle Dispute Game (`HM-M4-02`).
 
@@ -762,6 +854,8 @@ class OptimisticProofOfInferenceAuditor:
         self._merkle_leaves: List[str] = []
         self._merkle_levels: List[List[str]] = []
         self.merkle_root: str = ""
+        self._batch_levels: List[List[bytes]] = []
+        self._batch_commitment: Optional[SpeculativeBatchCommitment] = None
 
     def should_spot_audit_token(self, rng_seed: int | None = None) -> bool:
         rng = random.Random(rng_seed)
@@ -1039,6 +1133,222 @@ class OptimisticProofOfInferenceAuditor:
             "dual_bound_passed": dual_bound_passed,
             "zk_opoi_passed": dual_bound_passed,
             "slashed": not dual_bound_passed,
+        }
+
+    # ------------------------------------------------------------------
+    # HM-S6-03: Batched commitments over gamma speculative token-tree steps
+    # ------------------------------------------------------------------
+
+    def commit_speculative_batch(
+        self,
+        peer_id: str,
+        step_activations: Sequence[Sequence[torch.Tensor]],
+    ) -> SpeculativeBatchCommitment:
+        """Commit every layer activation of every speculative step under one Merkle root.
+
+        Leaves are tagged with their `(step, layer)` position and domain-separated from
+        internal nodes; a lone node at the end of a level is carried up unchanged.
+        """
+        if not str(peer_id).strip():
+            raise ValueError("peer_id must be non-empty")
+        if not step_activations:
+            raise ValueError("commit_speculative_batch() requires at least one speculative step")
+        num_layers = len(step_activations[0])
+        if num_layers == 0:
+            raise ValueError("every speculative step must commit at least one layer")
+        if any(len(layers) != num_layers for layers in step_activations):
+            raise ValueError("every speculative step must commit the same number of layers")
+
+        level: List[bytes] = [
+            _batch_leaf_digest(step, layer, self.layer_commitment_hash(activation))
+            for step, layers in enumerate(step_activations)
+            for layer, activation in enumerate(layers)
+        ]
+        levels = [level]
+        while len(level) > 1:
+            level = [
+                _batch_node_digest(level[i], level[i + 1]) if i + 1 < len(level) else level[i]
+                for i in range(0, len(level), 2)
+            ]
+            levels.append(level)
+
+        commitment = SpeculativeBatchCommitment(
+            peer_id=str(peer_id),
+            root=_batch_root_hex(str(peer_id), len(step_activations), num_layers, levels[-1][0]),
+            num_steps=len(step_activations),
+            num_layers=num_layers,
+        )
+        self._batch_levels = levels
+        self._batch_commitment = commitment
+        return commitment
+
+    def open_speculative_batch(self, step: int, layer: int) -> SpeculativeBatchOpening:
+        """Prover side: the sibling path for one `(step, layer)` leaf of the last batch."""
+        commitment = self._batch_commitment
+        if commitment is None:
+            raise ValueError("No batch commitment exists: call commit_speculative_batch() first.")
+        if not (0 <= step < commitment.num_steps and 0 <= layer < commitment.num_layers):
+            raise IndexError(
+                f"(step={step}, layer={layer}) is outside the committed "
+                f"{commitment.num_steps}x{commitment.num_layers} batch"
+            )
+        index = step * commitment.num_layers + layer
+        siblings: List[str] = []
+        for level in self._batch_levels[:-1]:
+            sibling = index ^ 1
+            if sibling < len(level):
+                siblings.append(level[sibling].hex())
+            index >>= 1
+        return SpeculativeBatchOpening(step=step, layer=layer, siblings=tuple(siblings))
+
+    def verify_speculative_batch_opening(
+        self,
+        commitment: SpeculativeBatchCommitment,
+        opening: SpeculativeBatchOpening,
+        claimed_activation: torch.Tensor,
+    ) -> bool:
+        """Recompute the root from `claimed_activation` at the opened position.
+
+        Sibling order and path length come from the position and the committed batch
+        shape, never from the opening, so a path for one leaf cannot open another.
+        """
+        if not (
+            0 <= opening.step < commitment.num_steps and 0 <= opening.layer < commitment.num_layers
+        ):
+            return False
+        index = opening.step * commitment.num_layers + opening.layer
+        try:
+            siblings = [bytes.fromhex(s) for s in opening.siblings]
+        except ValueError:
+            return False
+        if any(len(s) != 32 for s in siblings):
+            return False
+
+        node = _batch_leaf_digest(
+            opening.step, opening.layer, self.layer_commitment_hash(claimed_activation)
+        )
+        used = 0
+        for size in _batch_level_sizes(commitment.leaf_count)[:-1]:
+            if index ^ 1 < size:
+                if used == len(siblings):
+                    return False
+                sibling = siblings[used]
+                used += 1
+                node = _batch_node_digest(sibling, node) if index & 1 else _batch_node_digest(node, sibling)
+            index >>= 1
+        if used != len(siblings):
+            return False
+        expected = _batch_root_hex(
+            commitment.peer_id, commitment.num_steps, commitment.num_layers, node
+        )
+        return hmac.compare_digest(expected, commitment.root)
+
+    @staticmethod
+    def derive_batch_challenges(
+        commitment: SpeculativeBatchCommitment,
+        num_challenges: int,
+        verifier_nonce: str,
+    ) -> List[Tuple[int, int]]:
+        """Distinct `(step, layer)` positions to audit, derived from the root and a nonce.
+
+        The nonce must be chosen by the verifier after the commitment is received; positions
+        derived from the root alone would let a prover grind roots until its bad leaves are
+        skipped. With `k` distinct positions out of `n` leaves of which `b` are bad, every bad
+        leaf is missed with probability `C(n - b, k) / C(n, k)`.
+        """
+        if not str(verifier_nonce):
+            raise ValueError("verifier_nonce must be non-empty")
+        if not 1 <= int(num_challenges) <= commitment.leaf_count:
+            raise ValueError(
+                f"num_challenges must be within [1, {commitment.leaf_count}], got {num_challenges}"
+            )
+        chosen: List[int] = []
+        counter = 0
+        while len(chosen) < int(num_challenges):
+            digest = hashlib.sha256(
+                b"hivemind/opoi-batch/challenge|"
+                + commitment.root.encode("ascii")
+                + b"|"
+                + str(verifier_nonce).encode("utf-8")
+                + b"|"
+                + counter.to_bytes(8, "big")
+            ).digest()
+            counter += 1
+            index = int.from_bytes(digest[:8], "big") % commitment.leaf_count
+            if index not in chosen:
+                chosen.append(index)
+        return [divmod(index, commitment.num_layers) for index in chosen]
+
+    def verify_speculative_batch_challenge(
+        self,
+        commitment: SpeculativeBatchCommitment,
+        opening: SpeculativeBatchOpening,
+        claimed_activation: torch.Tensor,
+        recomputed_activation: torch.Tensor,
+    ) -> Dict[str, Any]:
+        """Check one challenged leaf: it must open the root and pass the dual-bound audit."""
+        included = self.verify_speculative_batch_opening(commitment, opening, claimed_activation)
+        verdict: Dict[str, Any] = {
+            "peer_id": commitment.peer_id,
+            "commitment_root": commitment.root,
+            "step": opening.step,
+            "layer": opening.layer,
+            "included": included,
+            "opening_siblings": len(opening.siblings),
+            "zero_knowledge": False,
+        }
+        if not included:
+            verdict.update(dual_bound_passed=False, fault_proven=True, fault_reason="opening_rejected")
+            return verdict
+        try:
+            audit = self.audit_quantized_activation(
+                commitment.peer_id, claimed_activation, recomputed_activation
+            )
+        except ValueError:
+            verdict.update(dual_bound_passed=False, fault_proven=True, fault_reason="shape_mismatch")
+            return verdict
+        passed = bool(audit["dual_bound_passed"])
+        verdict.update(
+            cosine_similarity=audit["cosine_similarity"],
+            normalized_linf=audit["normalized_linf"],
+            dual_bound_passed=passed,
+            fault_proven=not passed,
+            fault_reason=None if passed else "activation_out_of_bounds",
+        )
+        return verdict
+
+    def verify_speculative_batch(
+        self,
+        commitment: SpeculativeBatchCommitment,
+        challenges: Sequence[Tuple[int, int]],
+        responses: Sequence[Tuple[SpeculativeBatchOpening, torch.Tensor, torch.Tensor]],
+    ) -> Dict[str, Any]:
+        """Verify a whole batch against one root: one response per challenged position.
+
+        `responses` holds `(opening, claimed_activation, recomputed_activation)` and must
+        answer exactly the challenged positions, in order.
+        """
+        if [(int(s), int(l)) for s, l in challenges] != [(o.step, o.layer) for o, _, _ in responses]:
+            raise ValueError(
+                "responses must answer exactly the challenged (step, layer) positions, in order"
+            )
+        verdicts = [
+            self.verify_speculative_batch_challenge(commitment, opening, claimed, recomputed)
+            for opening, claimed, recomputed in responses
+        ]
+        faults = [v for v in verdicts if v["fault_proven"]]
+        return {
+            "peer_id": commitment.peer_id,
+            "commitment_root": commitment.root,
+            "commitment_bytes": 32,
+            "num_steps": commitment.num_steps,
+            "num_layers": commitment.num_layers,
+            "positions_checked": len(verdicts),
+            "siblings_checked": sum(v["opening_siblings"] for v in verdicts),
+            "batch_passed": not faults,
+            "faults": faults,
+            "verdicts": verdicts,
+            "zero_knowledge": False,
         }
 
     def run_merkle_fraud_dispute_game(
