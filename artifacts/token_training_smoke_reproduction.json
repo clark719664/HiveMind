@@ -1,0 +1,454 @@
+{
+  "comparison": {
+    "base_model_sha256": true,
+    "data": true,
+    "holdout": true,
+    "implementation_sha256": true,
+    "training_step_losses_equal": true,
+    "transfer": true,
+    "versions": true
+  },
+  "evidence_scope": "random_initialized_tiny_model_cpu_smoke_not_pretrained_capability",
+  "reproduction": "two independent Python processes in a fresh virtual environment installed from documented requirements",
+  "runs": [
+    {
+      "attention_implementation": "eager",
+      "base_model_serialized_bytes": 105272,
+      "base_model_sha256": "a20fe964f665dd254732deb608e704fb0e43d3dddae5ebd191f791d0bbfda415",
+      "data": {
+        "dataset_id": "hivemind/rust-text-smoke-v1",
+        "fixture_sha256": "c23620e24a3dda16d83b6d0e2bbaa053bef8ae0966d8950f9214d0e9459a0444",
+        "holdout_ids": [
+          "holdout-00",
+          "holdout-01",
+          "holdout-02"
+        ],
+        "sequence_length": 128,
+        "source_revision": "84fa03c06664fbf1fa357894f79b0e6e6a2f48d7",
+        "split_policy": "fixed_disjoint_documents; no truncation; context reset per window",
+        "train_ids": [
+          "train-00",
+          "train-01",
+          "train-02"
+        ]
+      },
+      "frozen_parameter_sha256_after": "8bd3832fc8470698aa0c816756d0c190f1932f3f4ce7c2927de7b6e693a2da18",
+      "frozen_parameter_sha256_before": "8bd3832fc8470698aa0c816756d0c190f1932f3f4ce7c2927de7b6e693a2da18",
+      "hardware": {
+        "device": "cpu",
+        "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+        "processor": "unknown",
+        "python": "3.12.14",
+        "torch_threads": 1
+      },
+      "holdout": {
+        "baseline": {
+          "mean_nll_nats": 5.57640145678039,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 264.1194483738117,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 2431.31103515625
+        },
+        "imported_adapter": {
+          "mean_nll_nats": 3.7811688064435205,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 43.86728414788136,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 1648.589599609375
+        },
+        "improved": true,
+        "nll_improvement_nats": 1.7952326503368696,
+        "recipient_baseline": {
+          "mean_nll_nats": 5.57640145678039,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 264.1194483738117,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 2431.31103515625
+        },
+        "trained_adapter": {
+          "mean_nll_nats": 3.7811688064435205,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 43.86728414788136,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 1648.589599609375
+        }
+      },
+      "implementation_sha256": "aff112d0aaa54a491dab0bf3408a3392bc7d29297c8e75ac700f1833164a2de5",
+      "limitations": [
+        "Random-initialized tiny model, not pretrained or QLoRA.",
+        "Six curated snippets; not a representative or external benchmark.",
+        "Same-process fresh recipient; no multi-host or WAN test.",
+        "No compression, throughput speedup, GPU or domain-mastery claim.",
+        "Perplexity is UTF-8-byte-token perplexity, not comparable across tokenizers."
+      ],
+      "lora_config": {
+        "bias": "none",
+        "lora_alpha": 8,
+        "lora_dropout": 0.0,
+        "r": 4,
+        "target_modules": [
+          "q_proj",
+          "v_proj",
+          "lm_head"
+        ]
+      },
+      "measurement_kind": "measured_token_training_smoke",
+      "model_config": {
+        "attention_dropout": 0.0,
+        "bos_token_id": 256,
+        "eos_token_id": 257,
+        "hidden_size": 32,
+        "initializer_range": 0.02,
+        "intermediate_size": 64,
+        "max_position_embeddings": 128,
+        "num_attention_heads": 4,
+        "num_hidden_layers": 1,
+        "num_key_value_heads": 2,
+        "pad_token_id": 258,
+        "rms_norm_eps": 1e-06,
+        "tie_word_embeddings": false,
+        "use_cache": false,
+        "vocab_size": 259
+      },
+      "model_id": "hivemind/tiny-qwen2-byte-random-v1",
+      "pretrained": false,
+      "quantized": false,
+      "schema_version": 1,
+      "scope": "single_process_cpu_local_cas_transfer",
+      "seed": 42,
+      "tokenizer": {
+        "bos_id": 256,
+        "byte_ids": [
+          0,
+          255
+        ],
+        "eos_id": 257,
+        "id": "utf8-bytes-v1",
+        "pad_id": 258,
+        "vocab_size": 259
+      },
+      "total_parameters": 27564,
+      "trainable_parameters": 1612,
+      "training": {
+        "batch_policy": "all_training_windows_each_step",
+        "final_train": {
+          "mean_nll_nats": 3.5263417195930757,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 33.99936063522674,
+          "perplexity_status": "measured",
+          "scored_tokens": 556,
+          "status": "measured",
+          "total_nll_nats": 1960.64599609375
+        },
+        "initial_train": {
+          "mean_nll_nats": 5.578474085965603,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 264.66743774410384,
+          "perplexity_status": "measured",
+          "scored_tokens": 556,
+          "status": "measured",
+          "total_nll_nats": 3101.631591796875
+        },
+        "learning_rate": 0.01,
+        "optimizer": "AdamW",
+        "step_loss_nats": [
+          5.578474044799805,
+          5.551983833312988,
+          5.5173773765563965,
+          5.4701337814331055,
+          5.401909828186035,
+          5.302990436553955,
+          5.166154861450195,
+          4.989221572875977,
+          4.775847434997559,
+          4.538196086883545,
+          4.298608303070068,
+          4.082630157470703,
+          3.9099178314208984,
+          3.7868051528930664,
+          3.705965995788574,
+          3.6567211151123047,
+          3.631117582321167,
+          3.6244547367095947,
+          3.6276071071624756,
+          3.626373767852783,
+          3.613312244415283,
+          3.5907444953918457,
+          3.565864324569702,
+          3.5441880226135254
+        ],
+        "steps_completed": 24,
+        "wall_seconds": 0.5135265720000461,
+        "weight_decay": 0.0
+      },
+      "transfer": {
+        "actual_serialized_bytes": 7192,
+        "adapter_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "exact_adapter_match": true,
+        "holdout_matches_within_1e_7": true,
+        "holdout_nll_absolute_difference": 0.0,
+        "imported_adapter_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "initial_adapter_sha256": "aa59c3fd707b983473481797d5a45ceee29ad07ba234c59e26b43b8047d82eba",
+        "receiver_chunk_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "recipient_training_steps": 0,
+        "sender_chunk_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "serialization": "safetensors_float32_no_compression",
+        "status": "measured"
+      },
+      "unmeasured": {
+        "gpu_validation": {
+          "status": "not_run",
+          "value": null
+        },
+        "language_capability": {
+          "status": "not_established",
+          "value": null
+        },
+        "parallel_speedup": {
+          "reason": "no concurrent equivalent-work comparison",
+          "status": "unavailable",
+          "value": null
+        },
+        "wan_transfer": {
+          "status": "not_run",
+          "value": null
+        }
+      },
+      "versions": {
+        "numpy": "2.1.3",
+        "peft": "0.17.1",
+        "safetensors": "0.8.0",
+        "torch": "2.6.0+cpu",
+        "transformers": "4.57.6"
+      }
+    },
+    {
+      "attention_implementation": "eager",
+      "base_model_serialized_bytes": 105272,
+      "base_model_sha256": "a20fe964f665dd254732deb608e704fb0e43d3dddae5ebd191f791d0bbfda415",
+      "data": {
+        "dataset_id": "hivemind/rust-text-smoke-v1",
+        "fixture_sha256": "c23620e24a3dda16d83b6d0e2bbaa053bef8ae0966d8950f9214d0e9459a0444",
+        "holdout_ids": [
+          "holdout-00",
+          "holdout-01",
+          "holdout-02"
+        ],
+        "sequence_length": 128,
+        "source_revision": "84fa03c06664fbf1fa357894f79b0e6e6a2f48d7",
+        "split_policy": "fixed_disjoint_documents; no truncation; context reset per window",
+        "train_ids": [
+          "train-00",
+          "train-01",
+          "train-02"
+        ]
+      },
+      "frozen_parameter_sha256_after": "8bd3832fc8470698aa0c816756d0c190f1932f3f4ce7c2927de7b6e693a2da18",
+      "frozen_parameter_sha256_before": "8bd3832fc8470698aa0c816756d0c190f1932f3f4ce7c2927de7b6e693a2da18",
+      "hardware": {
+        "device": "cpu",
+        "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+        "processor": "unknown",
+        "python": "3.12.14",
+        "torch_threads": 1
+      },
+      "holdout": {
+        "baseline": {
+          "mean_nll_nats": 5.57640145678039,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 264.1194483738117,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 2431.31103515625
+        },
+        "imported_adapter": {
+          "mean_nll_nats": 3.7811688064435205,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 43.86728414788136,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 1648.589599609375
+        },
+        "improved": true,
+        "nll_improvement_nats": 1.7952326503368696,
+        "recipient_baseline": {
+          "mean_nll_nats": 5.57640145678039,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 264.1194483738117,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 2431.31103515625
+        },
+        "trained_adapter": {
+          "mean_nll_nats": 3.7811688064435205,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 43.86728414788136,
+          "perplexity_status": "measured",
+          "scored_tokens": 436,
+          "status": "measured",
+          "total_nll_nats": 1648.589599609375
+        }
+      },
+      "implementation_sha256": "aff112d0aaa54a491dab0bf3408a3392bc7d29297c8e75ac700f1833164a2de5",
+      "limitations": [
+        "Random-initialized tiny model, not pretrained or QLoRA.",
+        "Six curated snippets; not a representative or external benchmark.",
+        "Same-process fresh recipient; no multi-host or WAN test.",
+        "No compression, throughput speedup, GPU or domain-mastery claim.",
+        "Perplexity is UTF-8-byte-token perplexity, not comparable across tokenizers."
+      ],
+      "lora_config": {
+        "bias": "none",
+        "lora_alpha": 8,
+        "lora_dropout": 0.0,
+        "r": 4,
+        "target_modules": [
+          "q_proj",
+          "v_proj",
+          "lm_head"
+        ]
+      },
+      "measurement_kind": "measured_token_training_smoke",
+      "model_config": {
+        "attention_dropout": 0.0,
+        "bos_token_id": 256,
+        "eos_token_id": 257,
+        "hidden_size": 32,
+        "initializer_range": 0.02,
+        "intermediate_size": 64,
+        "max_position_embeddings": 128,
+        "num_attention_heads": 4,
+        "num_hidden_layers": 1,
+        "num_key_value_heads": 2,
+        "pad_token_id": 258,
+        "rms_norm_eps": 1e-06,
+        "tie_word_embeddings": false,
+        "use_cache": false,
+        "vocab_size": 259
+      },
+      "model_id": "hivemind/tiny-qwen2-byte-random-v1",
+      "pretrained": false,
+      "quantized": false,
+      "schema_version": 1,
+      "scope": "single_process_cpu_local_cas_transfer",
+      "seed": 42,
+      "tokenizer": {
+        "bos_id": 256,
+        "byte_ids": [
+          0,
+          255
+        ],
+        "eos_id": 257,
+        "id": "utf8-bytes-v1",
+        "pad_id": 258,
+        "vocab_size": 259
+      },
+      "total_parameters": 27564,
+      "trainable_parameters": 1612,
+      "training": {
+        "batch_policy": "all_training_windows_each_step",
+        "final_train": {
+          "mean_nll_nats": 3.5263417195930757,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 33.99936063522674,
+          "perplexity_status": "measured",
+          "scored_tokens": 556,
+          "status": "measured",
+          "total_nll_nats": 1960.64599609375
+        },
+        "initial_train": {
+          "mean_nll_nats": 5.578474085965603,
+          "metric": "next_token_cross_entropy_nats",
+          "perplexity": 264.66743774410384,
+          "perplexity_status": "measured",
+          "scored_tokens": 556,
+          "status": "measured",
+          "total_nll_nats": 3101.631591796875
+        },
+        "learning_rate": 0.01,
+        "optimizer": "AdamW",
+        "step_loss_nats": [
+          5.578474044799805,
+          5.551983833312988,
+          5.5173773765563965,
+          5.4701337814331055,
+          5.401909828186035,
+          5.302990436553955,
+          5.166154861450195,
+          4.989221572875977,
+          4.775847434997559,
+          4.538196086883545,
+          4.298608303070068,
+          4.082630157470703,
+          3.9099178314208984,
+          3.7868051528930664,
+          3.705965995788574,
+          3.6567211151123047,
+          3.631117582321167,
+          3.6244547367095947,
+          3.6276071071624756,
+          3.626373767852783,
+          3.613312244415283,
+          3.5907444953918457,
+          3.565864324569702,
+          3.5441880226135254
+        ],
+        "steps_completed": 24,
+        "wall_seconds": 0.33907366299990827,
+        "weight_decay": 0.0
+      },
+      "transfer": {
+        "actual_serialized_bytes": 7192,
+        "adapter_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "exact_adapter_match": true,
+        "holdout_matches_within_1e_7": true,
+        "holdout_nll_absolute_difference": 0.0,
+        "imported_adapter_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "initial_adapter_sha256": "aa59c3fd707b983473481797d5a45ceee29ad07ba234c59e26b43b8047d82eba",
+        "receiver_chunk_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "recipient_training_steps": 0,
+        "sender_chunk_sha256": "c9d4bb8349d54629943bcf3acbfaabbed8c5844230cf8b65e6d66e816f9b0975",
+        "serialization": "safetensors_float32_no_compression",
+        "status": "measured"
+      },
+      "unmeasured": {
+        "gpu_validation": {
+          "status": "not_run",
+          "value": null
+        },
+        "language_capability": {
+          "status": "not_established",
+          "value": null
+        },
+        "parallel_speedup": {
+          "reason": "no concurrent equivalent-work comparison",
+          "status": "unavailable",
+          "value": null
+        },
+        "wan_transfer": {
+          "status": "not_run",
+          "value": null
+        }
+      },
+      "versions": {
+        "numpy": "2.1.3",
+        "peft": "0.17.1",
+        "safetensors": "0.8.0",
+        "torch": "2.6.0+cpu",
+        "transformers": "4.57.6"
+      }
+    }
+  ],
+  "source_base_revision": "84fa03c06664fbf1fa357894f79b0e6e6a2f48d7"
+}

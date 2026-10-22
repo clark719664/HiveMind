@@ -1,0 +1,2 @@
+# This fixture is hashed byte-for-byte, including on Windows checkouts.
+src/hivemind/data/fixtures/rust_text_smoke_v1.json text eol=lf
