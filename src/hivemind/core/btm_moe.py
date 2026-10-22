@@ -300,14 +300,50 @@ class Season3DomainExpertRegistry:
 
 
 
+def _even_cluster_sizes(total: int, num_clusters: int) -> List[int]:
+    """Split `total` experts into `num_clusters` groups whose sizes differ by at most one."""
+    if num_clusters < 1:
+        raise ValueError("num_clusters must be >= 1")
+    base, extra = divmod(int(total), int(num_clusters))
+    return [base + (1 if i < extra else 0) for i in range(int(num_clusters))]
+
+
+def _stack_ragged_gates(
+    gates: "nn.ModuleList", hidden_size: int
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Zero-pad per-cluster gate matrices to a common width; padded rows are masked out."""
+    width = max(g.out_features for g in gates)
+    device = gates[0].weight.device
+    stacked = torch.zeros((len(gates), width, hidden_size), dtype=torch.float32, device=device)
+    valid = torch.zeros((len(gates), width), dtype=torch.bool, device=device)
+    for i, g in enumerate(gates):
+        stacked[i, : g.out_features] = g.weight
+        valid[i, : g.out_features] = True
+    return stacked, valid
+
+
+def _grow_gate(gate: nn.Linear) -> nn.Linear:
+    """Return a copy of `gate` with one extra output row initialised to the mean row."""
+    old_out = gate.out_features
+    new_gate = nn.Linear(
+        gate.in_features, old_out + 1, bias=False, dtype=torch.float32, device=gate.weight.device
+    )
+    with torch.no_grad():
+        new_gate.weight[:old_out].copy_(gate.weight)
+        new_gate.weight[old_out:].copy_(gate.weight.mean(dim=0, keepdim=True))
+    return new_gate
+
+
 class HierarchicalMoERouter(nn.Module):
     """Season 5 (`HM-S5-02`): 2-Level `G_macro -> G_micro` Router for 64-Expert Sparse MoE.
 
-    Partitions `E = num_macro_domains * experts_per_domain` (default `8 * 8 = 64`) experts into
-    `num_macro_domains` macro-clusters. For each token:
-      1. `macro_gate(x)` selects the winning macro-domain `m* in {0..M-1}` (`O(M)`).
-      2. `micro_gates[m*](x)` selects the Top-`k` (`k=2`) micro-experts inside cluster `m*` (`O(E/M)`).
-    Total router gating cost is `M + E/M = 16` inner products instead of `64` (`4.0x` router speedup).
+    Partitions `E = sum(cluster_sizes)` experts into `M` macro-clusters (default `8 * 8 = 64`).
+    For each token:
+      1. `macro_gate(x)` selects the winning macro-domain `m* in {0..M-1}` (`M` inner products).
+      2. `micro_gates[m*](x)` selects the Top-`k` micro-experts inside cluster `m*`.
+    Gating cost per token is `M + max(cluster_sizes)` length-`hidden_size` inner products
+    instead of `E` for a flat router. Clusters may be ragged after hot-plugging, so global
+    expert indices come from per-cluster offsets rather than `m * experts_per_domain`.
     """
 
     def __init__(
@@ -317,65 +353,85 @@ class HierarchicalMoERouter(nn.Module):
         experts_per_domain: int = 8,
         top_k: int = 2,
         dtype: torch.dtype = torch.float32,
+        cluster_sizes: List[int] | None = None,
     ) -> None:
         super().__init__()
         _ = dtype
         if num_macro_domains < 1 or experts_per_domain < 1:
             raise ValueError("num_macro_domains and experts_per_domain must be >= 1")
+        sizes = (
+            [int(s) for s in cluster_sizes]
+            if cluster_sizes is not None
+            else [int(experts_per_domain)] * int(num_macro_domains)
+        )
+        if not sizes or any(s < 1 for s in sizes):
+            raise ValueError("every macro cluster needs at least one expert")
         self.hidden_size = int(hidden_size)
-        self.num_macro_domains = int(num_macro_domains)
-        self.experts_per_domain = int(experts_per_domain)
-        self.num_experts = self.num_macro_domains * self.experts_per_domain
-        self.top_k = min(int(top_k), self.experts_per_domain)
+        self.cluster_sizes = sizes
+        self.num_macro_domains = len(sizes)
+        self.top_k = max(1, min(int(top_k), min(sizes)))
 
         self.macro_gate = nn.Linear(
             self.hidden_size, self.num_macro_domains, bias=False, dtype=torch.float32
         )
         self.micro_gates = nn.ModuleList(
-            [
-                nn.Linear(self.hidden_size, self.experts_per_domain, bias=False, dtype=torch.float32)
-                for _ in range(self.num_macro_domains)
-            ]
+            [nn.Linear(self.hidden_size, s, bias=False, dtype=torch.float32) for s in sizes]
         )
         nn.init.normal_(self.macro_gate.weight, mean=0.0, std=0.02)
         for mg in self.micro_gates:
             nn.init.normal_(mg.weight, mean=0.0, std=0.02)
+
+    @property
+    def num_experts(self) -> int:
+        return sum(self.cluster_sizes)
+
+    @num_experts.setter
+    def num_experts(self, value: int) -> None:
+        if int(value) != sum(self.cluster_sizes):
+            raise ValueError("num_experts is derived from cluster_sizes; use expand_for_new_expert()")
+
+    @property
+    def experts_per_domain(self) -> int:
+        return max(self.cluster_sizes)
+
+    @property
+    def cluster_offsets(self) -> List[int]:
+        offsets, acc = [], 0
+        for s in self.cluster_sizes:
+            offsets.append(acc)
+            acc += s
+        return offsets
+
+    @property
+    def gating_inner_products_per_token(self) -> int:
+        """Exact count of length-`hidden_size` inner products per token (not a timing)."""
+        return self.num_macro_domains + max(self.cluster_sizes)
 
     def forward(
         self, hidden_states: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute hierarchical Top-k routing weights, global expert indices `[0..E-1]`, and aux loss."""
         hs_fp32 = hidden_states.to(torch.float32)
-        num_tokens = hs_fp32.shape[0]
         device = hs_fp32.device
 
         macro_logits = self.macro_gate(hs_fp32)  # [N, M]
         macro_probs = F.softmax(macro_logits, dim=-1, dtype=torch.float32)
         winning_macro_prob, winning_macro_idx = torch.max(macro_probs, dim=-1)  # [N]
 
-        # Stack micro gates `[M, E_m, d]` for vectorized per-token dispatch
-        micro_weight_stack = torch.stack(
-            [mg.weight for mg in self.micro_gates], dim=0
-        )  # [M, E_m, d]
-        token_micro_weights = micro_weight_stack[winning_macro_idx]  # [N, E_m, d]
-        micro_logits = torch.bmm(
-            token_micro_weights, hs_fp32.unsqueeze(-1)
-        ).squeeze(-1)  # [N, E_m]
+        micro_weight_stack, valid = _stack_ragged_gates(self.micro_gates, self.hidden_size)
+        token_micro_weights = micro_weight_stack[winning_macro_idx]  # [N, W, d]
+        micro_logits = torch.bmm(token_micro_weights, hs_fp32.unsqueeze(-1)).squeeze(-1)
+        micro_logits = micro_logits.masked_fill(~valid[winning_macro_idx], float("-inf"))
 
-        top_micro_logits, top_micro_indices = torch.topk(
-            micro_logits, k=self.top_k, dim=-1
-        )  # [N, top_k]
+        top_micro_logits, top_micro_indices = torch.topk(micro_logits, k=self.top_k, dim=-1)
         micro_probs = F.softmax(top_micro_logits, dim=-1, dtype=torch.float32)
-        routing_weights = (
-            micro_probs * winning_macro_prob.unsqueeze(-1)
-        )
+        routing_weights = micro_probs * winning_macro_prob.unsqueeze(-1)
         routing_weights = (
             routing_weights / routing_weights.sum(dim=-1, keepdim=True).clamp_min(1e-6)
         ).to(hidden_states.dtype)
 
-        global_selected_experts = (
-            winning_macro_idx.unsqueeze(-1) * self.experts_per_domain + top_micro_indices
-        ).clamp(0, self.num_experts - 1)
+        offsets = torch.tensor(self.cluster_offsets, dtype=torch.long, device=device)
+        global_selected_experts = offsets[winning_macro_idx].unsqueeze(-1) + top_micro_indices
 
         # Switch-style hierarchical load-balancing auxiliary loss
         one_hot_macro = F.one_hot(
@@ -384,27 +440,167 @@ class HierarchicalMoERouter(nn.Module):
         frac_macro = one_hot_macro.mean(dim=0)
         mean_macro_prob = macro_probs.mean(dim=0)
         aux_loss = self.num_macro_domains * torch.sum(frac_macro * mean_macro_prob)
-        _ = num_tokens, device
         return routing_weights, global_selected_experts, aux_loss
 
     def expand_for_new_expert(self) -> None:
-        """Expand the last macro cluster's micro-gate to accommodate a newly hot-plugged expert."""
-        self.num_experts += 1
-        last_mg = self.micro_gates[-1]
-        old_out = last_mg.out_features
-        new_mg = nn.Linear(
-            self.hidden_size,
-            old_out + 1,
-            bias=False,
-            dtype=torch.float32,
-            device=last_mg.weight.device,
+        """Grow the last macro cluster's micro-gate by one row for a newly hot-plugged expert."""
+        self.micro_gates[-1] = _grow_gate(self.micro_gates[-1])
+        self.cluster_sizes[-1] += 1
+
+
+class ThreeTierHierarchicalMoERouter(nn.Module):
+    """Season 6 (`HM-S6-02`): 3-Tier `G_super -> G_macro -> G_micro` Router for 128-Expert Sparse MoE.
+
+    Experts are grouped as `S` super-clusters x `M` macro-domains x micro-experts (default
+    `4 x 4 x 8 = 128`). Per token:
+      1. `super_gate(x)` picks the super-cluster `s*` (`S` inner products).
+      2. `macro_gates[s*](x)` picks the macro-domain `m*` inside it (`M` inner products).
+      3. `micro_gates[s*, m*](x)` picks the Top-`k` micro-experts (`max micro size` inner products).
+    That is `S + M + max_micro` length-`hidden_size` inner products per token (`4 + 4 + 8 = 16`)
+    against `E` for a flat softmax router (`128`): an exact 8x reduction in gating inner
+    products. It is a count of operations, not a measured latency.
+
+    Micro clusters may be ragged (hot-plugging appends to the last one), so global indices
+    come from per-cluster offsets. `predict_candidate_experts` exposes path probabilities for
+    speculative expert prefetching.
+    """
+
+    def __init__(
+        self,
+        hidden_size: int,
+        num_super_clusters: int = 4,
+        macro_per_super: int = 4,
+        micro_per_macro: int = 8,
+        top_k: int = 2,
+        micro_cluster_sizes: List[int] | None = None,
+    ) -> None:
+        super().__init__()
+        if num_super_clusters < 1 or macro_per_super < 1 or micro_per_macro < 1:
+            raise ValueError("num_super_clusters, macro_per_super and micro_per_macro must be >= 1")
+        self.hidden_size = int(hidden_size)
+        self.num_super_clusters = int(num_super_clusters)
+        self.macro_per_super = int(macro_per_super)
+        num_micro_clusters = self.num_super_clusters * self.macro_per_super
+        sizes = (
+            [int(s) for s in micro_cluster_sizes]
+            if micro_cluster_sizes is not None
+            else [int(micro_per_macro)] * num_micro_clusters
         )
-        with torch.no_grad():
-            new_mg.weight[:old_out].copy_(last_mg.weight)
-            mean_col = last_mg.weight.mean(dim=0, keepdim=True)
-            new_mg.weight[old_out:].copy_(mean_col)
-        self.micro_gates[-1] = new_mg
-        self.experts_per_domain = max(self.experts_per_domain, old_out + 1)
+        if len(sizes) != num_micro_clusters or any(s < 1 for s in sizes):
+            raise ValueError(
+                f"micro_cluster_sizes must have {num_micro_clusters} entries, each >= 1"
+            )
+        self.micro_cluster_sizes = sizes
+        self.top_k = max(1, min(int(top_k), min(sizes)))
+
+        self.super_gate = nn.Linear(
+            self.hidden_size, self.num_super_clusters, bias=False, dtype=torch.float32
+        )
+        self.macro_gates = nn.ModuleList(
+            [
+                nn.Linear(self.hidden_size, self.macro_per_super, bias=False, dtype=torch.float32)
+                for _ in range(self.num_super_clusters)
+            ]
+        )
+        self.micro_gates = nn.ModuleList(
+            [nn.Linear(self.hidden_size, s, bias=False, dtype=torch.float32) for s in sizes]
+        )
+        for gate in [self.super_gate, *self.macro_gates, *self.micro_gates]:
+            nn.init.normal_(gate.weight, mean=0.0, std=0.02)
+
+    @property
+    def num_experts(self) -> int:
+        return sum(self.micro_cluster_sizes)
+
+    @property
+    def micro_cluster_offsets(self) -> List[int]:
+        offsets, acc = [], 0
+        for s in self.micro_cluster_sizes:
+            offsets.append(acc)
+            acc += s
+        return offsets
+
+    @property
+    def gating_inner_products_per_token(self) -> int:
+        """Exact count of length-`hidden_size` inner products per token (not a timing)."""
+        return self.num_super_clusters + self.macro_per_super + max(self.micro_cluster_sizes)
+
+    @property
+    def flat_gating_inner_products_per_token(self) -> int:
+        return self.num_experts
+
+    @property
+    def gating_reduction_factor(self) -> float:
+        return round(self.flat_gating_inner_products_per_token / self.gating_inner_products_per_token, 4)
+
+    def _route_path(
+        self, hs_fp32: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return super probs/idx, macro probs/idx and the masked micro logits of the winning path."""
+        super_probs = F.softmax(self.super_gate(hs_fp32), dim=-1, dtype=torch.float32)
+        super_prob, super_idx = torch.max(super_probs, dim=-1)
+
+        macro_weight_stack = torch.stack([g.weight for g in self.macro_gates], dim=0)  # [S, M, d]
+        macro_logits = torch.bmm(macro_weight_stack[super_idx], hs_fp32.unsqueeze(-1)).squeeze(-1)
+        macro_probs = F.softmax(macro_logits, dim=-1, dtype=torch.float32)
+        macro_prob, macro_idx = torch.max(macro_probs, dim=-1)
+
+        cluster_idx = super_idx * self.macro_per_super + macro_idx
+        micro_weight_stack, valid = _stack_ragged_gates(self.micro_gates, self.hidden_size)
+        micro_logits = torch.bmm(micro_weight_stack[cluster_idx], hs_fp32.unsqueeze(-1)).squeeze(-1)
+        micro_logits = micro_logits.masked_fill(~valid[cluster_idx], float("-inf"))
+        return super_probs, super_prob, macro_probs, macro_prob, cluster_idx, micro_logits
+
+    def forward(
+        self, hidden_states: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute 3-tier Top-k routing weights, global expert indices `[0..E-1]`, and aux loss."""
+        hs_fp32 = hidden_states.to(torch.float32)
+        super_probs, super_prob, macro_probs, macro_prob, cluster_idx, micro_logits = self._route_path(hs_fp32)
+
+        top_micro_logits, top_micro_indices = torch.topk(micro_logits, k=self.top_k, dim=-1)
+        micro_probs = F.softmax(top_micro_logits, dim=-1, dtype=torch.float32)
+        routing_weights = micro_probs * (super_prob * macro_prob).unsqueeze(-1)
+        routing_weights = (
+            routing_weights / routing_weights.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        ).to(hidden_states.dtype)
+
+        offsets = torch.tensor(self.micro_cluster_offsets, dtype=torch.long, device=hs_fp32.device)
+        global_selected_experts = offsets[cluster_idx].unsqueeze(-1) + top_micro_indices
+
+        # Switch-style balance terms on the super and macro decisions
+        super_idx = super_probs.argmax(dim=-1)
+        frac_super = F.one_hot(super_idx, num_classes=self.num_super_clusters).float().mean(dim=0)
+        macro_idx = macro_probs.argmax(dim=-1)
+        frac_macro = F.one_hot(macro_idx, num_classes=self.macro_per_super).float().mean(dim=0)
+        aux_loss = self.num_super_clusters * torch.sum(frac_super * super_probs.mean(dim=0)) + (
+            self.macro_per_super * torch.sum(frac_macro * macro_probs.mean(dim=0))
+        )
+        return routing_weights, global_selected_experts, aux_loss
+
+    @torch.no_grad()
+    def predict_candidate_experts(
+        self, hidden_states: torch.Tensor, top_n: int | None = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Per-token candidate global expert indices and their path probabilities.
+
+        The probability of expert `e` on the winning path is
+        `P(super) * P(macro | super) * softmax(micro logits)[e]`, so the values are a proper
+        sub-distribution (they sum to at most 1). Used to decide which experts to prefetch.
+        """
+        hs_fp32 = hidden_states.to(torch.float32).reshape(-1, self.hidden_size)
+        _, super_prob, _, macro_prob, cluster_idx, micro_logits = self._route_path(hs_fp32)
+        micro_probs = F.softmax(micro_logits, dim=-1, dtype=torch.float32)
+        n = min(int(top_n or self.top_k), min(self.micro_cluster_sizes))
+        top_probs, top_idx = torch.topk(micro_probs, k=n, dim=-1)
+        offsets = torch.tensor(self.micro_cluster_offsets, dtype=torch.long, device=hs_fp32.device)
+        global_idx = offsets[cluster_idx].unsqueeze(-1) + top_idx
+        return global_idx, top_probs * (super_prob * macro_prob).unsqueeze(-1)
+
+    def expand_for_new_expert(self) -> None:
+        """Grow the last micro cluster's gate by one row for a newly hot-plugged expert."""
+        self.micro_gates[-1] = _grow_gate(self.micro_gates[-1])
+        self.micro_cluster_sizes[-1] += 1
 
 
 class FP8PagedKVCache:
@@ -497,6 +693,31 @@ class FP8PagedKVCache:
         return total
 
 
+def _install_router_on_blocks(moe_model: UpcycledSparseMoEModel, make_router) -> None:
+    for block in moe_model.moe_blocks:
+        dev = next(block.router.parameters()).device
+        block.router = make_router().to(dev)
+
+
+def _footprint_report(moe_model: UpcycledSparseMoEModel, vram_ceiling_gb: float) -> Dict[str, Any]:
+    """Parameter-byte footprint, plus live CUDA allocation only when CUDA is actually in use."""
+    stats = measure_moe_vram_footprint_gb(moe_model)
+    on_cuda = next(moe_model.parameters()).device.type == "cuda" and torch.cuda.is_available()
+    report: Dict[str, Any] = {
+        "parameter_footprint_gb": stats["total_gb"],
+        "vram_ceiling_gb": float(vram_ceiling_gb),
+    }
+    if on_cuda:
+        report["vram_measured_gb"] = stats["cuda_allocated_gb"]
+        report["fits_under_vram_ceiling"] = stats["cuda_allocated_gb"] < vram_ceiling_gb
+        report["vram_measurement"] = "measured: torch.cuda.memory_allocated on the model device"
+    else:
+        report["vram_measured_gb"] = None
+        report["fits_under_vram_ceiling"] = None
+        report["vram_measurement"] = "not_measured: model is not on CUDA; parameter bytes only"
+    return report
+
+
 def hotplug_hierarchical_experts(
     moe_model: UpcycledSparseMoEModel,
     community_adapters: Dict[str, Dict[str, torch.Tensor]],
@@ -508,39 +729,99 @@ def hotplug_hierarchical_experts(
 ) -> Dict[str, Any]:
     """Season 5 (`HM-S5-02`): Hot-plug up to 64 heterogeneous community adapters into `moe_model`
     using SVD rank normalization (`r -> canonical_rank_r`) and install `HierarchicalMoERouter`.
+
+    The router is sized to the model's actual expert count (ragged clusters), so every global
+    index it emits names a real expert.
     """
     hotplug_report = hotplug_rank_adaptive_experts(
         moe_model=moe_model,
-        community_adapters=community_adapters,
+        expert_lora_states=community_adapters,
         target_rank_r=canonical_rank_r,
-        vram_ceiling_gb=vram_ceiling_gb,
+        vram_budget_gb=vram_ceiling_gb,
     )
     total_experts = moe_model.num_experts
-    eff_macro = min(num_macro_domains, max(1, total_experts))
-    eff_micro = max(1, (total_experts + eff_macro - 1) // eff_macro)
-
-    for block in moe_model.moe_blocks:
-        dev = block.router.wg.weight.device
-        hier_router = HierarchicalMoERouter(
-            hidden_size=moe_model.hidden_size,
-            num_macro_domains=eff_macro,
-            experts_per_domain=eff_micro,
-            top_k=top_k,
-        ).to(dev)
-        block.router = hier_router
-
-    vram_stats = measure_moe_vram_footprint_gb(moe_model)
+    top_k = moe_model.moe_blocks[0].top_k if moe_model.moe_blocks else int(top_k)
+    # every cluster must hold at least top_k experts or the block gets fewer columns than it expects
+    eff_macro = max(1, min(int(num_macro_domains), total_experts // max(1, top_k)))
+    sizes = _even_cluster_sizes(total_experts, eff_macro)
+    _ = experts_per_domain
+    _install_router_on_blocks(
+        moe_model,
+        lambda: HierarchicalMoERouter(
+            hidden_size=moe_model.hidden_size, top_k=top_k, cluster_sizes=list(sizes)
+        ),
+    )
+    router = moe_model.moe_blocks[0].router if moe_model.moe_blocks else None
+    gating = router.gating_inner_products_per_token if router is not None else total_experts
     return {
         **hotplug_report,
         "router_type": "HierarchicalMoERouter",
         "num_macro_domains": eff_macro,
-        "experts_per_domain": eff_micro,
+        "cluster_sizes": sizes,
+        "experts_per_domain": max(sizes),
         "total_experts": total_experts,
-        "gating_flops_reduction_factor": round(
-            float(total_experts) / float(eff_macro + eff_micro), 2
+        "gating_inner_products_per_token": gating,
+        "flat_gating_inner_products_per_token": total_experts,
+        "gating_flops_reduction_factor": round(float(total_experts) / float(gating), 2),
+        "gating_reduction_basis": "exact count of length-hidden_size inner products per token; not a measured latency",
+        **_footprint_report(moe_model, vram_ceiling_gb),
+    }
+
+
+def hotplug_three_tier_experts(
+    moe_model: UpcycledSparseMoEModel,
+    community_adapters: Dict[str, Dict[str, torch.Tensor]],
+    canonical_rank_r: int = 16,
+    num_super_clusters: int = 4,
+    macro_per_super: int = 4,
+    micro_per_macro: int = 8,
+    top_k: int = 2,
+    vram_ceiling_gb: float = 2.4,
+) -> Dict[str, Any]:
+    """Season 6 (`HM-S6-02`): Hot-plug community adapters and install the 3-tier
+    `G_super -> G_macro -> G_micro` router sized exactly to the model's expert count.
+
+    With the default `4 x 4 x 8` layout and 128 experts the router performs 16 gating inner
+    products per token instead of 128 (`8.0x`). The report states what was counted and what
+    was measured; VRAM is only reported as measured when the model lives on CUDA.
+    """
+    hotplug_report = hotplug_rank_adaptive_experts(
+        moe_model=moe_model,
+        expert_lora_states=community_adapters,
+        target_rank_r=canonical_rank_r,
+        vram_budget_gb=vram_ceiling_gb,
+    )
+    total_experts = moe_model.num_experts
+    top_k = moe_model.moe_blocks[0].top_k if moe_model.moe_blocks else int(top_k)
+    max_clusters = max(1, total_experts // max(1, top_k))
+    eff_super = max(1, min(int(num_super_clusters), max_clusters))
+    eff_macro = max(1, min(int(macro_per_super), max_clusters // eff_super))
+    sizes = _even_cluster_sizes(total_experts, eff_super * eff_macro)
+    _ = micro_per_macro
+    _install_router_on_blocks(
+        moe_model,
+        lambda: ThreeTierHierarchicalMoERouter(
+            hidden_size=moe_model.hidden_size,
+            num_super_clusters=eff_super,
+            macro_per_super=eff_macro,
+            top_k=top_k,
+            micro_cluster_sizes=list(sizes),
         ),
-        "vram_footprint_gb": vram_stats["total_footprint_gb"],
-        "fits_under_2_2gb_vram": vram_stats["total_footprint_gb"] < vram_ceiling_gb,
+    )
+    router = moe_model.moe_blocks[0].router if moe_model.moe_blocks else None
+    gating = router.gating_inner_products_per_token if router is not None else total_experts
+    return {
+        **hotplug_report,
+        "router_type": "ThreeTierHierarchicalMoERouter",
+        "num_super_clusters": eff_super,
+        "macro_per_super": eff_macro,
+        "micro_cluster_sizes": sizes,
+        "total_experts": total_experts,
+        "gating_inner_products_per_token": gating,
+        "flat_gating_inner_products_per_token": total_experts,
+        "gating_flops_reduction_factor": round(float(total_experts) / float(gating), 2),
+        "gating_reduction_basis": "exact count of length-hidden_size inner products per token; not a measured latency",
+        **_footprint_report(moe_model, vram_ceiling_gb),
     }
 
 
@@ -555,6 +836,7 @@ __all__ = [
     "SVDLoARankProjectionReport",
     "Season3DomainExpertRegistry",
     "SparseMoEMLPBlock",
+    "ThreeTierHierarchicalMoERouter",
     "TopKMoERouter",
     "UpcycledFactoredSwiGLUExpert",
     "UpcycledSparseMoEModel",
@@ -562,6 +844,7 @@ __all__ = [
     "detect_lora_rank",
     "hotplug_hierarchical_experts",
     "hotplug_rank_adaptive_experts",
+    "hotplug_three_tier_experts",
     "initialize_domain_branches",
     "measure_moe_vram_footprint_gb",
     "pair_lora_ab_keys",

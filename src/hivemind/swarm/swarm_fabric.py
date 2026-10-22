@@ -335,6 +335,79 @@ class PinnedRAMExpertDMAStreamer:
         }
 
 
+    def prefetch_token_tree_lookahead(
+        self,
+        router: Any,
+        branch_hidden_states: Sequence[torch.Tensor],
+        branch_probabilities: Sequence[float],
+        expert_names: Sequence[str],
+        layer_idx: int = 0,
+        max_prefetch_experts: int = 2,
+        simulated_attention_compute_ms: float = 5.0,
+    ) -> Dict[str, Any]:
+        """HM-S6-02: prefetch the next layer's likeliest experts across a speculative token tree.
+
+        Each draft branch contributes its router path probabilities weighted by the branch's
+        prefix-trie probability; the `max_prefetch_experts` experts with the highest expected
+        demand are streamed into the lookahead slot. The latency figures are the same
+        simulation the rest of this streamer reports: raw copy time minus an assumed
+        attention-compute window, not a measured stall on a real pipeline.
+        """
+        if len(branch_hidden_states) != len(branch_probabilities):
+            raise ValueError("one probability per branch is required")
+        if not hasattr(router, "predict_candidate_experts"):
+            raise TypeError("router must provide predict_candidate_experts()")
+        total_p = float(sum(float(p) for p in branch_probabilities))
+        if total_p <= 0.0:
+            raise ValueError("branch probabilities must sum to a positive value")
+
+        demand: Dict[int, float] = {}
+        for hs, p_branch in zip(branch_hidden_states, branch_probabilities):
+            idx, probs = router.predict_candidate_experts(hs)
+            weight = float(p_branch) / total_p
+            for e, pr in zip(idx.reshape(-1).tolist(), probs.reshape(-1).tolist()):
+                demand[int(e)] = demand.get(int(e), 0.0) + weight * float(pr) / max(1, idx.shape[0])
+
+        ranked = sorted(demand.items(), key=lambda kv: (-kv[1], kv[0]))[: max(0, int(max_prefetch_experts))]
+        active_slot = "slot_A" if layer_idx % 2 == 0 else "slot_B"
+        lookahead_slot = "slot_B" if active_slot == "slot_A" else "slot_A"
+        self.double_buffer_slots[lookahead_slot].clear()
+
+        transfers, skipped = [], []
+        for expert_idx, _ in ranked:
+            name = expert_names[expert_idx] if 0 <= expert_idx < len(expert_names) else None
+            if name is not None and name in self.pinned_host_cache:
+                transfers.append(
+                    self.async_dma_prefetch_to_vram(
+                        name,
+                        simulated_attention_compute_ms=simulated_attention_compute_ms,
+                        target_slot=lookahead_slot,
+                    )
+                )
+            else:
+                skipped.append(name if name is not None else f"expert_{expert_idx}")
+
+        total_raw_ms = round(sum(t["raw_dma_transfer_ms"] for t in transfers), 3)
+        return {
+            "current_layer": layer_idx,
+            "prefetched_layer": layer_idx + 1,
+            "active_compute_slot": active_slot,
+            "lookahead_dma_slot": lookahead_slot,
+            "branches_considered": len(branch_hidden_states),
+            "expected_expert_demand": {
+                (expert_names[e] if 0 <= e < len(expert_names) else f"expert_{e}"): round(v, 6)
+                for e, v in sorted(demand.items(), key=lambda kv: (-kv[1], kv[0]))
+            },
+            "prefetched_experts": [t["expert_name"] for t in transfers],
+            "skipped_not_staged": skipped,
+            "total_raw_dma_ms": total_raw_ms,
+            "exposed_swap_latency_ms_simulated": round(
+                max(0.0, total_raw_ms - simulated_attention_compute_ms), 3
+            ),
+            "latency_basis": "simulated: raw copy time minus an assumed attention window; not a measured pipeline stall",
+            "staging_mode": self.staging_mode,
+        }
+
 # ============================================================================
 # M3: FP8 Hidden-State Wire Compression & Token Tree Speculation (gamma = 6)
 # ============================================================================
