@@ -5,13 +5,13 @@
 <br/>
 
 [![Release](https://img.shields.io/badge/Release-v1.7.0%20(Pareto%20Swarm%20Strategy%20%26%20Wave%204%20Complete)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases/tag/v1.7.0)
-[![Test Suite](https://img.shields.io/badge/Tests-302%2B%20Passing%20(98%25%20Coverage)-brightgreen?style=for-the-badge)](tests/)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-64%20Theorems%20Verified%20(0%20sorry)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
-[![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(9.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
+[![Test Suite](https://img.shields.io/badge/Tests-Full%20suite%20in%20CI%20(coverage%20gate%2095%25)-brightgreen?style=for-the-badge)](.github/workflows/ci_swarm_tests.yml)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-Machine--checked%20spec%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-LaTeX%20%26%20PDF%20(self--assessed%209.43%2F10)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
 [![Community PRs](https://img.shields.io/badge/Community%20PRs-29%2F29%20Merged%20(Waves%201--4)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 [![Project Wiki](https://img.shields.io/badge/Project%20Wiki-8%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)
-[![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..05%20(--62.1%25%20Loss)-ffd21e?style=for-the-badge)](docs/SWARM_STRATEGY_IMPROVEMENTS.md)
+[![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..05%20(--62.1%25%20loss%2C%20synthetic%20eval)-ffd21e?style=for-the-badge)](docs/SWARM_STRATEGY_IMPROVEMENTS.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
 [![PR Security Gate](https://img.shields.io/badge/5--Layer%20PR%20Security-Anti--Boubou%20%26%20Anti--Extortion%20Active-ef4444?style=for-the-badge)](SECURITY.md)
 
@@ -31,7 +31,7 @@
 
 **Project HiveMind** is an open-source distributed training and inference framework (think **SETI@home / Folding@home** meets **Petals** and **DiLoCo**) designed to aggregate idle consumer gaming GPUs (**8 GB – 12 GB VRAM**) and local NVMe storage into a community-owned **Sparse Mixture-of-Experts (MoE)** cluster.
 
-Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit NF4 QLoRA** domain experts asynchronously using **DiLoCo** (`500x` lower communication frequency, `64.96x` Top-$k$ + FP8 wire compression), merges them into a unified **Branch-Train-Mix (BTM) Sparse MoE**, and serves the resulting model back to the community via **P2P Prefix-Trie Speculative Decoding ($\gamma=6..8$)**. Contributors earn verifiable **Proof-of-Useful-Work (PoUW)** credits (**`$HIVE`**) when their GPU/disk is idle and spend them when they need frontier-class MoE inference through a local **OpenAI-compatible `/v1/chat/completions` proxy (`stream=True` SSE)**.
+Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit NF4 QLoRA** domain experts asynchronously using **DiLoCo** (`H=500` inner steps per synchronisation by default, i.e. 500x fewer sync rounds than per-step DDP by construction; Top-$k$ + FP8 wire compression whose ratio depends on the chosen `topk_ratio`, see [`core/compression.py`](src/hivemind/core/compression.py)), merges them into a unified **Branch-Train-Mix (BTM) Sparse MoE**, and serves the resulting model back to the community via **P2P Prefix-Trie Speculative Decoding ($\gamma=6..8$)**. Contributors earn verifiable **Proof-of-Useful-Work (PoUW)** credits (**`$HIVE`**) when their GPU/disk is idle and spend them when they need frontier-class MoE inference through a local **OpenAI-compatible `/v1/chat/completions` proxy (`stream=True` SSE)**.
 
 > [!IMPORTANT]
 > **⚖️ Binding Legal Notice — No Money Involved & Reciprocal Compute-Power Retribution ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
@@ -133,7 +133,7 @@ flowchart TB
     end
 
     subgraph Fabric["🌐 Layer 4 & 5: Swarm Fabric (M1, M3, M4) & Hack-Miner HUD (M5)"]
-        QUIC["M1: 160-Bit Kademlia Geo-Ring (<20ms RTT)\n+ QUIC 0-RTT (2,809 fps) + <25ms Game Failover"]
+        QUIC["M1: 160-Bit Kademlia Geo-Ring (<20ms jitter / <25ms ping admission SLA)\n+ QUIC 0-RTT + <25ms Game Failover"]
         TREE["M3: Triton/PyTorch FP8 Wire (float8_e4m3fn)\n+ Prefix-Trie 2D Causal Tree Mask (γ=6..8)"]
         GW["M4: OpenAI /v1/chat/completions (Sync + SSE stream=True)\n+ 5% OPoI Audit + 12-Layer Merkle Fraud Dispute Game"]
         HUD["M5: HiveMind: Neural Breach Web HUD (:8090)\n+ Steamworks Rich Presence & Live RTX Diagnostic"]
@@ -204,7 +204,7 @@ Executed on a real **NVIDIA GeForce RTX 2070 (8.0 GB VRAM, Turing SM 7.5)** via 
 | **Stage 7: RTX TensorCore FP16 GEMM + 16-Expert Fused INT4+FP8 MoE** | FP16 TensorCore GEMM throughput + `fused_top2_moe_fp8_dispatch` & `fused_int4_fp8_moe_route_and_project` across 16 experts (`E=16`, `top_k=2`) with `3.88x` INT4 VRAM compression | **`51.24 GFLOPS`** \| SQNR: **`31.79 dB`** \| Cosine Sim: **`0.9963`** \| Kernel: **`12.54 ms`** | **PASS** |
 | **Stage 8: WAN STUN UDP Hole-Punching & RFC 9001 Anti-Replay** | Bidirectional STUN/ICE UDP hole-punching (`restricted_cone` & `port_restricted_cone`) + TURN fallback (`symmetric_cgnat`) + monotonic 0-RTT anti-replay nonce window | Direct UDP RTT: **`0.440 ms`** \| TURN Fallback: **Verified** \| Replay Blocked: **`100%`** | **PASS** |
 | **Stage 9: Season 3 Hack-Miner Forge & CAS Expert Vault** | Interactive QLoRA Micro-Forge on `CONTRACT-HF-07`..`09` + WebGL 3D Geo-Ring Topology (`4` nodes) + Top-5% FP8 compression + CAS CID roundtrip | **`3/3` S3 Contracts Forged** \| Spot-Check: **Verified** \| CID Pin & Load: **`100%`** | **PASS** |
-| **Stage 10: Lean 4 Machine-Checked 27-Theorem Audit** | Automated AST & soundness verification of `lean4/HiveMindSpec.lean` across all 4 Pillars, Phase 2 Swarm Fabric, and Season 3 proofs (`Season3_AdvancedProofs` + `Season3_PrefixTrie_And_0RTT`) | **`27/27` Theorems Verified** \| **`0 sorry`** \| **`0` User Axioms** | **PASS** |
+| **Stage 10: Lean 4 Machine-Checked Theorem Audit** | Automated AST & soundness verification of `lean4/HiveMindSpec.lean` across all 4 Pillars, Phase 2 Swarm Fabric, and Season 3 proofs (`Season3_AdvancedProofs` + `Season3_PrefixTrie_And_0RTT`) | **`27/27` Theorems Verified** \| **`0 sorry`** \| **`0` User Axioms** | **PASS** |
 
 ### 2.2 Multi-Domain `Qwen/Qwen2.5-0.5B` DiLoCo-QLoRA & 96-Expert Sparse MoE Benchmarks ([`artifacts/poc_qwen25_rtx2070_report.json`](artifacts/poc_qwen25_rtx2070_report.json))
 
@@ -429,11 +429,11 @@ uv pip install -e ".[dev]"
 
 ---
 
-## 📐 5. Machine-Checked Lean 4 Specification (`48` Theorems) & Foundational Research Paper
+## 📐 5. Machine-Checked Lean 4 Specification & Foundational Research Paper
 
-All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **`48` theorems, `0 sorry`, `0 user axiom`**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
+All core mathematical invariants of Project HiveMind are machine-checked in **Lean 4** ([`lean4/HiveMindSpec.lean`](lean4/HiveMindSpec.lean), **every `theorem` in the file is machine-checked: `0 sorry`, `0 user axiom`; CI prints the current count**) and documented in our 10-page **Foundational Research Article** ([`paper/hivemind_foundation_article.pdf`](paper/hivemind_foundation_article.pdf) | [`paper/hivemind_foundation_article.tex`](paper/hivemind_foundation_article.tex), rated **`9.43/10 — Strong Accept`** by the 3-Referee AutoevolveAI panel in [`paper/PEER_REVIEW_REPORT.json`](paper/PEER_REVIEW_REPORT.json)):
 
-| Formal Namespace | Machine-Checked Lean 4 Theorems (`48/48`) | Proved Guarantee |
+| Formal Namespace | Machine-Checked Lean 4 Theorems | Proved Guarantee |
 | :--- | :--- | :--- |
 | `Pillar1_NF4_DiLoCo` | `nf4_double_quant_compression_bound`, `rtx2070_8gb_vram_envelope_verified`, `diloco_topk_fp8_bandwidth_reduction` | `264 bits / 64 weights` (`>3.87x`), `1,527 MiB <= 6,656 MiB` usable ceiling, `> 1,666x` wire reduction vs. DDP |
 | `Pillar2_Byzantine` | `spot_check_10pct_and_20x_boinc_savings`, `multikrum_neighborhood_contains_honest_worker`, `two_sigma_clipping_bounds_norm` | $s=50$ segment replay = `10%` overhead (`20x` BOINC savings), honest worker guaranteed ($n \ge 2f+3$) |
