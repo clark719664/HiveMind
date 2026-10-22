@@ -190,6 +190,25 @@ def encode_channel_data(channel_number: int, payload: bytes) -> bytes:
     return CHANNEL_HEADER.pack(channel_number, len(payload)) + payload
 
 
+def encode_channel_number(number: int) -> bytes:
+    """Encode a CHANNEL-NUMBER attribute (RFC 5766 §14.1: 16-bit number + 16-bit RFFU = 0)."""
+    if isinstance(number, bool) or not isinstance(number, int):
+        raise ValueError("channel number must be an integer")
+    if not CHANNEL_NUMBER_MIN <= number <= CHANNEL_NUMBER_MAX:
+        raise ValueError("channel number must be in 0x4000-0x7FFF (RFC 5766 §11)")
+    return struct.pack("!HH", number, 0)
+
+
+def decode_channel_number(value: bytes) -> int:
+    """Decode a CHANNEL-NUMBER attribute; the RFFU field is ignored on reception (§14.1)."""
+    if len(value) != 4:
+        raise StunError("CHANNEL-NUMBER must be 4 bytes long")
+    number = struct.unpack("!H", value[:2])[0]
+    if not CHANNEL_NUMBER_MIN <= number <= CHANNEL_NUMBER_MAX:
+        raise StunError("channel number outside 0x4000-0x7FFF")
+    return number
+
+
 def decode_channel_data(data: bytes) -> Tuple[int, bytes]:
     """Parse a ChannelData message into `(channel_number, payload)`."""
     if not is_channel_data(data):
@@ -749,25 +768,35 @@ class TurnClient:
         indication.add(DATA_ATTR, payload)
         self.sock.sendto(indication.encode(fingerprint=True), self.server)
 
-    def bind_channel(self, peer: Address, lifetime: int = 600) -> int:
-        """Bind a channel to `peer` (RFC 5766 §11.2) and return the channel number.
+    def bind_channel(self, peer: Address, channel_number: Optional[int] = None) -> int:
+        """Bind a channel to `peer` (RFC 5766 §11.1) and return the channel number.
 
-        A bound channel lets both sides exchange ChannelData messages without wrapping every
-        payload in a STUN Data indication.
+        The client picks the number in 0x4000-0x7FFF and sends it with XOR-PEER-ADDRESS;
+        the server only confirms. Without `channel_number` the client reuses the number
+        already bound to `peer` (a refresh, §11.2) or the lowest free one. Binding also
+        installs the peer permission, so no separate CreatePermission is needed.
         """
-        message = self._request(
+        if channel_number is None:
+            channel_number = self.channels.get(peer)
+            if channel_number is None:
+                channel_number = self._free_channel_number()
+        encoded_number = encode_channel_number(channel_number)
+        self._request(
             CHANNEL_BIND,
-            [(XOR_PEER_ADDRESS, lambda txid: encode_xor_address(peer, txid))],
+            [
+                (CHANNEL_NUMBER, lambda _txid: encoded_number),
+                (XOR_PEER_ADDRESS, lambda txid: encode_xor_address(peer, txid)),
+            ],
         )
-        number = message.get(CHANNEL_NUMBER)
-        if number is None or len(number) != 2:
-            raise StunError("ChannelBind success carried no CHANNEL-NUMBER")
-        channel_number = struct.unpack("!H", number)[0]
-        if not CHANNEL_NUMBER_MIN <= channel_number <= CHANNEL_NUMBER_MAX:
-            raise StunError("TURN server allocated an out-of-range channel number")
         self.channels[peer] = channel_number
         self._channel_peers[channel_number] = peer
         return channel_number
+
+    def _free_channel_number(self) -> int:
+        for number in range(CHANNEL_NUMBER_MIN, CHANNEL_NUMBER_MAX + 1):
+            if number not in self._channel_peers:
+                return number
+        raise StunError("every TURN channel number of this allocation is bound")
 
     def send_channel(self, peer: Address, payload: bytes) -> None:
         """Send `payload` to `peer` over the channel bound to it (RFC 5766 §11.4)."""
@@ -891,6 +920,9 @@ class _Allocation:
     def permits(self, ip: str) -> bool:
         return self.permissions.get(ip, 0.0) > time.monotonic()
 
+    def permit(self, ip: str) -> None:
+        self.permissions[ip] = time.monotonic() + PERMISSION_LIFETIME_S
+
 
 @dataclass
 class _Channel:
@@ -933,8 +965,12 @@ class TurnRelayServer(StunServer):
         self.nonce = secrets.token_hex(16).encode("ascii")
         self.allocations: Dict[Address, _Allocation] = {}
         self._by_relay: Dict[socket.socket, _Allocation] = {}
-        self.channels: Dict[int, _Channel] = {}
-        """Bound channels, keyed by their channel number."""
+        self.channels: Dict[Tuple[Address, int], _Channel] = {}
+        """Bound channels, keyed by `(allocation client, channel number)`.
+
+        RFC 5766 §11 scopes channel numbers to one allocation, so two clients may both bind
+        0x4000.
+        """
         self._channel_by_peer: Dict[Tuple[Address, Address], int] = {}
         self.advertised_ip = advertised_ip
         self._responses: OrderedDict[
@@ -966,9 +1002,9 @@ class TurnRelayServer(StunServer):
         for client, allocation in list(self.allocations.items()):
             if allocation.expires <= now:
                 self._release(client)
-        for number, channel in list(self.channels.items()):
+        for key, channel in list(self.channels.items()):
             if channel.expires <= now:
-                self._release_channel(number)
+                self._release_channel(key)
         while self._responses and next(iter(self._responses.values()))[0] <= now:
             self._responses.popitem(last=False)
 
@@ -977,14 +1013,23 @@ class TurnRelayServer(StunServer):
         if allocation is not None:
             self._by_relay.pop(allocation.relay, None)
             allocation.relay.close()
-            for number, channel in list(self.channels.items()):
+            for key, channel in list(self.channels.items()):
                 if channel.allocation is allocation:
-                    self._release_channel(number)
+                    self._release_channel(key)
 
-    def _release_channel(self, number: int) -> None:
-        channel = self.channels.pop(number, None)
+    def _release_channel(self, key: Tuple[Address, int]) -> None:
+        channel = self.channels.pop(key, None)
         if channel is not None:
             self._channel_by_peer.pop((channel.allocation.client, channel.peer), None)
+
+    def _live_channel(self, client: Address, number: int) -> Optional["_Channel"]:
+        channel = self.channels.get((client, number))
+        if channel is None:
+            return None
+        if channel.expires <= time.monotonic():
+            self._release_channel((client, number))
+            return None
+        return channel
 
     def _on_readable(self, sock: socket.socket) -> None:
         if sock is self.sock:
@@ -998,8 +1043,11 @@ class TurnRelayServer(StunServer):
         if allocation is None or not allocation.permits(peer[0]):
             return  # RFC 5766 §10.3: drop data from peers without a permission
         channel_number = self._channel_by_peer.get((allocation.client, peer))
-        channel = self.channels.get(channel_number) if channel_number is not None else None
-        if channel is not None and channel.expires > time.monotonic():
+        channel = (
+            self._live_channel(allocation.client, channel_number)
+            if channel_number is not None else None
+        )
+        if channel is not None:
             message = encode_channel_data(channel.number, payload)
         else:
             indication = StunMessage(DATA, INDICATION)
@@ -1156,42 +1204,51 @@ class TurnRelayServer(StunServer):
         peer_ip = decode_xor_address(peer, request.transaction_id)[0]
         if ipaddress.ip_address(peer_ip).version != 4:
             return self._error_response(request, 443, "Peer Address Family Mismatch")
-        allocation.permissions[peer_ip] = time.monotonic() + PERMISSION_LIFETIME_S
+        allocation.permit(peer_ip)
         return StunMessage(CREATE_PERMISSION, SUCCESS, request.transaction_id)
 
     def _channel_bind(self, request: StunMessage, addr: Address, user: str) -> Optional[StunMessage]:
-        """Bind a channel to a peer (RFC 5766 §11.2)."""
+        """Bind the client's channel number to a peer (RFC 5766 §11.2).
+
+        The request must carry both CHANNEL-NUMBER (0x4000-0x7FFF) and XOR-PEER-ADDRESS.
+        The number may not already be bound to another peer, nor the peer to another number,
+        in this allocation; re-binding the same pair refreshes the channel. A successful bind
+        also installs or refreshes the permission for the peer's IP address, and the success
+        response carries no attributes.
+        """
         allocation = self.allocations.get(addr)
         if allocation is None:
             return self._error_response(request, 437, "Allocation Mismatch")
         if allocation.username != user:
             return self._error_response(request, 441, "Wrong Credentials")
         peer = request.get(XOR_PEER_ADDRESS)
-        if peer is None:
+        number_attr = request.get(CHANNEL_NUMBER)
+        if peer is None or number_attr is None:
+            return self._error_response(request, 400, "Bad Request")
+        try:
+            number = decode_channel_number(number_attr)
+        except StunError:
             return self._error_response(request, 400, "Bad Request")
         peer_addr = decode_xor_address(peer, request.transaction_id)
         if ipaddress.ip_address(peer_addr[0]).version != 4:
             return self._error_response(request, 443, "Peer Address Family Mismatch")
-        existing = self._channel_by_peer.get((addr, peer_addr))
-        if existing is not None and existing in self.channels:
-            # RFC 5766 §11.2: a peer may have at most one bound channel.
-            return self._error_response(request, 400, "Channel Already Bound")
-        number = self._next_channel_number()
-        if number is None:
-            return self._error_response(request, 508, "Insufficient Capacity")
+        by_number = self._live_channel(addr, number)
+        if by_number is not None and by_number.peer != peer_addr:
+            return self._error_response(request, 400, "Bad Request")
+        peer_number = self._channel_by_peer.get((addr, peer_addr))
+        if (
+            peer_number is not None
+            and peer_number != number
+            and self._live_channel(addr, peer_number) is not None
+        ):
+            return self._error_response(request, 400, "Bad Request")
         lifetime = min(self.channel_lifetime, self.max_lifetime)
-        self.channels[number] = _Channel(number, peer_addr, allocation, time.monotonic() + lifetime)
+        self.channels[(addr, number)] = _Channel(
+            number, peer_addr, allocation, time.monotonic() + lifetime
+        )
         self._channel_by_peer[(addr, peer_addr)] = number
-        response = StunMessage(CHANNEL_BIND, SUCCESS, request.transaction_id)
-        response.add(CHANNEL_NUMBER, struct.pack("!H", number))
-        response.add(CHANNEL_LIFETIME, struct.pack("!I", lifetime))
-        return response
-
-    def _next_channel_number(self) -> Optional[int]:
-        for number in range(CHANNEL_NUMBER_MIN, CHANNEL_NUMBER_MAX + 1):
-            if number not in self.channels:
-                return number
-        return None
+        allocation.permit(peer_addr[0])
+        return StunMessage(CHANNEL_BIND, SUCCESS, request.transaction_id)
 
     def _on_channel_data(self, data: bytes, addr: Address) -> None:
         """Relay a ChannelData message to the peer the channel is bound to (RFC 5766 §11.4)."""
@@ -1199,11 +1256,9 @@ class TurnRelayServer(StunServer):
             number, payload = decode_channel_data(data)
         except StunError:
             return
-        channel = self.channels.get(number)
-        if channel is None or channel.expires <= time.monotonic():
-            return
-        if channel.allocation.client != addr:
-            return  # Only the allocation owner may use its channel.
+        channel = self._live_channel(addr, number)
+        if channel is None:
+            return  # Unbound, expired, or not this client's channel.
         if not channel.allocation.permits(channel.peer[0]):
             return  # RFC 5766 §10.3: drop data from peers without a permission.
         try:

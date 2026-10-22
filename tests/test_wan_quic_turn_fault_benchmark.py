@@ -166,15 +166,18 @@ def test_turn_channel_relays_payloads_in_both_directions() -> None:
             bob.close()
 
 
-def test_turn_channel_rejects_a_second_bind_for_the_same_peer() -> None:
+def test_turn_channel_rejects_a_second_channel_number_for_the_same_peer() -> None:
+    # RFC 5766 §11.2: a peer may be bound to one channel; a different number for it is a 400.
+    # (Re-binding the SAME number to the same peer is a refresh, tested in
+    # test_turn_channelbind_rfc5766.py.)
     with TurnRelayServer({"alice": "s3cret"}) as turn:
         alice = TurnClient(turn.url, "alice", "s3cret")
         try:
             alice.allocate()
             peer = ("127.0.0.1", 5000)
-            alice.bind_channel(peer)
+            alice.bind_channel(peer, channel_number=0x4000)
             with pytest.raises(nt.StunError):
-                alice.bind_channel(peer)
+                alice.bind_channel(peer, channel_number=0x4001)
         finally:
             alice.close()
 
