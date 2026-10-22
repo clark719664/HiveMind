@@ -270,6 +270,41 @@ def run_community_gpu_benchmark(
     pool.bond_stake("GUILD-01", "community-prover-01", 50.0)
     pool.contribute_reserve("GUILD-01", "community-prover-01", 75.0)
     pool.contribute_reserve("GUILD-02", "community-prover-02", 75.0)
+    pool_holdings_hive = pool.total_holdings()
+
+    # HM-S7-04 fault drill on its own ledger: one forged leaf must be caught and paid for.
+    drill_ledger = HiveSwarmLedger()
+    drill_ledger.balances.update({"community-prover-01": 100.0, "community-prover-02": 100.0})
+    drill_pool = GuildSlashingInsurancePool(drill_ledger)
+    drill_pool.bond_stake("GUILD-01", "community-prover-01", 50.0)
+    drill_pool.contribute_reserve("GUILD-02", "community-prover-02", 50.0)
+    forged_acts = [list(step) for step in batch_acts]
+    forged_acts[2][1] = batch_acts[2][1] * 3.0
+    forged = auditor.commit_speculative_batch("community-prover-01", forged_acts)
+    drill_challenges = auditor.derive_batch_challenges(
+        forged, forged.leaf_count, auditor.new_verifier_nonce()
+    )
+    drill_responses = [
+        (auditor.open_speculative_batch(s, l_idx), forged_acts[s][l_idx], batch_acts[s][l_idx])
+        for s, l_idx in drill_challenges
+    ]
+    drill_supply_before = drill_ledger.total_circulating_supply() + drill_pool.total_holdings()
+    drill = auditor.audit_batch_and_indemnify(
+        forged,
+        drill_challenges,
+        drill_responses,
+        drill_pool,
+        consumer_node_id="community-consumer-01",
+        claimed_hive=20.0,
+    )
+    drill_supply_after = drill_ledger.total_circulating_supply() + drill_pool.total_holdings()
+    drill_indemnity = drill["indemnity"] or {}
+    drill_passed = bool(
+        [(f["step"], f["layer"]) for f in drill["faults"]] == [(2, 1)]
+        and drill_indemnity.get("indemnified_hive") == 20.0
+        and "community-prover-01" in drill_ledger.slashed_registry
+        and abs(drill_supply_after - drill_supply_before) < 1e-6
+    )
     stage4_ms = round((time.perf_counter() - t_stage4) * 1000.0, 3)
 
     peak_vram_mib = (
@@ -289,7 +324,8 @@ def run_community_gpu_benchmark(
         and spec_res.expert_prefetch_enabled is True
         and spec_res.expert_prefetch_calls > 0
         and batch_verify["batch_passed"] is True
-        and pool.total_holdings() == 200.0
+        and pool_holdings_hive == 200.0
+        and drill_passed
         and peak_vram_mib <= hw["wddm_usable_budget_mib"]
     )
 
@@ -342,7 +378,16 @@ def run_community_gpu_benchmark(
             "leaf_count": commitment.leaf_count,
             "challenges_verified": len(challenges),
             "batch_passed": batch_verify["batch_passed"],
-            "insurance_pool_reserve_hive": pool.total_holdings(),
+            "insurance_pool_reserve_hive": pool_holdings_hive,
+            "fault_drill": {
+                "forged_leaf": [2, 1],
+                "faults_found": [[f["step"], f["layer"]] for f in drill["faults"]],
+                "indemnified_hive": drill_indemnity.get("indemnified_hive"),
+                "paid_from_peer_stake": drill_indemnity.get("paid_from_peer_stake"),
+                "settlement_ms": drill_indemnity.get("settlement_ms"),
+                "supply_conserved": abs(drill_supply_after - drill_supply_before) < 1e-6,
+                "passed": drill_passed,
+            },
         },
     }
 

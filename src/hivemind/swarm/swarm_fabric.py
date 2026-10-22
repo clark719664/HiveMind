@@ -20,14 +20,16 @@ import hashlib
 import hmac
 import math
 import random
+import secrets
 import time
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn as nn
 
-from hivemind.swarm.ledger import HiveSwarmLedger
+from hivemind.security.swarm_runtime_hardening import SwarmSecurityViolationError
+from hivemind.swarm.ledger import GuildSlashingInsurancePool, HiveSwarmLedger
 
 
 # ============================================================================
@@ -1425,6 +1427,58 @@ class OptimisticProofOfInferenceAuditor:
             "verdicts": verdicts,
             "zero_knowledge": False,
         }
+
+    @staticmethod
+    def new_verifier_nonce() -> str:
+        """A fresh 128-bit nonce for `derive_batch_challenges`, drawn after the commitment arrives."""
+        return secrets.token_hex(16)
+
+    def audit_batch_and_indemnify(
+        self,
+        commitment: SpeculativeBatchCommitment,
+        challenges: Sequence[Tuple[int, int]],
+        responses: Sequence[Tuple[SpeculativeBatchOpening, torch.Tensor, torch.Tensor]],
+        pool: GuildSlashingInsurancePool,
+        consumer_node_id: str,
+        claimed_hive: float,
+    ) -> Dict[str, Any]:
+        """HM-S7-04: verify a challenged batch and indemnify the consumer if a fault is proven.
+
+        The first faulty leaf goes to `pool.indemnify_proven_fault`, which re-verifies it before
+        paying, and the pool pays at most once per batch root. A refusal by the pool (unbonded
+        peer, repeated claim, coverage cap, ...) is reported in `indemnity_refused` rather than
+        raised, so the audit verdict is always returned.
+        """
+        report = self.verify_speculative_batch(commitment, challenges, responses)
+        report["indemnity"] = None
+        report["indemnity_refused"] = None
+        if not report["faults"]:
+            return report
+        fault = report["faults"][0]
+        opening, claimed, recomputed = next(
+            response
+            for response in responses
+            if (response[0].step, response[0].layer) == (fault["step"], fault["layer"])
+        )
+        try:
+            receipt = pool.indemnify_proven_fault(
+                self,
+                commitment,
+                opening,
+                claimed,
+                recomputed,
+                consumer_node_id=consumer_node_id,
+                claimed_hive=claimed_hive,
+            )
+        except SwarmSecurityViolationError as exc:
+            report["indemnity_refused"] = {
+                "rule_id": exc.rule_id,
+                "category": exc.category,
+                "message": exc.message,
+            }
+        else:
+            report["indemnity"] = asdict(receipt)
+        return report
 
     def run_merkle_fraud_dispute_game(
         self,

@@ -65,6 +65,8 @@ def test_run_community_gpu_benchmark_emits_verified_non_monetary_receipt(tmp_pat
     assert receipt["stage3_three_tier_128_moe_and_prefetch"]["prefetch_calls"] > 0
     assert receipt["stage4_zk_opoi_v4_and_insurance"]["batch_passed"] is True
     assert receipt["stage4_zk_opoi_v4_and_insurance"]["insurance_pool_reserve_hive"] == 200.0
+    assert receipt["stage4_zk_opoi_v4_and_insurance"]["fault_drill"]["passed"] is True
+    assert receipt["stage4_zk_opoi_v4_and_insurance"]["fault_drill"]["faults_found"] == [[2, 1]]
 
 
 def test_community_gpu_benchmark_cli_entrypoint(tmp_path: Path) -> None:
