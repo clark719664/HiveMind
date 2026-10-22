@@ -408,11 +408,11 @@ theorem redistribute_eq (s : Nat) : ∀ (p q : List Nat), p.length = q.length �
           (acceptedMass p q) (residualMass p q) = a :: p
     rw [tail]
     by_cases hs : s = 0
-    · rw [if_pos hs]
+    · simp only [hs, ↓reduceIte]
       have := head_zero hs
       congr 1
       omega
-    · rw [if_neg hs, Nat.mul_div_cancel_left _ (Nat.pos_of_ne_zero hs)]
+    · simp only [hs, ↓reduceIte, Nat.mul_div_cancel_left _ (Nat.pos_of_ne_zero hs)]
       congr 1
       omega
 
@@ -484,11 +484,11 @@ theorem strikeRegister_gt : ∀ (last : Nat) (xs : List Nat) (m : Nat),
   | last, n :: rest, m, h => by
     unfold strikeRegister at h
     by_cases hn : last < n
-    · rw [if_pos hn] at h
+    · simp only [hn, ↓reduceIte] at h
       rcases List.mem_cons.mp h with rfl | h
       · exact hn
       · exact Nat.lt_trans hn (strikeRegister_gt n rest m h)
-    · rw [if_neg hn] at h
+    · simp only [hn, ↓reduceIte] at h
       exact strikeRegister_gt last rest m h
 
 /-- Theorem 25 (RFC 9001 0-RTT Monotonic Nonce Anti-Replay Rejection):
@@ -500,10 +500,10 @@ theorem rfc9001_0rtt_monotonic_nonce_anti_replay : ∀ (last : Nat) (xs : List N
   | last, n :: rest => by
     unfold strikeRegister
     by_cases hn : last < n
-    · rw [if_pos hn]
+    · simp only [hn, ↓reduceIte]
       exact List.Pairwise.cons (fun m hm => strikeRegister_gt n rest m hm)
         (rfc9001_0rtt_monotonic_nonce_anti_replay n rest)
-    · rw [if_neg hn]
+    · simp only [hn, ↓reduceIte]
       exact rfc9001_0rtt_monotonic_nonce_anti_replay last rest
 
 /-- No nonce is ever accepted twice: a replayed 0-RTT packet is always rejected. -/
