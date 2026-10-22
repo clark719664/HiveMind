@@ -81,15 +81,15 @@ class SpeculativeSwarmResult:
     mean_acceptance_rate: float
     effective_tokens_per_sec: float
     latency_reduction_factor: float
-    expert_routing_share: dict[str, float] = field(default_factory=dict)
-    routing_tier: str = "regional_geo_ring"
-    cross_continent_hops: int = 0
-    estimated_route_rtt_ms: float = 0.0
     latency_basis: str = (
         "latency_reduction_factor = generated tokens / verification passes under a simulated "
         "per-pass RTT; effective_tokens_per_sec adds that simulated RTT to measured local compute "
         "time. Neither is a measured network speedup."
     )
+    expert_routing_share: dict[str, float] = field(default_factory=dict)
+    routing_tier: str = "regional_geo_ring"
+    cross_continent_hops: int = 0
+    estimated_route_rtt_ms: float = 0.0
 
 
 class RegionalDHTSwarmRing:
