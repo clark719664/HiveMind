@@ -335,20 +335,8 @@ def test_coordinator_service_and_fastapi_endpoints(tiny_qwen_bundle, tmp_path: P
     )
     assert verdict_pass.passed is True
 
-    worker_byz = HiveMindWorkerNode(
-        worker_id="w-byz",
-        steam_id64="76561198000000066",
-        persona_name="ByzMiner",
-        model=bundle.model,
-    )
-    with pytest.raises(SwarmSecurityViolationError, match="WORKUNIT_REPLAY_DETECTED"):
-        coordinator.validate_and_record_submission(
-            validator_model=bundle.model,
-            workunit=wu1,
-            submission=sub_honest,
-            steam_id64="76561198000000001",
-        )
-
+    # A workunit is consumed by the first spot-check verdict (FL-05 anti-replay), so the
+    # Byzantine miner must receive its own workunit rather than reusing the honest one.
     wu_byz, state_byz = coordinator.assign_workunit(
         worker_id="w-byz",
         steam_id64="76561198000000066",
@@ -357,6 +345,12 @@ def test_coordinator_service_and_fastapi_endpoints(tiny_qwen_bundle, tmp_path: P
         spot_check_interval_s=1,
         num_sequences=4,
         seq_len=8,
+    )
+    worker_byz = HiveMindWorkerNode(
+        worker_id="w-byz",
+        steam_id64="76561198000000066",
+        persona_name="ByzMiner",
+        model=bundle.model,
     )
     sub_byz = worker_byz.execute_workunit(wu_byz, state_byz, byzantine_poison_scale=10.0)
     verdict_fail = coordinator.validate_and_record_submission(
@@ -369,6 +363,14 @@ def test_coordinator_service_and_fastapi_endpoints(tiny_qwen_bundle, tmp_path: P
 
     with pytest.raises(PermissionError, match="Byzantine"):
         coordinator.register_or_get_node("76561198000000066", "w-byz")
+
+    with pytest.raises(SwarmSecurityViolationError, match="WORKUNIT_REPLAY_DETECTED"):
+        coordinator.validate_and_record_submission(
+            validator_model=bundle.model,
+            workunit=wu1,
+            submission=sub_honest,
+            steam_id64="76561198000000001",
+        )
 
     with pytest.raises(ValueError, match="No validated worker deltas"):
         coordinator.step_branch_outer_loop("Mathematics")
