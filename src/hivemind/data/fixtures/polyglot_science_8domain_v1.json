@@ -1,0 +1,270 @@
+{
+  "campaign_id": "OPERATION-POLYGLOT-SINGULARITY-128-V1",
+  "description": "Curated 8-Domain Multi-MoE UTF-8 Token Corpus spanning 4 Super-Clusters (Systems & Formal Verification, Cryptography & Smart Contracts, GPU Kernels & Distributed ML, Frontier Natural Sciences) mapped to real Hugging Face datasets.",
+  "domains": {
+    "Rust_Systems_Kernel": {
+      "domain_index": 0,
+      "super_cluster_id": 0,
+      "super_cluster_name": "CLUSTER-00-SYSTEMS-FORMAL",
+      "hf_dataset_id": "bigcode/the-stack-v2-dedup",
+      "hf_subset": "Rust",
+      "subject_title": "Zero-Copy DMA Rings, Lock-Free Atomics & Borrow-Checker Systems Engineering",
+      "why_convincing": "Validates whether decentralized QLoRA experts can learn strict syntactic and memory-lifetime invariants in systems code without centralized H100 clusters.",
+      "train": [
+        {
+          "id": "rust_train_01",
+          "text": "pub fn dma_ring_advance(head: &std::sync::atomic::AtomicUsize, tail: usize, mask: usize) -> Option<usize> { let cur = head.load(std::sync::atomic::Ordering::Acquire); let next = (cur + 1) & mask; if next == tail { None } else { head.store(next, std::sync::atomic::Ordering::Release); Some(cur) } }"
+        },
+        {
+          "id": "rust_train_02",
+          "text": "pub fn slice_checked_window<'a>(buf: &'a [u8], offset: usize, len: usize) -> Result<&'a [u8], &'static str> { let end = offset.checked_add(len).ok_or(\"overflow\")?; buf.get(offset..end).ok_or(\"out_of_bounds\") }"
+        },
+        {
+          "id": "rust_train_03",
+          "text": "pub struct ZeroCopyFrame<'a> { pub header: u32, pub payload: &'a [u8] } impl<'a> ZeroCopyFrame<'a> { pub fn parse(raw: &'a [u8]) -> Option<Self> { if raw.len() < 4 { return None; } let hdr = u32::from_be_bytes([raw[0], raw[1], raw[2], raw[3]]); Some(Self { header: hdr, payload: &raw[4..] }) } }"
+        }
+      ],
+      "holdout": [
+        {
+          "id": "rust_holdout_01",
+          "text": "pub fn dma_ring_try_pop(tail: &std::sync::atomic::AtomicUsize, head: usize, mask: usize) -> Option<usize> { let cur = tail.load(std::sync::atomic::Ordering::Acquire); if cur == head { None } else { let next = (cur + 1) & mask; tail.store(next, std::sync::atomic::Ordering::Release); Some(cur) } }"
+        },
+        {
+          "id": "rust_holdout_02",
+          "text": "pub fn slice_checked_split<'a>(buf: &'a [u8], mid: usize) -> Result<(&'a [u8], &'a [u8]), &'static str> { if mid > buf.len() { Err(\"out_of_bounds\") } else { Ok(buf.split_at(mid)) } }"
+        }
+      ]
+    },
+    "Lean4_Formal_Mathematics": {
+      "domain_index": 1,
+      "super_cluster_id": 0,
+      "super_cluster_name": "CLUSTER-00-SYSTEMS-FORMAL",
+      "hf_dataset_id": "hoskinson-center/proofnet",
+      "hf_subset": "Lean4-Mathlib",
+      "subject_title": "Machine-Checked Lean 4 Theorems for Byzantine Quorums & Contraction Bounds",
+      "why_convincing": "Demonstrates neuro-symbolic synergy: the swarm trains experts on Lean 4 tactic proofs while Lean 4 formally verifies the swarm's own consensus invariants.",
+      "train": [
+        {
+          "id": "lean_train_01",
+          "text": "theorem byzantine_quorum_intersection (n f : Nat) (h : 2 * f + 3 <= n) : f < n - f := by omega\ntheorem ef21_contraction_step (e alpha : Nat) (h1 : alpha <= e) : e - alpha <= e := by omega"
+        },
+        {
+          "id": "lean_train_02",
+          "text": "theoremmoe_top2_sparsity_saving (total active : Nat) (h1 : total = 128) (h2 : active = 8) : active * 16 = total := by omega\ntheorem turn_channelbind_header_saving (stun_hdr chan_hdr : Nat) (h1 : stun_hdr = 36) (h2 : chan_hdr = 8) : chan_hdr < stun_hdr := by omega"
+        },
+        {
+          "id": "lean_train_03",
+          "text": "theorem guild_insurance_indemnification_bound (slash reserve : Nat) (h : reserve <= slash) : slash - reserve + reserve = slash := by omega"
+        }
+      ],
+      "holdout": [
+        {
+          "id": "lean_holdout_01",
+          "text": "theorem byzantine_honest_majority_margin (n f : Nat) (h : 2 * f + 3 <= n) : f + 2 <= n - f := by omega\ntheorem ef21_residual_nonneg (e alpha : Nat) (h1 : alpha <= e) : 0 <= e - alpha := by omega"
+        },
+        {
+          "id": "lean_holdout_02",
+          "text": "theorem moe_three_tier_hierarchy_count (c m u : Nat) (h1 : c = 4) (h2 : m = 8) (h3 : u = 4) : c * m * u = 128 := by omega"
+        }
+      ]
+    },
+    "ZK_Cryptography_And_Audits": {
+      "domain_index": 2,
+      "super_cluster_id": 1,
+      "super_cluster_name": "CLUSTER-01-CRYPTO-SECURITY",
+      "hf_dataset_id": "ASSERT-KTH/DISL-Solidity-Smart-Contracts",
+      "hf_subset": "Verified-Escrow-Audits",
+      "subject_title": "Zero-Knowledge Proofs of Inference (ZK-OPoI v4) & L2 State-Channel Auditing",
+      "why_convincing": "Proves that decentralized nodes can audit smart contracts and cryptographic commitments while defending against sybil and free-riding attacks.",
+      "train": [
+        {
+          "id": "zk_train_01",
+          "text": "function verifyFourWayBisectionStep(bytes32[4] calldata quarterRoots, uint8 challengedQuarter, bytes32 expectedSubRoot) external pure returns (bool) { require(challengedQuarter < 4, 'INVALID_QUARTER'); return quarterRoots[challengedQuarter] == expectedSubRoot; }"
+        },
+        {
+          "id": "zk_train_02",
+          "text": "function settleComputeReciprocityVoucher(address contributor, uint256 computePoints, bytes32 receiptHash) external { require(receiptHash != bytes32(0), 'EMPTY_RECEIPT'); creditLedger[contributor] += computePoints; }"
+        },
+        {
+          "id": "zk_train_03",
+          "text": "function slashPoisonedGradientBond(address badActor, uint256 bondAmount, uint256 insuranceBps) external pure returns (uint256 poolShare) { require(insuranceBps <= 10000, 'BPS_OVERFLOW'); return (bondAmount * insuranceBps) / 10000; }"
+        }
+      ],
+      "holdout": [
+        {
+          "id": "zk_holdout_01",
+          "text": "function verifyBatchActivationMerkleCommitment(bytes32 batchRoot, bytes32 leafDigest, uint8 quarterIdx) external pure returns (bool) { require(quarterIdx < 4, 'INVALID_QUARTER'); return keccak256(abi.encodePacked(leafDigest, quarterIdx)) != batchRoot; }"
+        },
+        {
+          "id": "zk_holdout_02",
+          "text": "function redeemReciprocalInferenceQuota(address contributor, uint256 requestedTokens) external { require(creditLedger[contributor] >= requestedTokens, 'INSUFFICIENT_COMPUTE_POINTS'); creditLedger[contributor] -= requestedTokens; }"
+        }
+      ]
+    },
+    "Cyber_Vulnerability_Patching": {
+      "domain_index": 3,
+      "super_cluster_id": 1,
+      "super_cluster_name": "CLUSTER-01-CRYPTO-SECURITY",
+      "hf_dataset_id": "SWE-bench/SWE-bench_Verified",
+      "hf_subset": "Security-Remediation",
+      "subject_title": "Automated Vulnerability Remediation, Sandboxed AST Auditing & Supply-Chain Defense",
+      "why_convincing": "Addresses one of the highest-value real-world AI coding benchmarks (SWE-bench Verified & CWE patching) using cooperative consumer GPUs.",
+      "train": [
+        {
+          "id": "sec_train_01",
+          "text": "### Security Advisory CWE-502 (Unsafe Deserialization):\nReplace untrusted pickle.loads(payload) with safetensors.torch.load(payload) and verify SHA-256 content-addressed digest before loading tensor buffers."
+        },
+        {
+          "id": "sec_train_02",
+          "text": "### Security Advisory CWE-78 (OS Command Injection):\nNever pass shell=True to subprocess.run; always pass an explicit argument vector list and validate file paths against workspace traversal."
+        },
+        {
+          "id": "sec_train_03",
+          "text": "### Security Advisory FL-08 (Spectral Eagle-Eye Backdoor):\nInspect top-1 singular value ratio of submitted LoRA delta matrices (lora_B @ lora_A) and reject rank-1 trojan spikes exceeding spectral threshold."
+        }
+      ],
+      "holdout": [
+        {
+          "id": "sec_holdout_01",
+          "text": "### Security Advisory CWE-94 (Dynamic Code Injection):\nBlock eval() and exec() calls in PR AST diffs via PRSecurityScanner and enforce deterministic safetensors serialization for all peer checkpoints."
+        },
+        {
+          "id": "sec_holdout_02",
+          "text": "### Security Advisory FL-07 (Sleeper Trigger Backdoor):\nRun Canary Prompt Entropy Audit across benign and trigger inputs to detect abrupt KL-divergence spikes before merging peer LoRA adapters."
+        }
+      ]
+    },
+    "Triton_CUDA_Kernel_Synth": {
+      "domain_index": 4,
+      "super_cluster_id": 2,
+      "super_cluster_name": "CLUSTER-02-GPU-ML-KERNELS",
+      "hf_dataset_id": "ScalingIntelligence/KernelBench",
+      "hf_subset": "CUDA-Triton-FP8-NF4",
+      "subject_title": "Fused Triton/CUDA NF4 Dequantization, FP8 KV-Paging & Warp-Specialized MoE Kernels",
+      "why_convincing": "Directly excites GPU enthusiasts by training experts on Stanford KernelBench & GPU-Mode Triton puzzles that make 8 GB consumer GPUs run faster.",
+      "train": [
+        {
+          "id": "kernel_train_01",
+          "text": "@triton.jit\ndef nf4_dequant_fused_kernel(packed_ptr, absmax_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):\n    pid = tl.program_id(axis=0)\n    offs = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)\n    mask = offs < n_elements\n    packed = tl.load(packed_ptr + (offs >> 1), mask=mask)"
+        },
+        {
+          "id": "kernel_train_02",
+          "text": "@triton.jit\ndef fp8_e4m3_kv_page_scale_kernel(kv_in_ptr, kv_out_ptr, scale_ptr, n_tokens, BLOCK_M: tl.constexpr):\n    pid = tl.program_id(axis=0)\n    offs = pid * BLOCK_M + tl.arange(0, BLOCK_M)\n    val = tl.load(kv_in_ptr + offs, mask=offs < n_tokens, other=0.0)"
+        },
+        {
+          "id": "kernel_train_03",
+          "text": "@triton.jit\ndef top2_moe_expert_scatter_kernel(hidden_ptr, gate_idx_ptr, gate_w_ptr, out_ptr, d_model: tl.constexpr):\n    token_id = tl.program_id(axis=0)\n    cols = tl.arange(0, d_model)\n    h = tl.load(hidden_ptr + token_id * d_model + cols)"
+        }
+      ],
+      "holdout": [
+        {
+          "id": "kernel_holdout_01",
+          "text": "@triton.jit\ndef nf4_lora_fused_matmul_kernel(x_ptr, qweight_ptr, lora_a_ptr, lora_b_ptr, out_ptr, BLOCK_K: tl.constexpr):\n    pid = tl.program_id(axis=0)\n    offs = pid * BLOCK_K + tl.arange(0, BLOCK_K)"
+        },
+        {
+          "id": "kernel_holdout_02",
+          "text": "@triton.jit\ndef terminal_kv_fixed_point_share_kernel(prelude_kv_ptr, recurrent_kv_ptr, out_kv_ptr, n_heads: tl.constexpr):\n    head_id = tl.program_id(axis=0)\n    offs = head_id * 64 + tl.arange(0, 64)"
+        }
+      ]
+    },
+    "Distributed_DiLoCo_Protocols": {
+      "domain_index": 5,
+      "super_cluster_id": 2,
+      "super_cluster_name": "CLUSTER-02-GPU-ML-KERNELS",
+      "hf_dataset_id": "HuggingFaceFW/fineweb-edu",
+      "hf_subset": "Distributed-ML-Systems",
+      "subject_title": "Low-Communication EF21-DiLoCo Outer Momentum, Kademlia DHT & QUIC 0-RTT Transport",
+      "why_convincing": "Grounds the swarm's communication layer in peer-reviewed distributed optimization theory (DiLoCo, Richtarik EF21, and BBRv1 congestion control).",
+      "train": [
+        {
+          "id": "diloco_train_01",
+          "text": "### Protocol Spec (EF21-DiLoCo Outer Sync):\nEach worker executes H=16 local AdamW inner steps on its 4-bit NF4 QLoRA shard, updates its local EF21 error-feedback state g_i^(t) = g_i^(t-1) + TopK(Delta_i^(t) - g_i^(t-1)), and broadcasts only the Top-2% FP8 compressed delta over QUIC 0-RTT."
+        },
+        {
+          "id": "diloco_train_02",
+          "text": "### Protocol Spec (Adaptive Cadence Controller SI-03):\nWhen home broadband RTT rises from 8.5 ms (LAN/Fiber) to 145 ms (RFC 5766 TURN Relay under CGNAT), increase inner step cadence H from 11 to 226 to bound WAN communication overhead below 8%."
+        },
+        {
+          "id": "diloco_train_03",
+          "text": "### Protocol Spec (Rarest-First CAS Chunk Scheduler SI-08):\nSplit safetensors LoRA bundles into 64 KB content-addressed chunks and prioritize rarest chunks across Kademlia DHT peers with automatic SHA-256 corrupt-chunk failover."
+        }
+      ],
+      "holdout": [
+        {
+          "id": "diloco_holdout_01",
+          "text": "### Protocol Spec (Reputation-Weighted TIES Sign Election SI-04):\nWeight each peer task vector by its historical ZK-OPoI honesty score and holdout loss reduction before electing consensus parameter signs and disjointly merging aligned magnitudes."
+        },
+        {
+          "id": "diloco_holdout_02",
+          "text": "### Protocol Spec (Speculative Token-Tree Expert Prefetch):\nExtract Top-2 expert IDs across draft tree depths d=1..3, deduplicate them into a prefix trie, and issue asynchronous pinned-RAM to GPU DMA prefetches to hide PCIe latency."
+        }
+      ]
+    },
+    "Biomedical_Clinical_Genomics": {
+      "domain_index": 6,
+      "super_cluster_id": 3,
+      "super_cluster_name": "CLUSTER-03-FRONTIER-SCIENCE",
+      "hf_dataset_id": "qiaojin/PubMedQA",
+      "hf_subset": "pqa_labeled",
+      "subject_title": "Biomedical Clinical Evidence Synthesis, CRISPR Genomics & Pharmacology QA",
+      "why_convincing": "Shows Folding@home-style public-good impact: gamers donate idle GPU cycles to train open-science biomedical and clinical reasoning experts.",
+      "train": [
+        {
+          "id": "biomed_train_01",
+          "text": "### Clinical Question: Does transient CRISPR-Cas9 ribonucleoprotein (RNP) delivery reduce off-target genomic cleavage compared to plasmid DNA transfection?\n### Evidence Conclusion (yes): Rapid intracellular degradation of RNP complexes limits exposure window and lowers off-target indel rates."
+        },
+        {
+          "id": "biomed_train_02",
+          "text": "### Clinical Question: Does PD-1/PD-L1 immune checkpoint blockade restore effector cytokine production in exhausted tumor-infiltrating T lymphocytes?\n### Evidence Conclusion (yes): Blocking inhibitory PD-1 signaling reverses T-cell exhaustion and enhances IFN-gamma secretion."
+        },
+        {
+          "id": "biomed_train_03",
+          "text": "### Clinical Question: Do mRNA lipid nanoparticle vaccines elicit germinal center B-cell affinity maturation against viral receptor-binding domains?\n### Evidence Conclusion (yes): Follicular helper T-cell activation drives sustained somatic hypermutation and neutralizing antibody titers."
+        }
+      ],
+      "holdout": [
+        {
+          "id": "biomed_holdout_01",
+          "text": "### Clinical Question: Does selective inhibition of mutant KRAS-G12C lock the GTPase in its inactive GDP-bound conformation in non-small-cell lung carcinoma?\n### Evidence Conclusion (yes): Covalent binding to the switch-II pocket blocks nucleotide exchange and downstream MAPK proliferation."
+        },
+        {
+          "id": "biomed_holdout_02",
+          "text": "### Clinical Question: Does prime editing via reverse-transcriptase Cas9 nickase achieve targeted base transversions without double-strand DNA breaks?\n### Evidence Conclusion (yes): pegRNA-templated reverse transcription repairs single-strand nicks with minimal indel byproducts."
+        }
+      ]
+    },
+    "Astrophysics_JWST_Spectroscopy": {
+      "domain_index": 7,
+      "super_cluster_id": 3,
+      "super_cluster_name": "CLUSTER-03-FRONTIER-SCIENCE",
+      "hf_dataset_id": "MultimodalUniverse/multimodal_universe",
+      "hf_subset": "JWST-Exoplanet-Spectra",
+      "subject_title": "JWST Exoplanet Transmission Spectroscopy & SETI/Kepler Transit Biosignatures",
+      "why_convincing": "Honors HiveMind's SETI@home heritage by training specialized astrophysical experts on JWST atmospheric biosignatures and Kepler/TESS exoplanet transits.",
+      "train": [
+        {
+          "id": "astro_train_01",
+          "text": "### JWST NIRSpec Transmission Spectrum (TRAPPIST-1e Analog, Teq=278 K):\nTransit Depth: 1320 ppm | log(H2O): -4.4 | log(CH4): -6.1 | log(CO2): -5.0 | Cloud Deck: 0.12 bar\n### Biosignature Assessment:\nClass-I Temperate Habitable Zone World with Simultaneous H2O + CH4/CO2 Chemical Disequilibrium."
+        },
+        {
+          "id": "astro_train_02",
+          "text": "### Kepler/TESS Photometric Transit Curve (KOI-4878.01, Period=449.0 d):\nPlanet Radius: 1.04 R_earth | Transit Depth: 94.0 ppm (SNR=16.8) | Host Star Teff: 6031 K (G-Type Main Sequence)\n### Disposition Assessment:\nCONFIRMED Earth-Twin Temperate Terrestrial Candidate in Conservative Habitable Zone."
+        },
+        {
+          "id": "astro_train_03",
+          "text": "### SDSS APOGEE High-Resolution Stellar Spectrum (Plate 4512, SNR=48.2):\nTeff: 5340 K | Surface Gravity log(g): 4.41 dex | Metallicity [Fe/H]: -1.72 dex | Radial Velocity: -214.5 km/s\n### Stellar Population Assessment:\nGalactic Halo Metal-Poor Population II K-Dwarf."
+        }
+      ],
+      "holdout": [
+        {
+          "id": "astro_holdout_01",
+          "text": "### JWST NIRISS Transmission Spectrum (K2-18b Sub-Neptune, Teq=265 K):\nTransit Depth: 2890 ppm | log(H2O): -3.9 | log(CH4): -4.8 | log(CO2): -4.9 | Cloud Deck: 0.18 bar\n### Biosignature Assessment:\nHycean Candidate Atmosphere with Strong Methane and Carbon Dioxide Absorption Features."
+        },
+        {
+          "id": "astro_holdout_02",
+          "text": "### Kepler/TESS Photometric Transit Curve (TOI-700d, Period=37.42 d):\nPlanet Radius: 1.19 R_earth | Transit Depth: 610.0 ppm (SNR=24.1) | Host Star Teff: 3480 K (M-Dwarf)\n### Disposition Assessment:\nCONFIRMED Temperate Rocky Exoplanet Receiving 86% Earth Insolation."
+        }
+      ]
+    }
+  }
+}

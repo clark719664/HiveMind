@@ -52,7 +52,43 @@ PYTHONPATH=. python scripts/run_wan_quic_turn_benchmark.py
 
 ---
 
-## 3. Related Wiki Pages & Discussions
+## 3. 🚀 Operation Polyglot-Singularity-128: Large-Scale 8-Domain Hugging Face & 128-Expert Multi-MoE GPU Campaign (`HM-S7-09` / `HM-S7-10`)
+
+To validate the Branch-Train-Merge (`BTM`) + 128-Expert 3-Tier Sparse MoE + `EF21-DiLoCo` + Reputation-Weighted `TIES` (`SI-04`) thesis at scale on **real UTF-8 token cross-entropy (`nats/token`, `perplexity`)**, run `scripts/run_multi_moe_hf_campaign.py` (`src/hivemind/cli/multi_moe_hf_campaign.py`):
+
+### The 8 Curated Hugging Face Datasets & Subjects (`4 Super-Clusters`)
+
+| Super-Cluster | Domain Specialist | Hugging Face Dataset | Scientific / Engineering Subject |
+| :--- | :--- | :--- | :--- |
+| **`CLUSTER-00-SYSTEMS-FORMAL`** | `Rust_Systems_Kernel` | [`bigcode/the-stack-v2-dedup`](https://huggingface.co/datasets/bigcode/the-stack-v2-dedup) (`Rust`) | Zero-copy DMA rings, lock-free atomics & borrow-checker invariants |
+| **`CLUSTER-00-SYSTEMS-FORMAL`** | `Lean4_Formal_Mathematics` | [`hoskinson-center/proofnet`](https://huggingface.co/datasets/hoskinson-center/proofnet) | Machine-checked Lean 4 theorems for Byzantine quorums & contraction bounds |
+| **`CLUSTER-01-CRYPTO-SECURITY`** | `ZK_Cryptography_And_Audits` | [`ASSERT-KTH/DISL-Solidity-Smart-Contracts`](https://huggingface.co/datasets/ASSERT-KTH/DISL-Solidity-Smart-Contracts) | `ZK-OPoI v4` 4-way Merkle spot checks & L2 state-channel escrow audits |
+| **`CLUSTER-01-CRYPTO-SECURITY`** | `Cyber_Vulnerability_Patching` | [`SWE-bench/SWE-bench_Verified`](https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified) | Automated CWE vulnerability remediation & spectral backdoor (`FL-08`) defense |
+| **`CLUSTER-02-GPU-ML-KERNELS`** | `Triton_CUDA_Kernel_Synth` | [`ScalingIntelligence/KernelBench`](https://huggingface.co/datasets/ScalingIntelligence/KernelBench) | Fused Triton/CUDA `NF4` dequantization & `FP8` paged KV-cache kernels |
+| **`CLUSTER-02-GPU-ML-KERNELS`** | `Distributed_DiLoCo_Protocols` | [`HuggingFaceFW/fineweb-edu`](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | Stateful `EF21-DiLoCo` outer sync, Kademlia DHT & QUIC 0-RTT transport |
+| **`CLUSTER-03-FRONTIER-SCIENCE`** | `Biomedical_Clinical_Genomics` | [`qiaojin/PubMedQA`](https://huggingface.co/datasets/qiaojin/PubMedQA) | CRISPR-Cas9 off-target genomics, clinical trial QA & oncology pathways |
+| **`CLUSTER-03-FRONTIER-SCIENCE`** | `Astrophysics_JWST_Spectroscopy` | [`MultimodalUniverse/multimodal_universe`](https://huggingface.co/datasets/MultimodalUniverse/multimodal_universe) | JWST transmission spectroscopy biosignatures ($\text{H}_2\text{O} + \text{CH}_4/\text{CO}_2$) & Kepler transits |
+
+### Run the 8-Domain Multi-MoE Campaign on Your GPU
+
+```bash
+# Standard 8-domain campaign (12 steps/domain, real UTF-8 token cross-entropy + 128-Expert MoE upcycling)
+PYTHONPATH=. python scripts/run_multi_moe_hf_campaign.py \
+  --contributor-handle "@your_github_handle" \
+  --tier standard
+
+# Optional: stream extra live rows directly from Hugging Face Datasets Server API
+PYTHONPATH=. python scripts/run_multi_moe_hf_campaign.py \
+  --contributor-handle "@your_github_handle" \
+  --tier deep \
+  --live-hf-stream
+```
+
+Post your generated Markdown table and `campaign_sha256` receipt in **[GitHub Discussions](https://github.com/xaviercallens/HiveMind/discussions)** (`+1,500 PTS` non-monetary compute-reciprocity credits; `0.00 EUR / USD`).
+
+---
+
+## 4. Related Wiki Pages & Discussions
 
 - **[Consumer GPU Node Setup & Steam Tool](https://github.com/xaviercallens/HiveMind/wiki/Consumer-GPU-Node-Setup-and-Steam-Tool)**
 - **[Architecture & 5-Layer Stack](https://github.com/xaviercallens/HiveMind/wiki/Architecture-and-5-Layer-Stack)**

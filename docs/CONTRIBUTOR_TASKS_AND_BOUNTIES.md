@@ -82,18 +82,23 @@
 | **`HM-S7-06`** | `feat/s7-community-gpu-swarm-bench` | `src/hivemind/cli/community_gpu_benchmark.py` | **Opt-In Community GPU Benchmark & Hardware Verification Suite (`CUDA` / `ROCm` / `MPS`)**: Expand hardware profiles and contribute signed GPU benchmark receipts (`artifacts/community_gpu_benchmark_receipt.json`). | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
 | **`HM-S7-07`** | `feat/s7-multi-host-wan-gameday` | `src/hivemind/swarm/wan_fault_benchmark.py` | **Multi-Host Community WAN GameDay (`aioquic` 0-RTT + RFC 5766 TURN + Real-Token DiLoCo)**: Run 3-to-8 node cross-internet tests with interested community GPUs to measure live P2P p50/p95/p99 latency and outer-step convergence. | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
 | **`HM-S7-08`** | `formal/s7-banach-kv-and-fl08-proofs` | `lean4/HiveMindSpec.lean` | **Formal Lean 4 Proofs (`Theorems 73–80`)**: Prove Terminal-KV Banach contraction stability, `FL-08` single-assignee non-replayability, and `ZK-OPoI v4` position-bound leaf binding (`0 sorry`, `0` axioms). | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-09`** | `feat/s7-polyglot-singularity-128-campaign` | `src/hivemind/cli/multi_moe_hf_campaign.py` | **Operation Polyglot-Singularity-128: 8-Domain Hugging Face & 128-Expert Multi-MoE GPU Campaign**: Run & extend the 6-stage real-token Causal-LM (`Qwen2ForCausalLM` + `PEFT` LoRA) 8-domain Hugging Face training, `EF21-DiLoCo` outer sync, Byzantine-filtered `TIES` sign-consensus (`SI-04`), and 128-Expert 3-Tier Sparse MoE upcycling campaign. | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S7-10`** | `feat/s7-live-hf-streaming-moe-calibration` | `src/hivemind/data/fixtures/polyglot_science_8domain_v1.json` | **Live Hugging Face Streaming & Multi-GPU Cross-Domain MoE Router Calibration**: Expand `--live-hf-stream` Parquet/Datasets streaming across all 8 Hugging Face subjects (`bigcode/the-stack-v2-dedup`, `hoskinson-center/proofnet`, `DISL-Solidity`, `SWE-bench_Verified`, `KernelBench`, `fineweb-edu`, `PubMedQA`, `multimodal_universe`). | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
 
 ---
 
-## 🎮 3. How to Run the Opt-In Community GPU Benchmark (If Interested & Possible)
+## 🎮 3. How to Run the Opt-In Community GPU Benchmark & Multi-MoE Campaign (If Interested & Possible)
 
-Developers who wish to test their own GPU (`NVIDIA RTX 20/30/40/50`, `AMD Radeon RX 6000/7000 ROCm`, or `Apple Silicon MPS`) on the HiveMind stack can execute our opt-in `< 1.5 GB` peak-VRAM benchmark suite:
+Developers who wish to test their own GPU (`NVIDIA RTX 20/30/40/50`, `AMD Radeon RX 6000/7000 ROCm`, or `Apple Silicon MPS`) on the HiveMind stack can execute both our `< 1.5 GB` peak-VRAM hardware benchmark and our **8-Domain Hugging Face & 128-Expert Multi-MoE Validation Campaign (`Operation Polyglot-Singularity-128`)**:
 
 ```bash
-# Run the 5-stage opt-in GPU benchmark and emit a SHA-256 signed receipt
+# 1. Run the 5-stage opt-in GPU benchmark and emit a SHA-256 signed receipt
 uv run python scripts/run_community_gpu_benchmark.py --contributor-handle <your-github-handle>
 
-# Run the automated pytest verification suite
-uv run pytest tests/test_community_gpu_benchmark.py -v
+# 2. Run the 6-stage 8-Domain Hugging Face & 128-Expert Multi-MoE Campaign
+uv run python scripts/run_multi_moe_hf_campaign.py --contributor-handle <your-github-handle> --tier standard
+
+# 3. Run the automated pytest verification suites
+uv run pytest tests/test_community_gpu_benchmark.py tests/test_multi_moe_hf_campaign.py -v
 ```
 

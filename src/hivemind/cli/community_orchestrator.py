@@ -203,6 +203,20 @@ SEASON7_TASK_CATALOG: dict[str, dict[str, str]] = {
         "verify": "cd lean4 && lake build",
         "points": "3,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
+    "HM-S7-09": {
+        "branch": "feat/s7-polyglot-singularity-128-campaign",
+        "target": "src/hivemind/cli/multi_moe_hf_campaign.py",
+        "title": "Operation Polyglot-Singularity-128: 8-Domain Hugging Face & 128-Expert Multi-MoE GPU Campaign",
+        "verify": "uv run pytest tests/test_multi_moe_hf_campaign.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S7-10": {
+        "branch": "feat/s7-live-hf-streaming-moe-calibration",
+        "target": "src/hivemind/data/fixtures/polyglot_science_8domain_v1.json",
+        "title": "Live Hugging Face Streaming & Multi-GPU Cross-Domain MoE Router Calibration",
+        "verify": "uv run python scripts/run_multi_moe_hf_campaign.py --tier standard",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
 }
 
 
@@ -305,15 +319,26 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
     wiki_refs = recommend_wiki_references(f"{title}\n{target_body}", max_pages=4)
     wiki_links_md = _format_wiki_links_markdown(wiki_refs)
 
-    # 1. Check for shared GPU benchmark receipt SHA-256
+    # 1. Check for shared GPU benchmark or Multi-MoE Campaign receipt SHA-256
     sha_match = re.search(r"\b([a-f0-9]{64})\b", target_body)
-    if "receipt_sha256" in lower_text or ("stage3_three_tier_128_moe" in lower_text and sha_match):
+    if (
+        "receipt_sha256" in lower_text
+        or "campaign_sha256" in lower_text
+        or ("stage3_three_tier_128_moe" in lower_text and sha_match)
+        or ("operation-polyglot-singularity-128" in lower_text and sha_match)
+    ):
         receipt_hash = sha_match.group(1) if sha_match else "verified-format"
+        is_multi_moe = "campaign_sha256" in lower_text or "polyglot-singularity-128" in lower_text
+        campaign_label = (
+            "Operation Polyglot-Singularity-128 Multi-MoE & 8-Domain Hugging Face Campaign Receipt"
+            if is_multi_moe
+            else "Opt-In Community GPU Benchmark Receipt"
+        )
         reply = (
-            f"👋 Thanks `@{target_author}` for sharing your **Opt-In Community GPU Benchmark Receipt**!\n\n"
+            f"👋 Thanks `@{target_author}` for sharing your **{campaign_label}**!\n\n"
             f"- **Receipt Signature Check:** `{receipt_hash}` (64-hex SHA-256 format verified)\n"
-            f"- **Next Step:** Feel free to open a PR adding your hardware profile under `HM-S7-06` "
-            f"(`feat/s7-community-gpu-swarm-bench`) or join our Multi-Host WAN GameDay (`HM-S7-07`).\n"
+            f"- **Next Step:** Feel free to open a PR adding your hardware & multi-domain MoE profile under "
+            f"`HM-S7-09` (`feat/s7-polyglot-singularity-128-campaign`), `HM-S7-06`, or `HM-S7-07`.\n"
             f"- **📚 Project HiveMind Wiki References:**\n{wiki_links_md}\n"
             f"- **⚖️ Non-Monetary Reminder:** `{NON_MONETARY_COMPUTE_RECIPROCITY_NOTICE}`\n\n"
             f"{ORCHESTRATOR_REPLY_MARKER}"
