@@ -23,6 +23,7 @@ dependencies = [
     "aioquic>=1.2.0",
     "websockets>=13.0",
     "cryptography>=42.0.0",
+    "pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]

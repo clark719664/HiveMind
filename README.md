@@ -365,6 +365,23 @@ Implemented in [`src/hivemind/swarm/strategy_optimizer.py`](src/hivemind/swarm/s
 
 ---
 
+### 🤖 3.7 Season 6 Autonomous Agent Arena (`HM-S6-04`): Missions 21–24 & Live `SI-01`..`SI-05` HUD Tab
+
+Implemented in [`src/hivemind/game/hf_hack_miner.py`](src/hivemind/game/hf_hack_miner.py), [`src/hivemind/game/steam_edition.py`](src/hivemind/game/steam_edition.py), and [`src/hivemind/swarm/strategy_optimizer.py`](src/hivemind/swarm/strategy_optimizer.py):
+
+| Mission | Contract | Arena / Dataset | What Is Verified |
+| :--- | :--- | :--- | :--- |
+| **21** | `CONTRACT-HF-21-SELFPLAY-CODE-REPAIR` | `hivemind/selfplay-code-repair-arena` | Four agents learn mixed repair policies; curated assertions run in an isolated Python subprocess with AST import rejection and a 2 s timeout (no arbitrary player code) |
+| **22** | `CONTRACT-HF-22-LEAN4-AGENT-FORMALIZER` | `hivemind/lean4-agent-autoformalizer` | Structural Lean 4 lint rejects `sorry`, `admit`, custom axioms and unknown tactics; CI's `lake build` remains the kernel authority |
+| **23** | `CONTRACT-HF-23-PARETO-STRATEGY-OPTIMIZER` | `hivemind/pareto-guild-strategy-optimizer` | `GET`/`POST /api/strategy-optimizer` recomputes `SI-01` Fisher ranks, `SI-02` UCB1 priorities, `SI-03` DiLoCo cadence, `SI-04` reputation-weighted TIES and the `SI-05` frontier |
+| **24** | `CONTRACT-HF-24-AUTONOMOUS-AGENT-ARENA` | `hivemind/autonomous-agent-arena` | `GET`/`POST /api/agent-arena` settles both arenas, publishes champion telemetry and unlocks `S6_AGENT_ARENA_CHAMPION` |
+
+> **Measurement note:** the arena's code-repair scores are real assertions over curated patches, and the Lean audit is explicitly *structural*. `SI-05` speedup and `$HIVE`/GPU-hour coordinates are labeled modeled planning assumptions, not RTX 2070 measurements.
+
+Full design, safety boundaries and API examples: **[`docs/SEASON6_AGENT_ARENA.md`](docs/SEASON6_AGENT_ARENA.md)**.
+
+---
+
 ## 🔌 4. Connect & Integrate: Node Setup, OpenAI SSE Proxy & Cursor/Continue.dev
 
 ### 4.1 Quick Start — Connect Your Consumer RTX GPU (`8 GB – 12 GB VRAM`)
@@ -382,10 +399,10 @@ uv pip install -e ".[dev]"
 # 2. Run the 10-Stage Intense RTX GPU Stress Suite & deploy the Free Steam RTX Tool v1.0.0
 .\.venv\Scripts\python.exe -m hivemind.cli.main deploy-steam-tool
 
-# 3. Play the Full Campaign (Seasons 1–5, Missions 1–20) Hugging Face Hack-Miner Game
-.\.venv\Scripts\python.exe -m hivemind.cli.main play-hack-game --season s1-s3 --inner-steps 8
+# 3. Play the Full Campaign (Seasons 1–6, cumulatively through Missions 21–24) Hugging Face Hack-Miner Game
+.\.venv\Scripts\python.exe -m hivemind.cli.main play-hack-game --season s1-s6 --inner-steps 8
 
-# 4. Launch the Interactive Cyberpunk RTX Control Center, Guild Wars & WebGL 3D Geo-Ring HUD (http://127.0.0.1:8090)
+# 4. Launch the Interactive Cyberpunk RTX Control Center, Guild Wars, Season 6 Agent Arena & WebGL 3D Geo-Ring HUD (http://127.0.0.1:8090)
 .\.venv\Scripts\python.exe -m hivemind.cli.main serve-hack-hud --host 127.0.0.1 --port 8090
 
 # 5. Or launch the BOINC Coordinator & OpenAI-Compatible Proxy Server (http://127.0.0.1:8000)

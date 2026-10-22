@@ -51,6 +51,23 @@
 
 ---
 
+## 2.2 Season 6 Autonomous Agent Arena (`HM-S6-04`): Missions 21-24 & `SI-01`..`SI-05`
+
+- **Season 6 Agent Arena Missions (`--season 6`, catalog: `GET /api/season6-missions`):**
+  21. `CONTRACT-HF-21-SELFPLAY-CODE-REPAIR` — `hivemind/selfplay-code-repair-arena` (`SelfPlay_Code_Repair`)
+  22. `CONTRACT-HF-22-LEAN4-AGENT-FORMALIZER` — `hivemind/lean4-agent-autoformalizer` (`Lean4_Agent_Autoformalizer`)
+  23. `CONTRACT-HF-23-PARETO-STRATEGY-OPTIMIZER` — `hivemind/pareto-guild-strategy-optimizer` (`Pareto_Guild_Strategy_Optimizer`)
+  24. `CONTRACT-HF-24-AUTONOMOUS-AGENT-ARENA` — `hivemind/autonomous-agent-arena` (`Autonomous_Agent_Arena`)
+- **Arena (`GET`/`POST /api/agent-arena`):** four agents compete over curated repair tasks through an
+  isolated-subprocess verifier (AST import rejection + 2 s timeout), then a Lean 4 proof-search arena
+  runs a structural `sorry`/axiom/tactic audit. The arena never executes arbitrary player code and
+  never claims Lean kernel verification.
+- **Live Strategy Tab (`GET`/`POST /api/strategy-optimizer`):** recomputes `SI-01` Fisher ranks,
+  `SI-02` UCB1 priorities, `SI-03` DiLoCo cadence, `SI-04` reputation-weighted TIES and the `SI-05`
+  Pareto frontier from the posted link/curriculum telemetry. Modeled frontier coordinates are labelled.
+
+---
+
 ## 3. 4-Pillar Competitive Hack-Mining Scoring (`PTS`) & `$HIVE` Tokenomics
 
 Gamers compete on the **Global Steamworks Leaderboard** across 4 cryptographic pillars:
