@@ -591,6 +591,7 @@ class PRSecurityScanner:
         author: str,
         changed_files: list[dict[str, Any]],
         commit_messages: list[str] | None = None,
+        author_email: str | None = None,
     ) -> PRSecurityAuditResult:
         """Perform a comprehensive 5-layer security and anti-'Code Boubou' audit on a Pull Request.
 
@@ -607,10 +608,23 @@ class PRSecurityScanner:
                 - `patch` (str, optional): Unified diff patch string
                 - `content` (str, optional): Full file content if available
             commit_messages: Optional list of commit messages in the PR.
+            author_email: Optional sender/commit email address for OwnerOrderGuardrail verification.
         """
+        from hivemind.security.owner_order_guardrail import (
+            AUTHORIZED_OWNER_EMAIL,
+            OwnerOrderGuardrail,
+            OwnerOrderRequest,
+            normalize_and_verify_owner_email,
+        )
+
         findings: list[SecurityFinding] = []
         author_clean = (author or "unknown").strip().lower()
-        is_trusted_owner = author_clean in self.trusted_maintainers
+        email_verified = (
+            normalize_and_verify_owner_email(author_email).is_authorized_owner
+            if author_email is not None
+            else (author_clean in self.trusted_maintainers)
+        )
+        is_trusted_owner = (author_clean in self.trusted_maintainers) and email_verified
 
         # 1. Scan PR title, body, and commit messages for payment requests / wallets / Trojan Unicode
         combined_meta = "\n".join(
@@ -623,6 +637,43 @@ class PRSecurityScanner:
         findings.extend(self.scan_text_for_payment_solicitation(combined_meta, file_path=f"PR#{pr_number}:metadata"))
         findings.extend(self.scan_unicode_trojan_source(combined_meta, file_path=f"PR#{pr_number}:metadata"))
         findings.extend(self.scan_text_for_secrets_and_exfiltration(combined_meta, file_path=f"PR#{pr_number}:metadata"))
+
+        # 1b. OwnerOrderGuardrail: Block any administrative/directive order not from callensxavier@gmail.com
+        order_guard = OwnerOrderGuardrail(strict_orders_only=False)
+        effective_email = (
+            author_email
+            if author_email is not None
+            else (AUTHORIZED_OWNER_EMAIL if is_trusted_owner else "")
+        )
+        order_decision = order_guard.evaluate_request(
+            OwnerOrderRequest(
+                request_id=f"PR#{pr_number}",
+                sender_email=effective_email,
+                content=combined_meta,
+                sender_login=author_clean,
+                source_channel="github_pr",
+                changed_files=tuple(str(f.get("filename", "")) for f in changed_files),
+            )
+        )
+        if not order_decision.accepted:
+            findings.append(
+                SecurityFinding(
+                    rule_id=order_decision.rule_id,
+                    category="UNAUTHORIZED_NON_OWNER_DIRECTIVE_ORDER",
+                    severity=SecuritySeverity.CRITICAL,
+                    file_path=f"PR#{pr_number}:owner_order_guardrail",
+                    line_number=1,
+                    description=(
+                        f"Unauthorized directive order blocked by OwnerOrderGuardrail: "
+                        f"{order_decision.reason} (triggers={list(order_decision.matched_triggers)})"
+                    ),
+                    evidence_snippet=combined_meta[:180],
+                    remediation=(
+                        f"Administrative and execution orders are accepted exclusively from "
+                        f"`{AUTHORIZED_OWNER_EMAIL}`."
+                    ),
+                )
+            )
 
         functional_lines_added = 0
         total_lines_added = 0
@@ -711,11 +762,13 @@ class PRSecurityScanner:
             # Skip self-referential pattern definitions if trusted owner edits the security scanner or its unit tests
             is_security_Rule_file = raw_fname in {
                 "src/hivemind/security/pr_security_scanner.py",
+                "src/hivemind/security/owner_order_guardrail.py",
                 "src/hivemind/security/swarm_runtime_hardening.py",
                 "src/hivemind/security/federated_learning_hardening.py",
                 "src/hivemind/security/gpu_execution_circuit_breaker.py",
                 "src/hivemind/security/guardrail_attack_simulator.py",
                 "tests/test_pr_security_scanner.py",
+                "tests/test_owner_order_guardrail.py",
                 "tests/test_swarm_runtime_hardening.py",
                 "SECURITY.md",
                 "LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md",
@@ -734,9 +787,11 @@ class PRSecurityScanner:
                 and raw_fname
                 in {
                     "src/hivemind/security/pr_security_scanner.py",
+                    "src/hivemind/security/owner_order_guardrail.py",
                     "src/hivemind/security/swarm_runtime_hardening.py",
                     "src/hivemind/security/guardrail_attack_simulator.py",
                     "tests/test_pr_security_scanner.py",
+                    "tests/test_owner_order_guardrail.py",
                     "tests/test_swarm_runtime_hardening.py",
                 }
             ):
@@ -853,11 +908,13 @@ class PRSecurityScanner:
 
         exempt_self_files = {
             "src/hivemind/security/pr_security_scanner.py",
+            "src/hivemind/security/owner_order_guardrail.py",
             "src/hivemind/security/swarm_runtime_hardening.py",
             "src/hivemind/security/federated_learning_hardening.py",
             "src/hivemind/security/gpu_execution_circuit_breaker.py",
             "src/hivemind/security/guardrail_attack_simulator.py",
             "tests/test_pr_security_scanner.py",
+            "tests/test_owner_order_guardrail.py",
             "tests/test_swarm_runtime_hardening.py",
         }
 
@@ -980,6 +1037,7 @@ def run_cli_security_scan(
             author=pr_payload.get("author", "unknown"),
             changed_files=pr_payload.get("files", []),
             commit_messages=pr_payload.get("commit_messages", []),
+            author_email=pr_payload.get("author_email"),
         )
     else:
         result = scanner.audit_repository(root_path=root_path)

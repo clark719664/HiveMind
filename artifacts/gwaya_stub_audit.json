@@ -1,7 +1,7 @@
 {
   "schema_version": "hivemind-gwaya-stub-audit/v1.0",
   "auditor": "gwaya.ast_audit.ZeroStubAudit (GWAYA-GwenLayaOpenModel)",
-  "files_audited": 74,
+  "files_audited": 77,
   "files_failed": [],
   "all_passed": true,
   "results": [
@@ -375,6 +375,15 @@
       }
     },
     {
+      "file": "src/hivemind/security/owner_order_guardrail.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "src/hivemind/security/pr_security_scanner.py",
       "passed": true,
       "detail": {
@@ -537,6 +546,15 @@
       }
     },
     {
+      "file": "scripts/aggregate_e8_pilot.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "scripts/gwaya_stub_audit.py",
       "passed": true,
       "detail": {
@@ -670,8 +688,17 @@
         "violations": [],
         "penalty_energy": 0.0
       }
+    },
+    {
+      "file": "scripts/write_e8_pilot_section.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
     }
   ],
-  "written_utc": "2026-10-23T13:37:44Z",
-  "receipt_sha256": "2fc50b9a06e1215a806c132ce43596740cea97937be64dd53caec32965dc580c"
+  "written_utc": "2026-10-23T14:22:41Z",
+  "receipt_sha256": "8303c4c0b180cc06a4233fac803d80cbe265978f7469f87a77a6f60ae4c23dd8"
 }

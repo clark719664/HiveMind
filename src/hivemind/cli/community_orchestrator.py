@@ -27,6 +27,13 @@ import time
 from pathlib import Path
 from typing import Any
 
+from hivemind.security.owner_order_guardrail import (
+    AUTHORIZED_OWNER_EMAIL,
+    AUTHORIZED_OWNER_GITHUB_LOGIN,
+    OwnerOrderGuardrail,
+    OwnerOrderRequest,
+    verify_local_git_owner_identity,
+)
 from hivemind.security.pr_security_scanner import PRSecurityScanner
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -383,6 +390,7 @@ def evaluate_pull_request_for_merge(
     title = str(pr_meta.get("title", "")).strip()
     body = str(pr_meta.get("body", "") or "")
     author = str(pr_meta.get("author", "unknown"))
+    author_email = pr_meta.get("author_email")
     is_draft = bool(pr_meta.get("isDraft", False))
     mergeable = str(pr_meta.get("mergeable", "UNKNOWN")).upper()
     changed_files = list(pr_meta.get("files", []))
@@ -394,6 +402,7 @@ def evaluate_pull_request_for_merge(
         author=author,
         changed_files=changed_files,
         commit_messages=[title],
+        author_email=str(author_email) if author_email is not None else None,
     )
 
     can_merge = bool(
@@ -450,6 +459,7 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
         last_comment = comments[-1]
         target_body = str(last_comment.get("body", "") or "")
         target_author = str((last_comment.get("author") or {}).get("login", "community-member"))
+        target_email = str((last_comment.get("author") or {}).get("email", "") or "")
         if ORCHESTRATOR_REPLY_MARKER in target_body:
             return {
                 "discussion_id": disc_id,
@@ -467,6 +477,39 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
             }
         target_body = disc_body
         target_author = disc_author
+        target_email = str((discussion.get("author") or {}).get("email", "") or "")
+
+    # Deterministic OwnerOrderGuardrail check: reject any directive order not from callensxavier@gmail.com
+    effective_email = (
+        target_email
+        if target_email
+        else (
+            AUTHORIZED_OWNER_EMAIL
+            if target_author.strip().lower() == AUTHORIZED_OWNER_GITHUB_LOGIN
+            else ""
+        )
+    )
+    order_guard = OwnerOrderGuardrail(strict_orders_only=False)
+    order_decision = order_guard.evaluate_request(
+        OwnerOrderRequest(
+            request_id=f"Discussion#{disc_num}",
+            sender_email=effective_email,
+            content=f"{title}\n{target_body}",
+            sender_login=target_author,
+            source_channel="github_discussion",
+        )
+    )
+    if not order_decision.accepted:
+        return {
+            "discussion_id": disc_id,
+            "discussion_number": disc_num,
+            "needs_reply": False,
+            "blocked_unauthorized_order": True,
+            "order_guardrail_rule_id": order_decision.rule_id,
+            "order_guardrail_receipt_sha256": order_decision.receipt_sha256,
+            "target_author": target_author,
+            "reason": "blocked_unauthorized_order_not_callensxavier",
+        }
 
     lower_text = f"{title}\n{target_body}".lower()
     wiki_refs = recommend_wiki_references(f"{title}\n{target_body}", max_pages=4)
@@ -706,6 +749,16 @@ def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> di
         except Exception:
             pass
 
+    owner_identity = verify_local_git_owner_identity(root)
+    guard_self_check = OwnerOrderGuardrail(strict_orders_only=True)
+    guard_verified = bool(
+        guard_self_check.evaluate_request(
+            {"request_id": "self-ok", "sender_email": AUTHORIZED_OWNER_EMAIL, "content": "commit and push"}
+        ).accepted
+        and not guard_self_check.evaluate_request(
+            {"request_id": "self-block", "sender_email": "unauthorized@example.com", "content": "commit and push"}
+        ).accepted
+    )
     all_healthy = bool(
         lean_theorems >= 120
         and lean_sorry == 0
@@ -714,9 +767,13 @@ def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> di
         and exp_suites_present == 4
         and technical_gate_pass_rate >= 1.0
         and peer_provenance_passed >= 16
+        and guard_verified
     )
     return {
         "all_quality_gates_healthy": all_healthy,
+        "owner_order_guardrail_active": guard_verified,
+        "authorized_owner_email": AUTHORIZED_OWNER_EMAIL,
+        "local_git_owner_verified": owner_identity["owner_identity_verified"],
         "lean4_theorems_verified": lean_theorems,
         "lean4_sorry_count": lean_sorry,
         "hypotheses_passed": f"{hyp_passed}/{hyp_total}",
