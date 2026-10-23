@@ -1046,24 +1046,22 @@ class MuonNewtonSchulzLoRAPreconditioner:
         self,
         steps: int = 5,
         coeffs: Tuple[float, float, float] = (3.4445, -4.7750, 2.0315),
+        ns_steps: int | None = None,
     ) -> None:
+        if ns_steps is not None:
+            steps = ns_steps
         if steps < 1:
             raise ValueError("steps must be >= 1")
         self.steps = int(steps)
         self.coeffs = (float(coeffs[0]), float(coeffs[1]), float(coeffs[2]))
 
-    @torch.no_grad()
-    def orthogonalize_2d(self, grad_matrix: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Orthogonalize a 2D LoRA gradient/momentum matrix using quintic Newton-Schulz."""
-        if grad_matrix.ndim != 2:
-            raise ValueError("orthogonalize_2d expects a 2D tensor")
-        g = grad_matrix.detach().to(torch.float32)
-        s_before = torch.linalg.svdvals(g.cpu())
-        active_before = s_before[s_before > (1e-5 * s_before.max().clamp_min(1e-8))]
-        cond_before = float(
-            active_before.max().item() / active_before.min().clamp_min(1e-8).item()
-        ) if active_before.numel() > 0 else 1.0
+    @property
+    def ns_steps(self) -> int:
+        """Alias used by the inner-loop MuLoCo wiring (`HM-S8-09`)."""
+        return self.steps
 
+    def _orthogonalize_float32(self, g: torch.Tensor) -> torch.Tensor:
+        """Run the quintic Newton-Schulz iteration on an already-float32 2D matrix."""
         transposed = False
         if g.shape[0] > g.shape[1]:
             g = g.t()
@@ -1079,6 +1077,30 @@ class MuonNewtonSchulzLoRAPreconditioner:
 
         if transposed:
             x = x.t()
+        return x
+
+    @torch.no_grad()
+    def precondition_gradient(self, grad_matrix: torch.Tensor) -> torch.Tensor:
+        """Fast inner-loop path: orthogonalize a 2D gradient without SVD telemetry."""
+        if grad_matrix.ndim != 2:
+            raise ValueError("precondition_gradient expects a 2D tensor")
+        g = grad_matrix.detach().to(torch.float32)
+        x = self._orthogonalize_float32(g)
+        return x.to(device=grad_matrix.device, dtype=grad_matrix.dtype)
+
+    @torch.no_grad()
+    def orthogonalize_2d(self, grad_matrix: torch.Tensor) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """Orthogonalize a 2D LoRA gradient/momentum matrix using quintic Newton-Schulz."""
+        if grad_matrix.ndim != 2:
+            raise ValueError("orthogonalize_2d expects a 2D tensor")
+        g = grad_matrix.detach().to(torch.float32)
+        s_before = torch.linalg.svdvals(g.cpu())
+        active_before = s_before[s_before > (1e-5 * s_before.max().clamp_min(1e-8))]
+        cond_before = float(
+            active_before.max().item() / active_before.min().clamp_min(1e-8).item()
+        ) if active_before.numel() > 0 else 1.0
+
+        x = self._orthogonalize_float32(g)
 
         s_after = torch.linalg.svdvals(x.cpu())
         active_after = s_after[s_after > (1e-3 * s_after.max().clamp_min(1e-8))]

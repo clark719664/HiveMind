@@ -71,6 +71,9 @@ class InnerLoopResult:
     circuit_breaker_reason: str | None = None
     thermal_throttled_steps: int = 0
     max_step_latency_sec: float = 0.0
+    muon_preconditioned_steps: int = 0
+    use_muon_lora_preconditioner: bool = False
+    muon_ns_steps: int = 5
 
 
 def build_inner_optimizer(
@@ -106,6 +109,18 @@ def get_deterministic_batch(
     return batch, batch.clone()
 
 
+@torch.no_grad()
+def _apply_muon_lora_preconditioning(model: nn.Module, preconditioner: object) -> int:
+    """Orthogonalize every 2D `lora_` gradient in place; return the number of tensors updated."""
+    preconditioned = 0
+    for name, parameter in model.named_parameters():
+        if parameter.grad is None or "lora_" not in name or parameter.grad.ndim != 2:
+            continue
+        parameter.grad = preconditioner.precondition_gradient(parameter.grad)  # type: ignore[attr-defined]
+        preconditioned += 1
+    return preconditioned
+
+
 def run_diloco_inner_loop(
     model: nn.Module,
     token_sequences: torch.Tensor,
@@ -127,6 +142,8 @@ def run_diloco_inner_loop(
     circuit_breaker: GPUExecutionCircuitBreaker | None = None,
     enforce_battery_guard: bool = False,
     enable_thermal_sleep: bool = False,
+    use_muon_lora_preconditioner: bool = False,
+    muon_ns_steps: int = 5,
 ) -> InnerLoopResult:
     """Execute H local AdamW steps on LoRA parameters with micro-checkpointing every s steps.
 
@@ -140,6 +157,13 @@ def run_diloco_inner_loop(
             f"topk_ratio={topk_ratio} differs from the error-feedback buffer's "
             f"topk_ratio={error_feedback.topk_ratio}"
         )
+    if muon_ns_steps < 1:
+        raise ValueError(f"muon_ns_steps must be >= 1, got {muon_ns_steps}")
+    muon_preconditioner: object | None = None
+    if use_muon_lora_preconditioner:
+        from hivemind.swarm.diloco_nextgen import MuonNewtonSchulzLoRAPreconditioner
+
+        muon_preconditioner = MuonNewtonSchulzLoRAPreconditioner(ns_steps=muon_ns_steps)
     configure_deterministic_runtime(rng_seed)
     device = next(model.parameters()).device
     model.train()
@@ -184,6 +208,7 @@ def run_diloco_inner_loop(
     cb_reason: str | None = None
     thermal_throttled_steps = 0
     max_step_latency_sec = 0.0
+    muon_preconditioned_steps = 0
 
     for step in range(1, inner_steps_H + 1):
         # 1. Hardware Circuit-Breaker & Zero-Intrusion Daemon preemption check
@@ -256,6 +281,9 @@ def run_diloco_inner_loop(
         loss.backward()
         if max_grad_norm is not None and max_grad_norm > 0.0:
             torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=max_grad_norm)
+        if muon_preconditioner is not None:
+            if _apply_muon_lora_preconditioning(model, muon_preconditioner) > 0:
+                muon_preconditioned_steps += 1
 
         del outputs, loss, input_ids, labels
         optimizer.step()
@@ -330,6 +358,9 @@ def run_diloco_inner_loop(
         circuit_breaker_reason=cb_reason,
         thermal_throttled_steps=thermal_throttled_steps,
         max_step_latency_sec=round(max_step_latency_sec, 6),
+        muon_preconditioned_steps=muon_preconditioned_steps,
+        use_muon_lora_preconditioner=use_muon_lora_preconditioner,
+        muon_ns_steps=muon_ns_steps,
     )
 
 
@@ -345,8 +376,17 @@ def replay_inner_segment(
     micro_batch_size: int = 1,
     initial_step_state: dict[str, torch.Tensor] | None = None,
     max_grad_norm: float | None = DEFAULT_MAX_GRAD_NORM,
+    use_muon_lora_preconditioner: bool = False,
+    muon_ns_steps: int = 5,
 ) -> dict[str, torch.Tensor]:
     """Deterministically replay a segment of inner steps for BOINC Validator spot-checking."""
+    if muon_ns_steps < 1:
+        raise ValueError(f"muon_ns_steps must be >= 1, got {muon_ns_steps}")
+    muon_preconditioner: object | None = None
+    if use_muon_lora_preconditioner:
+        from hivemind.swarm.diloco_nextgen import MuonNewtonSchulzLoRAPreconditioner
+
+        muon_preconditioner = MuonNewtonSchulzLoRAPreconditioner(ns_steps=muon_ns_steps)
     configure_deterministic_runtime(rng_seed)
     device = next(model.parameters()).device
     model.train()
@@ -378,6 +418,8 @@ def replay_inner_segment(
         loss.backward()
         if max_grad_norm is not None and max_grad_norm > 0.0:
             torch.nn.utils.clip_grad_norm_(trainable_params, max_norm=max_grad_norm)
+        if muon_preconditioner is not None:
+            _apply_muon_lora_preconditioning(model, muon_preconditioner)
         del outputs, loss, input_ids, labels
         optimizer.step()
         optimizer.zero_grad(set_to_none=True)

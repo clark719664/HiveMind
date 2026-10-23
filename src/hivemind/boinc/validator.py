@@ -92,6 +92,10 @@ class DeterministicSpotCheckValidator:
             weight_decay=weight_decay,
             rng_seed=workunit.rng_seed,
             micro_batch_size=micro_batch_size,
+            use_muon_lora_preconditioner=getattr(
+                submission, "use_muon_lora_preconditioner", False
+            ),
+            muon_ns_steps=getattr(submission, "muon_ns_steps", 5),
         )
 
         worker_record = submission.micro_checkpoints[selected_end]
