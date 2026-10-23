@@ -1,6 +1,6 @@
 {
   "schema_version": "hivemind-predictions-ledger/v1.0",
-  "updated_utc": "2026-10-23T13:49:53Z",
+  "updated_utc": "2026-10-23T14:04:25Z",
   "predictions": {
     "P1": {
       "rq": "RQ1",
@@ -123,5 +123,5 @@
     "inconclusive": 1,
     "refuted": 1
   },
-  "receipt_sha256": "b1c643fc7750c144be1ca2e791aba8bf5e8c38baf31bd96b65fbf1656b7e67f3"
+  "receipt_sha256": "fd59d1cd0383552f6f3a54f83112342438001851310ba0e545edcf6375204ccd"
 }

@@ -46,6 +46,9 @@ BUNDLE: List[Path] = [
     PROJECT_ROOT / "artifacts" / "decoupled_diloco_quorum_check.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_prereg.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_report.json",
+    PROJECT_ROOT / "artifacts" / "experiments" / "E8_pilot_report.json",
+    PROJECT_ROOT / "artifacts" / "predictions_ledger.json",
+    PROJECT_ROOT / "artifacts" / "gwaya_stub_audit.json",
     PROJECT_ROOT / "CITATION.cff",
 ]
 
@@ -104,7 +107,7 @@ def metadata(version: str, doi_note: str) -> Dict[str, Any]:
         "<p><b>Scope statement (please read before citing).</b> This preprint has <b>not</b> been peer reviewed. "
         "All experiments were run on a single host; E1-E4 use a single seed and demonstrate that the mechanisms "
         "behave as specified, they do not estimate effect sizes. E5-toy is the first pre-registered, three-seed "
-        "experiment with positive, negative and matched-random controls, on a toy synthetic language model. The "
+        "experiment with positive, negative and matched-random controls, on a toy synthetic language model; E8-pilot is a two-host run over the public internet (workstation + GCP VM) that validates the cross-host protocol exactly and exposes a defect of the round-synchronous learner loop. The "
         "paper states eight falsifiable predictions and the experiments that decide them; none of the multi-host "
         "claims has been measured yet. The JSON artifacts in this bundle are the sole source of every number in "
         "the PDF (provenance lock PROV-01..PROV-18 in paper/autoevolve_peer_review_pipeline.py).</p>"
@@ -174,7 +177,7 @@ def main() -> int:
     ap.add_argument("--stage", choices=["draft", "upload", "publish"], required=True)
     ap.add_argument("--deposition-id", type=int, default=None)
     ap.add_argument("--new-version-of", type=int, default=None, help="existing record id to create a new version of")
-    ap.add_argument("--version", default="3.4.0")
+    ap.add_argument("--version", default="3.4.1")
     args = ap.parse_args()
     token = load_token()
 
