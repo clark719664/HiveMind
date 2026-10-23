@@ -54,8 +54,30 @@ class DeterministicSpotCheckValidator:
         weight_decay: float = 0.01,
         micro_batch_size: int = 1,
         validator_rng_seed: int | None = None,
+        worker_fingerprint: object | None = None,
+        validator_fingerprint: object | None = None,
     ) -> SpotCheckVerdict:
         """Select one micro-checkpoint segment and verify worker determinism within eps = 1e-4."""
+        # HM-S10-08: eps is only meaningful within one accelerator class; do not replay or flag across classes
+        if (
+            worker_fingerprint is not None
+            and validator_fingerprint is not None
+            and worker_fingerprint.class_key() != validator_fingerprint.class_key()  # type: ignore[attr-defined]
+        ):
+            return SpotCheckVerdict(
+                wu_id=workunit.wu_id,
+                worker_id=submission.worker_id,
+                steam_id64=steam_id64,
+                segment_start_step=0,
+                segment_end_step=0,
+                verification_overhead_pct=0.0,
+                max_abs_divergence=float("nan"),
+                tolerance_eps=self.tolerance_eps,
+                hash_matched=False,
+                passed=False,
+                steam_account_flagged=False,
+                reason="not comparable: cross-architecture replay (HM-S10-08)",
+            )
         ckpt_steps = sorted(s for s in submission.micro_checkpoints.keys() if s > 0)
         if not ckpt_steps:
             self._flag_account(steam_id64, f"Missing micro-checkpoints in WU {workunit.wu_id}")

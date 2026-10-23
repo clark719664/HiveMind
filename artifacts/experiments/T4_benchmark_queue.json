@@ -38,6 +38,15 @@
    "output": "artifacts/experiments/E11_raw_qwen0.5b.json"
   },
   {
+   "name": "E11_gemma4-e4b_retry",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b"
+   ],
+   "output": "artifacts/experiments/E11_raw_gemma4-e4b.json"
+  },
+  {
    "name": "E11_qwen7b_retry",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",
