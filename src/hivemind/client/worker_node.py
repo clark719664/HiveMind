@@ -107,6 +107,8 @@ class HiveMindWorkerNode:
         topk_ratio: float = 0.20,
         use_paged_8bit_adamw: bool = False,
         byzantine_poison_scale: float | None = None,
+        use_muon_lora_preconditioner: bool = False,
+        muon_ns_steps: int = 5,
     ) -> InnerLoopResult:
         """Verify Steam ticket & Parquet shard, execute H local AdamW steps, and emit compressed delta."""
         ok, msg = self.steamworks.verify_sybil_resistance(self.auth_ticket)
@@ -139,6 +141,8 @@ class HiveMindWorkerNode:
             should_preempt_fn=self.daemon.should_preempt,
             emergency_checkpoint_dir=ARTIFACTS_ROOT / "emergency_checkpoints",
             error_feedback=self._error_feedback_for(workunit.branch_name, topk_ratio),
+            use_muon_lora_preconditioner=use_muon_lora_preconditioner,
+            muon_ns_steps=muon_ns_steps,
         )
         self._record_ef21_telemetry(result)
 
@@ -168,6 +172,8 @@ class HiveMindWorkerNode:
         rng_seed: int = 42,
         micro_batch_size: int = 2,
         topk_ratio: float = 0.50,
+        use_muon_lora_preconditioner: bool = False,
+        muon_ns_steps: int = 5,
     ) -> InnerLoopResult:
         """Execute a decentralized SETI-Swarm inner loop on a Content-Addressed Hugging Face shard."""
         ok, msg = self.steamworks.verify_sybil_resistance(self.auth_ticket)
@@ -194,6 +200,8 @@ class HiveMindWorkerNode:
             should_preempt_fn=self.daemon.should_preempt,
             emergency_checkpoint_dir=ARTIFACTS_ROOT / "emergency_checkpoints",
             error_feedback=self._error_feedback_for(domain_name, topk_ratio),
+            use_muon_lora_preconditioner=use_muon_lora_preconditioner,
+            muon_ns_steps=muon_ns_steps,
         )
         self._record_ef21_telemetry(result)
         return result
