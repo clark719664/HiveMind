@@ -1,9 +1,9 @@
 {
   "stage": "published",
-  "deposition_id": 23602528,
+  "deposition_id": 23604695,
   "prereserved_doi": "10.5281/zenodo.23602528",
   "state": "done",
-  "html": "https://zenodo.org/record/23602528",
+  "html": "https://zenodo.org/record/23604695",
   "files": [
     {
       "filename": "hivemind_foundation_article.pdf",
@@ -136,7 +136,7 @@
       "status": "uploaded"
     }
   ],
-  "written_utc": "2026-10-23T18:45:12Z",
+  "written_utc": "2026-10-23T21:04:20Z",
   "local_sha256": {
     "hivemind_foundation_article.pdf": "9603697823de2ceb4c7f68618786e09a5d570fa15c0c4650789f4e46867b5203",
     "hivemind_foundation_article.tex": "9cb7d7e959424babd61f9d6deaa47aa03d500f9fc0a49109af8c9c3bad445eb8",
@@ -165,39 +165,58 @@
     "gwaya_stub_audit.json": "27a7a91ed8c49a227b1e627a82d493f1b26ff7f0bcc9b369d9c9397a2f46d6ce",
     "CITATION.cff": "09ee4947455d793f9f2b3900f52de1c115b2049cd0c774bdb09ec4a4dfdcd948"
   },
-  "record_id": 23602528,
-  "doi": "10.5281/zenodo.23602528",
-  "doi_url": "https://doi.org/10.5281/zenodo.23602528",
+  "record_id": 23604695,
+  "doi": "10.5281/zenodo.23604695",
+  "doi_url": "https://doi.org/10.5281/zenodo.23604695",
   "conceptdoi": "10.5281/zenodo.23597697",
   "submitted": true,
   "remote_md5": {
     "decoupled_diloco_quorum_check.json": "f8ccefeea9f63959fc89f8928fcde5b7",
+    "HiveMindSpec.lean": "59e17dfc55d0101ed88dbf5c0c801db3",
+    "predictions_ledger.json": "33618ab1a75d059ffec50343530a8b04",
     "E5_toy_report.json": "ee8712ada2668f817cd08f14f29ad0ef",
     "MOE_DILOCO_REVIEW_2026-10-23.md": "a75c5061339db9c853f1424a55abe608",
     "E5_toy_prereg.json": "60aac0165ef684299971b9da89fdba98",
     "architecture_hypothesis_verification_report.json": "29b579242b6054aacd582e515ce69594",
     "paper_v3_experiments_report.json": "880d5276bf87ddfa1e62e4c713c52333",
     "gwaya_stub_audit.json": "b407edb2f5bf20499067b9a9a64aef49",
-    "HiveMindSpec.lean": "0194bbf2ceb8d9c34ff8e7e0e97970c4",
     "E5_het_report.json": "416502040865c58cc382b51f74d4d83f",
     "E5_het_calibration.json": "0628539e3ffd18424e67a939274d4009",
     "E8_pilot_report.json": "dc5ec843a262f2b210fafeacb7f1373d",
     "E5_het_prereg.json": "ebda99de822594573e8329b48aec3ee3",
-    "predictions_ledger.json": "94b7b0cf646cbeead95926794f32a349",
     "external_review_v3.5.0_2026-10-23.md": "33a3f7501a180296d7a53692f1635a90",
     "RDAMultiplier.lean": "9af1a58c3b0710a46e05d657aa41d5f3",
     "E10_lattice_prereg.json": "eb712ef77a1032850552c77363a62121",
-    "hivemind_foundation_article.pdf": "b634517455800e7d756521e1c8bec4ef",
-    "hivemind_foundation_article.tex": "0e02bb998e3baeed39bad75cff9fdd4d",
-    "RESEARCH_PROGRAM.md": "522b7c14e59a3a40a52ba23ba07b0e23",
-    "PEER_REVIEW_REPORT.json": "7dcbeebf9dbc281127b832b4fbda8942",
     "E10_lattice_report.json": "47060fa583ffd428b3ab35a4ee6c4688",
     "lean_independent_runner_check.json": "393f9d4ba3ac504fcdda123ff01720ab",
     "lean_rda_multiplier_check.json": "e90b1d2471c842f7d9644d8fa68f87c5",
-    "ROADMAP.md": "7dff994aa2381b768e99854f8114ca21",
     "response_to_external_review_v3.5.0.md": "d8f663b3975bc149c1a6a832a3a82fe1",
-    "CITATION.cff": "c180d6238a3c394e233a411d97dfcc89"
+    "lora_init.pt": "04c5022688345ab698486f65427bdb43",
+    "hivemind_foundation_article.pdf": "67625c2fcc57d2e37bc1f7d72b9883aa",
+    "hivemind_foundation_article.tex": "59d0288842ac60e9f7cd5ebf1bd3ba32",
+    "PEER_REVIEW_REPORT.json": "2313133f69ba42c47f9e8ca192f57070",
+    "RESEARCH_PROGRAM.md": "98992509f27545ed47e10dd573ce8571",
+    "E12_pilot_prereg.json": "d13fa9cb9a1320948cd7f8259db93ae7",
+    "E12_pilot_report.json": "3a450944154e12e8a4342e66b72e8fe6",
+    "ROADMAP.md": "f334d6161c32586a102d3a14d57c1c45",
+    "CITATION.cff": "d30a57ba8f4ababec4077572fc125595",
+    "ref.pt": "c138febbf12c699d14bbe9f111f57bde",
+    "same_process_repeat.pt": "38e0e9a3288dc04e774b6b0389866806",
+    "threads_1.pt": "f521f10448cefc2323d4382f02c21dc0",
+    "threads_8.pt": "506c0bfe50422af806543eae65685e41",
+    "remote_cpu.pt": "8cc88c6232f9fcf2208ddff19b4dd35a",
+    "tampered.pt": "174eb93be0285c4bfca2ea808df09410"
   },
-  "checksum_mismatches": [],
-  "verified": true
+  "checksum_mismatches": [
+    "HiveMindSpec.lean"
+  ],
+  "verified": false,
+  "verification_note": "Published 2026-10-23 as 10.5281/zenodo.23604695 (version 3.7.0, 35 files). One checksum mismatch, HiveMindSpec.lean: the file uploaded was the working-tree copy, which at upload time already contained eight additional theorems (Season 15, Theorems 121-128, 'quorum liveness, data lease conservation, momentum restart, sigma-MoE, OrthoInj, factored gossip, E8 lattice') written by another agent in the same checkout and not yet committed or reviewed. That version builds with lake (0 sorryAx in the #print axioms output, 128 theorems, 130 axiom lines) but is NOT the file the paper describes (120 theorems, independent-gate receipt artifacts/lean_independent_runner_check.json). The published record therefore carries a superset of the verified file; the paper text (120) is accurate for the committed file 153bbd8. The eight theorems will enter the record only through a gated PR (scripts/pr_gatekeeper.py) and the next paper version. All other 34 files match the release commit.",
+  "verified_against_commit": "153bbd8",
+  "known_mismatch": {
+    "file": "HiveMindSpec.lean",
+    "published_md5": "59e17dfc55d0101ed88dbf5c0c801db3",
+    "committed_md5": "0194bbf2ceb8d9c34ff8e7e0e97970c4",
+    "cause": "uncommitted Season 15 theorems present in the shared working tree at upload time"
+  }
 }
