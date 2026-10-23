@@ -16,13 +16,12 @@ jobs:
     timeout-minutes: 30
     env:
       TRUSTED_COMMIT: ${{ github.sha }}
-      HOSTED_ENVIRONMENT: ${{ runner.environment }}
     steps:
       - name: Fetch trusted harness without credentials
         shell: bash
         run: |
           set -euo pipefail
-          test "$HOSTED_ENVIRONMENT" = github-hosted
+          test "$RUNNER_ENVIRONMENT" = github-hosted
           [[ "$TRUSTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           mkdir -p "$RUNNER_TEMP/empty-hooks"
           git -c init.templateDir= -c core.hooksPath="$RUNNER_TEMP/empty-hooks" init "$RUNNER_TEMP/guard"
