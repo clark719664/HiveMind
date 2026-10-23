@@ -1,9 +1,102 @@
 {
-  "stage": "draft",
-  "deposition_id": 23597698,
-  "prereserved_doi": "10.5281/zenodo.23597698",
+  "stage": "upload",
+  "deposition_id": 23598417,
+  "prereserved_doi": "10.5281/zenodo.23598417",
   "state": "unsubmitted",
-  "html": "https://zenodo.org/deposit/23597698",
-  "files": [],
-  "written_utc": "2026-10-23T13:25:20Z"
+  "html": "https://zenodo.org/deposit/23598417",
+  "files": [
+    {
+      "filename": "hivemind_foundation_article.pdf",
+      "md5": "698baeeb0661623721ace999fc9407d9",
+      "status": "uploaded"
+    },
+    {
+      "filename": "hivemind_foundation_article.tex",
+      "md5": "a7edc4f20c2a6c38133be6522ec1ea23",
+      "status": "uploaded"
+    },
+    {
+      "filename": "PEER_REVIEW_REPORT.json",
+      "md5": "d528e185584bbf97f8a0fbcf4ab5603e",
+      "status": "uploaded"
+    },
+    {
+      "filename": "RESEARCH_PROGRAM.md",
+      "md5": "36e88fe4da5ab91f26a72042e7fd47e8",
+      "status": "already_present"
+    },
+    {
+      "filename": "MOE_DILOCO_REVIEW_2026-10-23.md",
+      "md5": "a75c5061339db9c853f1424a55abe608",
+      "status": "already_present"
+    },
+    {
+      "filename": "HiveMindSpec.lean",
+      "md5": "fdba4bd8407ab2d9ce232fa1236f7fc9",
+      "status": "already_present"
+    },
+    {
+      "filename": "architecture_hypothesis_verification_report.json",
+      "md5": "29b579242b6054aacd582e515ce69594",
+      "status": "already_present"
+    },
+    {
+      "filename": "paper_v3_experiments_report.json",
+      "md5": "880d5276bf87ddfa1e62e4c713c52333",
+      "status": "already_present"
+    },
+    {
+      "filename": "decoupled_diloco_quorum_check.json",
+      "md5": "f8ccefeea9f63959fc89f8928fcde5b7",
+      "status": "already_present"
+    },
+    {
+      "filename": "E5_toy_prereg.json",
+      "md5": "60aac0165ef684299971b9da89fdba98",
+      "status": "already_present"
+    },
+    {
+      "filename": "E5_toy_report.json",
+      "md5": "ee8712ada2668f817cd08f14f29ad0ef",
+      "status": "already_present"
+    },
+    {
+      "filename": "E8_pilot_report.json",
+      "md5": "dc5ec843a262f2b210fafeacb7f1373d",
+      "status": "uploaded"
+    },
+    {
+      "filename": "predictions_ledger.json",
+      "md5": "3a87e8bb1ab517dce66ce56eb36eaf75",
+      "status": "uploaded"
+    },
+    {
+      "filename": "gwaya_stub_audit.json",
+      "md5": "3f15fda70dd34e18692dc61d61f5b93e",
+      "status": "uploaded"
+    },
+    {
+      "filename": "CITATION.cff",
+      "md5": "16262b1b58df37feb2497507a4b5bf53",
+      "status": "uploaded"
+    }
+  ],
+  "written_utc": "2026-10-23T14:04:34Z",
+  "local_sha256": {
+    "hivemind_foundation_article.pdf": "903cd8c97bf93547fea44f1e1bf9ef83d904093428ce94cb0552ab3ec0609748",
+    "hivemind_foundation_article.tex": "808b3e39eea849c7c414f00a0ea300f8360fd2871e62378f17104e85e1ad74d8",
+    "PEER_REVIEW_REPORT.json": "098101f03030d085e391828102f1ae036b101a821758d04f626dcb3776cc8ed3",
+    "RESEARCH_PROGRAM.md": "a5b7e79343a1239a482068848a34ab8828166c5e95cb529362e75f94a0cf6ec4",
+    "MOE_DILOCO_REVIEW_2026-10-23.md": "71e29178c486fda014d3385dd5ca70019c153a84d4f03ad14f4dd77939bd77a5",
+    "HiveMindSpec.lean": "22f28df0465c027c9626f68b921718eb12fc9fb5ab649ecbfdc3c17d66d161eb",
+    "architecture_hypothesis_verification_report.json": "d8e98442efd8c7892c014b67e240e6dd729af1499479243477da7b98e8b92379",
+    "paper_v3_experiments_report.json": "580bf389f626cf8d4900170dc5dfe86c60d421a78ca80104e85dea13e969ab89",
+    "decoupled_diloco_quorum_check.json": "1474ca96987cf6d13c135ebb8e634bc490e5f04744d8509d9e7ca4792c1447e7",
+    "E5_toy_prereg.json": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+    "E5_toy_report.json": "3ec996a8e8e12f69016605b4eeabc7655565edb279e0e736779552e0ae6225f4",
+    "E8_pilot_report.json": "f31cb7bd0ebb4d1ca19f6df03f786791e09db7c78cc62e55fd3d4f700e472397",
+    "predictions_ledger.json": "fe964e576b85c3d7fd3175e3cf804f898f0d4ad0ba7ec922f1ad964c457a8d30",
+    "gwaya_stub_audit.json": "10ccfc6b3955fcf3ccb7a13ab0b43c0a0070e1f3f0436fcc8497ff271ada85bd",
+    "CITATION.cff": "29abe2716e74b4e587c6cfd805d205eaa48ca54f63acdcb3581b91b5b37b0f2b"
+  }
 }

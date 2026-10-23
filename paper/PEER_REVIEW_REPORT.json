@@ -5,7 +5,7 @@
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-23T13:57:56Z",
+  "timestamp_utc": "2026-10-23T14:04:43Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -717,8 +717,8 @@
     "tier_a_machine_checked": true
   },
   "manuscript_provenance_audit": {
-    "total_checks": 20,
-    "passed_checks": 20,
+    "total_checks": 22,
+    "passed_checks": 22,
     "failed_check_ids": [],
     "all_passed": true,
     "checks": [
@@ -910,6 +910,25 @@
         ],
         "source_artifact": "artifacts/experiments/E8_pilot_report.json",
         "passed": true
+      },
+      {
+        "check_id": "PROV-21",
+        "metric_name": "E8-pilot K=2 round latency p50 (s)",
+        "expected_tokens": [
+          "4.1"
+        ],
+        "source_artifact": "artifacts/experiments/E8_pilot_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-22",
+        "metric_name": "E8-pilot K=1 round-synchronous loss penalty vs baseline",
+        "expected_tokens": [
+          "+0.97",
+          "0.97"
+        ],
+        "source_artifact": "artifacts/experiments/E8_pilot_report.json",
+        "passed": true
       }
     ]
   },
@@ -959,7 +978,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Programmatically verified 20/20 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Programmatically verified 22/22 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
         "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
       ]
     },

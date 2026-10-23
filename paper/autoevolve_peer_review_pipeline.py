@@ -343,6 +343,12 @@ def verify_manuscript_data_consistency(
     e8_rtt = float(e8.get("icmp_rtt_ms_to_remote", {}).get("avg", 151.346))
     _add_check("PROV-20", "E8-pilot ICMP round-trip to the remote learner host (ms)", [f"{e8_rtt:.0f}", f"{e8_rtt:.1f}"], "artifacts/experiments/E8_pilot_report.json")
 
+    e8c = e8.get("campaigns", {})
+    e8_k2_p50 = float(e8c.get("e8_pilot_runs_h400_k2", {}).get("merges", {}).get("rda", {}).get("round_latency_s", {}).get("p50", 4.135))
+    e8_k1_diff = float(e8c.get("e8_pilot_runs_h400_k1", {}).get("merges", {}).get("rda", {}).get("paired_diff_wan_minus_baseline", {}).get("mean", 0.96518))
+    _add_check("PROV-21", "E8-pilot K=2 round latency p50 (s)", [f"{e8_k2_p50:.1f}"], "artifacts/experiments/E8_pilot_report.json")
+    _add_check("PROV-22", "E8-pilot K=1 round-synchronous loss penalty vs baseline", [f"{e8_k1_diff:+.2f}", f"{e8_k1_diff:.2f}"], "artifacts/experiments/E8_pilot_report.json")
+
     failed = [c["check_id"] for c in checks if not c["passed"]]
     return {
         "total_checks": len(checks),

@@ -55,7 +55,7 @@
 \pagestyle{fancy}
 \setlength{\headheight}{21pt}
 \fancyhf{}
-\lhead{\footnotesize \textbf{Project HiveMind v3.4.0} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
+\lhead{\footnotesize \textbf{Project HiveMind v3.4.1} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
 \rhead{\footnotesize \thepage}
 \cfoot{\footnotesize Preprint (not peer reviewed; scripted audits only) $\cdot$ Zenodo DOI: \zenodoDOI{} $\cdot$ \url{https://github.com/xaviercallens/HiveMind}}
 
@@ -67,7 +67,7 @@
   Project HiveMind Open-Source Contributors
 }
 
-\date{October 23, 2026 --- Version 3.4.0 (pre-registered research program; first three-seed controlled experiment E5-toy; Decoupled DiLoCo quorum syncer; 120 Lean 4 lemmas)}
+\date{October 23, 2026 --- Version 3.4.1 (pre-registered research program; E5-toy three-seed factorial; E8 two-host internet pilot; Decoupled DiLoCo quorum syncer; 120 Lean 4 lemmas)}
 
 \begin{document}
 
@@ -654,10 +654,16 @@ The main lesson is methodological: every cell of the factorial lies within $0.01
 \label{fig:e5toy}
 \end{figure}
 
-\subsection{Two-host WAN pilot: E8-pilot}
+\subsection{First two-host measurement: E8-pilot over the public internet}
 \label{sec:e8pilot}
 
-To test the quorum and grace-window transport path across two real hosts over the public internet (\texttt{scripts/run\_experiment\_E8\_pilot.py}, aggregated in \texttt{artifacts/experiments/E8\_pilot\_report.json}), we ran the syncer and learner~0 on this workstation and learner~1 on a remote GCP TPU VM (\texttt{gwenlaya-tpu-1}, \texttt{us-west4-a}, measured ICMP round-trip $151.3$\,ms, reached via an SSH reverse tunnel). With the default of $8$ inner steps per round ($M{=}2$, $K{=}1$, adaptive grace, $12$ outer rounds, $3$ seeds), the adaptive grace window---which is sized from inner compute-step durations---is shorter than one HTTP round trip ($\approx 334$\,ms median), so the remote learner is admitted in $0.67$ of rounds under RDA (paired WAN-minus-baseline final loss difference $+0.00024 \pm 0.00054$) and $0.33$ under direct averaging ($-0.00017 \pm 0.00048$), with deferred deltas applied one round late. Increasing inner work to $400$ steps per round places the run in the regime assumed by Decoupled DiLoCo (inner compute $\gg$ WAN RTT), admitting the remote learner in $1.00$ of rounds ($p_{50}$ round latency $1.02$\,s at $K{=}1$ with final loss $3.2100$, and $5.03$\,s at $K{=}2$ with final loss $2.3398$).
+E8 was scaled down to the smallest real instance of its question: one learner on this workstation and one on a Google Cloud TPU VM in \texttt{us-west4-a} (CPU-only PyTorch, reached through an SSH reverse tunnel; ICMP round trip 151\,ms, HTTP round trip through the tunnel $\approx$320\,ms), a syncer on the workstation running \texttt{DecoupledDiLoCoQuorumSyncer}, the E1 toy model, 12 outer rounds, three seeds per cell, and a single-host baseline with identical seeds, shards and hyper-parameters (\texttt{scripts/run\_experiment\_E8\_pilot.py}, \texttt{artifacts/experiments/E8\_pilot\_report.json}). Three cells were run.
+\begin{itemize}[leftmargin=1.8em]
+    \item \textbf{Protocol validation ($K=2$, 400 inner steps).} Waiting for both learners reproduces the single-host baseline: the paired final-loss difference is $-0.00000 \pm 0.00000$ ($n=3$), i.e.\ the shipping of shards and parameters, the remote inner loop and the RDA merge are numerically exact across machines. Round latency was p50 $4.1$\,s and p95 $14.2$\,s for about $2.7$\,s of local compute per round: the first real WAN numbers in this paper.
+    \item \textbf{$K=1$ with adaptive grace, 400 inner steps: the pilot protocol fails, instructively.} The 24-core VM finishes its inner loop before the contended workstation, wins every quorum (remote admitted fraction $1.00$), and the workstation's delta always misses the round. Because the pilot learner loop is round-synchronous, that work is discarded rather than carried to the next merge with its token weight as in Algorithm~1 of~\cite{douillard2026decoupled}; the run trains on half the data and ends $+0.97 \pm 0.92$ nats worse than the baseline (round p50 $1.0$\,s). This is a defect of our learner loop, not a measurement of Decoupled DiLoCo, and it fixes the first requirement of \texttt{HM-S9-01}: learners must keep training across rounds and be merged late with token weights.
+    \item \textbf{$K=1$, 8 inner steps (round trip $\gg$ compute).} The grace window, sized from compute-step durations, is shorter than one round trip, so the remote learner contributes only through one-round-late deferral (admitted in $0.67$ of rounds); the loss difference to the baseline is $+0.0002 \pm 0.0005$ (round p50 $0.37$\,s). The controller's slack formula needs the transport time as an explicit term before it is used over real links.
+\end{itemize}
+RQ1 remains open: a two-host toy with a round-synchronous learner loop is not the volunteer-tax measurement, but it has already produced a protocol fix, an exactness check across machines, and the first latency distribution for the roadmap's WAN tasks.
 
 % ============================================================================
 \section{Limitations, Threats to Validity, and Future Multi-Host Benchmarks}
