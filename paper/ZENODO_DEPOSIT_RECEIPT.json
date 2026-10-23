@@ -1,29 +1,29 @@
 {
   "stage": "published",
-  "deposition_id": 23598417,
-  "prereserved_doi": "10.5281/zenodo.23598417",
+  "deposition_id": 23601925,
+  "prereserved_doi": "10.5281/zenodo.23601925",
   "state": "done",
-  "html": "https://zenodo.org/record/23598417",
+  "html": "https://zenodo.org/record/23601925",
   "files": [
     {
       "filename": "hivemind_foundation_article.pdf",
-      "md5": "698baeeb0661623721ace999fc9407d9",
+      "md5": "e451dcb2a9f51e725d3659023147bcab",
       "status": "uploaded"
     },
     {
       "filename": "hivemind_foundation_article.tex",
-      "md5": "a7edc4f20c2a6c38133be6522ec1ea23",
+      "md5": "34e5ecb88b82f2d24e165b37ea9c1316",
       "status": "uploaded"
     },
     {
       "filename": "PEER_REVIEW_REPORT.json",
-      "md5": "d528e185584bbf97f8a0fbcf4ab5603e",
+      "md5": "ed0ddd18e01f0761bea5b6892ef743b9",
       "status": "uploaded"
     },
     {
       "filename": "RESEARCH_PROGRAM.md",
-      "md5": "36e88fe4da5ab91f26a72042e7fd47e8",
-      "status": "already_present"
+      "md5": "55544dcd6207b212f5da6a20d9e73dd4",
+      "status": "uploaded"
     },
     {
       "filename": "MOE_DILOCO_REVIEW_2026-10-23.md",
@@ -32,8 +32,8 @@
     },
     {
       "filename": "HiveMindSpec.lean",
-      "md5": "fdba4bd8407ab2d9ce232fa1236f7fc9",
-      "status": "already_present"
+      "md5": "0194bbf2ceb8d9c34ff8e7e0e97970c4",
+      "status": "uploaded"
     },
     {
       "filename": "architecture_hypothesis_verification_report.json",
@@ -61,70 +61,91 @@
       "status": "already_present"
     },
     {
-      "filename": "E8_pilot_report.json",
-      "md5": "dc5ec843a262f2b210fafeacb7f1373d",
+      "filename": "E5_het_prereg.json",
+      "md5": "ebda99de822594573e8329b48aec3ee3",
       "status": "uploaded"
     },
     {
+      "filename": "E5_het_calibration.json",
+      "md5": "0628539e3ffd18424e67a939274d4009",
+      "status": "uploaded"
+    },
+    {
+      "filename": "E5_het_report.json",
+      "md5": "416502040865c58cc382b51f74d4d83f",
+      "status": "uploaded"
+    },
+    {
+      "filename": "E8_pilot_report.json",
+      "md5": "dc5ec843a262f2b210fafeacb7f1373d",
+      "status": "already_present"
+    },
+    {
       "filename": "predictions_ledger.json",
-      "md5": "3a87e8bb1ab517dce66ce56eb36eaf75",
+      "md5": "94b7b0cf646cbeead95926794f32a349",
       "status": "uploaded"
     },
     {
       "filename": "gwaya_stub_audit.json",
-      "md5": "3f15fda70dd34e18692dc61d61f5b93e",
+      "md5": "b407edb2f5bf20499067b9a9a64aef49",
       "status": "uploaded"
     },
     {
       "filename": "CITATION.cff",
-      "md5": "16262b1b58df37feb2497507a4b5bf53",
+      "md5": "f5b156a3d0518a262c33c33c0c355154",
       "status": "uploaded"
     }
   ],
-  "written_utc": "2026-10-23T14:05:49Z",
+  "written_utc": "2026-10-23T17:56:12Z",
   "local_sha256": {
-    "hivemind_foundation_article.pdf": "903cd8c97bf93547fea44f1e1bf9ef83d904093428ce94cb0552ab3ec0609748",
-    "hivemind_foundation_article.tex": "808b3e39eea849c7c414f00a0ea300f8360fd2871e62378f17104e85e1ad74d8",
-    "PEER_REVIEW_REPORT.json": "098101f03030d085e391828102f1ae036b101a821758d04f626dcb3776cc8ed3",
-    "RESEARCH_PROGRAM.md": "a5b7e79343a1239a482068848a34ab8828166c5e95cb529362e75f94a0cf6ec4",
+    "hivemind_foundation_article.pdf": "dc216d1511cf32ea16a48c5585260b69acf026b4285b2a9ea031daf02ae4d5f0",
+    "hivemind_foundation_article.tex": "f3f94b067b43dfc3338f27ee25502b4c1bc57d12f57d7b417043898a5a85865a",
+    "PEER_REVIEW_REPORT.json": "0508d4c3edde3edce91c6ac551e0935918ce7b790bdeca0949bddb5998f3c399",
+    "RESEARCH_PROGRAM.md": "049bbbcecd9c44167d6185d682d4f03a5b6b61011fdad0410a5b5f304566884a",
     "MOE_DILOCO_REVIEW_2026-10-23.md": "71e29178c486fda014d3385dd5ca70019c153a84d4f03ad14f4dd77939bd77a5",
-    "HiveMindSpec.lean": "22f28df0465c027c9626f68b921718eb12fc9fb5ab649ecbfdc3c17d66d161eb",
+    "HiveMindSpec.lean": "afae1dc1408c5f102d55c669a9bb24b19de6cf4c0faf63bb450169b4c735f577",
     "architecture_hypothesis_verification_report.json": "d8e98442efd8c7892c014b67e240e6dd729af1499479243477da7b98e8b92379",
     "paper_v3_experiments_report.json": "580bf389f626cf8d4900170dc5dfe86c60d421a78ca80104e85dea13e969ab89",
     "decoupled_diloco_quorum_check.json": "1474ca96987cf6d13c135ebb8e634bc490e5f04744d8509d9e7ca4792c1447e7",
     "E5_toy_prereg.json": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
     "E5_toy_report.json": "3ec996a8e8e12f69016605b4eeabc7655565edb279e0e736779552e0ae6225f4",
+    "E5_het_prereg.json": "d274e93ebd48c28a0b515393412107bc69762c0d99befbe10195dd21394691eb",
+    "E5_het_calibration.json": "5a770c973a2064f5fd4ca67701d57742025d87b34822a874e0ba4303edc5ee03",
+    "E5_het_report.json": "ada602a03c1d26edf4af390d64918dd0d03715731befb16a93d0f963c95753c1",
     "E8_pilot_report.json": "f31cb7bd0ebb4d1ca19f6df03f786791e09db7c78cc62e55fd3d4f700e472397",
-    "predictions_ledger.json": "fe964e576b85c3d7fd3175e3cf804f898f0d4ad0ba7ec922f1ad964c457a8d30",
-    "gwaya_stub_audit.json": "10ccfc6b3955fcf3ccb7a13ab0b43c0a0070e1f3f0436fcc8497ff271ada85bd",
-    "CITATION.cff": "29abe2716e74b4e587c6cfd805d205eaa48ca54f63acdcb3581b91b5b37b0f2b"
+    "predictions_ledger.json": "5daeb10096fe28e576a0e638d926e501b25bf34c9d6062d1ff16265f73f8bd25",
+    "gwaya_stub_audit.json": "27a7a91ed8c49a227b1e627a82d493f1b26ff7f0bcc9b369d9c9397a2f46d6ce",
+    "CITATION.cff": "fb1b224194806cdff6cddd40052b27bbe0cda9fa850195d43bc603b03e4cf67b"
   },
-  "record_id": 23598417,
-  "doi": "10.5281/zenodo.23598417",
-  "doi_url": "https://doi.org/10.5281/zenodo.23598417",
+  "record_id": 23601925,
+  "doi": "10.5281/zenodo.23601925",
+  "doi_url": "https://doi.org/10.5281/zenodo.23601925",
   "conceptdoi": "10.5281/zenodo.23597697",
   "submitted": true,
   "remote_md5": {
-    "RESEARCH_PROGRAM.md": "36e88fe4da5ab91f26a72042e7fd47e8",
-    "HiveMindSpec.lean": "fdba4bd8407ab2d9ce232fa1236f7fc9",
+    "decoupled_diloco_quorum_check.json": "f8ccefeea9f63959fc89f8928fcde5b7",
     "E5_toy_report.json": "ee8712ada2668f817cd08f14f29ad0ef",
     "MOE_DILOCO_REVIEW_2026-10-23.md": "a75c5061339db9c853f1424a55abe608",
     "E5_toy_prereg.json": "60aac0165ef684299971b9da89fdba98",
-    "decoupled_diloco_quorum_check.json": "f8ccefeea9f63959fc89f8928fcde5b7",
     "architecture_hypothesis_verification_report.json": "29b579242b6054aacd582e515ce69594",
     "paper_v3_experiments_report.json": "880d5276bf87ddfa1e62e4c713c52333",
-    "CITATION.cff": "16262b1b58df37feb2497507a4b5bf53",
-    "gwaya_stub_audit.json": "3f15fda70dd34e18692dc61d61f5b93e",
-    "hivemind_foundation_article.tex": "a7edc4f20c2a6c38133be6522ec1ea23",
-    "hivemind_foundation_article.pdf": "698baeeb0661623721ace999fc9407d9",
-    "PEER_REVIEW_REPORT.json": "d528e185584bbf97f8a0fbcf4ab5603e",
+    "PEER_REVIEW_REPORT.json": "ed0ddd18e01f0761bea5b6892ef743b9",
+    "gwaya_stub_audit.json": "b407edb2f5bf20499067b9a9a64aef49",
+    "HiveMindSpec.lean": "0194bbf2ceb8d9c34ff8e7e0e97970c4",
+    "hivemind_foundation_article.pdf": "e451dcb2a9f51e725d3659023147bcab",
+    "E5_het_report.json": "416502040865c58cc382b51f74d4d83f",
+    "RESEARCH_PROGRAM.md": "55544dcd6207b212f5da6a20d9e73dd4",
+    "E5_het_calibration.json": "0628539e3ffd18424e67a939274d4009",
     "E8_pilot_report.json": "dc5ec843a262f2b210fafeacb7f1373d",
-    "predictions_ledger.json": "3a87e8bb1ab517dce66ce56eb36eaf75"
+    "hivemind_foundation_article.tex": "34e5ecb88b82f2d24e165b37ea9c1316",
+    "E5_het_prereg.json": "ebda99de822594573e8329b48aec3ee3",
+    "predictions_ledger.json": "94b7b0cf646cbeead95926794f32a349",
+    "CITATION.cff": "f5b156a3d0518a262c33c33c0c355154"
   },
   "checksum_mismatches": [
     "PEER_REVIEW_REPORT.json"
   ],
   "verified": false,
-  "checksum_mismatch_explanation": "PEER_REVIEW_REPORT.json was regenerated locally by the hourly orchestrator after upload; the deposited copy differs only in timestamp_utc (verified by download and field-wise comparison)",
-  "verified_after_timestamp_normalisation": true
+  "verification_note": "Published 2026-10-23 as 10.5281/zenodo.23601925 (version 3.5.0, 18 files). The publish stage reported one checksum mismatch, PEER_REVIEW_REPORT.json: the local file had been regenerated by the hourly orchestrator after the upload (differs only in timestamp_utc and an orchestrator telemetry field). The published file (md5 ed0ddd18e01f0761bea5b6892ef743b9) is byte-identical to the committed copy at the release commit f9ff8ae, so the record is verified against git, not against the regenerated working-tree file.",
+  "verified_against_commit": "f9ff8aee46b5d85b6dfe04759442f4fe40bd2aa7"
 }
