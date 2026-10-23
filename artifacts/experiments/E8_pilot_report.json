@@ -1,0 +1,190 @@
+{
+  "schema_version": "hivemind-experiment-E8-pilot-aggregate/v1.0",
+  "experiment_id": "E8-pilot",
+  "hosts": {
+    "syncer_and_learner_0": "this workstation (NVIDIA T4 box)",
+    "learner_1": "GCP TPU VM gwenlaya-tpu-1, us-west4-a, CPU-only PyTorch 2.14.1, reached via SSH reverse tunnel"
+  },
+  "icmp_rtt_ms_to_remote": {
+    "min": 150.77,
+    "avg": 151.346,
+    "max": 151.838,
+    "n": 5,
+    "note": "ping -c 5 measured 2026-10-23 before the runs"
+  },
+  "campaigns": {
+    "e8_pilot_runs": {
+      "dir": "e8_pilot_runs",
+      "merges": {
+        "rda": {
+          "config": {
+            "learners": 2,
+            "k": 1,
+            "merge": "rda",
+            "grace": "adaptive",
+            "rounds": 12,
+            "seed": 1,
+            "inner_steps": 8,
+            "batch": 16,
+            "inner_lr": 0.045,
+            "outer_lr": 0.7,
+            "outer_mu": 0.65
+          },
+          "seeds": 3,
+          "remote_host": "gcp-us-west4-a-tpu-vm",
+          "final_loss_wan": {
+            "mean": 3.7095109621683755,
+            "ci95_halfwidth_df2": 0.01806513625408217,
+            "n": 3
+          },
+          "final_loss_baseline": {
+            "mean": 3.7092705567677817,
+            "ci95_halfwidth_df2": 0.017837683517127806,
+            "n": 3
+          },
+          "paired_diff_wan_minus_baseline": {
+            "mean": 0.00024040540059407553,
+            "ci95_halfwidth_df2": 0.0005446597696292395,
+            "n": 3
+          },
+          "round_latency_s": {
+            "p50": 0.3738976716995239,
+            "p95": 4.812738656997681,
+            "p99": 10.077841353416439,
+            "n_rounds": 36
+          },
+          "remote_learner_admitted_fraction": 0.6666666666666666,
+          "remote_http_rtt_ms_p50_per_run": [
+            334.48704599868506,
+            576.7118789954111,
+            332.72516599390656
+          ]
+        },
+        "direct": {
+          "config": {
+            "learners": 2,
+            "k": 1,
+            "merge": "direct",
+            "grace": "adaptive",
+            "rounds": 12,
+            "seed": 1,
+            "inner_steps": 8,
+            "batch": 16,
+            "inner_lr": 0.045,
+            "outer_lr": 0.7,
+            "outer_mu": 0.65
+          },
+          "seeds": 3,
+          "remote_host": "gcp-us-west4-a-tpu-vm",
+          "final_loss_wan": {
+            "mean": 3.7092978954315186,
+            "ci95_halfwidth_df2": 0.01741770761667603,
+            "n": 3
+          },
+          "final_loss_baseline": {
+            "mean": 3.7094645500183105,
+            "ci95_halfwidth_df2": 0.017820451940208693,
+            "n": 3
+          },
+          "paired_diff_wan_minus_baseline": {
+            "mean": -0.0001666545867919922,
+            "ci95_halfwidth_df2": 0.0004758605441953959,
+            "n": 3
+          },
+          "round_latency_s": {
+            "p50": 0.3727762699127197,
+            "p95": 7.419426381587982,
+            "p99": 12.646189093589774,
+            "n_rounds": 36
+          },
+          "remote_learner_admitted_fraction": 0.3333333333333333,
+          "remote_http_rtt_ms_p50_per_run": [
+            336.58228092826903,
+            377.9273129766807
+          ]
+        }
+      }
+    },
+    "e8_pilot_runs_h400_k1": {
+      "dir": "e8_pilot_runs_h400_k1",
+      "merges": {
+        "rda": {
+          "config": {
+            "learners": 2,
+            "k": 1,
+            "merge": "rda",
+            "grace": "adaptive",
+            "rounds": 12,
+            "seed": 1,
+            "inner_steps": 400,
+            "batch": 16,
+            "inner_lr": 0.045,
+            "outer_lr": 0.7,
+            "outer_mu": 0.65
+          },
+          "seeds": 1,
+          "remote_host": "gcp-us-west4-a-tpu-vm",
+          "final_loss_wan": {
+            "mean": 3.2100284099578857,
+            "ci95_halfwidth_df2": 0.0,
+            "n": 1
+          },
+          "final_loss_baseline": null,
+          "paired_diff_wan_minus_baseline": null,
+          "round_latency_s": {
+            "p50": 1.0213955640792847,
+            "p95": 7.412709224224081,
+            "p99": 13.633278272151955,
+            "n_rounds": 12
+          },
+          "remote_learner_admitted_fraction": 1.0,
+          "remote_http_rtt_ms_p50_per_run": [
+            548.2031409628689
+          ]
+        }
+      }
+    },
+    "e8_pilot_runs_h400_k2": {
+      "dir": "e8_pilot_runs_h400_k2",
+      "merges": {
+        "rda": {
+          "config": {
+            "learners": 2,
+            "k": 2,
+            "merge": "rda",
+            "grace": "off",
+            "rounds": 12,
+            "seed": 1,
+            "inner_steps": 400,
+            "batch": 16,
+            "inner_lr": 0.045,
+            "outer_lr": 0.7,
+            "outer_mu": 0.65
+          },
+          "seeds": 1,
+          "remote_host": "gcp-us-west4-a-tpu-vm",
+          "final_loss_wan": {
+            "mean": 2.3397738933563232,
+            "ci95_halfwidth_df2": 0.0,
+            "n": 1
+          },
+          "final_loss_baseline": null,
+          "paired_diff_wan_minus_baseline": null,
+          "round_latency_s": {
+            "p50": 5.030550718307495,
+            "p95": 27.4780107617378,
+            "p99": 41.61580803155901,
+            "n_rounds": 12
+          },
+          "remote_learner_admitted_fraction": 1.0,
+          "remote_http_rtt_ms_p50_per_run": [
+            316.4260770427063
+          ]
+        }
+      }
+    }
+  },
+  "written_utc": "2026-10-23T13:50:05Z",
+  "scope_note": "Two real hosts, toy synthetic LM, 12 outer rounds, 3 seeds per cell; the SSH tunnel adds its own latency on top of the ICMP round trip.",
+  "receipt_sha256": "c94e148f34b775dfb2a6054e2881cfe8f8123a786820a2eb2c5d5e171b6171c3"
+}

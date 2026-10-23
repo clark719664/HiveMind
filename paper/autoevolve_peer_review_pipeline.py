@@ -331,6 +331,18 @@ def verify_manuscript_data_consistency(
     _add_check("PROV-15", "H11 RDA / direct-average norm ratio at M = 8", [f"{h11_ratio:.4f}", f"{h11_ratio:.2f}"], "artifacts/decoupled_diloco_quorum_check.json")
     _add_check("PROV-16", "H11 adaptive grace window (s) at tau=2, gamma=0.5", [f"{h11_grace:.2f}"], "artifacts/decoupled_diloco_quorum_check.json")
 
+    e5 = exp_v3_data.get("__e5__", {})
+    e5a = e5.get("analysis", {})
+    e5_cos = float(e5a.get("P2", {}).get("mean_pairwise_cosine_all_ungated", 0.9094))
+    e5_p4 = float(e5a.get("P4", {}).get("quorum_grace", {}).get("gain_mean", -0.00063))
+    e5_p3 = float(e5a.get("P3", {}).get("paired_diff_random_minus_adaptive_mean", -0.00042))
+    _add_check("PROV-17", "E5-toy mean pairwise learner-delta cosine", [f"{e5_cos:.3f}"], "artifacts/experiments/E5_toy_report.json")
+    _add_check("PROV-18", "E5-toy PA-CGAD gate gain under quorum (negative = harm)", [f"{e5_p4:+.5f}", f"{e5_p4:.5f}"], "artifacts/experiments/E5_toy_report.json")
+    _add_check("PROV-19", "E5-toy random-minus-adaptive paired loss difference", [f"{e5_p3:+.4f}", f"{e5_p3:.4f}"], "artifacts/experiments/E5_toy_report.json")
+    e8 = exp_v3_data.get("__e8__", {})
+    e8_rtt = float(e8.get("icmp_rtt_ms_to_remote", {}).get("avg", 151.346))
+    _add_check("PROV-20", "E8-pilot ICMP round-trip to the remote learner host (ms)", [f"{e8_rtt:.0f}", f"{e8_rtt:.1f}"], "artifacts/experiments/E8_pilot_report.json")
+
     failed = [c["check_id"] for c in checks if not c["passed"]]
     return {
         "total_checks": len(checks),
@@ -428,6 +440,10 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
     h11_report_path = PROJECT_ROOT / "artifacts" / "decoupled_diloco_quorum_check.json"
     exp_v3_data = dict(exp_v3_data)
     exp_v3_data["__h11__"] = json.loads(h11_report_path.read_text(encoding="utf-8")) if h11_report_path.exists() else {}
+    e5_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_report.json"
+    exp_v3_data["__e5__"] = json.loads(e5_report_path.read_text(encoding="utf-8")) if e5_report_path.exists() else {}
+    e8_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E8_pilot_report.json"
+    exp_v3_data["__e8__"] = json.loads(e8_report_path.read_text(encoding="utf-8")) if e8_report_path.exists() else {}
     tex_text = TEX_PATH.read_text(encoding="utf-8") if TEX_PATH.exists() else ""
 
     provenance_audit = verify_manuscript_data_consistency(

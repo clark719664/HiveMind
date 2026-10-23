@@ -165,3 +165,12 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
 5. **Disagreement**: if the coordinator believes a spec is infeasible or a control is wrong, it
    opens a GitHub Discussion tagged `spec-change`; the spec is amended *before* the run, never
    after seeing results.
+
+## 8. Status log
+
+### 2026-10-23 — E5-toy run as pre-registered; E8 two-host pilot
+
+- **E5-toy** (`artifacts/experiments/E5_toy_report.json`, 360 runs, 3 seeds, all three controls passed): P2 **inapplicable** (mean pairwise cosine of learner deltas 0.909 > 0.3, so RDA = direct by construction and the best outer LR sits at the top of the grid for every cell); P3 **inconclusive** (random − adaptive = −0.0004 ± 0.0022 at matched wall budget, 24 pairs); P4 **refuted at this scale** (gate changes loss by −0.00063 ± 0.00029 under quorum; exactly 0 without stale deltas). Every cell lies within 0.011 of every other while the seed interval is ±0.024: the toy LM is a non-discriminating testbed. Consequence: the G1 cell of E5 must run on the `Qwen2.5-0.5B` 8-domain setting (`HM-S9-01`) and must report the delta cosine before any merge or gate claim.
+- **E8-pilot** (two real hosts: this workstation and the GCP TPU VM `gwenlaya-tpu-1`, `us-west4-a`, ICMP RTT 151 ms, learner reached through an SSH reverse tunnel; `artifacts/experiments/E8_pilot_report.json`): with the paper's default of 8 inner steps per round the adaptive grace window, which is sized from compute-step durations, is shorter than one HTTP round trip (≈ 330 ms), so the remote learner is admitted only when its deferred delta is applied one round late; with 400 inner steps per round the regime matches Decoupled DiLoCo's assumption (compute ≫ RTT) and both learners participate every round. Numbers per campaign are in the report and in paper §9.
+- Ledger: `artifacts/predictions_ledger.json` (P2 inapplicable, P3 inconclusive, P4 refuted at toy scale, P1/P5–P8 untested).
+- Tooling leveraged from the owner's other projects: GWAYA zero-stub audit (`scripts/gwaya_stub_audit.py`, 74 files clean after fixing one `pass`-body hook), a logged local-model review through AutoevolveAI's `APIExtractor` (`scripts/logged_model_review.py`, transcript under `paper/review/`, no score), and the TPU VM as the second WAN host.

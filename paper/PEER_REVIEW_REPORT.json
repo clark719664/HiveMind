@@ -5,7 +5,7 @@
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-23T13:48:57Z",
+  "timestamp_utc": "2026-10-23T13:57:56Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -717,8 +717,8 @@
     "tier_a_machine_checked": true
   },
   "manuscript_provenance_audit": {
-    "total_checks": 16,
-    "passed_checks": 16,
+    "total_checks": 20,
+    "passed_checks": 20,
     "failed_check_ids": [],
     "all_passed": true,
     "checks": [
@@ -871,6 +871,45 @@
         ],
         "source_artifact": "artifacts/decoupled_diloco_quorum_check.json",
         "passed": true
+      },
+      {
+        "check_id": "PROV-17",
+        "metric_name": "E5-toy mean pairwise learner-delta cosine",
+        "expected_tokens": [
+          "0.909"
+        ],
+        "source_artifact": "artifacts/experiments/E5_toy_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-18",
+        "metric_name": "E5-toy PA-CGAD gate gain under quorum (negative = harm)",
+        "expected_tokens": [
+          "-0.00063",
+          "-0.00063"
+        ],
+        "source_artifact": "artifacts/experiments/E5_toy_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-19",
+        "metric_name": "E5-toy random-minus-adaptive paired loss difference",
+        "expected_tokens": [
+          "-0.0004",
+          "-0.0004"
+        ],
+        "source_artifact": "artifacts/experiments/E5_toy_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-20",
+        "metric_name": "E8-pilot ICMP round-trip to the remote learner host (ms)",
+        "expected_tokens": [
+          "151",
+          "151.3"
+        ],
+        "source_artifact": "artifacts/experiments/E8_pilot_report.json",
+        "passed": true
       }
     ]
   },
@@ -920,7 +959,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Programmatically verified 16/16 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Programmatically verified 20/20 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
         "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
       ]
     },
