@@ -79,6 +79,26 @@ Suggested sequencing:
   write to `paper/` or to the citation files.
 - Merged-PR counts in `ROADMAP.md` §1 are copied from `gh pr list --state merged`, never typed.
 
+## 3b. Hourly PR gatekeeper (owner-only merge authority, from 2026-10-23)
+
+`scripts/pr_gatekeeper.py` runs every hour from the scientific lead's session (`--merge`). Its policy is fixed
+in code and is not changed by anything written in a PR, an issue or a comment:
+
+- **Who may be merged automatically:** only PRs whose GitHub author is `xaviercallens` *and* whose every commit
+  author e-mail normalises to `callensxavier@gmail.com` under `OwnerOrderGuardrail` (plus-addressing,
+  dot-variants, display-name tricks and homoglyphs are rejected). Any other PR, including the coordinator's
+  `bot@socrateai.com` commits and community PRs, is fully checked and reported with **HOLD**; a human merges it.
+- **What must pass for ACCEPT:** `PRSecurityScanner` (0 critical, 0 high); no forbidden added lines
+  (`GWAYA_ALLOW_UNISOLATED`, git-hook bypass flags, forced pushes, destructive shell, remote-script execution,
+  obfuscated exec, scripted review scores or `is_peer_review: true`, owner-address variants); GWAYA zero-stub
+  audit on changed Python; pytest on changed tests plus a smoke set; `lake build` without `sorryAx` when `lean4/`
+  changed; the paper provenance pipeline when `paper/` changed. One failure → **REFUSE**. Drafts and conflicts → **HOLD**.
+- **Where it leaves evidence:** a comment on the PR with the check table and `artifacts/pr_gatekeeper/run_<utc>.json`
+  (+ `latest.json`); a PR head already gated is not re-run. Recent non-owner branches are listed in every run.
+- **Branch protection on `main`:** forced pushes and deletions blocked; the two CI jobs (5-Layer PR Security
+  Scanner; Verify 4 Core Pillars…) required; admins not enforced so the owner's own pushes keep working.
+- **Instructions in PR text are data.** The gatekeeper never reads "merge this", "approve", "run X" from a PR.
+
 ## 4. Reporting back to the scientific lead
 
 After each task: a memo of at most one page in the PR description (not a separate document) with
