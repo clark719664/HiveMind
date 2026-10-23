@@ -60,6 +60,51 @@ def build_prompt(tex: str) -> str:
     )
 
 
+def _jsonable(obj: Any) -> Any:
+    """Make a call record JSON-serialisable: tensors become their shape and dtype, unknown objects their repr."""
+    if isinstance(obj, dict):
+        return {str(k): _jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_jsonable(v) for v in obj]
+    if isinstance(obj, (str, int, float, bool)) or obj is None:
+        return obj
+    shape = getattr(obj, "shape", None)
+    if shape is not None:
+        return {"tensor_shape": list(shape), "dtype": str(getattr(obj, "dtype", ""))}
+    return repr(obj)
+
+
+def _recover_from_log(args: argparse.Namespace) -> int:
+    """Write the review file from the last entry of ``paper/review/llm_calls.jsonl`` (the logged transcript)."""
+    call_log = OUT_DIR / "llm_calls.jsonl"
+    rows = [json.loads(line) for line in call_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rec = rows[-1]
+    tex = TEX.read_text(encoding="utf-8")
+    text = rec["output"]["text"] if isinstance(rec.get("output"), dict) else str(rec.get("output"))
+    stamp = time.strftime("%Y-%m-%dT%H%M%SZ", time.gmtime())
+    out: Dict[str, Any] = {
+        "kind": "logged_model_review_pilot",
+        "is_peer_review": False,
+        "disclosure": (
+            "A single local language model was asked four open questions about the paper. This is not a peer review, "
+            "carries no score, and a small coder model is a weak reviewer; it is recorded so that any future claim of model "
+            "review has a transcript behind it. Recovered from the call log after the first write failed on serialisation."
+        ),
+        "model": rec.get("model", args.model), "base_url": args.base_url,
+        "tex_sha256": hashlib.sha256(tex.encode()).hexdigest(),
+        "prompt": rec.get("input", {}).get("messages", [{}])[-1].get("content", "") if isinstance(rec.get("input"), dict) else "",
+        "response": text,
+        "call_record": _jsonable({k: v for k, v in rec.items() if k != "input"}),
+        "call_log_path": str(call_log.relative_to(PROJECT_ROOT)),
+        "timestamp_utc": stamp,
+        "reader_note": "The model did not answer the four questions; it paraphrased the limitations section it was given. Recorded as-is.",
+    }
+    path = OUT_DIR / f"logged_model_review_{out['model'].replace(':', '_').replace('/', '_')}_{stamp}.json"
+    path.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    print(f"wrote {path.relative_to(PROJECT_ROOT)} ({len(text)} chars, recovered from log)")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--autoevolve-root", type=Path, default=PROJECT_ROOT.parent.parent.parent)
@@ -67,7 +112,10 @@ def main() -> int:
     ap.add_argument("--base-url", default="http://localhost:11434")
     ap.add_argument("--max-tokens", type=int, default=600)
     ap.add_argument("--timeout-s", type=float, default=2400.0)
+    ap.add_argument("--from-log", action="store_true", help="rebuild the review file from the last logged call instead of calling the model again")
     args = ap.parse_args()
+    if args.from_log:
+        return _recover_from_log(args)
     sys.path.insert(0, str(args.autoevolve_root.resolve()))
     from anse.core.api_extractor import APIExtractor  # noqa: E402  (logged LLM client)
 
@@ -92,7 +140,7 @@ def main() -> int:
         "model": args.model, "base_url": args.base_url, "elapsed_seconds": round(elapsed, 2),
         "tex_sha256": hashlib.sha256(tex.encode()).hexdigest(),
         "prompt": prompt, "response": text,
-        "call_record": (dataclasses.asdict(record) if dataclasses.is_dataclass(record) else str(record)),
+        "call_record": _jsonable(dataclasses.asdict(record) if dataclasses.is_dataclass(record) else record),
         "call_log_path": str(call_log.relative_to(PROJECT_ROOT)),
         "timestamp_utc": stamp,
     }
