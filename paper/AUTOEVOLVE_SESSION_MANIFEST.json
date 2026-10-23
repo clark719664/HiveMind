@@ -1,31 +1,34 @@
 {
   "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-  "version": "2.9.2",
+  "version": "3.1.0",
+  "lead_peer_review_model": "claude-opus-5-5",
   "workspace_root": ".",
-  "autoevolve_env_path": "D:\\xdev\\AutoevolveAI_env",
   "artifacts_and_entrypoints": {
     "lean4_specification": "lean4/HiveMindSpec.lean",
     "foundation_article_tex": "paper/hivemind_foundation_article.tex",
     "foundation_article_pdf": "paper/hivemind_foundation_article.pdf",
     "peer_review_report_json": "paper/PEER_REVIEW_REPORT.json",
     "architecture_hypothesis_report_json": "artifacts/architecture_hypothesis_verification_report.json",
+    "paper_v3_experiments_report_json": "artifacts/paper_v3_experiments_report.json",
     "contributor_bounties_doc": "docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md",
     "swarm_fabric_module": "src/hivemind/swarm/swarm_fabric.py",
     "diloco_nextgen_module": "src/hivemind/swarm/diloco_nextgen.py",
     "architecture_verifier_module": "src/hivemind/swarm/architecture_hypothesis_verifier.py",
+    "experiments_and_figures_script": "scripts/run_paper_experiments_and_figures.py",
     "steam_hack_miner_module": "src/hivemind/game/hf_hack_miner.py"
   },
   "evolutionary_loop_protocol": {
     "step_1_mutate": "Select an open task from `HM-M1-01` .. `HM-M5-02` in `docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`.",
-    "step_2_formal_gate": "Extend `lean4/HiveMindSpec.lean` with the new invariant and verify `lean.exe lean4/HiveMindSpec.lean` exits 0 with 0 `sorry` and 0 `axiom`.",
-    "step_3_empirical_gate": "Run `uv run --no-sync pytest tests/ -v` and verify 8 GB RTX 2070 VRAM ceiling (<= 6,500 MiB) and deterministic spot-check drift (<= 1e-4).",
-    "step_4_peer_review_and_pdf": "Run `python paper/autoevolve_peer_review_pipeline.py` and `pdflatex paper/hivemind_foundation_article.tex` to evolve the foundation manuscript."
+    "step_2_formal_gate": "Extend `lean4/HiveMindSpec.lean` with the new invariant and verify `cd lean4 && lake build` exits 0 with 0 `sorry` and 0 `axiom`.",
+    "step_3_empirical_gate": "Run `PYTHONPATH=src pytest tests/ -v` and verify 8 GB RTX 2070 VRAM ceiling (<= 6,500 MiB) and deterministic spot-check drift (<= 1e-4).",
+    "step_4_peer_review_and_pdf": "Run `PYTHONPATH=src python paper/autoevolve_peer_review_pipeline.py` and `pdflatex paper/hivemind_foundation_article.tex` to verify all 5 Elenchus + Opus 5.5 rounds."
   },
   "next_session_quickstart_commands": [
-    "cd D:\\xdev\\DecentralizedAI",
-    ".\\.venv\\Scripts\\python.exe paper/autoevolve_peer_review_pipeline.py",
-    "& \"D:\\.elan\\toolchains\\leanprover--lean4---v4.33.0-rc2\\bin\\lean.exe\" lean4/HiveMindSpec.lean",
-    "& \"D:\\App\\Tex\\texlive\\2026\\bin\\windows\\pdflatex.exe\" -interaction=nonstopmode -output-directory=paper paper/hivemind_foundation_article.tex",
-    "uv run --no-sync pytest tests/ -v"
+    "cd lean4 && lake build",
+    "PYTHONPATH=src python -m hivemind.swarm.architecture_hypothesis_verifier",
+    "PYTHONPATH=src python scripts/run_paper_experiments_and_figures.py",
+    "PYTHONPATH=src python paper/autoevolve_peer_review_pipeline.py",
+    "pdflatex -interaction=nonstopmode -output-directory=paper paper/hivemind_foundation_article.tex",
+    "PYTHONPATH=src pytest tests/ -v"
   ]
 }

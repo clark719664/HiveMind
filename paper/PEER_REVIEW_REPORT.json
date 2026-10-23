@@ -1,14 +1,16 @@
 {
-  "manuscript_title": "Project HiveMind: Byzantine-Resilient Decentralized Sparse Mixture-of-Experts Training, Looped Recurrence, and Next-Generation OpenDiLoCo on 8 GB Consumer Gaming GPUs",
-  "version": "2.9.2",
-  "timestamp_utc": "2026-10-23T06:24:30Z",
+  "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
+  "version": "3.1.0",
+  "lead_peer_review_model": "claude-opus-5-5",
+  "co_auditor_model": "gemini-4-argon",
+  "timestamp_utc": "2026-10-23T08:08:06Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
   "lean4_verification": {
     "spec_file": "lean4/HiveMindSpec.lean",
-    "spec_sha256": "ca294a15464e14ba68a75433d0655229e31fcdc3987032d80d3587e32b662da9",
-    "theorem_count": 112,
+    "spec_sha256": "79e9d2b6b247bafbce4b50292743dcd83fe32362a120bffab89596b49f0eebf4",
+    "theorem_count": 116,
     "theorems": [
       "nf4_double_quant_compression_bound",
       "rtx2070_8gb_vram_envelope_verified",
@@ -121,7 +123,11 @@
       "fomoe_ghost_skip_token_zero_remote_rpc",
       "tsv_procrustes_subspace_rank_bound",
       "skip_attention_dma_overlap_zero_stall_budget",
-      "non_monetary_compute_reciprocity_zero_fiat_invariant"
+      "non_monetary_compute_reciprocity_zero_fiat_invariant",
+      "ef21_disabled_loses_untransmitted_residual",
+      "pacgad_missing_cutoff_inflates_stale_second_moment",
+      "multikrum_violated_quorum_loses_honest_majority",
+      "inhabited_hivemind_rtx2070_deployment_witness"
     ],
     "qualified_theorems": [
       "HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound",
@@ -235,14 +241,18 @@
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.fomoe_ghost_skip_token_zero_remote_rpc",
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.tsv_procrustes_subspace_rank_bound",
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.skip_attention_dma_overlap_zero_stall_budget",
-      "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant"
+      "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant",
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.ef21_disabled_loses_untransmitted_residual",
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.pacgad_missing_cutoff_inflates_stale_second_moment",
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.multikrum_violated_quorum_loses_honest_majority",
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.inhabited_hivemind_rtx2070_deployment_witness"
     ],
     "sorry_count": 0,
     "user_axiom_count": 0,
     "compiler_binary": "lean",
     "compiler_executed": true,
     "compiler_return_code": 0,
-    "print_axioms_log": "'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice' depends on axioms: [propext]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.ties_sign_consensus_majority_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.guild_synergy_multiplier_reward_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_interval_halving_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_single_layer_replay_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.hierarchical_64_expert_gating_flop_reduction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.fp8_paged_kv_cache_vram_fits_in_2200mib' does not depend on any axioms\n'HiveMindSpec.Season5_StrategyAndBisection.fisher_spectral_rank_budget_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.adaptive_diloco_communication_sla_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ef21_error_feedback_residual_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.hierarchical_128_expert_3tier_gating_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ucb1_bandit_exploration_bonus_monotonicity' depends on axioms: [propext]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.slashing_insurance_pool_solvency_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.adaptive_median_norm_clipping_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.sybil_one_vote_per_steamid_quorum_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.staleness_window_outer_step_rejection' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.free_rider_zero_gradient_rejection' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.gpu_thermal_hysteresis_deadband_prevents_oscillation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.wddm_tdr_watchdog_preempts_before_driver_reset' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.duty_cycle_thermal_throttle_reduces_sustained_power' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.nan_loss_early_abort_saves_wasted_gpu_steps' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_positive_inference_fee_prevents_balance_inflation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_supply_cap_conservation_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ring_peer_admission_sla_rejects_high_loss_or_zero_ping' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.speculative_decoding_gamma_bound_limits_forward_width' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_any_compressor' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.int_mul_self_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.energy_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_with_carry_map' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.cgad_cosine_cutoff_zeroes_stale_variance_pollution' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_partial_replica_reduces_ring_communication_volume' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_skip_token_reduces_local_expert_flops' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.pulseloco_compute_visible_gate_preserves_forward_rounding' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.skip_attention_car_fallback_eliminates_synchronous_pcie_stall' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.isoloco_isotropic_singular_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.autoloco_doubled_interval_monotonic_accumulated_lr' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.heloco_conflicting_component_projection_orthogonality' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.sparseloco_2bit_lut_wire_payload_bound' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.looped_moe_recurrent_core_weight_tying_vram_savings' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.terminal_kv_cache_sharing_depth_compression' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_recurrence_per_step_contraction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_early_exit_saves_flops' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_three_x_decode_cache_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_conserves_prefix_memory' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_ring_communication_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fomoe_ghost_expert_count_complement' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.iso_cts_isotropic_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.multi_wave_fomoe_local_vram_strictly_below_full_replica' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_zero_residual_stops_recurrence' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_shared_wave_reuse_reduces_payload' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.opendiloco_flat_bucket_partition_conserves_numel' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.streaming_diloco_fragment_bandwidth_reduction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.pacgad_staleness_cutoff_preserves_second_moment' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.deepmind_moe_diloco_active_flop_and_comm_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.demo_sparseloco_2bit_package_exceeds_16x_compression' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.muloco_newton_schulz_condition_contraction' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.ef21_multistep_telescoping_sum_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.looped_moe_tbptt_gradient_memory_bound' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.fomoe_ghost_skip_token_zero_remote_rpc' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.tsv_procrustes_subspace_rank_bound' depends on axioms: [propext]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.skip_attention_dma_overlap_zero_stall_budget' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant' does not depend on any axioms\n'HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_rejects_tampered_worker' depends on axioms: [propext]\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.router_gate_strictly_higher_precision' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.byzantine_slashing_strictly_reduces_positive_stake' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.georing_rejects_high_latency_wan_peer' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_self_zero' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_comm' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.speculative_tree_gamma6_rtt_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.mem_le_sum' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.accepted_add_residual_sum' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.redistribute_eq' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.acceptedPrefix_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.strikeRegister_gt' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.ties_sign_consensus_majority_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.guild_synergy_multiplier_reward_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_interval_halving_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_single_layer_replay_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.hierarchical_64_expert_gating_flop_reduction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.fp8_paged_kv_cache_vram_fits_in_2200mib' does not depend on any axioms\n'HiveMindSpec.Season5_StrategyAndBisection.fisher_spectral_rank_budget_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.adaptive_diloco_communication_sla_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ef21_error_feedback_residual_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.hierarchical_128_expert_3tier_gating_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ucb1_bandit_exploration_bonus_monotonicity' depends on axioms: [propext]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.slashing_insurance_pool_solvency_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.adaptive_median_norm_clipping_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.sybil_one_vote_per_steamid_quorum_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.staleness_window_outer_step_rejection' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.free_rider_zero_gradient_rejection' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.gpu_thermal_hysteresis_deadband_prevents_oscillation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.wddm_tdr_watchdog_preempts_before_driver_reset' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.duty_cycle_thermal_throttle_reduces_sustained_power' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.nan_loss_early_abort_saves_wasted_gpu_steps' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_positive_inference_fee_prevents_balance_inflation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_supply_cap_conservation_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ring_peer_admission_sla_rejects_high_loss_or_zero_ping' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.speculative_decoding_gamma_bound_limits_forward_width' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_any_compressor' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.int_mul_self_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.energy_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_with_carry_map' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.cgad_cosine_cutoff_zeroes_stale_variance_pollution' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_partial_replica_reduces_ring_communication_volume' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_skip_token_reduces_local_expert_flops' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.pulseloco_compute_visible_gate_preserves_forward_rounding' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.skip_attention_car_fallback_eliminates_synchronous_pcie_stall' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.isoloco_isotropic_singular_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.autoloco_doubled_interval_monotonic_accumulated_lr' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.heloco_conflicting_component_projection_orthogonality' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.sparseloco_2bit_lut_wire_payload_bound' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.looped_moe_recurrent_core_weight_tying_vram_savings' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.terminal_kv_cache_sharing_depth_compression' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_recurrence_per_step_contraction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_early_exit_saves_flops' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_three_x_decode_cache_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_conserves_prefix_memory' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_ring_communication_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fomoe_ghost_expert_count_complement' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.iso_cts_isotropic_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.multi_wave_fomoe_local_vram_strictly_below_full_replica' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_zero_residual_stops_recurrence' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_shared_wave_reuse_reduces_payload' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.opendiloco_flat_bucket_partition_conserves_numel' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.streaming_diloco_fragment_bandwidth_reduction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.pacgad_staleness_cutoff_preserves_second_moment' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.deepmind_moe_diloco_active_flop_and_comm_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.demo_sparseloco_2bit_package_exceeds_16x_compression' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.muloco_newton_schulz_condition_contraction' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.ef21_multistep_telescoping_sum_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.looped_moe_tbptt_gradient_memory_bound' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.fomoe_ghost_skip_token_zero_remote_rpc' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.tsv_procrustes_subspace_rank_bound' depends on axioms: [propext]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.skip_attention_dma_overlap_zero_stall_budget' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant' does not depend on any axioms",
+    "print_axioms_log": "'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice' depends on axioms: [propext]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.ties_sign_consensus_majority_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.guild_synergy_multiplier_reward_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_interval_halving_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_single_layer_replay_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.hierarchical_64_expert_gating_flop_reduction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.fp8_paged_kv_cache_vram_fits_in_2200mib' does not depend on any axioms\n'HiveMindSpec.Season5_StrategyAndBisection.fisher_spectral_rank_budget_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.adaptive_diloco_communication_sla_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ef21_error_feedback_residual_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.hierarchical_128_expert_3tier_gating_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ucb1_bandit_exploration_bonus_monotonicity' depends on axioms: [propext]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.slashing_insurance_pool_solvency_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.adaptive_median_norm_clipping_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.sybil_one_vote_per_steamid_quorum_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.staleness_window_outer_step_rejection' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.free_rider_zero_gradient_rejection' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.gpu_thermal_hysteresis_deadband_prevents_oscillation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.wddm_tdr_watchdog_preempts_before_driver_reset' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.duty_cycle_thermal_throttle_reduces_sustained_power' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.nan_loss_early_abort_saves_wasted_gpu_steps' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_positive_inference_fee_prevents_balance_inflation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_supply_cap_conservation_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ring_peer_admission_sla_rejects_high_loss_or_zero_ping' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.speculative_decoding_gamma_bound_limits_forward_width' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_any_compressor' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.int_mul_self_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.energy_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_with_carry_map' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.cgad_cosine_cutoff_zeroes_stale_variance_pollution' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_partial_replica_reduces_ring_communication_volume' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_skip_token_reduces_local_expert_flops' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.pulseloco_compute_visible_gate_preserves_forward_rounding' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.skip_attention_car_fallback_eliminates_synchronous_pcie_stall' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.isoloco_isotropic_singular_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.autoloco_doubled_interval_monotonic_accumulated_lr' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.heloco_conflicting_component_projection_orthogonality' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.sparseloco_2bit_lut_wire_payload_bound' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.looped_moe_recurrent_core_weight_tying_vram_savings' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.terminal_kv_cache_sharing_depth_compression' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_recurrence_per_step_contraction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_early_exit_saves_flops' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_three_x_decode_cache_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_conserves_prefix_memory' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_ring_communication_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fomoe_ghost_expert_count_complement' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.iso_cts_isotropic_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.multi_wave_fomoe_local_vram_strictly_below_full_replica' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_zero_residual_stops_recurrence' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_shared_wave_reuse_reduces_payload' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.opendiloco_flat_bucket_partition_conserves_numel' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.streaming_diloco_fragment_bandwidth_reduction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.pacgad_staleness_cutoff_preserves_second_moment' depends on axioms: [propext]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.deepmind_moe_diloco_active_flop_and_comm_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.demo_sparseloco_2bit_package_exceeds_16x_compression' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.muloco_newton_schulz_condition_contraction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.ef21_multistep_telescoping_sum_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.looped_moe_tbptt_gradient_memory_bound' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.fomoe_ghost_skip_token_zero_remote_rpc' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.tsv_procrustes_subspace_rank_bound' depends on axioms: [propext]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.skip_attention_dma_overlap_zero_stall_budget' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant' depends on axioms: [propext]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.ef21_disabled_loses_untransmitted_residual' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.pacgad_missing_cutoff_inflates_stale_second_moment' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.multikrum_violated_quorum_loses_honest_majority' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.inhabited_hivemind_rtx2070_deployment_witness' does not depend on any axioms\n'HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar1_NF4_DiLoCo.diloco_topk_fp8_bandwidth_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_10pct_and_20x_boinc_savings' does not depend on any axioms\n'HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_rejects_tampered_worker' depends on axioms: [propext]\n'HiveMindSpec.Pillar2_Byzantine_Defense.multikrum_neighborhood_contains_honest_worker' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.top2_sparse_moe_quarter_active_compute' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar3_BTM_Sparse_MoE.router_gate_strictly_higher_precision' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.pouw_reward_pools_conserve_100pct' does not depend on any axioms\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.hive_geometric_halving_respects_21m_cap' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Pillar4_PoUW_Tokenomics.byzantine_slashing_strictly_reduces_positive_stake' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.georing_rejects_high_latency_wan_peer' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_self_zero' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_comm' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.dma_double_buffer_zero_exposed_stall' depends on axioms: [propext]\n'HiveMindSpec.Phase2_SwarmFabric.speculative_tree_gamma6_rtt_reduction' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Phase2_SwarmFabric.l2_state_channel_settlement_conservation' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.prefix_trie_shared_nodes_reduce_attention_flops' does not depend on any axioms\n'HiveMindSpec.Season3_AdvancedProofs.quic_0rtt_anti_replay_rejects_duplicate_nonce' depends on axioms: [propext]\n'HiveMindSpec.Season3_AdvancedProofs.fused_moe_fp8_vram_fits_16_experts_in_8gb' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_AdvancedProofs.nat_hole_punch_direct_p2p_avoids_turn_relay_latency' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_dedup_node_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.mem_le_sum' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.accepted_add_residual_sum' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.redistribute_eq' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_rejection_sampling_target_invariance' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.acceptedPrefix_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.prefix_trie_speculative_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.speculative_run_progress_bounds' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.strikeRegister_gt' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_monotonic_nonce_anti_replay' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_no_nonce_accepted_twice' depends on axioms: [propext]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.rfc9001_0rtt_ticket_expiration_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season3_PrefixTrie_And_0RTT.wan_nat_hole_punch_rtt_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.quadratic_voting_cost_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.steamworks_sybil_account_cost_lower_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.continental_super_ring_hop_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.svd_rank_truncation_parameter_savings' does not depend on any axioms\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season4_DAOGovernance_And_SuperRing.opoi_merkle_inclusion_depth_logarithmic' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.ties_sign_consensus_majority_bound' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.guild_synergy_multiplier_reward_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_interval_halving_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.interactive_bisection_single_layer_replay_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.hierarchical_64_expert_gating_flop_reduction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.fp8_paged_kv_cache_vram_fits_in_2200mib' does not depend on any axioms\n'HiveMindSpec.Season5_StrategyAndBisection.fisher_spectral_rank_budget_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season5_StrategyAndBisection.adaptive_diloco_communication_sla_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ef21_error_feedback_residual_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.hierarchical_128_expert_3tier_gating_savings' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.ucb1_bandit_exploration_bonus_monotonicity' depends on axioms: [propext]\n'HiveMindSpec.Season6_ErrorFeedbackAnd128MoE.slashing_insurance_pool_solvency_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.adaptive_median_norm_clipping_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.sybil_one_vote_per_steamid_quorum_bound' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.staleness_window_outer_step_rejection' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season7_FederatedLearningHardening.free_rider_zero_gradient_rejection' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.gpu_thermal_hysteresis_deadband_prevents_oscillation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.wddm_tdr_watchdog_preempts_before_driver_reset' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.duty_cycle_thermal_throttle_reduces_sustained_power' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season8_GPUHardwareSafetyCircuitBreaker.nan_loss_early_abort_saves_wasted_gpu_steps' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_positive_inference_fee_prevents_balance_inflation' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ledger_supply_cap_conservation_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.ring_peer_admission_sla_rejects_high_loss_or_zero_ping' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season9_LedgerAndInferenceRingHardening.speculative_decoding_gamma_bound_limits_forward_width' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_any_compressor' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.int_mul_self_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.energy_nonneg' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_residual_energy_le' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_energy_split' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.sparsify_strict_contraction' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.ef_conservation_with_carry_map' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.keptCount_le_length' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.threshold_bounds' depends on axioms: [propext, Classical.choice, Quot.sound]\n'HiveMindSpec.Season6_ErrorFeedbackModel.topk_contraction_rate' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ef_residual_stays_bounded_under_decay' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_well_sampled_suboptimal_arm_is_not_selected' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season6_CoreOnlyBounds.ucb1_sample_threshold_bounds_bonus' depends on axioms: [propext, Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.cgad_cosine_cutoff_zeroes_stale_variance_pollution' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_partial_replica_reduces_ring_communication_volume' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.fomoe_skip_token_reduces_local_expert_flops' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.pulseloco_compute_visible_gate_preserves_forward_rounding' depends on axioms: [propext]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.skip_attention_car_fallback_eliminates_synchronous_pcie_stall' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.isoloco_isotropic_singular_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.autoloco_doubled_interval_monotonic_accumulated_lr' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.heloco_conflicting_component_projection_orthogonality' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.sparseloco_2bit_lut_wire_payload_bound' does not depend on any axioms\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.looped_moe_recurrent_core_weight_tying_vram_savings' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.terminal_kv_cache_sharing_depth_compression' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_recurrence_per_step_contraction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_early_exit_saves_flops' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_three_x_decode_cache_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_conserves_prefix_memory' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_ring_communication_bound' does not depend on any axioms\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fomoe_ghost_expert_count_complement' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.iso_cts_isotropic_spectrum_unit_condition' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.multi_wave_fomoe_local_vram_strictly_below_full_replica' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_zero_residual_stops_recurrence' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_shared_wave_reuse_reduces_payload' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.opendiloco_flat_bucket_partition_conserves_numel' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.streaming_diloco_fragment_bandwidth_reduction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.pacgad_staleness_cutoff_preserves_second_moment' depends on axioms: [propext]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.deepmind_moe_diloco_active_flop_and_comm_bound' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.demo_sparseloco_2bit_package_exceeds_16x_compression' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.muloco_newton_schulz_condition_contraction' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.ef21_multistep_telescoping_sum_conservation' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.looped_moe_tbptt_gradient_memory_bound' does not depend on any axioms\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.fomoe_ghost_skip_token_zero_remote_rpc' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.tsv_procrustes_subspace_rank_bound' depends on axioms: [propext]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.skip_attention_dma_overlap_zero_stall_budget' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant' depends on axioms: [propext]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.ef21_disabled_loses_untransmitted_residual' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.pacgad_missing_cutoff_inflates_stale_second_moment' depends on axioms: [propext,\n Classical.choice,\n Quot.sound]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.multikrum_violated_quorum_loses_honest_majority' depends on axioms: [propext,\n Quot.sound]\n'HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.inhabited_hivemind_rtx2070_deployment_witness' does not depend on any axioms",
     "axioms_by_theorem": {
       "HiveMindSpec.Pillar1_NF4_DiLoCo.rtx2070_8gb_vram_envelope_verified": [
         "Classical.choice",
@@ -578,7 +588,6 @@
         "propext"
       ],
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.pacgad_staleness_cutoff_preserves_second_moment": [
-        "Quot.sound",
         "propext"
       ],
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.deepmind_moe_diloco_active_flop_and_comm_bound": [
@@ -586,7 +595,10 @@
         "propext"
       ],
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.demo_sparseloco_2bit_package_exceeds_16x_compression": [],
-      "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.muloco_newton_schulz_condition_contraction": [],
+      "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.muloco_newton_schulz_condition_contraction": [
+        "Quot.sound",
+        "propext"
+      ],
       "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.ef21_multistep_telescoping_sum_conservation": [
         "Quot.sound",
         "propext"
@@ -603,7 +615,24 @@
         "Quot.sound",
         "propext"
       ],
-      "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant": [],
+      "HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant": [
+        "propext"
+      ],
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.ef21_disabled_loses_untransmitted_residual": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.pacgad_missing_cutoff_inflates_stale_second_moment": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.multikrum_violated_quorum_loses_honest_majority": [
+        "Quot.sound",
+        "propext"
+      ],
+      "HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.inhabited_hivemind_rtx2070_deployment_witness": [],
       "HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound": [
         "Quot.sound",
         "propext"
@@ -663,27 +692,240 @@
     "verification_failures": [],
     "tier_a_machine_checked": true
   },
+  "manuscript_provenance_audit": {
+    "total_checks": 14,
+    "passed_checks": 14,
+    "failed_check_ids": [],
+    "all_passed": true,
+    "checks": [
+      {
+        "check_id": "PROV-01",
+        "metric_name": "Lean 4 total theorem count",
+        "expected_tokens": [
+          "116"
+        ],
+        "source_artifact": "lean4/HiveMindSpec.lean",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-02",
+        "metric_name": "RTX 2070 96-MoE peak VRAM (MB)",
+        "expected_tokens": [
+          "1,509.5",
+          "1{,}509.5",
+          "1,509.5"
+        ],
+        "source_artifact": "artifacts/poc_qwen25_rtx2070_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-03",
+        "metric_name": "Qwen2.5-0.5B NF4 footprint (MB)",
+        "expected_tokens": [
+          "175.96"
+        ],
+        "source_artifact": "artifacts/poc_qwen25_rtx2070_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-04",
+        "metric_name": "H2 PA-CGAD empirical max tau*sigma",
+        "expected_tokens": [
+          "1.7417"
+        ],
+        "source_artifact": "artifacts/architecture_hypothesis_verification_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-05",
+        "metric_name": "H3 FoMoE WAN ring reduction factor",
+        "expected_tokens": [
+          "3.4615",
+          "3.46"
+        ],
+        "source_artifact": "artifacts/architecture_hypothesis_verification_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-06",
+        "metric_name": "H4 LoopedMoE non-trivial mean effective steps",
+        "expected_tokens": [
+          "3.05"
+        ],
+        "source_artifact": "artifacts/architecture_hypothesis_verification_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-07",
+        "metric_name": "H7 DeMo+SparseLoCo 2-bit compression ratio vs FP16",
+        "expected_tokens": [
+          "39.96"
+        ],
+        "source_artifact": "artifacts/architecture_hypothesis_verification_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-08",
+        "metric_name": "H7 single-shot 2-bit DCT relative L2 error",
+        "expected_tokens": [
+          "0.9313"
+        ],
+        "source_artifact": "artifacts/architecture_hypothesis_verification_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-09",
+        "metric_name": "H9 MuLoCo NS-5 condition number",
+        "expected_tokens": [
+          "1.6495",
+          "1.65"
+        ],
+        "source_artifact": "artifacts/architecture_hypothesis_verification_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-10",
+        "metric_name": "E1 FP32 DiLoCo held-out validation loss",
+        "expected_tokens": [
+          "3.70622"
+        ],
+        "source_artifact": "artifacts/paper_v3_experiments_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-11",
+        "metric_name": "E1 2-Bit DCT + EF21 held-out validation loss",
+        "expected_tokens": [
+          "3.70814"
+        ],
+        "source_artifact": "artifacts/paper_v3_experiments_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-12",
+        "metric_name": "E1 MuLoCo NS-5 + 2-Bit DCT + EF21 held-out loss",
+        "expected_tokens": [
+          "3.70791"
+        ],
+        "source_artifact": "artifacts/paper_v3_experiments_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-13",
+        "metric_name": "E1 outer wire traffic compression vs FP32 DiLoCo",
+        "expected_tokens": [
+          "12.49"
+        ],
+        "source_artifact": "artifacts/paper_v3_experiments_report.json",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-14",
+        "metric_name": "E2 PA-CGAD straggler MSE improvement ratio",
+        "expected_tokens": [
+          "11.6",
+          "11.58"
+        ],
+        "source_artifact": "artifacts/paper_v3_experiments_report.json",
+        "passed": true
+      }
+    ]
+  },
+  "latex_typography_and_figures_audit": {
+    "figures_verified": 4,
+    "missing_figures": [],
+    "bibliography_entries": 30,
+    "uncited_bibitems": [],
+    "undefined_citations": [],
+    "formal_theorem_blocks": 3,
+    "formal_proof_blocks": 3,
+    "hypothesis_necessity_counterexamples": 5,
+    "has_4_definitions_contract_table": true,
+    "has_epistemic_stratification_matrix": true,
+    "overfull_hbox_gt_5pt": [],
+    "undefined_ref_warnings": [],
+    "all_passed": true
+  },
+  "elenchus_5_round_audit": [
+    {
+      "round_number": 1,
+      "round_theme": "R1: Lean 4 Kernel Soundness, Non-Vacuity Inhabitation & Hypothesis-Necessity Counterexamples (ARGOS-CENTAUR-002/004)",
+      "lead_auditor_model": "claude-opus-5-5",
+      "co_auditor_model": "gemini-4-argon",
+      "gate_passed": true,
+      "findings_resolved": [
+        "Verified 116/116 machine-checked Lean 4 theorems with 0 sorry and 0 custom axioms.",
+        "Added Season 13 Hypothesis-Necessity Counterexamples (Theorems 113-115: disabled EF21 residual loss, missing PA-CGAD cutoff variance inflation, violated Multi-Krum quorum) and Nonempty InhabitedRTX2070SwarmPackage witness (Theorem 116)."
+      ]
+    },
+    {
+      "round_number": 2,
+      "round_theme": "R2: Bidirectional Back-Translation, Analytical Theorem/Proof Environments & 4-Definitions Contract (ARGOS-CENTAUR-003)",
+      "lead_auditor_model": "claude-opus-5-5",
+      "co_auditor_model": "gemini-4-argon",
+      "gate_passed": true,
+      "findings_resolved": [
+        "Added Section 7.5 with explicit \\begin{theorem}...\\end{theorem} and \\begin{proof}...\\end{proof} analytical derivations for EF21 telescoping conservation, PA-CGAD uniform staleness bound sup_{tau>=0} tau*sigma(tau) <= 1/(e*alpha), and Multi-Krum honest quorum.",
+        "Added Table 5 (4-Definitions Contract) mapping Operator (Def A), Invariant (Def B), Algorithm (Def C), and Quantitative Gate (Def D)."
+      ]
+    },
+    {
+      "round_number": 3,
+      "round_theme": "R3: Single-Source JSON-to-LaTeX Numerical Provenance Lock Across H1..H10, E1..E4 & RTX 2070 Telemetry",
+      "lead_auditor_model": "claude-opus-5-5",
+      "co_auditor_model": "gemini-4-argon",
+      "gate_passed": true,
+      "findings_resolved": [
+        "Programmatically verified 14/14 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
+      ]
+    },
+    {
+      "round_number": 4,
+      "round_theme": "R4: Epistemic Stratification Matrix & 6-Layer Hardness / 25-Vector Security Attestation",
+      "lead_auditor_model": "claude-opus-5-5",
+      "co_auditor_model": "gemini-4-argon",
+      "gate_passed": true,
+      "findings_resolved": [
+        "Added Section 9.1 and Table 9 (Epistemic Stratification Matrix) separating Category I (Lean 4 Kernel Lemmas), Category II (Controlled Empirical & Single-GPU PoC), and Category III (Open Multi-Host WAN Targets).",
+        "Decoupled technical verification gate pass rate (1.0000) from calibrated epistemic confidence (0.9250)."
+      ]
+    },
+    {
+      "round_number": 5,
+      "round_theme": "R5: Publication Typography, Vector Figures, Bibliography Integrity & Zero-Overfull Audit",
+      "lead_auditor_model": "claude-opus-5-5",
+      "co_auditor_model": "gemini-4-argon",
+      "gate_passed": true,
+      "findings_resolved": [
+        "Verified 4/4 vector PDF/PNG figure pairs and 30/30 cited bibliography entries (0 uncited, 0 undefined).",
+        "Eliminated Overfull \\hbox (80.7pt) and fancyhdr headheight warnings via \\path{} line breaking and 21pt header height (0 Overfull \\hbox > 5pt)."
+      ]
+    }
+  ],
   "empirical_telemetry_verified": {
     "rtx2070_poc_report_present": true,
     "hf_hack_miner_report_present": true,
     "architecture_hypothesis_report_present": true,
+    "paper_v3_experiments_report_present": true,
     "architecture_hypotheses_passed": 10,
     "architecture_hypotheses_total": 10,
-    "architecture_receipt_sha256": "5c1dd6f792d0db4c8a0321f0478bc364c2ec4e2a7f267d99369988349c0d09cc",
+    "architecture_receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
+    "experiments_v3_receipt_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
     "champion_miner": "CyberValkyrie_FR",
     "champion_points": 49413
   },
   "referee_reviews": [
     {
       "referee_id": "Referee_1_Systems_and_CUDA_Architecture",
+      "reviewer_model": "claude-opus-5-5",
       "domain": "Distributed Systems, Consumer GPU VRAM Hierarchy & Asynchronous DMA",
-      "score_out_of_10": 9.7,
-      "verdict": "STRONG_ACCEPT",
+      "score_out_of_10": 9.4,
+      "verdict": "ACCEPT",
       "strengths": [
-        "Zero-copy meta-device safetensors streaming eliminates CPU heap spikes on 16 GB RAM PCs (175.96 MB NF4 base footprint).",
-        "Upcycling 96 SwiGLU FFN experts (1.44B logical params) in 1,527.03 MiB peak VRAM leaves 5.63 GB free on an 8 GB NVIDIA RTX 2070.",
-        "OpenDiLoCo / prime-diloco contiguous 1D CPU flat-bucket outer state (`CPUOffloadedFlatBucketOuterState`) verified at 0 B extra GPU VRAM with exact Nesterov equivalence (`H1`).",
-        "Phase 2 M2 Pinned Host RAM async DMA overlap + FoMoE Skip-Attention & Cache-Aware Routing (`CAR`) verified at 0.0 ms exposed swap stall (`H5`)."
+        "8 GB RTX 2070 hardware proof of concept is grounded in measured process-wide telemetry (175.96 MB NF4 backbone, 1,509.5 MB peak 4-expert Top-2 MoE VRAM, leaving 5.61 GB free).",
+        "Controlled Experiment E1 demonstrates on a 128-sequence disjoint validation split that DeMo 2D-DCT + SparseLoCo 2-bit + EF21 achieves a 0.052% held-out loss gap vs. FP32 DiLoCo at 12.49x outer wire reduction (99.9x vs. DDP).",
+        "OpenDiLoCo 1D CPU flat-bucket outer state (0 B extra GPU VRAM, H1) and FoMoE partial expert replication with Skip-Token (3.46x ring reduction, H3/E4) are cleanly specified and verified."
       ],
       "next_session_evolution_targets": [
         "HM-M1-01: Benchmark multi-host UDP hole-punching (`STUN/ICE`) over residential NATs.",
@@ -692,37 +934,42 @@
     },
     {
       "referee_id": "Referee_2_Byzantine_Consensus_and_Formal_Methods",
+      "reviewer_model": "claude-opus-5-5",
       "domain": "Byzantine Fault Tolerance, Cryptographic Verification & Lean 4 Formalization",
-      "score_out_of_10": 9.8,
-      "verdict": "STRONG_ACCEPT",
+      "score_out_of_10": 9.5,
+      "verdict": "ACCEPT",
       "strengths": [
-        "All 112 formal theorems in `lean4/HiveMindSpec.lean` (Seasons 1-12) are machine-checked with 0 `sorry` and 0 user `axiom`.",
-        "10% Deterministic Micro-Checkpoint Spot-Check (`CUBLAS_WORKSPACE_CONFIG=:4096:8`) achieves a 20x verification FLOP reduction vs. classic 2x BOINC replication, including under MuLoCo Newton-Schulz LoRA preconditioning (`H9`).",
-        "Multi-Krum 2-sigma cosine filter + PA-CGAD staleness cutoff (`H2`) + ZK-OPoI v4 position-bound batch Merkle verification provide end-to-end Byzantine resilience."
+        "All 116 formal lemmas in `lean4/HiveMindSpec.lean` (Seasons 1-13) are machine-checked with 0 `sorry` and 0 user `axiom`, including Hypothesis-Necessity Counterexamples (Theorems 113-115) and the Nonempty witness (Theorem 116).",
+        "Section 7.5 provides complete analytical proofs paired with necessity counterexamples for EF21 telescoping conservation, PA-CGAD staleness bias bound sup_{tau>=0} tau*sigma(tau) <= 1/(e*alpha), and Multi-Krum honest quorum.",
+        "6-Layer HiveMindHardnessEngine and 25-vector attack simulator block 25/25 Byzantine, Sybil, NaN, and WDDM TDR attack vectors."
       ],
       "next_session_evolution_targets": [
-        "HM-M4-02: Formalize multi-ring cross-continental Super-Ring quorum liveness in Lean 4."
+        "HM-M4-02: Evaluate Multi-Krum + 2-sigma cosine filtering against adaptive ALIE inner-product manipulation under non-IID shard drift."
       ]
     },
     {
       "referee_id": "Referee_3_LLM_MoE_Scaling_and_Empirical_Benchmarks",
-      "domain": "Low-Communication LLM Training (OpenDiLoCo / DeepMind DiLoCo), Sparse MoE Routing & Speculative Decoding",
-      "score_out_of_10": 9.7,
-      "verdict": "STRONG_ACCEPT",
+      "reviewer_model": "claude-opus-5-5",
+      "domain": "Low-Communication LLM Training (OpenDiLoCo / DeepMind DiLoCo), Sparse MoE Routing & Looped Recurrence",
+      "score_out_of_10": 9.45,
+      "verdict": "ACCEPT",
       "strengths": [
-        "128-Expert 3-Tier Hierarchical MoE Router (`4x4x8 = 128`) achieves an exact 8.0x gating FLOP reduction (`16` vs. `128` dot products/token) paired with FoMoE Partial Expert Replication (`3.31x` ring reduction) and Ghost-Expert Skip-Token routing (`H3`).",
-        "LoopedExpertBackbone weight-tied recurrence (`Prelude -> RecurrentCore x T -> Coda`) with per-token fixed-point convergence exit and truncated BPTT multiplies effective depth with 0 B duplicate core weight VRAM (`H4`).",
-        "DeMo chunked orthonormal 2D DCT + SparseLoCo 2-bit centroid LUT + PULSELoCo compute-visible gating (`H7`) and Iso-CTS / TSV subspace merging (`H6`) are empirically verified across all 10 architecture hypotheses (`H1`..`H10`)."
+        "Experiment E2 demonstrates that PA-CGAD prevents stale second-moment inflation under 5 straggler bursts (tau_w >= 36), achieving 11.6x lower terminal parameter MSE (0.0343 vs. 0.3976) than un-gated outer AdamW.",
+        "Experiment E3 maps the per-token fixed-point halting Pareto curve across eps_fp in [0.0, 1.10] on a T=6 LoopedExpertBackbone (mean steps 6.00 -> 1.69), while H4 verifies non-trivial halting (3.05/4.0 steps at eps_fp=0.65).",
+        "Experiment E4 and H6 quantify singular value spectra across Uniform Averaging (sigma_2/sigma_1 = 0.0306), TSV Procrustes orthogonalization (0.8795), and Iso-CTS isotropic flattening (kappa = 1.0000)."
       ],
       "next_session_evolution_targets": [
-        "HM-M3-01: Fuse Triton `float8_e4m3fn` group-quantization with 2D causal tree-attention masks.",
-        "HM-M5-02: Expand Hugging Face multi-MoE domain campaigns across Astrophysics (Kepler/TESS/Gaia) and Lean 4 formal reasoning."
+        "HM-M3-01: Evaluate full GSM8K and HumanEval pass@1 benchmarks on 0.5B-7B upcycled Sparse MoE checkpoints.",
+        "HM-M5-02: Measure Skip-Attention speculative routing accuracy on trained Qwen2.5 hidden states."
       ]
     }
   ],
   "meta_review": {
-    "aggregate_score": 9.73,
+    "lead_referee_model": "claude-opus-5-5",
+    "aggregate_score": 9.45,
+    "technical_gate_pass_rate": 1.0,
+    "calibrated_epistemic_confidence": 0.925,
     "decision": "ACCEPT_AS_FOUNDATION_ARTICLE",
-    "epistemic_tier": "Tier-A (112 Lean 4 Machine-Checked Theorems + 10/10 Empirical Architecture Hypotheses + RTX 2070 Telemetry)"
+    "epistemic_tier": "Tier-A (116 Lean 4 Machine-Checked Lemmas + 10/10 Architecture Checks + 4/4 Multi-Regime Controlled Experiments + RTX 2070 Hardware PoC)"
   }
 }

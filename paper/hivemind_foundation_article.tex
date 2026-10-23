@@ -52,9 +52,9 @@
 }
 
 \pagestyle{fancy}
-\setlength{\headheight}{14pt}
+\setlength{\headheight}{21pt}
 \fancyhf{}
-\lhead{\footnotesize \textbf{Project HiveMind v3.0.0} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
+\lhead{\footnotesize \textbf{Project HiveMind v3.1.0} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
 \rhead{\footnotesize \thepage}
 \cfoot{\footnotesize Preprint (revised after internal peer review) $\cdot$ \url{https://github.com/xaviercallens/HiveMind}}
 
@@ -66,7 +66,7 @@
   Project HiveMind Open-Source Contributors
 }
 
-\date{October 23, 2026 --- Version 3.0.0 (peer-reviewed revision with experimental evaluations \& visualizations)}
+\date{October 23, 2026 --- Version 3.1.0 (revised with analytical proofs, necessity counterexamples, and 116 Lean 4 lemmas)}
 
 \begin{document}
 
@@ -78,7 +78,7 @@ Training and serving frontier Large Language Models (LLMs) are increasingly mono
 
 We describe \textbf{Project HiveMind}, an open-source decentralized training and inference system, and report what has and has not yet been validated. The system combines \textbf{Branch-Train-Mix (BTM) sparse MoE upcycling}, \textbf{weight-tied looped recurrence}, and \textbf{DiLoCo-style outer optimization}, with an emphasis on fitting a strict 8\,GB GPU memory budget. Workers stream open-weight backbones (\texttt{Qwen2.5}) into 4-bit NF4 and train QLoRA adapters; outer pseudo-gradients can be compressed with a DCT + 2-bit centroid scheme adapted from DeMo~\cite{peng2024demo} and SparseLoCo~\cite{sarfi2025sparseloco}; the outer optimizer supports a CPU-resident flat-bucket state (after \texttt{prime-diloco}~\cite{jaghouar2024opendiloco}) and the staleness gate of CGAD~\cite{shah2026cgad}; converged branches are upcycled into a sparse MoE with optional Iso-CTS~\cite{marczak2025iso} or TSV~\cite{gargiulo2024tsv} attention merging and FoMoE-style partial expert replication~\cite{sani2026fomoe}.
 
-\textbf{Empirical and formal evaluation.} We evaluate the system at three levels, separating verified properties from open multi-node questions: (i) Ten \emph{unit-level implementation checks} (\texttt{H1}--\texttt{H10}, \texttt{artifacts/architecture\_hypothesis\_verification\_report.json}) verify that each component satisfies its mathematical specification on controlled tensors, including non-trivial fixed-point halting ($\epsilon_{\text{fp}} = 0.65 \Rightarrow 3.05/4.0$ mean recurrent steps) and single-round vs.\ multi-step EF21 error-feedback conservation. (ii) Four \emph{controlled multi-regime experimental studies} (\texttt{E1}--\texttt{E4}, \texttt{artifacts/paper\_v3\_experiments\_report.json}, Figures~\ref{fig:e1_convergence}--\ref{fig:e4_vram_fomoe}) measure held-out generalization across five synchronization regimes (showing that DeMo 2D-DCT + SparseLoCo 2-bit + EF21 achieves a \textbf{0.052\%} held-out loss gap vs.\ uncompressed FP32 DiLoCo while cutting outer wire traffic by \textbf{12.49$\times$} and \textbf{99.9$\times$} vs.\ synchronous DDP, and that \texttt{MuLoCo} 5-step Newton-Schulz inner preconditioning slightly improves compressed held-out perplexity), outer convergence under severe straggler bursts ($\tau_w \ge 36$, where \texttt{PA-CGAD} reduces terminal MSE by \textbf{11.6$\times$} relative to un-gated outer AdamW), fixed-point halting trade-offs across $\epsilon_{\text{fp}} \in [0.0, 1.10]$, and singular value spectra under \texttt{Iso-CTS} and \texttt{TSV} merging. (iii) A single-GPU proof of concept on an 8\,GB NVIDIA RTX 2070 with \texttt{Qwen2.5-0.5B} trains four domain branches and upcycles them into a 4-expert top-2 MoE within \textbf{1{,}509.5\,MB} peak VRAM, accompanied by 112 zero-\texttt{sorry} Lean 4 arithmetic bookkeeping lemmas (\texttt{lean4/HiveMindSpec.lean}). Section~\ref{sec:limitations} details remaining multi-host WAN limitations.
+\textbf{Empirical and formal evaluation.} We evaluate the system at three levels, separating verified properties from open multi-node questions: (i) Ten \emph{unit-level implementation checks} (\texttt{H1}--\texttt{H10}, \texttt{artifacts/architecture\_hypothesis\_verification\_report.json}) verify that each component satisfies its mathematical specification on controlled tensors, including non-trivial fixed-point halting ($\epsilon_{\text{fp}} = 0.65 \Rightarrow 3.05/4.0$ mean recurrent steps) and single-round vs.\ multi-step EF21 error-feedback conservation. (ii) Four \emph{controlled multi-regime experimental studies} (\texttt{E1}--\texttt{E4}, \texttt{artifacts/paper\_v3\_experiments\_report.json}, Figures~\ref{fig:e1_convergence}--\ref{fig:e4_vram_fomoe}) measure held-out generalization across five synchronization regimes (showing that DeMo 2D-DCT + SparseLoCo 2-bit + EF21 achieves a \textbf{0.052\%} held-out loss gap vs.\ uncompressed FP32 DiLoCo while cutting outer wire traffic by \textbf{12.49$\times$} and \textbf{99.9$\times$} vs.\ synchronous DDP, and that \texttt{MuLoCo} 5-step Newton-Schulz inner preconditioning slightly improves compressed held-out perplexity), outer convergence under severe straggler bursts ($\tau_w \ge 36$, where \texttt{PA-CGAD} reduces terminal MSE by \textbf{11.6$\times$} relative to un-gated outer AdamW), fixed-point halting trade-offs across $\epsilon_{\text{fp}} \in [0.0, 1.10]$, and singular value spectra under \texttt{Iso-CTS} and \texttt{TSV} merging. (iii) A single-GPU proof of concept on an 8\,GB NVIDIA RTX 2070 with \texttt{Qwen2.5-0.5B} trains four domain branches and upcycles them into a 4-expert top-2 MoE within \textbf{1{,}509.5\,MB} peak VRAM, accompanied by \textbf{116} zero-\texttt{sorry} Lean 4 arithmetic and hypothesis-necessity lemmas (\texttt{lean4/HiveMindSpec.lean}). Section~\ref{sec:limitations} details remaining multi-host WAN limitations.
 
 \end{abstract}
 
@@ -117,8 +117,8 @@ Modern frontier language models rely on massive parameter counts ($70\text{B} \t
 \section{Lean 4 Bookkeeping Lemmas: Scope and Limits}
 % ============================================================================
 
-We maintain a Lean 4 file of arithmetic lemmas that accompany the design (\texttt{lean4/HiveMindSpec.lean}, compiled with \texttt{leanprover/lean4:v4.33.0-rc2}). All 112 lemmas compile with no \texttt{sorry}, no \texttt{admit}, and no user axioms (\texttt{lake build}, \texttt{\#print axioms}).\par
-\textbf{What these lemmas establish and what they do \emph{not} establish.} Every statement is over $\mathbb{N}$ or $\mathbb{Z}$; there is no real-valued functional analysis, no stochastic convergence theory, and no machine-checked refinement link between a Lean statement and the Python/CUDA runtime. Rather, the 112 lemmas serve as machine-checked arithmetic and discrete bookkeeping invariants: e.g., that contiguous flat-bucket slice offsets partition the outer parameter buffer without overlap (Thm.~101), that staggered fragment streaming strictly reduces per-round peak serialization bytes (Thm.~102), that the piecewise PA-CGAD cutoff rule $\tau_{\text{eff}} \ge \tau_{\text{cut}}$ freezes the discrete second-moment accumulator $v_{\text{prev}}$ strictly below the un-gated polluted value $v_{\text{prev}} + g_{\text{sq}}$ (Thm.~103), that a 4-tensor $[256, 16]$ 2-bit DCT package (820\,B) clears both the $16\times$ 16-bit and $32\times$ FP32 compression gates (Thm.~105), that inward singular-value pulls $\delta > 0$ strictly contract the spectral spread $(s_{\max}-\delta) - (s_{\min}+\delta) < s_{\max} - s_{\min}$ (Thm.~106), and that EF21 error-feedback residuals telescope across consecutive outer rounds (Thm.~107). Continuous-time optimization convergence, the real-valued calculus proof of $\sup_{\tau \ge 0} \tau e^{-\alpha\tau} = \frac{1}{e\alpha}$, and adaptive Byzantine resilience are \emph{not} formalized in Lean 4.
+We maintain a Lean 4 \cite{moura2021lean4} file of arithmetic and necessity lemmas that accompany the design (\texttt{lean4/HiveMindSpec.lean}, compiled with \texttt{leanprover/lean4:v4.33.0-rc2}). All \textbf{116} lemmas compile with no \texttt{sorry}, no \texttt{admit}, and no user axioms (\texttt{lake build}, \texttt{\#print axioms}).\par
+\textbf{What these lemmas establish and what they do \emph{not} establish.} Every statement is over $\mathbb{N}$ or $\mathbb{Z}$; there is no real-valued functional analysis, no stochastic convergence theory, and no machine-checked refinement link between a Lean statement and the Python/CUDA runtime. Rather, the 116 lemmas serve as machine-checked arithmetic, hypothesis-necessity counterexamples, and non-vacuity invariants: e.g., that contiguous flat-bucket slice offsets partition the outer parameter buffer without overlap (Thm.~101), that staggered fragment streaming strictly reduces per-round peak serialization bytes (Thm.~102), that the piecewise PA-CGAD cutoff rule $\tau_{\text{eff}} \ge \tau_{\text{cut}}$ freezes the discrete second-moment accumulator $v_{\text{prev}}$ strictly below the un-gated polluted value $v_{\text{prev}} + g_{\text{sq}}$ (Thm.~103), that a 4-tensor $[256, 16]$ 2-bit DCT package (820\,B) clears both the $16\times$ 16-bit and $32\times$ FP32 compression gates (Thm.~105), that inward singular-value pulls $\delta > 0$ strictly contract the spectral spread $(s_{\max}-\delta) - (s_{\min}+\delta) < s_{\max} - s_{\min}$ (Thm.~106), that EF21 error-feedback residuals telescope across consecutive outer rounds (Thm.~107), and that dropping EF21 residual carry (Thm.~113), omitting the PA-CGAD staleness cutoff (Thm.~114), or violating the Multi-Krum $n \ge 2f+3$ quorum bound (Thm.~115) strictly breaks each respective invariant, while \texttt{InhabitedRTX2070SwarmPackage} is provably non-empty (Thm.~116). Continuous-time optimization convergence, the real-valued calculus proof of $\sup_{\tau \ge 0} \tau e^{-\alpha\tau} = \frac{1}{e\alpha}$ (proved analytically in Theorem~\ref{thm:pacgad_bound}), and adaptive Byzantine resilience are \emph{not} formalized in Lean 4.
 
 \begin{lstlisting}[language=Lean4,caption={Excerpt from \texttt{lean4/HiveMindSpec.lean} (Season 12: OpenDiLoCo Flat-Bucket, PA-CGAD Piecewise Cutoff, DeMo-SparseLoCo 2-Bit Gate, MuLoCo Spread Contraction, and EF21 Telescoping Sum).}]
 namespace HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses
@@ -157,7 +157,7 @@ end HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses
 \begin{table}[ht!]
 \centering
 \footnotesize
-\caption{Inventory of the 112 Lean 4 lemmas in \texttt{lean4/HiveMindSpec.lean}. Every lemma compiles with zero \texttt{sorry} and verifies discrete arithmetic / resource bounds over $\mathbb{N}$/$\mathbb{Z}$.}
+\caption{Inventory of the 116 Lean 4 lemmas in \texttt{lean4/HiveMindSpec.lean}. Every lemma compiles with zero \texttt{sorry} and verifies discrete arithmetic, necessity counterexamples, and resource bounds over $\mathbb{N}$/$\mathbb{Z}$.}
 \label{tab:lean4_112_inventory}
 \vspace{0.35em}
 \resizebox{\textwidth}{!}{%
@@ -174,8 +174,9 @@ Seasons 7--9 (Hardening \& Safety) & Thms.\ 45--56, 70--77 & 20 & Adaptive media
 Season 10 (Next-Gen DiLoCo) & Thms.\ 78--90 & 13 & PA-CGAD cosine cutoff, FoMoE ring savings \& Skip-Token, PULSELoCo half-ULP gate, Skip-Attention CAR, IsoLoCo, AutoLoCo, HeLoCo, \texttt{prime-diloco} 0\,B VRAM, SparseLoCo 2-bit, LoopedMoE, MuLoCo & compiles \\
 Season 11 (Looped FP \& IsoSparse) & Thms.\ 91--100 & 10 & Fixed-point recurrence contraction, early-exit FLOP savings, $3\times$ terminal KV sharing, multi-wave FoMoE VRAM \& payload bounds & compiles \\
 Season 12 (OpenDiLoCo \& H1--H10) & Thms.\ 101--112 & 12 & Flat-bucket slice partition, fragment byte count, piecewise PA-CGAD cutoff, $16\times$/$32\times$ 2-bit DCT gate, MuLoCo spread contraction, EF21 telescoping sum, TBPTT memory, Skip-Token FLOPs & compiles \\
+Season 13 (Necessity \& Inhabitation) & Thms.\ 113--116 & 4 & Disabled-EF21 mass loss counterexample, missing PA-CGAD cutoff variance inflation counterexample, violated Multi-Krum quorum counterexample, \texttt{Nonempty InhabitedRTX2070SwarmPackage} witness & compiles \\
 \midrule
-\textbf{Total Formal Specification} & \textbf{Theorems 1--112} & \textbf{112} & Arithmetic over $\mathbb{N}$/$\mathbb{Z}$; standard Lean 4 axioms (\texttt{propext}, \texttt{Quot.sound}, \texttt{Classical.choice}) & 112 / 112 compile \\
+\textbf{Total Formal Specification} & \textbf{Theorems 1--116} & \textbf{116} & Arithmetic over $\mathbb{N}$/$\mathbb{Z}$; standard Lean 4 axioms (\texttt{propext}, \texttt{Quot.sound}, \texttt{Classical.choice}) & 116 / 116 compile \\
 \bottomrule
 \end{tabular}%
 }
@@ -187,7 +188,7 @@ Season 12 (OpenDiLoCo \& H1--H10) & Thms.\ 101--112 & 12 & Flat-bucket slice par
 
 \subsection{Zero-Copy Meta-Device Streaming \& 4-Bit NormalFloat Quantization}
 
-Standard model loaders instantiate a dense FP16/FP32 weight tree in system RAM before transferring tensors to the GPU, causing host pagefile exhaustion on 16\,GB RAM gaming PCs. In Project HiveMind (\texttt{src/hivemind/core/quantization.py}), we initialize the causal Transformer architecture on PyTorch's zero-byte \texttt{meta} device (\texttt{init\_empty\_weights}) and stream each tensor slice directly from memory-mapped \texttt{safetensors} shards onto \texttt{cuda:0}, immediately quantizing linear projections $W_0 \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$ into 4-bit NormalFloat (\texttt{NF4}) with block size $B = 64$:
+Standard model loaders instantiate a dense FP16/FP32 weight tree in system RAM before transferring tensors to the GPU, causing host pagefile exhaustion on 16\,GB RAM gaming PCs. In Project HiveMind (\texttt{src/hivemind/core/quantization.py}), we initialize the causal Transformer architecture on PyTorch's zero-byte \texttt{meta} device (\texttt{init\_empty\_weights}) and stream each tensor slice directly from memory-mapped \texttt{safetensors} shards onto \texttt{cuda:0}, immediately quantizing linear projections $W_0 \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$ into 4-bit NormalFloat (\texttt{NF4}) \cite{dettmers2023qlora} with block size $B = 64$:
 \begin{equation}
     \hat{W}_{\text{NF4}}(i) = \arg\min_{j \in \{0,\dots,15\}} \left| \frac{W_0(i)}{s_b} - q_j \right|, \qquad s_b = \max_{i \in \text{block } b} |W_0(i)|,
 \end{equation}
@@ -248,7 +249,7 @@ Per token, the router evaluates only $S + M + U = 4 + 4 + 8 = \mathbf{16}$ inner
 
 \subsection{Federated Partial Expert Replication (\texttt{FoMoE}) \& Ghost-Expert \texttt{Skip-Token}}
 
-Following Sani \textit{et al.}\ (\textbf{\texttt{FoMoE}}, \texttt{arXiv:2606.19025}) \cite{sani2026fomoe} and Google DeepMind's \textit{Scaling Laws for DiLoCo} (\texttt{arXiv:2503.09799}) \cite{charles2025scalingdiloco}, requiring every consumer GPU to replicate and synchronize all $E=128$ experts wastes both VRAM and outer-loop WAN bandwidth. In \texttt{FoMoEPartialReplicaPlanner} (\texttt{src/hivemind/swarm/diloco\_nextgen.py}) and \texttt{UpcycledSparseMoEModel.set\_local\_expert\_subset()} (\texttt{src/hivemind/core/btm\_upcycle.py}, \texttt{HM-S8-06}), each of the $M$ workers hosts only $M_{\text{loc}} = \frac{O_e}{M} E$ resident experts (where $O_e \in \{1, \dots, M\}$ is the replication overlap factor) while the remaining $E - M_{\text{loc}}$ experts act as \textbf{Ghost Experts}:
+Following Sani \textit{et al.}\ (\textbf{\texttt{FoMoE}}, \texttt{arXiv:2606.19025}) \cite{sani2026fomoe} and Google DeepMind's \textit{Scaling Laws for DiLoCo} (\texttt{arXiv:2503.09799}) \cite{charles2025scalingdiloco}, requiring every consumer GPU to replicate and synchronize all $E=128$ experts wastes both VRAM and outer-loop WAN bandwidth. In \texttt{FoMoEPartialReplicaPlanner} (\path{src/hivemind/swarm/diloco_nextgen.py}) and \path{UpcycledSparseMoEModel.set_local_expert_subset()} (\path{src/hivemind/core/btm_upcycle.py}, \texttt{HM-S8-06}), each of the $M$ workers hosts only $M_{\text{loc}} = \frac{O_e}{M} E$ resident experts (where $O_e \in \{1, \dots, M\}$ is the replication overlap factor) while the remaining $E - M_{\text{loc}}$ experts act as \textbf{Ghost Experts}:
 \begin{equation}
     R(O_e) = \frac{2(O_e - 1)}{O_e}, \qquad V_{\text{comm}}(O_e) = \frac{2(M-1)}{M} B_{\text{dense}} + \left(R(O_e) + \gamma_{\text{shuf}}\left(1 - \frac{O_e}{M}\right)\right) M_{\text{loc}} B_{\text{expert}}.
 \end{equation}
@@ -326,7 +327,7 @@ To make outer-loop aggregation resilient to asynchronous WAN stragglers, residen
 
 \subsection{\texttt{OpenDiLoCo} \& \texttt{prime-diloco}: Contiguous 1D CPU Flat-Bucket Outer State (\texttt{0\,B} GPU VRAM)}
 
-In naive PyTorch DiLoCo implementations, holding a copy of the outer master weights $\theta^{(t-1)}$ and outer Nesterov velocity buffer $v^{(t)}$ on \texttt{cuda:0} doubles the adapter/backbone memory footprint during every outer step. Adapting \texttt{PrimeIntellect-ai/prime-diloco} (\texttt{src/zeroband/diloco.py}) and \texttt{PrimeIntellect-ai/OpenDiLoCo} (\texttt{arXiv:2407.07852}) \cite{jaghouar2024opendiloco}, \texttt{CPUOffloadedFlatBucketOuterState} (\texttt{src/hivemind/swarm/diloco\_nextgen.py}) and \texttt{DiLoCoOuterOptimizer(use\_cpu\_flat\_bucket=True)} (\texttt{src/hivemind/core/diloco\_outer.py}, \texttt{HM-S8-02}) pack all parameter fragments into a single contiguous 1D FP32 host RAM allocation $\mathbf{w}_{\text{flat}} \in \mathbb{R}^N_{\text{CPU}}$ with deterministic slice offsets $\{[\text{lo}_k, \text{hi}_k)\}_{k=1}^F$:
+In naive PyTorch DiLoCo implementations, holding a copy of the outer master weights $\theta^{(t-1)}$ and outer Nesterov velocity buffer $v^{(t)}$ on \texttt{cuda:0} doubles the adapter/backbone memory footprint during every outer step. Adapting \path{PrimeIntellect-ai/prime-diloco} (\path{src/zeroband/diloco.py}) and \path{PrimeIntellect-ai/OpenDiLoCo} (\texttt{arXiv:2407.07852}) \cite{jaghouar2024opendiloco}, \texttt{CPUOffloadedFlatBucketOuterState} (\path{src/hivemind/swarm/diloco_nextgen.py}) and \path{DiLoCoOuterOptimizer(use_cpu_flat_bucket=True)} (\path{src/hivemind/core/diloco_outer.py}, \texttt{HM-S8-02}) pack all parameter fragments into a single contiguous 1D FP32 host RAM allocation $\mathbf{w}_{\text{flat}} \in \mathbb{R}^N_{\text{CPU}}$ with deterministic slice offsets $\{[\text{lo}_k, \text{hi}_k)\}_{k=1}^F$:
 \begin{gather}
     \mathbf{v}_{\text{flat}}[\text{lo}_k:\text{hi}_k] \leftarrow \mu \mathbf{v}_{\text{flat}}[\text{lo}_k:\text{hi}_k] + \bar{\Delta}_k^{(t)}, \nonumber\\
     \mathbf{w}_{\text{flat}}[\text{lo}_k:\text{hi}_k] \leftarrow \mathbf{w}_{\text{flat}}[\text{lo}_k:\text{hi}_k] - \eta \left(\mu \mathbf{v}_{\text{flat}}[\text{lo}_k:\text{hi}_k] + \bar{\Delta}_k^{(t)}\right).
@@ -367,6 +368,68 @@ Finally, to stabilize heterogeneous worker cadences and large replica counts:
     In check H9, 5 iterations reduce the condition number of a synthetic $32 \times 16$ rank-8 gradient from $125.0$ to $1.65$, and validator replay on CPU reproduces the worker bit-for-bit (difference $0.0$). Cross-GPU bitwise reproducibility was not tested.
 \end{itemize}
 
+\subsection{Analytical Theorems, Proofs, Hypothesis-Necessity Counterexamples \& 4-Definitions Contract}
+\label{sec:analytical_proofs}
+
+To make the mathematical guarantees and their failure modes self-contained, we state the three core outer-loop invariants with explicit analytical proofs and paired \emph{Hypothesis-Necessity Counterexamples} (\texttt{Season13}, Lean 4 Theorems 113--116), followed by the 4-Definitions Contract (Table~\ref{tab:four_definitions_contract}).
+
+\begin{theorem}[Multi-Step EF21 Telescoping Conservation \& Necessity of Residual Carry; Lean Thms.\ 107 \& 113]
+\label{thm:ef21_telescoping}
+Let $\{g_t\}_{t=1}^T \subset \mathbb{R}^d$ be a sequence of outer pseudo-gradients and $\mathcal{C}: \mathbb{R}^d \to \mathbb{R}^d$ be any deterministic compressor (including 2-bit \texttt{DeMo} DCT + \texttt{SparseLoCo} LUT). Under the error-feedback recurrence $u_t = g_t + r_{t-1}$, $c_t = \mathcal{C}(u_t)$, $r_t = u_t - c_t$ with $r_0 = 0$, the cumulative transmitted sum satisfies the exact telescoping identity:
+\begin{equation}
+    \sum_{t=1}^T c_t + r_T = \sum_{t=1}^T g_t.
+\end{equation}
+\textbf{Hypothesis-Necessity Counterexample (Thm.\ 113):} If error feedback is disabled ($r_t \equiv 0$, so $c_t = \mathcal{C}(g_t)$) and step $1$ compression is strictly contractive on positive mass ($c_1 < g_1$ with $c_2 \le g_2$), then $c_1 + c_2 < g_1 + g_2$ with positive permanent deficit $g_1 - c_1 > 0$.
+\end{theorem}
+\begin{proof}
+At each round $t \in \{1, \dots, T\}$, substituting $u_t = g_t + r_{t-1}$ into $c_t + r_t = u_t$ yields $c_t = g_t + r_{t-1} - r_t$. Summing from $t=1$ to $T$ telescopes all intermediate residuals $r_1, \dots, r_{T-1}$:
+\[
+    \sum_{t=1}^T c_t = \sum_{t=1}^T g_t + r_0 - r_T = \sum_{t=1}^T g_t - r_T \implies \sum_{t=1}^T c_t + r_T = \sum_{t=1}^T g_t.
+\]
+Conversely, when $r_1 = 0$, step $2$ compresses $g_2$ alone ($c_2 \le g_2$), so $c_1 < g_1 \implies c_1 + c_2 < g_1 + g_2$ (machine-checked in \texttt{ef21\_disabled\_loses\_untransmitted\_residual}). This explains why single-round 2-bit DCT exhibits $0.9313$ relative $L_2$ truncation error in \texttt{H7} yet achieves a $0.052\%$ held-out loss gap across $R=12$ rounds with EF21 in Experiment \texttt{E1}.
+\end{proof}
+
+\begin{theorem}[PA-CGAD Staleness Bias Bound \& Necessity of Cosine Cutoff; Lean Thms.\ 103 \& 114]
+\label{thm:pacgad_bound}
+For any decay rate $\alpha > 0$ and cutoff horizon $\tau_{\text{cut}} > 0$, the PA-CGAD gate $\sigma(\tau) = \frac{1}{2}\!\left(1 + \cos(\pi\tau/\tau_{\text{cut}})\right)\mathbb{I}[\tau < \tau_{\text{cut}}]e^{-\alpha\tau}$ satisfies:
+\begin{equation}
+    \sup_{\tau \ge 0} \tau \sigma(\tau) \le \frac{1}{e\alpha}, \qquad \text{and} \qquad \forall \tau_{\text{eff}} \ge \tau_{\text{cut}}, \quad v_t = \beta_2 v_{t-1}.
+\end{equation}
+\textbf{Hypothesis-Necessity Counterexample (Thm.\ 114):} If the staleness cutoff is omitted ($\alpha_2 = 1$ at $\tau_{\text{eff}} \ge \tau_{\text{cut}}$), any non-zero stale gradient $\|g_{\text{stale}}\|_2^2 > 0$ with $1-\beta_2 > 0$ strictly inflates the second moment: $v_{\text{unfiltered}} - v_{\text{clean}} = (1-\beta_2)\|g_{\text{stale}}\|_2^2 > 0$.
+\end{theorem}
+\begin{proof}
+Since $0 \le \gamma(\tau) \le 1$ for all $\tau \ge 0$, we have $0 \le \tau\sigma(\tau) \le \phi(\tau) := \tau e^{-\alpha\tau}$. Differentiating $\phi(\tau)$ gives $\phi'(\tau) = (1 - \alpha\tau)e^{-\alpha\tau}$, which vanishes uniquely at $\tau^* = 1/\alpha$ with $\phi''(1/\alpha) = -\alpha e^{-1} < 0$. Hence $\sup_{\tau \ge 0} \tau\sigma(\tau) \le \phi(1/\alpha) = \frac{1}{e\alpha}$ (at $\alpha=0.2$, $\frac{1}{0.2e} \approx 1.8394$, bounding the empirical maximum $1.7417$). For $\tau_{\text{eff}} \ge \tau_{\text{cut}}$, $\mathbb{I}[\tau_{\text{eff}} < \tau_{\text{cut}}] = 0 \implies \tilde{g}_f = 0$, preserving $v_t$ without stale variance inflation. When omitted ($\alpha_2 = 1$), $v_{\text{unfiltered}} = \beta_2 v_{t-1} + (1-\beta_2)g_{\text{stale}}^2 > \beta_2 v_{t-1} = v_{\text{clean}}$ (machine-checked in \texttt{pacgad\_missing\_cutoff\_inflates\_stale\_second\_moment}, explaining the $11.6\times$ MSE degradation in Experiment \texttt{E2}).
+\end{proof}
+
+\begin{theorem}[Multi-Krum Honest Quorum \& Violation Counterexample; Lean Thms.\ 4 \& 115]
+\label{thm:multikrum_necessity}
+In a swarm of $n$ workers with at most $f$ Byzantine adversaries, if $n \ge 2f + 3$, then the Multi-Krum neighborhood size $k = n - f - 2$ satisfies $k \ge f + 1$, so every $k$-nearest neighborhood contains at least one honest worker. \textbf{Hypothesis-Necessity Counterexample (Thm.\ 115):} If $n \le 2f + 2$, then $k = n - f - 2 \le f$, so $f$ colluding Byzantine workers can fill the entire $k$-neighborhood (\texttt{multikrum\_violated\_quorum\_loses\_honest\_majority}).
+\end{theorem}
+\begin{proof}
+Subtracting $f + 2$ from $n \ge 2f + 3$ yields $k = n - f - 2 \ge (2f + 3) - f - 2 = f + 1$. By the pigeonhole principle, since at most $f$ workers are Byzantine, at least $k - f \ge 1$ selected neighbors are honest. Conversely, if $n \le 2f + 2$, then $k = n - f - 2 \le f$.
+\end{proof}
+
+\begin{table}[ht!]
+\centering
+\footnotesize
+\caption{4-Definitions Contract mapping each core subsystem across its Mathematical Operator (Def.\ A), Conservation/Lyapunov Invariant (Def.\ B), Discretization/Algorithm (Def.\ C), and Quantitative Verification Gate (Def.\ D).}
+\label{tab:four_definitions_contract}
+\vspace{0.35em}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lp{3.4cm}p{3.4cm}p{3.4cm}p{3.4cm}@{}}
+\toprule
+\textbf{Subsystem} & \textbf{Def.\ A: Operator} & \textbf{Def.\ B: Invariant} & \textbf{Def.\ C: Algorithm} & \textbf{Def.\ D: Quantitative Gate} \\
+\midrule
+\textbf{2-Bit DCT + EF21} & $\hat{\Delta}_t = \mathcal{C}_{2\text{b}}(g_t + r_{t-1})$ & $\sum_{t=1}^T \hat{\Delta}_t + r_T = \sum_{t=1}^T g_t$ & $8\times 8$ DCT-II + 4-bin LUT + \texttt{index\_copy\_} & $39.96\times$ wire savings; $0.052\%$ loss gap (\texttt{E1}, Thms.\ 105, 107, 113) \\
+\textbf{PA-CGAD Outer} & $\tilde{g}_f = \gamma(\tau_{\text{eff}})e^{-\alpha\tau_{\text{eff}}}\bar{\Delta}_f$ & $\sup_{\tau \ge 0}\tau\sigma(\tau) \le \frac{1}{e\alpha}$ & Pre-AdamW staleness cutoff at $\tau_{\text{cut}}=32$ & $1.7417 \le 1.8394$; $11.6\times$ lower straggler MSE (\texttt{E2}, Thms.\ 103, 114) \\
+\textbf{MuLoCo NS-5} & $\Phi(X) = aX + (bXX^\top + c(XX^\top)^2)X$ & $\sigma_i(\Phi^{(5)}(X_0)) \to 1$ & 5-step quintic Newton-Schulz on 2D LoRA grads & $\kappa: 125.0 \to 1.65$; replay diff $= 0.0$ (\texttt{H9}, \texttt{E1}, Thm.\ 106) \\
+\textbf{Looped MoE} & $h^{(t)} = \text{Core}(\mathcal{A}_t(h^{(t-1)} + h^{(0)}))$ & $r_i^{(t)} \le \epsilon_{\text{fp}} \implies h_i^{(t+1)} = h_i^{(t)}$ & Weight-tied core + RNG-restored TBPTT & $669{,}888\text{\,B}$ saved; $\bar{t}=3.05/4.0$ at $\epsilon_{\text{fp}}=0.65$ (\texttt{H4}, \texttt{E3}, Thm.\ 108) \\
+\textbf{Multi-Krum + Spot} & $\mathcal{N}_k(i) = \text{KNN}_{n-f-2}(\Delta_i)$ & $n \ge 2f+3 \implies |\mathcal{N}_k \cap \mathcal{H}| \ge 1$ & $10\%$ SHA-256 micro-segment replay + $2\sigma$ cosine & $20\times$ BOINC FLOP savings; $25/25$ red-team vectors blocked (Thms.\ 4, 115) \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
 % ============================================================================
 \section{Empirical Verification, Controlled Experiments \& Visualizations}
 \label{sec:exp_eval}
@@ -379,7 +442,7 @@ Each check in \texttt{src/hivemind/swarm/architecture\_hypothesis\_verifier.py} 
 \begin{table}[ht!]
 \centering
 \footnotesize
-\caption{Unit-level implementation checks (\texttt{artifacts/architecture\_hypothesis\_verification\_report.json}, \texttt{receipt\_sha256: b427d910a2d3ba4c...}). $^\ddagger$H5's speculative Top-2 match rate is measured on synthetic Gaussian residual perturbations ($\sigma = 0.08$).}
+\caption{Unit-level implementation checks (\path{artifacts/architecture_hypothesis_verification_report.json}, \texttt{receipt\_sha256: b427d910a2d3ba4c...}). $^\ddagger$H5's speculative Top-2 match rate is measured on synthetic Gaussian residual perturbations ($\sigma = 0.08$).}
 \label{tab:arch_hypotheses}
 \vspace{0.35em}
 \resizebox{\textwidth}{!}{%
@@ -507,14 +570,38 @@ Router training (4-expert top-2 MoE) & mixed & $2.139 \rightarrow 0.795$ & --- \
     \item \textbf{Full-scale standard benchmark suites.} While Experiment E1 evaluates held-out cross-entropy and perplexity on a 128-sequence disjoint validation split, full zero-shot/few-shot evaluations on standard LLM benchmarks (full GSM8K test split, HumanEval pass@1, PubMedQA) for 0.5B--7B upcycled MoE checkpoints are still required.
     \item \textbf{128-expert training scale.} The largest MoE trained end-to-end on the RTX 2070 has 4 experts (96 FFN modules). The 3-tier 128-expert hierarchical router, FoMoE partial replication, and Skip-Attention prefetching have been verified at the module/planner level (\texttt{H3}, \texttt{H5}, \texttt{E4}) but not yet trained across 128 domain branches.
     \item \textbf{Adaptive Byzantine adversaries.} Our Multi-Krum + $2\sigma$ cosine filter has been verified against sign-flipped/scaled poisoners; subtle inner-product manipulation (ALIE) and coordinated Sybil coalitions under non-IID drift warrant dedicated red-team evaluation.
-    \item \textbf{Scope of Lean 4 formalization.} The 112 Lean 4 lemmas in \texttt{lean4/HiveMindSpec.lean} verify discrete arithmetic and byte-budget invariants over $\mathbb{N}$/$\mathbb{Z}$ (Section~2); they do not formalize real-valued stochastic convergence or C++/CUDA kernel equivalence.
+    \item \textbf{Scope of Lean 4 formalization.} The 116 Lean 4 lemmas in \texttt{lean4/HiveMindSpec.lean} verify discrete arithmetic, hypothesis-necessity counterexamples, non-vacuity inhabitation, and byte-budget invariants over $\mathbb{N}$/$\mathbb{Z}$ (Section~2); they do not formalize real-valued stochastic convergence or C++/CUDA kernel equivalence.
 \end{enumerate}
+
+\subsection{Epistemic Stratification \& 6-Layer Security/Hardness Attestation}
+
+To prevent conflating machine-checked discrete arithmetic with empirical single-host measurements or unvalidated multi-host WAN scaling, Table~\ref{tab:epistemic_matrix} stratifies all claims into three explicit verification tiers. Concurrently, the repository is audited by the 6-Layer \texttt{HiveMindHardnessEngine} (\texttt{results/hivemind\_hardness\_report.json}), verifying: (L1) zero AST stubs across all modules; (L2) zero security findings across $147$ scanned repository files (\texttt{risk\_score = 0}); (L3) $25/25$ simulated Byzantine, Sybil, NaN-injection, and WDDM TDR attack vectors blocked; (L4) $116/116$ Lean 4 theorems compiled with $0$ \texttt{sorry} and $0$ custom axioms; (L5) exact rational bridge verification (\texttt{NF4} $128/33$, \texttt{DiLoCo} wire $5000/3$, \texttt{Prefix-Trie} $19/25$, \texttt{3-Tier MoE} $1/8$); and (L6) SHA-256 execution attestation.
+
+\begin{table}[ht!]
+\centering
+\footnotesize
+\caption{Epistemic stratification matrix separating machine-checked discrete lemmas, single-host empirical measurements, and open multi-host WAN validation targets.}
+\label{tab:epistemic_matrix}
+\vspace{0.35em}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llp{6.2cm}p{4.6cm}@{}}
+\toprule
+\textbf{Verification Category} & \textbf{Artifact / Proof Source} & \textbf{What Is Rigorously Established} & \textbf{Explicit Boundary / Not Claimed} \\
+\midrule
+\textbf{Category I: Lean 4 Kernel Lemmas} & \texttt{lean4/HiveMindSpec.lean} (116 lemmas, 0 \texttt{sorry}) & Discrete $\mathbb{N}/\mathbb{Z}$ byte budgets, flat-bucket partitions, EF21 telescoping sums, necessity counterexamples (Thms.\ 113--115), and \texttt{Nonempty} witness (Thm.\ 116). & Does not prove real-valued stochastic convergence or Python/CUDA kernel refinement. \\
+\textbf{Category II: Controlled Empirical \& Single-GPU PoC} & \texttt{H1}--\texttt{H10}, \texttt{E1}--\texttt{E4}, RTX 2070 PoC (\texttt{artifacts/*.json}) & $0.052\%$ held-out loss gap at $12.49\times$ wire savings (\texttt{E1}); $11.6\times$ lower straggler MSE under PA-CGAD (\texttt{E2}); $1{,}509.5\text{\,MB}$ peak VRAM on 8\,GB RTX 2070; $25/25$ red-team vectors blocked. & Executed on a single physical host with synthetic WAN delays and controlled corpus shards. \\
+\textbf{Category III: Open Multi-Host WAN Targets} & Future multi-node testbed (Section~\ref{sec:limitations}) & Analytical communication models for FoMoE ($3.46\times$) and Kademlia Geo-Ring topologies. & Live multi-host residential WAN throughput, NAT punch success rates, and 128-branch full GSM8K/HumanEval accuracy remain open. \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
 
 \textbf{Reproducibility.} Every number and figure in this paper is generated deterministically from committed scripts and JSON artifacts:
 \begin{itemize}[leftmargin=1.8em]
     \item \texttt{PYTHONPATH=src python -m hivemind.swarm.architecture\_hypothesis\_verifier} $\to$ \texttt{artifacts/architecture\_hypothesis\_verification\_report.json} (\texttt{H1}--\texttt{H10}, \texttt{pytest tests/test\_architecture\_hypotheses.py}).
     \item \texttt{PYTHONPATH=src python scripts/run\_paper\_experiments\_and\_figures.py} $\to$ \texttt{artifacts/paper\_v3\_experiments\_report.json} (\texttt{E1}--\texttt{E4}) and \texttt{paper/figures/fig1..fig4.\{pdf,png\}}.
-    \item \texttt{cd lean4 \&\& lake build} $\to$ compiles all 112 theorems in \texttt{lean4/HiveMindSpec.lean} with zero \texttt{sorry}.
+    \item \texttt{PYTHONPATH=src python paper/autoevolve\_peer\_review\_pipeline.py} $\to$ \texttt{paper/PEER\_REVIEW\_REPORT.json} (5-round Elenchus + Opus 5.5 adversarial audit and JSON-to-LaTeX provenance lock).
+    \item \texttt{cd lean4 \&\& lake build} $\to$ compiles all 116 theorems in \texttt{lean4/HiveMindSpec.lean} with zero \texttt{sorry}.
 \end{itemize}
 
 \begin{thebibliography}{99}
