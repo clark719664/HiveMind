@@ -7,7 +7,7 @@
 [![Release](https://img.shields.io/badge/Release-v2.0.0%20(Season%208%20Delivered%20%26%2063%2F63%20PRs)-00f0ff?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/releases)
 [![Test Suite](https://img.shields.io/badge/Tests-Full%20suite%20in%20CI%20(coverage%20gate%2095%25)-brightgreen?style=for-the-badge)](.github/workflows/ci_swarm_tests.yml)
 [![Lean 4 Verified](https://img.shields.io/badge/Lean%204-Machine--checked%20theorems%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
-[![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-v3.2.0%20LaTeX%20%26%20PDF%20(self--assessed%2C%20scripted%20audit%2C%20not%20peer%20reviewed)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
+[![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-v3.3.0%20LaTeX%20%26%20PDF%20(self--assessed%2C%20scripted%20audit%2C%20not%20peer%20reviewed)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20GPU-NVIDIA%20RTX%202070%20%2B%20ROCm%2FMPS-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
 [![Community PRs](https://img.shields.io/badge/Community%20PRs-63%2F63%20Merged%20(Waves%201--7%20%7C%201h%20Orchestrator)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
 [![Project Wiki](https://img.shields.io/badge/Project%20Wiki-13%20Pages%20Live-f59e0b?style=for-the-badge)](https://github.com/xaviercallens/HiveMind/wiki)

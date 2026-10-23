@@ -26,6 +26,11 @@ from hivemind.security.federated_learning_hardening import (
     FederatedDeltaAuditReport,
     FederatedLearningSecurityGuard,
 )
+from hivemind.swarm.decoupled_diloco import (
+    DecoupledDiLoCoQuorumSyncer,
+    LearnerArrival,
+    SyncerRoundTelemetry,
+)
 from hivemind.swarm.diloco_nextgen import (
     CGADStepTelemetry,
     CPUOffloadedFlatBucketOuterState,
@@ -63,6 +68,7 @@ class OuterStepResult:
     mean_cosine_gate: float | None = None
     extra_gpu_vram_bytes: int = 0
     cgad_telemetry: list[CGADStepTelemetry] = field(default_factory=list, repr=False)
+    quorum_telemetry: dict[str, SyncerRoundTelemetry] = field(default_factory=dict, repr=False)
 
 
 def flatten_delta_dict(delta_dict: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -296,11 +302,18 @@ class DiLoCoOuterOptimizer:
         worker_deltas: dict[str, dict[str, torch.Tensor]],
         worker_delays: dict[str, float] | None = None,
         synced_fragments: Sequence[str] | None = None,
+        learner_arrivals: Sequence[LearnerArrival] | None = None,
+        min_quorum_k: int | None = None,
+        grace_window_s: float = 0.0,
+        quorum_merge_mode: str = "rda",
     ) -> OuterStepResult:
         """Aggregate valid worker deltas then apply the configured outer optimizer.
 
         ``worker_delays`` and ``synced_fragments`` are forwarded to PA-CGAD for
-        per-fragment staleness gating (ignored by the Nesterov path).
+        per-fragment staleness gating (ignored by the Nesterov path). When
+        ``learner_arrivals`` is provided (`HM-S9-01` / `SI-12`), surviving workers
+        are filtered by quorum + grace window and merged via `DecoupledDiLoCoQuorumSyncer`
+        (`"rda"` Radial-Directional Averaging or `"direct"` weighted mean).
         """
         filter_report = filter_byzantine_deltas_multikrum(
             worker_deltas=worker_deltas,
@@ -316,6 +329,32 @@ class DiLoCoOuterOptimizer:
             total_submitted_count=filter_report.total_submissions,
             dp_config=self.dp_config,
         )
+
+        quorum_telemetry: dict[str, SyncerRoundTelemetry] = {}
+        if learner_arrivals is not None:
+            surviving_arrivals = [a for a in learner_arrivals if a.learner_id in surviving_deltas]
+            eff_k = min_quorum_k if min_quorum_k is not None else max(1, len(surviving_arrivals))
+            syncer = DecoupledDiLoCoQuorumSyncer(
+                num_learners_m=max(len(surviving_deltas), len(surviving_arrivals), eff_k),
+                min_quorum_k=eff_k,
+                merge_mode=quorum_merge_mode,
+            )
+            for k in sorted(aggregated_deltas.keys()):
+                prev_t = theta_prev[k].detach().to(device="cpu", dtype=torch.float32)
+                learner_frags = {
+                    wid: prev_t - surviving_deltas[wid][k].detach().to(device="cpu", dtype=torch.float32)
+                    for wid in surviving_deltas
+                }
+                merged_frag, _, q_tel = syncer.merge_fragment(
+                    fragment_name=k,
+                    global_prev=prev_t,
+                    learner_fragments=learner_frags,
+                    arrivals=surviving_arrivals,
+                    grace_window_s=grace_window_s,
+                )
+                quorum_telemetry[k] = q_tel
+                if merged_frag is not None:
+                    aggregated_deltas[k] = merged_frag
 
         if self.outer_optimizer_mode != "nesterov" or self.use_cpu_flat_bucket:
             parameter_keys = set(theta_prev)
@@ -421,4 +460,5 @@ class DiLoCoOuterOptimizer:
             mean_cosine_gate=mean_cosine_gate,
             extra_gpu_vram_bytes=0,
             cgad_telemetry=cgad_telemetry,
+            quorum_telemetry=quorum_telemetry,
         )

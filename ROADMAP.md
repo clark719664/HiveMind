@@ -13,6 +13,28 @@
 
 ---
 
+## 🧭 0. Operating Model (from 2026-10-23): Scientific Lead & Engineering Coordinator
+
+| Role | Who | Owns | Does not own |
+| :-- | :-- | :-- | :-- |
+| **Scientific lead** | Claude (AutoevolveAI session) | research questions, predictions and refutation criteria, experiment specifications (metric, cells, seeds, controls, acceptance), interpretation, paper text and every number in it | task splitting, CI, merges, releases |
+| **Engineering coordinator** | Antigravity (Gemini) | task breakdown of each experiment spec into `HM-S9-xx`, branches, PR review against the Definition of Done, the 1-hour orchestrator, CI, merges, release tags, artifact delivery | changing what is measured, editing numbers in the paper, emitting scores or verdicts from scripts |
+
+The contract is [`docs/RESEARCH_PROGRAM.md`](docs/RESEARCH_PROGRAM.md) (thesis, RQ1–RQ8, predictions ledger, pre-registered experiments E5–E9, decision rules, gates G1–G4, handoff protocol) and [`docs/ENGINEERING_COORDINATION_BRIEF.md`](docs/ENGINEERING_COORDINATION_BRIEF.md) (sequencing, Definition of Done, verification commands, reporting format). **A task is done when its artifact answers the question it was opened for**, not when its PR merges.
+
+### Gates
+
+| Gate | Decides | Evidence | Target |
+| :-- | :-- | :-- | :-- |
+| **G1** single-host science | RQ2–RQ7 via E5, E6, E7, E7b (≥ 3 seeds) | `artifacts/experiments/E5..E7b_report.json` + `artifacts/predictions_ledger.json` | paper v3.4 |
+| **G2** 3-node WAN | first real RQ1 data point | E8 artifacts, localhost negative control passes | paper v3.5 |
+| **G3** 8-node WAN + security | RQ1, RQ8 | E8 (8 nodes), E9 | paper v4.0 |
+| **G4** external review | credibility | human or logged-model review transcripts in `paper/review/` (`HM-S9-09`) | submission |
+
+Decision rules for refuted predictions are in `RESEARCH_PROGRAM.md` §5; a refuted prediction is reported as refuted, never removed.
+
+---
+
 ## 🏆 1. Completed Milestones Summary (`Waves 1–7` — `63/63` Pull Requests Merged, `100%` Merge Rate)
 
 | Wave / Season | Release Tag | Issues Closed | Merged Pull Requests & Contributors | Key Technical & Formal Deliverables |
@@ -24,7 +46,7 @@
 | **Wave 4: Season 5 64-MoE, Guild Wars, WAN Faults & Strategy (`SI-01..05`)** | `v1.7.0` | `#43`–`#48` | `PR #52`, `#53`, `#54`, `#55` (`@pedromineo`) + Core (`@xaviercallens`) | HF Hub Push/Pull & 64 KB CAS Chunk Seeding (`PR #55`), 64-Expert Hierarchical MoE & FP8 KV-Cache (`PR #54`), `ZK-OPoI v3` Interactive Bisection (`HM-S5-03`), Guild Wars Missions 17–20 (`PR #53`), WAN QUIC/TURN Fault Benchmark (`PR #52`), 48 Lean 4 Theorems (`HM-S5-06`), Pareto Strategy Engine (`SI-01..05`) |
 | **Wave 5: Season 6 `EF21-DiLoCo`, 128-MoE 3-Tier, `ZK-OPoI v4`, Agent Arena & 77 Lean Proofs** | `v1.8.0` | `#56`–`#60` | `PR #63`–`#65`, `#67`–`#77`, `#79`–`#82` (`@clark719664`), `PR #78` (`@radialmonster`) | `EF21DiLoCoErrorFeedbackBuffer` + Worker Integration (`PR #63`, `#69`), 128-Expert `ThreeTierHierarchicalMoERouter` (`8x` gating reduction) + Ring Token-Tree Prefetch (`PR #71`, `#75`), `ZK-OPoI v4` Batch Commitments & `GuildSlashingInsurancePool` (`PR #79`), Season 6 Agent Arena Missions 21–24 & HUD (`PR #78`), `FL-08` Workunit Ownership (`PR #72`), RFC 5766 Per-Allocation TURN `ChannelBind` (`PR #73`), 77 Machine-Checked Lean 4 `theorem` Declarations (`PR #68`) |
 | **Wave 6: Season 7 Looped MoE Backbone & Terminal-KV Sharing** | `v1.9.1` | `#66` | `PR #88`, `#89`, `#90`, `#91`, `#92` (`@clark719664`) | Looped MoE Backbone (`PR #88`, `#92`), Terminal-KV Sharing (`PR #89`), Live Speculative Token-Tree Prefetch Wiring (`PR #90`), Automated `ZK-OPoI v4` Fault Indemnification (`PR #91`) |
-| **Wave 7: Season 8 Outer-Loop `DiLoCo` Ecosystem (`SI-06..11`), `E1`–`E4` Experiments & `116` Lean 4 Proofs** | **`v2.0.0`** | **`#94`–`#98`** | **`PR #99`–`#103` (`@clark719664`), `PR #104`–`#105` (`@radialmonster`), `PR #106`–`#108` (`@lyrasol99-dev`) + Core (`@xaviercallens`)** | **`PA-CGAD` & Flat-Bucket CPU Offload (`PR #104`, `#106`), `IsoLoCo`/`TSVLoCo` & `FoMoE` Partial Replicas (`PR #99`, `#108`), `DeMo` 2D DCT + 2-Bit `SparseLoCo` (`PR #100`, `#105`), `MuLoCo` 5-Step Newton-Schulz Inner Preconditioner (`PR #101`, `#107`), `/api/diloco-nextgen` HUD (`PR #102`), `10/10` Hypothesis Verifier (`H1`–`H10`), `4/4` Controlled Experimental Suites (`E1`–`E4`), Foundation Paper `v3.1.0` (`20 pages`, `9.45/10` Opus 5.5 Review), and `116` Machine-Checked Lean 4 Theorems (`0 sorry`, `0` user axioms)** |
+| **Wave 7: Season 8 Outer-Loop `DiLoCo` Ecosystem (`SI-06..11`), `E1`–`E4` Experiments & `116` Lean 4 Proofs** | **`v2.0.0`** | **`#94`–`#98`** | **`PR #99`, `#100`, `#102`, `#107`–`#109` (`@clark719664`), `PR #101`, `#103`–`#106` (`@radialmonster`) + Core (`@xaviercallens`)** | **`PA-CGAD` & Flat-Bucket CPU Offload (`PR #104`, `#106`), `IsoLoCo`/`TSVLoCo` & `FoMoE` Partial Replicas (`PR #99`, `#108`), `DeMo` 2D DCT + 2-Bit `SparseLoCo` (`PR #100`, `#105`), `MuLoCo` 5-Step Newton-Schulz Inner Preconditioner (`PR #101`, `#107`), `/api/diloco-nextgen` HUD (`PR #102`), `10/10` Hypothesis Verifier (`H1`–`H10`), `4/4` Controlled Experimental Suites (`E1`–`E4`), Foundation Paper `v3.1.0` (`20 pages`, `9.45/10` Opus 5.5 Review), and `116` Machine-Checked Lean 4 Theorems (`0 sorry`, `0` user axioms)** |
 
 ---
 
@@ -101,6 +123,24 @@ Season 9 follows a **review of the MoE / Google DeepMind / OpenDiLoCo roadmap an
 | **`HM-S9-08`** | `formal/s9-rda-norm-and-quorum-liveness` | `lean4/HiveMindSpec.lean` (Theorems 121–128) | Formalise the RDA common-norm identity over ℚ for `M = 2` (exact arithmetic), quorum liveness (`K <= live learners` implies a merge within one grace window), and admitted + deferred token conservation; `0 sorry`, `0` user axioms. | `3,000 PTS / $HIVE` *(Compute Quota Only)* |
 | **`HM-S9-09`** | `governance/s9-real-external-review` | — | Replace the scripted "review" by a real one: human reviewers, or logged model reviews through `anse.core.api_extractor.APIExtractor` with transcripts committed next to the report. No numeric score may ever be emitted by a script again. | `2,000 PTS / $HIVE` *(Compute Quota Only)* |
 
+
+#### Season 9 task ↔ research direction map (who asks, who builds, what decides it)
+
+| Task | Research question (scientific lead) | Experiment / artifact it must feed | Coordinator deliverable | Gate |
+| :-- | :-- | :-- | :-- | :-- |
+| `HM-S9-01` | RQ2 (RDA vs outer-LR retuning), RQ3 (grace vs matched random), RQ4 (CGAD under quorum) | E5 factorial harness + churn replay from `wan_fault_benchmark.py` → `artifacts/experiments/E5_report.json` | syncer wired into the campaign; η_outer sweep; matched-random admission cell | G1 |
+| `HM-S9-02` | RQ5 (measured ghost fraction governs quality) | E7 → `E7_report.json` | σ-MoE block with per-layer ghost logging; temperature sweep | G1 |
+| `HM-S9-03` | RQ7 (depth prior makes terminal-KV sharing safe) | E7b → `E7b_report.json` | learned prior + OrthoInj in `LoopedExpertBackbone`; full-cache vs terminal-KV eval | G1 |
+| `HM-S9-05` | RQ2/RQ4 side factor (does restart widen the stable η_outer region?) | extra factor in E5 | `K_restart` in both outer optimizers | G1 |
+| `HM-S9-06` | prerequisite of RQ1 (no sample trained twice under churn) | E8 ledger (`committed = granted − reclaimed`) | heartbeat leases on the CAS store | G2 |
+| `HM-S9-04` | RQ1 variant (does non-blocking Mix1 keep goodput without hurting loss?) | E8 variant cell | Mix1/Mix2 split with JS-disagreement logging | G3 |
+| `HM-S9-07` | RQ1 (volunteer tax) | E8 → `E8_report.json`, latency percentiles, localhost negative control | 3 then 8 real machines | G2/G3 |
+| `HM-S9-08` | formal support for §7.2 claims | `lean4/HiveMindSpec.lean` Theorems 121–128 | `0 sorry`, `0` user axioms | any |
+| `HM-S9-09` | credibility of the whole paper | `paper/review/` transcripts | human or logged-model review, no scripted score | G4 |
+| *(new)* `HM-S9-10` | RQ6 (whitening inner optimizer flattens loss-vs-M) | E6 → `E6_report.json` | M ∈ {2,4,8,16} × {AdamW, Muon-NS5} × H ∈ {32,128}, 3 seeds, slope with CI | G1 |
+| *(new)* `HM-S9-11` | RQ8 (ALIE under non-IID) | E9 → `E9_report.json` | sign-flip / scaled / ALIE / label-flip at `f/n ∈ {0.1,0.2,0.3}` against filter, replay, both | G3 |
+| *(new)* `HM-S9-12` | scaling-law prior for RQ1 | single-host M ∈ {1,2,4,8,16} fits → `artifacts/experiments/scaling_prior.json` | fit of the Charles et al. form to HiveMind's own runs, R² and residual SE reported | G1 |
+
 ---
 
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
@@ -138,5 +178,5 @@ Project HiveMind gratefully acknowledges the open-source repositories, research 
 - **CaMLSys / University of Cambridge & Flower Labs** (*Lorenzo Sani, Zeyu Cao, Meghdad Kurmanji, Alex Iacob, Andrej Jovanović, Yan Gao, Wanru Zhao, Nicholas D. Lane*, [`arXiv:2606.19025`](https://arxiv.org/abs/2606.19025) *FoMoE*) — Partial expert replication overlap $O_e$ & Ghost-Expert `Skip-Token` (`SI-09A`).
 - **Cosine-Gated Adam-Decay (`CGAD` / `PA-CGAD`)** (*Vatsal Shah & Jiahao Sun (FLock.io)*, [`arXiv:2605.09126`](https://arxiv.org/abs/2605.09126)), **`HeLoCo`** (*Abdullah Al Asif, Patrick Diem, Juan Pablo Muñoz, Felix Wolf, Ali Jannesari & Arya Mazaheri*, [`arXiv:2606.00271`](https://arxiv.org/abs/2606.00271)), **`AutoLoCo`** (*Pengyu He, Yan Zhang, Ruien Li & Guangwen Yang*, [`arXiv:2609.36662`](https://arxiv.org/abs/2609.36662)), **`PULSELoCo`** (*Erfan Miahi & Eugene Belilovsky*, [`arXiv:2602.03839`](https://arxiv.org/abs/2602.03839)), and **Inner Replica Scaling** (*Eugene Belilovsky, Stefan Horoi, Edouard Oyallon & Benjamin Thérien*, [`arXiv:2610.19064`](https://arxiv.org/abs/2610.19064)).
 - **[`learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind)** (*Max Ryabinin, Anton Gusev et al.*, [`arXiv:2002.04013`](https://arxiv.org/abs/2002.04013), MIT License) — Foundational DHT decentralized averaging inspirations.
-- **Open-Source Community Contributors**: Special recognition to **`@clark719664`** (`PRs #6`–`#10`, `#21`–`#25`, `#32`, `#34`–`#42`, `#63`–`#77`, `#79`–`#82`, `#88`–`#92`, `#99`–`#103`), **`@pedromineo`** (`PR #33`, `#52`–`#55`), **`@radialmonster`** (`PR #11`, `#78`, `#104`–`#105`), and **`@lyrasol99-dev`** (`PR #106`–`#108`) for **`63/63` merged Pull Requests** across Waves 1–7.
+- **Open-Source Community Contributors**: Special recognition to **`@clark719664`** (`PRs #6`–`#10`, `#21`–`#25`, `#32`, `#34`–`#42`, `#63`–`#77`, `#79`–`#82`, `#88`–`#92`, `#99`, `#100`, `#102`, `#107`–`#109`), **`@pedromineo`** (`PR #33`, `#52`–`#55`), and **`@radialmonster`** (`PR #11`, `#78`, `#101`, `#103`–`#106`) for the merged Pull Requests across Waves 1–7 (attribution copied from `gh pr list --state merged` on 2026-10-23).
 

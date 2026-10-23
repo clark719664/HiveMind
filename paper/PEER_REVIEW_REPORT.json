@@ -5,7 +5,7 @@
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-23T12:53:10Z",
+  "timestamp_utc": "2026-10-23T13:21:44Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -877,7 +877,7 @@
   "latex_typography_and_figures_audit": {
     "figures_verified": 4,
     "missing_figures": [],
-    "bibliography_entries": 31,
+    "bibliography_entries": 37,
     "uncited_bibitems": [],
     "undefined_citations": [],
     "formal_theorem_blocks": 3,
@@ -942,7 +942,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Verified 4/4 vector PDF/PNG figure pairs and 31/31 cited bibliography entries (0 uncited, 0 undefined).",
+        "Verified 4/4 vector PDF/PNG figure pairs and 37/37 cited bibliography entries (0 uncited, 0 undefined).",
         "Eliminated Overfull \\hbox (80.7pt) and fancyhdr headheight warnings via \\path{} line breaking and 21pt header height (0 Overfull \\hbox > 5pt)."
       ]
     }
@@ -957,7 +957,7 @@
     "architecture_receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
     "experiments_v3_receipt_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
     "champion_miner": "CyberValkyrie_FR",
-    "champion_points": 57291
+    "champion_points": 60711
   },
   "referee_reviews": [
     {

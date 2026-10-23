@@ -117,3 +117,59 @@ def test_skip_token_flops_rejects_inconsistent_inputs() -> None:
         skip_token_flops_per_token(1.0, [1.0], [1.0], 2, [3], [2])
     with pytest.raises(ValueError):
         skip_token_flops_per_token(1.0, [1.0], [1.0], 2, [1], [2], empirical_ghost_fraction_per_layer=[1.5])
+
+
+def test_sparse_moe_mlp_block_sigma_moe_routing_and_measured_ghost_fraction() -> None:
+    """HM-S9-02: Verify SparseMoEMLPBlock and UpcycledSparseMoEModel support sigma_moe routing and feed skip_token_flops_per_token."""
+    from hivemind.core.btm_upcycle import SparseMoEMLPBlock, UpcycledSparseMoEModel, UpcycledSwiGLUExpert
+    import torch.nn as nn
+
+    g = torch.Generator().manual_seed(42)
+
+    def _build_block() -> SparseMoEMLPBlock:
+        experts = [
+            UpcycledSwiGLUExpert(
+                hidden_size=8,
+                intermediate_size=16,
+                gate_weight=torch.randn(16, 8, generator=g),
+                up_weight=torch.randn(16, 8, generator=g),
+                down_weight=torch.randn(8, 16, generator=g),
+            )
+            for _ in range(4)
+        ]
+        return SparseMoEMLPBlock(
+            hidden_size=8,
+            experts=experts,
+            expert_domains=["A", "B", "C", "D"],
+            top_k=2,
+            routing_mode="sigma_moe",
+        )
+
+    backbone = nn.Sequential(_build_block(), _build_block())
+    moe = UpcycledSparseMoEModel(upcycled_backbone=backbone, expert_domains=["A", "B", "C", "D"], top_k=2)
+    moe.set_routing_mode("sigma_moe")
+    moe.set_local_expert_subset([0, 1])
+
+    x = torch.randn(2, 6, 8, generator=g)
+    out = backbone(x)
+    assert out.shape == (2, 6, 8)
+
+    measured_ghosts = moe.measured_ghost_fraction_per_layer()
+    assert len(measured_ghosts) == 2
+    for g_frac, blk in zip(measured_ghosts, moe.get_moe_blocks()):
+        assert 0.0 <= g_frac <= 1.0
+        assert blk.total_routed_assignments == 2 * 6 * 2
+        assert g_frac == pytest.approx(blk.ghost_skipped_assignments / blk.total_routed_assignments)
+
+    flops = skip_token_flops_per_token(
+        dense_flops=500.0,
+        ffn_flops_per_layer=[400.0, 400.0],
+        gate_flops_per_layer=[8.0, 8.0],
+        top_k=2,
+        local_experts_per_layer=[2, 2],
+        total_experts_per_layer=[4, 4],
+        empirical_ghost_fraction_per_layer=measured_ghosts,
+    )
+    assert flops["scaling_source"] == "empirical_ghost_fraction"
+    assert flops["per_layer"][0]["applied_skip_token_scaling"] == pytest.approx(1.0 - measured_ghosts[0])
+

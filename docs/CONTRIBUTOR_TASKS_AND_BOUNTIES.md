@@ -78,7 +78,7 @@
 
 ## 🔬 2.5 Open Season 9 (`Wave 8` — "Operation Decoupled-Quorum") Tasks for Human Developers & AI Agents (`HM-S9-01`..`HM-S9-09`)
 
-Coordinated **every 1 hour (`0 * * * *`)** by [`community_orchestrator.py`](../src/hivemind/cli/community_orchestrator.py). Claim any task below in [GitHub Discussions](https://github.com/xaviercallens/HiveMind/discussions) by mentioning its Task ID (`HM-S9-01`..`HM-S9-09`):
+Coordinated **every 1 hour (`0 * * * *`)** by [`community_orchestrator.py`](../src/hivemind/cli/community_orchestrator.py). Each task serves a research question in [`RESEARCH_PROGRAM.md`](RESEARCH_PROGRAM.md) and is finished when its experiment artifact exists (see the task ↔ research-direction map in [`ROADMAP.md`](../ROADMAP.md) §3.7, incl. the new `HM-S9-10` E6 replica scaling, `HM-S9-11` E9 adaptive Byzantine, `HM-S9-12` scaling-law prior); the Definition of Done is in [`ENGINEERING_COORDINATION_BRIEF.md`](ENGINEERING_COORDINATION_BRIEF.md). Claim any task below in [GitHub Discussions](https://github.com/xaviercallens/HiveMind/discussions) by mentioning its Task ID (`HM-S9-01`..`HM-S9-09`):
 
 | Task ID | Branch Prefix | Target Module | Season 9 (`Wave 8`) Human & AI Agent Task Description | Reciprocal Compute Points (No Money) |
 | :--- | :--- | :--- | :--- | :---: |

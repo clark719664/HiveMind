@@ -593,12 +593,16 @@ class SparseMoEMLPBlock(nn.Module):
         top_k: int = 2,
         dtype: torch.dtype = torch.float32,
         shared_base_ffn: tuple[nn.Linear, nn.Linear, nn.Linear] | None = None,
+        routing_mode: str = "softmax",
     ) -> None:
         super().__init__()
+        if routing_mode not in ("softmax", "sigma_moe"):
+            raise ValueError(f"routing_mode must be 'softmax' or 'sigma_moe', got {routing_mode!r}")
         self.hidden_size = hidden_size
         self.num_experts = len(experts)
         self.top_k = min(top_k, self.num_experts)
         self.expert_domains = list(expert_domains)
+        self.routing_mode = routing_mode
         if shared_base_ffn is not None:
             self.shared_gate_proj = shared_base_ffn[0]
             self.shared_up_proj = shared_base_ffn[1]
@@ -612,9 +616,11 @@ class SparseMoEMLPBlock(nn.Module):
         self.experts = nn.ModuleList(experts)
         self.last_aux_loss: torch.Tensor = torch.tensor(0.0)
         self.register_buffer("expert_token_counts", torch.zeros(self.num_experts, dtype=torch.long))
-        # Season 8 (`HM-S8-06`): FoMoE partial-replica routing state.
+        # Season 8/9 (`HM-S8-06` & `HM-S9-02`): FoMoE partial-replica & sigma-MoE routing state.
         self.local_expert_indices: tuple[int, ...] | None = None
         self.ghost_skipped_assignments: int = 0
+        self.total_routed_assignments: int = 0
+        self.last_ghost_assignment_fraction: float = 0.0
 
     def set_local_expert_subset(self, local_expert_indices: Sequence[int] | None) -> None:
         """Restrict this worker to `M < E` resident experts (`HM-S8-06`).
@@ -641,20 +647,51 @@ class SparseMoEMLPBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         orig_shape = x.shape
         flat_x = x.reshape(-1, self.hidden_size)
-        routing_weights, selected_experts, aux_loss = self.router(flat_x)
-        self.last_aux_loss = aux_loss
+        num_slots = int(flat_x.shape[0] * self.top_k)
+        self.total_routed_assignments += num_slots
 
-        if self.local_expert_indices is None:
-            resident_indices: Sequence[int] = range(self.num_experts)
-        else:
-            resident_indices = self.local_expert_indices
-            resident_tensor = torch.tensor(
-                self.local_expert_indices,
-                dtype=selected_experts.dtype,
-                device=selected_experts.device,
+        if self.routing_mode == "sigma_moe":
+            from hivemind.core.fomoe_sigma_routing import sigmoid_independent_topk_routing
+
+            router_logits = self.router.wg(flat_x.to(torch.float32))
+            if self.local_expert_indices is None:
+                resident_mask = None
+                resident_indices: Sequence[int] = range(self.num_experts)
+            else:
+                resident_indices = self.local_expert_indices
+                resident_mask = torch.zeros(self.num_experts, dtype=torch.bool, device=router_logits.device)
+                resident_mask[list(self.local_expert_indices)] = True
+            sigma_res = sigmoid_independent_topk_routing(
+                router_logits=router_logits,
+                top_k=self.top_k,
+                resident_mask=resident_mask,
             )
-            ghost_mask = ~torch.isin(selected_experts, resident_tensor)
-            self.ghost_skipped_assignments += int(ghost_mask.sum().item())
+            routing_weights = sigma_res.gate_values
+            selected_experts = sigma_res.expert_indices
+            self.last_aux_loss = torch.tensor(0.0, device=x.device)
+            skipped_here = int(sigma_res.skipped_slots.sum().item())
+            self.ghost_skipped_assignments += skipped_here
+            self.last_ghost_assignment_fraction = sigma_res.ghost_assignment_fraction
+        else:
+            routing_weights, selected_experts, aux_loss = self.router(flat_x)
+            self.last_aux_loss = aux_loss
+
+            if self.local_expert_indices is None:
+                resident_indices = range(self.num_experts)
+                self.last_ghost_assignment_fraction = 0.0
+            else:
+                resident_indices = self.local_expert_indices
+                resident_tensor = torch.tensor(
+                    self.local_expert_indices,
+                    dtype=selected_experts.dtype,
+                    device=selected_experts.device,
+                )
+                ghost_mask = ~torch.isin(selected_experts, resident_tensor)
+                skipped_here = int(ghost_mask.sum().item())
+                self.ghost_skipped_assignments += skipped_here
+                self.last_ghost_assignment_fraction = (
+                    float(skipped_here) / float(num_slots) if num_slots > 0 else 0.0
+                )
 
         final_hidden = torch.zeros_like(flat_x)
         with torch.no_grad():
@@ -716,6 +753,17 @@ class UpcycledSparseMoEModel(nn.Module):
         )
         for blk in self.get_moe_blocks():
             blk.set_local_expert_subset(self.local_expert_indices)
+
+    def set_routing_mode(self, routing_mode: str) -> None:
+        """Switch all MoE blocks between `'softmax'` and FoMoE `'sigma_moe'` routing (`HM-S9-02`)."""
+        if routing_mode not in ("softmax", "sigma_moe"):
+            raise ValueError(f"routing_mode must be 'softmax' or 'sigma_moe', got {routing_mode!r}")
+        for blk in self.get_moe_blocks():
+            blk.routing_mode = routing_mode
+
+    def measured_ghost_fraction_per_layer(self) -> list[float]:
+        """Return the empirical ghost-assignment fraction observed on each MoE block (`HM-S9-02`)."""
+        return [float(blk.last_ghost_assignment_fraction) for blk in self.get_moe_blocks()]
 
     @property
     def ghost_skipped_assignments(self) -> int:

@@ -578,11 +578,17 @@ def udp_hole_punch(
         now = time.monotonic()
         if winner is None and now >= next_probe:
             for candidate in candidates:
-                sock.sendto(syn, candidate)
-                probes += 1
+                try:
+                    sock.sendto(syn, candidate)
+                    probes += 1
+                except OSError:
+                    continue
             next_probe = now + interval
         wake = min(next_probe, deadline) if winner is None else deadline
-        ready, _, _ = select.select([sock], [], [], max(0.0, wake - time.monotonic()))
+        try:
+            ready, _, _ = select.select([sock], [], [], max(0.0, wake - time.monotonic()))
+        except (OSError, ValueError):
+            break
         if not ready:
             continue
         try:
@@ -590,7 +596,10 @@ def udp_hole_punch(
         except OSError:
             continue
         if data == syn:
-            sock.sendto(ack, addr)
+            try:
+                sock.sendto(ack, addr)
+            except OSError:
+                continue
         elif data == ack and winner is None:
             winner = addr
             rtt_ms = (time.perf_counter() - t0) * 1000.0

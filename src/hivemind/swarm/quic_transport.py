@@ -884,8 +884,10 @@ class AsyncQUICGeoRingTransport(RegionalGeoRingTransport):
             target=lambda: result_b.append(udp_hole_punch(sock_b, candidates_a, session, timeout))
         )
         worker.start()
-        result_a = udp_hole_punch(sock_a, candidates_b, session, timeout)
-        worker.join()
+        try:
+            result_a = udp_hole_punch(sock_a, candidates_b, session, timeout)
+        finally:
+            worker.join()
         return result_a, result_b[0]
 
     def _open_peer_socket(

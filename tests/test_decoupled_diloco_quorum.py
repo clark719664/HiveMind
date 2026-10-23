@@ -300,3 +300,45 @@ def test_syncer_rejects_bad_configuration_and_zero_step_learners() -> None:
         syncer.merge_fragment("w", gp, {}, [LearnerArrival("a", 0.0, 1, 1)])
     with pytest.raises(ValueError):
         syncer.merge_fragment("w", gp, {"a": torch.ones(5)}, [LearnerArrival("a", 0.0, 1, 1)])
+
+
+def test_diloco_outer_optimizer_with_decoupled_quorum_rda() -> None:
+    """HM-S9-01: Verify DiLoCoOuterOptimizer.step integrates DecoupledDiLoCoQuorumSyncer end-to-end."""
+    from hivemind.core.diloco_outer import DiLoCoOuterOptimizer
+
+    theta_prev = {"w": torch.zeros(16)}
+    e = torch.eye(16)
+    opt = DiLoCoOuterOptimizer(outer_lr_eta=0.5, outer_momentum_mu=0.0, max_byzantine_f=0, cosine_sigma=10.0)
+    # 3 fast learners with orthogonal updates of norm 2.0, plus 1 late straggler with norm 2.0 on index 3
+    worker_deltas = {
+        "fast0": {"w": e[0] * 2.0},
+        "fast1": {"w": e[1] * 2.0},
+        "fast2": {"w": e[2] * 2.0},
+        "slow0": {"w": e[3] * 2.0},
+    }
+    arrivals = [
+        LearnerArrival("fast0", 0.0, steps_since_sync=50, tokens_since_sync=5000),
+        LearnerArrival("fast1", 0.2, steps_since_sync=50, tokens_since_sync=5000),
+        LearnerArrival("fast2", 0.4, steps_since_sync=50, tokens_since_sync=5000),
+        LearnerArrival("slow0", 25.0, steps_since_sync=50, tokens_since_sync=5000),
+    ]
+    res = opt.step(
+        branch_name="Code",
+        outer_step=1,
+        theta_prev=theta_prev,
+        worker_deltas=worker_deltas,
+        learner_arrivals=arrivals,
+        min_quorum_k=2,
+        grace_window_s=1.0,
+        quorum_merge_mode="rda",
+    )
+    assert "w" in res.quorum_telemetry
+    tel = res.quorum_telemetry["w"]
+    assert tel.num_admitted == 3
+    assert tel.num_deferred == 1
+    assert tel.merged_delta_norm == pytest.approx(2.0, rel=1e-5)
+    # With outer_lr=0.5 and momentum=0.0, theta_updated = theta_prev - 0.5 * delta -> norm = 1.0
+    assert float(res.theta_updated["w"].norm()) == pytest.approx(1.0, rel=1e-5)
+    # Straggler slow0 (coordinate 3) was deferred outside the grace window
+    assert float(res.theta_updated["w"][3]) == 0.0
+

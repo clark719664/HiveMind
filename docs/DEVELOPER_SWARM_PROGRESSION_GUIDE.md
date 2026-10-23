@@ -1,4 +1,4 @@
-# 🐝 Project HiveMind — Developer Swarm Progression & Parallel Track Blueprint (`Season 7 & Season 8`)
+# 🐝 Project HiveMind — Developer Swarm Progression, Claude Brain $\leftrightarrow$ Antigravity Arm Protocol & Season 9 Parallel Tracks (`v2.0.0` / Paper `v3.2.0`)
 
 > [!IMPORTANT]
 > **⚖️ Binding Non-Monetary Compute-Reciprocity Charter (`0.00 EUR / 0.00 USD`):**
@@ -9,22 +9,47 @@
 
 ---
 
-## 📊 1. Current Swarm State & Recent Milestones (`v1.9.1`)
+## 🧠🦾 0. Division of Roles: Claude Code (Scientific Brain) $\leftrightarrow$ Antigravity (Engineering Arm & Swarm Coordinator)
 
-- **Total Verified Merged PRs**: **`53 / 53` (`100%` merge rate, `0` open PR backlog)**
-  - Recent autonomous & human-agent merges:
-    - `PR #92` (`@clark719664`): `feat(moe): looped Prelude -> RecurrentCore x T -> Coda backbone (HM-S7-01)` ([`src/hivemind/core/btm_upcycle.py`](../src/hivemind/core/btm_upcycle.py), `17 passed`)
-    - `PR #91` (`@clark719664`): `feat(hud): live worker EF21 residual telemetry on /api/strategy (HM-S7-05)`
-    - `PR #90` (`@clark719664`): `feat(opoi): auto-indemnify poisoned rounds from slashing pool (HM-S7-06)`
-    - `PR #89` (`@clark719664`): `fix(strategy): reject non-finite / negative RTT and clamp EF21 decay`
-    - `PR #88` (`@clark719664`): `fix(ci): make main green again`
-- **Formal Verification Gate**: **`90` Machine-Checked Lean 4 Theorems (`0 sorry`, `0` user axioms, `0` compiler warnings)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean) (`Seasons 1–10`).
-- **Integrated Next-Gen Outer-Loop `DiLoCo` Core (`SI-06`..`SI-11`)**:
-  - Core primitives are live in [`src/hivemind/swarm/diloco_nextgen.py`](../src/hivemind/swarm/diloco_nextgen.py) (`10 passed` in [`tests/test_diloco_nextgen.py`](../tests/test_diloco_nextgen.py)), backed by **8 cloned reference repositories** in `sub_projects/hivemind/reference_repos/` and formal citations in [`CITATION.cff`](../CITATION.cff) & [`docs/ACKNOWLEDGMENTS_AND_CITATIONS.md`](ACKNOWLEDGMENTS_AND_CITATIONS.md).
+To scale Project HiveMind cleanly as community attention and contributor velocity grow, development is governed by a strict two-role architecture coordinating with the open-source human & AI contributor swarm:
+
+| Role | Lead Agent / Maintainer | Primary Responsibilities & Authority |
+| :--- | :--- | :--- |
+| **🧠 Scientific & Research Direction (Brain)** | **Claude Code** ([`docs/MOE_DILOCO_REVIEW_2026-10-23.md`](MOE_DILOCO_REVIEW_2026-10-23.md)) | Audits mathematical formulations, verifies every arXiv / GitHub citation against primary sources, designs new algorithmic primitives (`SI-12` [`decoupled_diloco.py`](../src/hivemind/swarm/decoupled_diloco.py), [`fomoe_sigma_routing.py`](../src/hivemind/core/fomoe_sigma_routing.py), Check `H11`), defines the Season 9+ research roadmap (`HM-S9-01`..`HM-S9-09`), and enforces strict epistemic hygiene (separating Category I Lean 4 lemmas, Category II single-GPU/controlled experiments, and Category III multi-host WAN targets; forbidding scripted synthetic referee scores). |
+| **🦾 Engineering Arm & Swarm Orchestrator** | **Antigravity** ([`community_orchestrator.py`](../src/hivemind/cli/community_orchestrator.py)) | Executes the **1-Hour (`0 * * * *`) Autonomous Orchestration Loop**, wires scientific primitives into the training, MoE, and CLI pipelines, fixes test/CI/transport regressions, audits incoming Pull Requests with the 5-Layer `PRSecurityScanner`, merges verified no-harm PRs, and coordinates conflict-free parallel tracks across external human and AI contributors (`@clark719664`, `@radialmonster`, `@lyrasol99-dev`, `@pedromineo`). |
 
 ---
 
-## 🧭 2. Conflict-Free Parallel Progression Tracks (`Tracks 1–6`)
+## 📊 1. Current Swarm State & Delivered Milestones (`v2.0.0` / Paper `v3.2.0`)
+
+- **Total Verified Merged PRs**: **`63 / 63` (`100%` merge rate across Waves 1–7, `0` open PR backlog)**
+  - **Wave 7 (`Season 8 — Operation Iso-Sparse-FoMoE`) `100%` Merged (`PR #99`–`#108`)**:
+    - `PR #99`–`#103` (`@clark719664`), `PR #104`–`#105` (`@radialmonster`), `PR #106`–`#108` (`@lyrasol99-dev`): Delivered `HM-S8-01`..`HM-S8-10` (`PA-CGAD`, `CPUOffloadedFlatBucketOuterState`, `IsoLoCo`/`TSVLoCo`, `FoMoE` Partial Replicas, `DeMo` 2D DCT + 2-Bit `SparseLoCo`, `MuLoCo` 5-Step Newton-Schulz Inner Preconditioner, `/api/diloco-nextgen` HUD, and Lean 4 `Theorems 91–100`).
+  - **Season 9 Foundation (`SI-12` Decoupled DiLoCo + FoMoE $\sigma$-MoE Routing + Check `H11`)**:
+    - Delivered in [`src/hivemind/swarm/decoupled_diloco.py`](../src/hivemind/swarm/decoupled_diloco.py), [`src/hivemind/core/fomoe_sigma_routing.py`](../src/hivemind/core/fomoe_sigma_routing.py), and [`scripts/verify_decoupled_diloco_quorum.py`](../scripts/verify_decoupled_diloco_quorum.py).
+- **Formal Verification Gate**: **`120` Machine-Checked Lean 4 Theorems (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean) (`Seasons 1–14`).
+
+---
+
+## 🛰️ 2. Season 9 (`Wave 8 — Operation Decoupled-Quorum`) Conflict-Free Parallel Engineering Tracks (`HM-S9-01`..`HM-S9-09`)
+
+Following Claude Code's scientific review ([`docs/MOE_DILOCO_REVIEW_2026-10-23.md`](MOE_DILOCO_REVIEW_2026-10-23.md)), Season 9 is partitioned into **9 conflict-free engineering tracks** coordinated every 1 hour (`0 * * * *`):
+
+| Track / Task ID | Recommended Branch | Primary Target Files (Conflict-Free Partition) | Verification Command | Symbolic Compute Credits (`0.00 EUR/USD`) |
+| :--- | :--- | :--- | :--- | :---: |
+| **`HM-S9-01`** | `feat/s9-decoupled-syncer-campaign-wiring` | `src/hivemind/cli/multi_moe_hf_campaign.py`, `src/hivemind/core/diloco_outer.py`, `tests/test_decoupled_diloco_quorum.py` | `pytest tests/test_decoupled_diloco_quorum.py -v` | `3,500 PTS / $HIVE` |
+| **`HM-S9-02`** | `feat/s9-sigma-moe-peri-ln-block` | `src/hivemind/core/fomoe_sigma_routing.py`, `src/hivemind/core/btm_moe.py`, `tests/test_fomoe_sigma_routing.py` | `pytest tests/test_fomoe_sigma_routing.py -v` | `3,500 PTS / $HIVE` |
+| **`HM-S9-03`** | `feat/s9-looped-learned-depth-prior-orthoinj` | `src/hivemind/core/btm_upcycle.py` (`LoopedExpertBackbone`), `tests/test_looped_expert_backbone.py` | `pytest tests/test_looped_expert_backbone.py -v` | `3,500 PTS / $HIVE` |
+| **`HM-S9-04`** | `feat/s9-factored-gossip-mix1-mix2` | `src/hivemind/swarm/diloco_nextgen.py`, `tests/test_diloco_nextgen.py` | `pytest tests/test_diloco_nextgen.py -v` | `3,000 PTS / $HIVE` |
+| **`HM-S9-05`** | `feat/s9-outer-momentum-restart` | `src/hivemind/core/diloco_outer.py` (`K_restart`), `tests/test_diloco_outer_nextgen.py` | `pytest tests/test_diloco_outer_nextgen.py -v` | `2,500 PTS / $HIVE` |
+| **`HM-S9-06`** | `feat/s9-darl-data-leasing` | `src/hivemind/swarm/dht_storage.py`, `tests/test_seti_swarm_v2.py` | `pytest tests/test_seti_swarm_v2.py -v` | `3,000 PTS / $HIVE` |
+| **`HM-S9-07`** | `feat/s9-multi-host-wan-gameday-real` | `src/hivemind/swarm/wan_fault_benchmark.py`, `tests/test_wan_quic_turn_fault_benchmark.py` | `pytest tests/test_wan_quic_turn_fault_benchmark.py -v` | `3,500 PTS / $HIVE` |
+| **`HM-S9-08`** | `formal/s9-rda-norm-and-quorum-liveness` | `lean4/HiveMindSpec.lean` (`Theorems 121–128`) | `cd lean4 && lake build` | `3,000 PTS / $HIVE` |
+| **`HM-S9-09`** | `governance/s9-real-external-review` | `paper/autoevolve_peer_review_pipeline.py` | `python paper/autoevolve_peer_review_pipeline.py` | `2,000 PTS / $HIVE` |
+
+---
+
+## 📜 3. Archived Season 7 & Season 8 Track Specifications (`Waves 6–7 — 100% Delivered`)
 
 To enable multiple human developers and autonomous AI coding agents (`@clark719664`, `@pedromineo`, `@radialmonster`, and new contributors) to submit parallel Pull Requests **without merge conflicts**, the remaining **Season 7 (`Wave 6`)** and **Season 8 (`Wave 7 — "Operation Iso-Sparse-FoMoE"`)** objectives are partitioned into **6 isolated tracks** with disjoint primary file targets:
 
