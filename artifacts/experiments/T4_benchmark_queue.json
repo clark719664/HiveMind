@@ -79,6 +79,13 @@
    "output": "artifacts/experiments/E10b_lattice_05b_report.json"
   },
   {
+   "name": "E12_replay_retry",
+   "argv": [
+    "scripts/run_experiment_E12_replay_divergence.py"
+   ],
+   "output": "artifacts/experiments/E12_replay_divergence_report.json"
+  },
+  {
    "name": "E11b_qwen0.5b_fineweb-edu_w1024",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",

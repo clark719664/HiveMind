@@ -204,12 +204,40 @@
     "  \"receipt\": \"d47e0956eef3a8314e1a0ab3c64c5d8679ca8a7d28f0af9f088920d19b20ac51\"",
     "}"
    ]
+  },
+  {
+   "name": "E12_replay",
+   "argv": [
+    "scripts/run_experiment_E12_replay_divergence.py"
+   ],
+   "start_unix": 1792793395.401688,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 20.1,
+   "log_tail": [
+    "Loading weights:  84%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258d | 243/290 [00:08<00:01, 44.28it/s]",
+    "Loading weights:  87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 252/290 [00:08<00:00, 46.25it/s]",
+    "Loading weights:  89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 259/290 [00:08<00:00, 43.81it/s]",
+    "Loading weights:  92%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f| 266/290 [00:08<00:00, 46.06it/s]",
+    "Loading weights:  94%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258d| 272/290 [00:08<00:00, 37.23it/s]",
+    "Loading weights:  96%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c| 279/290 [00:09<00:00, 38.35it/s]",
+    "Loading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 290/290 [00:09<00:00, 31.78it/s]",
+    "Traceback (most recent call last):",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E12_replay_divergence.py\", line 236, in <module>",
+    "    raise SystemExit(main())",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E12_replay_divergence.py\", line 186, in main",
+    "    t4_a, w_a = run_trajectories(\"cuda\", \"float32\", False, False)",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E12_replay_divergence.py\", line 121, in run_trajectories",
+    "    handle = torch.optim.optimizer.register_optimizer_step_post_hook(post_hook)",
+    "AttributeError: module 'torch.optim' has no attribute 'optimizer'. Did you mean: 'Optimizer'?"
+   ]
   }
  ],
- "gpu_samples": 159,
- "gpu_util_mean_pct": 84.2,
+ "gpu_samples": 160,
+ "gpu_util_mean_pct": 83.6,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
+  "E12_replay": 0.0,
   "E11_qwen0.5b_retry": 72.9,
   "E11_gemma4-e4b_retry": 97.7,
   "E11_qwen0.5b": 26.0,

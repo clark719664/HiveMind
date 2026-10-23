@@ -118,7 +118,9 @@ def run_trajectories(device: str, dtype_name: str, snap: bool, tamper: bool) -> 
                 if counter["step"] % SNAP_EVERY == 0:
                     snaps[counter["step"]] = {n: p.detach().to("cpu", torch.float64).clone() for n, p in lora_params}
 
-            handle = torch.optim.optimizer.register_optimizer_step_post_hook(post_hook)
+            from torch.optim.optimizer import register_optimizer_step_post_hook
+
+            handle = register_optimizer_step_post_hook(post_hook)
             try:
                 with warnings.catch_warnings(record=True) as w:
                     warnings.simplefilter("always")
