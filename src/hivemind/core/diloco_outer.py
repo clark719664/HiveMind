@@ -16,6 +16,7 @@ Implements:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import Sequence
 
 import torch
@@ -212,18 +213,32 @@ class DiLoCoOuterOptimizer:
         dp_config: DPGradientSanitizerConfig | None = None,
         outer_optimizer_mode: str = "nesterov",
         use_cpu_flat_bucket: bool = False,
-        cgad_lr: float = 1e-3,
+        cgad_lr: float | None = None,
         cgad_alpha: float = 0.2,
         cgad_tau_cut: float = 32.0,
-        cgad_betas: tuple[float, float] = (0.9, 0.99),
+        cgad_betas: tuple[float, float] | None = None,
         cgad_eps: float = 1e-8,
-        cgad_weight_decay: float = 0.01,
+        cgad_weight_decay: float | None = None,
+        beta1: float = 0.9,
+        beta2: float = 0.99,
+        weight_decay: float = 0.01,
     ) -> None:
         if outer_optimizer_mode not in self._VALID_OUTER_MODES:
             raise ValueError(
                 f"outer_optimizer_mode must be one of {sorted(self._VALID_OUTER_MODES)}, "
                 f"got {outer_optimizer_mode!r}"
             )
+        eff_betas = cgad_betas if cgad_betas is not None else (beta1, beta2)
+        if not (0.0 <= eff_betas[0] < 1.0 and 0.0 <= eff_betas[1] < 1.0):
+            raise ValueError("beta1 and beta2 must be in [0, 1)")
+        eff_wd = cgad_weight_decay if cgad_weight_decay is not None else weight_decay
+        if not math.isfinite(eff_wd) or eff_wd < 0.0:
+            raise ValueError("weight_decay must be finite and non-negative")
+        eff_cgad_lr = cgad_lr if cgad_lr is not None else outer_lr_eta
+        if (outer_optimizer_mode != "nesterov" or use_cpu_flat_bucket) and (
+            not math.isfinite(outer_lr_eta) or outer_lr_eta <= 0.0
+        ):
+            raise ValueError("outer_lr_eta must be finite and positive")
         self.outer_lr_eta = outer_lr_eta
         self.outer_momentum_mu = outer_momentum_mu
         self.max_byzantine_f = max_byzantine_f
@@ -231,12 +246,14 @@ class DiLoCoOuterOptimizer:
         self.dp_config = dp_config
         self.outer_optimizer_mode = outer_optimizer_mode
         self.use_cpu_flat_bucket = bool(use_cpu_flat_bucket)
-        self.cgad_lr = cgad_lr
+        self.cgad_lr = float(eff_cgad_lr)
         self.cgad_alpha = cgad_alpha
         self.cgad_tau_cut = cgad_tau_cut
-        self.cgad_betas = (float(cgad_betas[0]), float(cgad_betas[1]))
+        self.cgad_betas = (float(eff_betas[0]), float(eff_betas[1]))
         self.cgad_eps = cgad_eps
-        self.cgad_weight_decay = cgad_weight_decay
+        self.cgad_weight_decay = float(eff_wd)
+        self.beta1, self.beta2 = self.cgad_betas
+        self.weight_decay = self.cgad_weight_decay
         self.fl_guard = FederatedLearningSecurityGuard()
         # Velocity buffers per expert branch: branch_name -> {param_name: tensor}
         self.velocities: dict[str, dict[str, torch.Tensor]] = {}
@@ -244,6 +261,7 @@ class DiLoCoOuterOptimizer:
         self.cgad_optimizers: dict[str, CosineGatedAdamDecayOuterOptimizer] = {}
         # Optional contiguous CPU flat-bucket mirror per expert branch.
         self.cpu_buckets: dict[str, CPUOffloadedFlatBucketOuterState] = {}
+        self.cpu_flat_buckets = self.cpu_buckets
 
     def _get_cpu_bucket(
         self, branch_name: str, theta_prev: dict[str, torch.Tensor]
@@ -299,6 +317,21 @@ class DiLoCoOuterOptimizer:
             dp_config=self.dp_config,
         )
 
+        if self.outer_optimizer_mode != "nesterov" or self.use_cpu_flat_bucket:
+            if set(aggregated_deltas) != set(theta_prev) or any(
+                aggregated_deltas[k].shape != param.shape for k, param in theta_prev.items()
+            ):
+                raise ValueError("aggregated deltas must match all branch parameter keys and shapes")
+            existing_bucket = self.cpu_buckets.get(branch_name)
+            if existing_bucket is not None and (
+                set(theta_prev) != set(existing_bucket.keys)
+                or any(theta_prev[k].shape != existing_bucket.shapes[k] for k in existing_bucket.keys)
+            ):
+                raise ValueError("branch parameters must match the existing flat bucket")
+            if branch_name not in self.velocities:
+                self.cgad_optimizers.pop(branch_name, None)
+                self.cpu_buckets.pop(branch_name, None)
+
         sq_norm_sum = 0.0
         for avg_delta in aggregated_deltas.values():
             sq_norm_sum += float((avg_delta.detach().to(torch.float32) ** 2).sum().item())
@@ -309,13 +342,19 @@ class DiLoCoOuterOptimizer:
         velocity_updated: dict[str, torch.Tensor] = {}
 
         if self.outer_optimizer_mode == "cosine_gated_adam_decay":
+            params_cpu = {
+                k: v.detach().to(device="cpu", dtype=torch.float32)
+                for k, v in theta_prev.items()
+            }
             cgad = self._get_cgad_optimizer(branch_name)
             theta_updated, cgad_telemetry = cgad.step_fragments(
-                params=theta_prev,
+                params=params_cpu,
                 pseudo_gradients=aggregated_deltas,
                 worker_delays=worker_delays,
                 synced_fragments=synced_fragments,
             )
+            velocity_updated = {k: v.clone() for k, v in cgad.m_buffers.items()}
+            self.velocities[branch_name] = velocity_updated
             if cgad_telemetry:
                 mean_cosine_gate = round(
                     sum(t.cosine_gate_gamma for t in cgad_telemetry) / len(cgad_telemetry),
@@ -323,15 +362,19 @@ class DiLoCoOuterOptimizer:
                 )
             if self.use_cpu_flat_bucket:
                 theta_updated = self._get_cpu_bucket(
-                    branch_name, theta_prev
+                    branch_name, params_cpu
                 ).apply_outer_update_and_sync_inner(theta_updated)
         elif self.use_cpu_flat_bucket:
-            bucket = self._get_cpu_bucket(branch_name, theta_prev)
+            params_cpu = {
+                k: v.detach().to(device="cpu", dtype=torch.float32)
+                for k, v in theta_prev.items()
+            }
+            bucket = self._get_cpu_bucket(branch_name, params_cpu)
             theta_updated, velocity_updated = bucket.outer_nesterov_step(
                 pseudo_gradients=aggregated_deltas,
                 lr=self.outer_lr_eta,
                 momentum=self.outer_momentum_mu,
-                theta_prev=theta_prev,
+                theta_prev=params_cpu,
             )
             self.velocities[branch_name] = velocity_updated
         else:

@@ -175,6 +175,8 @@ class CosineGatedAdamDecayOuterOptimizer:
         b1, b2 = float(betas[0]), float(betas[1])
         if not (0.0 <= b1 < 1.0 and 0.0 <= b2 < 1.0):
             raise ValueError("betas must be in [0, 1)")
+        if not math.isfinite(weight_decay) or weight_decay < 0.0:
+            raise ValueError("weight_decay must be finite and non-negative")
         self.lr = float(lr)
         self.alpha = float(alpha)
         self.tau_cut = float(tau_cut)
@@ -858,13 +860,10 @@ class CPUOffloadedFlatBucketOuterState:
             total_numel += n
 
         self.flat_master_cpu = torch.empty(total_numel, dtype=torch.float32, device="cpu")
+        self.flat_velocity_cpu: Optional[torch.Tensor] = torch.zeros_like(self.flat_master_cpu)
         for k in self.keys:
             lo, hi = self.offsets[k]
             self.flat_master_cpu[lo:hi].copy_(params[k].detach().to(torch.float32).cpu().reshape(-1))
-
-        # Lazily allocated on the first outer step so callers that only use the
-        # compute/commit helpers do not pay for a second flat buffer.
-        self.flat_velocity_cpu: Optional[torch.Tensor] = None
 
     @torch.no_grad()
     def outer_nesterov_step(
@@ -874,16 +873,10 @@ class CPUOffloadedFlatBucketOuterState:
         momentum: float = 0.9,
         theta_prev: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
-        """Apply one Nesterov outer step entirely inside the contiguous CPU flat buffers.
-
-        ``theta_prev`` (when supplied) refreshes the master weights before the update, so the
-        server can keep this state as a zero-GPU-VRAM mirror of its authoritative parameters.
-        Returns ``(updated_params, velocity)`` with each fragment restored to its original
-        device and dtype.
-        """
-        if lr <= 0.0:
+        """Apply one Nesterov outer step entirely inside the contiguous CPU flat buffers."""
+        if lr <= 0.0 or not math.isfinite(lr):
             raise ValueError("lr must be > 0")
-        if not (0.0 <= momentum < 1.0):
+        if not (0.0 <= momentum < 1.0) or not math.isfinite(momentum):
             raise ValueError("momentum must be in [0, 1)")
 
         if theta_prev is not None:
@@ -891,9 +884,19 @@ class CPUOffloadedFlatBucketOuterState:
             if missing:
                 raise KeyError(f"theta_prev is missing flat-bucket fragments: {sorted(missing)}")
             for k in self.keys:
-                lo, hi = self.offsets[k]
-                self.flat_master_cpu[lo:hi].copy_(
-                    theta_prev[k].detach().to(torch.float32).cpu().reshape(-1)
+                if theta_prev[k].shape != self.shapes[k]:
+                    raise ValueError(
+                        f"theta_prev for {k!r} has {theta_prev[k].numel()} elements, expected {self.offsets[k][1] - self.offsets[k][0]}"
+                    )
+
+        if set(pseudo_gradients) != set(self.keys):
+            raise ValueError("pseudo_gradients must match the flat bucket parameter keys")
+        for k in self.keys:
+            lo, hi = self.offsets[k]
+            g_t = pseudo_gradients[k]
+            if g_t.numel() != hi - lo or g_t.shape != self.shapes[k]:
+                raise ValueError(
+                    f"pseudo-gradient for {k!r} has {g_t.numel()} elements, expected {hi - lo}"
                 )
 
         if self.flat_velocity_cpu is None:
@@ -901,19 +904,20 @@ class CPUOffloadedFlatBucketOuterState:
         elif self.flat_velocity_cpu.numel() != self.flat_master_cpu.numel():
             raise RuntimeError("flat velocity buffer shape drifted from the master parameter buffer")
 
+        if theta_prev is not None:
+            for k in self.keys:
+                lo, hi = self.offsets[k]
+                self.flat_master_cpu[lo:hi].copy_(
+                    theta_prev[k].detach().to(torch.float32).cpu().reshape(-1)
+                )
+
         updated_params: Dict[str, torch.Tensor] = {}
         velocity: Dict[str, torch.Tensor] = {}
         for k in self.keys:
             lo, hi = self.offsets[k]
             grad = pseudo_gradients[k].detach().to(torch.float32).cpu().reshape(-1)
-            if grad.numel() != hi - lo:
-                raise ValueError(
-                    f"pseudo-gradient for {k!r} has {grad.numel()} elements, expected {hi - lo}"
-                )
             v = self.flat_velocity_cpu[lo:hi]
-            # v^(t) = mu * v^(t-1) + Delta^(t)
             v.mul_(momentum).add_(grad)
-            # theta^(t) = theta^(t-1) - eta * (mu * v^(t) + Delta^(t))
             nesterov_step = momentum * v + grad
             self.flat_master_cpu[lo:hi].add_(nesterov_step, alpha=-lr)
             updated_params[k] = self.flat_master_cpu[lo:hi].view(self.shapes[k]).to(
