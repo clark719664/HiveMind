@@ -1,28 +1,28 @@
 {
   "stage": "published",
-  "deposition_id": 23601925,
-  "prereserved_doi": "10.5281/zenodo.23601925",
+  "deposition_id": 23602528,
+  "prereserved_doi": "10.5281/zenodo.23602528",
   "state": "done",
-  "html": "https://zenodo.org/record/23601925",
+  "html": "https://zenodo.org/record/23602528",
   "files": [
     {
       "filename": "hivemind_foundation_article.pdf",
-      "md5": "e451dcb2a9f51e725d3659023147bcab",
+      "md5": "b634517455800e7d756521e1c8bec4ef",
       "status": "uploaded"
     },
     {
       "filename": "hivemind_foundation_article.tex",
-      "md5": "34e5ecb88b82f2d24e165b37ea9c1316",
+      "md5": "0e02bb998e3baeed39bad75cff9fdd4d",
       "status": "uploaded"
     },
     {
       "filename": "PEER_REVIEW_REPORT.json",
-      "md5": "ed0ddd18e01f0761bea5b6892ef743b9",
+      "md5": "7dcbeebf9dbc281127b832b4fbda8942",
       "status": "uploaded"
     },
     {
       "filename": "RESEARCH_PROGRAM.md",
-      "md5": "55544dcd6207b212f5da6a20d9e73dd4",
+      "md5": "522b7c14e59a3a40a52ba23ba07b0e23",
       "status": "uploaded"
     },
     {
@@ -33,7 +33,7 @@
     {
       "filename": "HiveMindSpec.lean",
       "md5": "0194bbf2ceb8d9c34ff8e7e0e97970c4",
-      "status": "uploaded"
+      "status": "already_present"
     },
     {
       "filename": "architecture_hypothesis_verification_report.json",
@@ -63,16 +63,56 @@
     {
       "filename": "E5_het_prereg.json",
       "md5": "ebda99de822594573e8329b48aec3ee3",
-      "status": "uploaded"
+      "status": "already_present"
     },
     {
       "filename": "E5_het_calibration.json",
       "md5": "0628539e3ffd18424e67a939274d4009",
-      "status": "uploaded"
+      "status": "already_present"
     },
     {
       "filename": "E5_het_report.json",
       "md5": "416502040865c58cc382b51f74d4d83f",
+      "status": "already_present"
+    },
+    {
+      "filename": "E10_lattice_prereg.json",
+      "md5": "eb712ef77a1032850552c77363a62121",
+      "status": "uploaded"
+    },
+    {
+      "filename": "E10_lattice_report.json",
+      "md5": "47060fa583ffd428b3ab35a4ee6c4688",
+      "status": "uploaded"
+    },
+    {
+      "filename": "lean_independent_runner_check.json",
+      "md5": "393f9d4ba3ac504fcdda123ff01720ab",
+      "status": "uploaded"
+    },
+    {
+      "filename": "lean_rda_multiplier_check.json",
+      "md5": "e90b1d2471c842f7d9644d8fa68f87c5",
+      "status": "uploaded"
+    },
+    {
+      "filename": "RDAMultiplier.lean",
+      "md5": "9af1a58c3b0710a46e05d657aa41d5f3",
+      "status": "uploaded"
+    },
+    {
+      "filename": "ROADMAP.md",
+      "md5": "7dff994aa2381b768e99854f8114ca21",
+      "status": "uploaded"
+    },
+    {
+      "filename": "external_review_v3.5.0_2026-10-23.md",
+      "md5": "33a3f7501a180296d7a53692f1635a90",
+      "status": "uploaded"
+    },
+    {
+      "filename": "response_to_external_review_v3.5.0.md",
+      "md5": "d8f663b3975bc149c1a6a832a3a82fe1",
       "status": "uploaded"
     },
     {
@@ -83,25 +123,25 @@
     {
       "filename": "predictions_ledger.json",
       "md5": "94b7b0cf646cbeead95926794f32a349",
-      "status": "uploaded"
+      "status": "already_present"
     },
     {
       "filename": "gwaya_stub_audit.json",
       "md5": "b407edb2f5bf20499067b9a9a64aef49",
-      "status": "uploaded"
+      "status": "already_present"
     },
     {
       "filename": "CITATION.cff",
-      "md5": "f5b156a3d0518a262c33c33c0c355154",
+      "md5": "c180d6238a3c394e233a411d97dfcc89",
       "status": "uploaded"
     }
   ],
-  "written_utc": "2026-10-23T17:56:12Z",
+  "written_utc": "2026-10-23T18:45:12Z",
   "local_sha256": {
-    "hivemind_foundation_article.pdf": "dc216d1511cf32ea16a48c5585260b69acf026b4285b2a9ea031daf02ae4d5f0",
-    "hivemind_foundation_article.tex": "f3f94b067b43dfc3338f27ee25502b4c1bc57d12f57d7b417043898a5a85865a",
-    "PEER_REVIEW_REPORT.json": "0508d4c3edde3edce91c6ac551e0935918ce7b790bdeca0949bddb5998f3c399",
-    "RESEARCH_PROGRAM.md": "049bbbcecd9c44167d6185d682d4f03a5b6b61011fdad0410a5b5f304566884a",
+    "hivemind_foundation_article.pdf": "9603697823de2ceb4c7f68618786e09a5d570fa15c0c4650789f4e46867b5203",
+    "hivemind_foundation_article.tex": "9cb7d7e959424babd61f9d6deaa47aa03d500f9fc0a49109af8c9c3bad445eb8",
+    "PEER_REVIEW_REPORT.json": "234e651a74cfc4ffbb8bfe2978616d80a310d6162c250866a6ff010b5195b100",
+    "RESEARCH_PROGRAM.md": "3f6c561207cdbdef4aa36bc79e94e37e274317c615c98674e3c490fa885e0b0c",
     "MOE_DILOCO_REVIEW_2026-10-23.md": "71e29178c486fda014d3385dd5ca70019c153a84d4f03ad14f4dd77939bd77a5",
     "HiveMindSpec.lean": "afae1dc1408c5f102d55c669a9bb24b19de6cf4c0faf63bb450169b4c735f577",
     "architecture_hypothesis_verification_report.json": "d8e98442efd8c7892c014b67e240e6dd729af1499479243477da7b98e8b92379",
@@ -112,14 +152,22 @@
     "E5_het_prereg.json": "d274e93ebd48c28a0b515393412107bc69762c0d99befbe10195dd21394691eb",
     "E5_het_calibration.json": "5a770c973a2064f5fd4ca67701d57742025d87b34822a874e0ba4303edc5ee03",
     "E5_het_report.json": "ada602a03c1d26edf4af390d64918dd0d03715731befb16a93d0f963c95753c1",
+    "E10_lattice_prereg.json": "3686099d8fbd5b89a0ad9e88ce7d51552c65e33f6fbb5ad78dcdf7e12a2140b0",
+    "E10_lattice_report.json": "f8f592230cb6f087305b9576463fb52b15917c50b9b80d80a61d99d819f94ae1",
+    "lean_independent_runner_check.json": "6274993dc5a3920db931970dcede9e865d0abe3ebca362275683a4099644b852",
+    "lean_rda_multiplier_check.json": "413c71cd5e90deddd5ef270c5e44ab51dfa4845205a3602ffce386d973686023",
+    "RDAMultiplier.lean": "e1d241cf884de0273e458f6fd8b0ab2043da0c534894c493eed328025dd9dffd",
+    "ROADMAP.md": "0cec36c46fccc0ffbed1fe9934b7081a1a49d007423c211fdb322b6d7b66e49e",
+    "external_review_v3.5.0_2026-10-23.md": "73b14a8e320174d1e638eb95525b6b2ac49121b6033c0c3234bc84fe92b3cb8d",
+    "response_to_external_review_v3.5.0.md": "a2ae2e1dc1dd7f7a67ae2b02da37579fefd5ba75784f6838e67574bf576715f8",
     "E8_pilot_report.json": "f31cb7bd0ebb4d1ca19f6df03f786791e09db7c78cc62e55fd3d4f700e472397",
     "predictions_ledger.json": "5daeb10096fe28e576a0e638d926e501b25bf34c9d6062d1ff16265f73f8bd25",
     "gwaya_stub_audit.json": "27a7a91ed8c49a227b1e627a82d493f1b26ff7f0bcc9b369d9c9397a2f46d6ce",
-    "CITATION.cff": "fb1b224194806cdff6cddd40052b27bbe0cda9fa850195d43bc603b03e4cf67b"
+    "CITATION.cff": "09ee4947455d793f9f2b3900f52de1c115b2049cd0c774bdb09ec4a4dfdcd948"
   },
-  "record_id": 23601925,
-  "doi": "10.5281/zenodo.23601925",
-  "doi_url": "https://doi.org/10.5281/zenodo.23601925",
+  "record_id": 23602528,
+  "doi": "10.5281/zenodo.23602528",
+  "doi_url": "https://doi.org/10.5281/zenodo.23602528",
   "conceptdoi": "10.5281/zenodo.23597697",
   "submitted": true,
   "remote_md5": {
@@ -129,23 +177,27 @@
     "E5_toy_prereg.json": "60aac0165ef684299971b9da89fdba98",
     "architecture_hypothesis_verification_report.json": "29b579242b6054aacd582e515ce69594",
     "paper_v3_experiments_report.json": "880d5276bf87ddfa1e62e4c713c52333",
-    "PEER_REVIEW_REPORT.json": "ed0ddd18e01f0761bea5b6892ef743b9",
     "gwaya_stub_audit.json": "b407edb2f5bf20499067b9a9a64aef49",
     "HiveMindSpec.lean": "0194bbf2ceb8d9c34ff8e7e0e97970c4",
-    "hivemind_foundation_article.pdf": "e451dcb2a9f51e725d3659023147bcab",
     "E5_het_report.json": "416502040865c58cc382b51f74d4d83f",
-    "RESEARCH_PROGRAM.md": "55544dcd6207b212f5da6a20d9e73dd4",
     "E5_het_calibration.json": "0628539e3ffd18424e67a939274d4009",
     "E8_pilot_report.json": "dc5ec843a262f2b210fafeacb7f1373d",
-    "hivemind_foundation_article.tex": "34e5ecb88b82f2d24e165b37ea9c1316",
     "E5_het_prereg.json": "ebda99de822594573e8329b48aec3ee3",
     "predictions_ledger.json": "94b7b0cf646cbeead95926794f32a349",
-    "CITATION.cff": "f5b156a3d0518a262c33c33c0c355154"
+    "external_review_v3.5.0_2026-10-23.md": "33a3f7501a180296d7a53692f1635a90",
+    "RDAMultiplier.lean": "9af1a58c3b0710a46e05d657aa41d5f3",
+    "E10_lattice_prereg.json": "eb712ef77a1032850552c77363a62121",
+    "hivemind_foundation_article.pdf": "b634517455800e7d756521e1c8bec4ef",
+    "hivemind_foundation_article.tex": "0e02bb998e3baeed39bad75cff9fdd4d",
+    "RESEARCH_PROGRAM.md": "522b7c14e59a3a40a52ba23ba07b0e23",
+    "PEER_REVIEW_REPORT.json": "7dcbeebf9dbc281127b832b4fbda8942",
+    "E10_lattice_report.json": "47060fa583ffd428b3ab35a4ee6c4688",
+    "lean_independent_runner_check.json": "393f9d4ba3ac504fcdda123ff01720ab",
+    "lean_rda_multiplier_check.json": "e90b1d2471c842f7d9644d8fa68f87c5",
+    "ROADMAP.md": "7dff994aa2381b768e99854f8114ca21",
+    "response_to_external_review_v3.5.0.md": "d8f663b3975bc149c1a6a832a3a82fe1",
+    "CITATION.cff": "c180d6238a3c394e233a411d97dfcc89"
   },
-  "checksum_mismatches": [
-    "PEER_REVIEW_REPORT.json"
-  ],
-  "verified": false,
-  "verification_note": "Published 2026-10-23 as 10.5281/zenodo.23601925 (version 3.5.0, 18 files). The publish stage reported one checksum mismatch, PEER_REVIEW_REPORT.json: the local file had been regenerated by the hourly orchestrator after the upload (differs only in timestamp_utc and an orchestrator telemetry field). The published file (md5 ed0ddd18e01f0761bea5b6892ef743b9) is byte-identical to the committed copy at the release commit f9ff8ae, so the record is verified against git, not against the regenerated working-tree file.",
-  "verified_against_commit": "f9ff8aee46b5d85b6dfe04759442f4fe40bd2aa7"
+  "checksum_mismatches": [],
+  "verified": true
 }
