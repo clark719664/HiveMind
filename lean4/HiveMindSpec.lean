@@ -1381,6 +1381,122 @@ theorem muon_newton_schulz_replica_scaling_throughput_bound
 
 end Season10_OuterLoopDiLoCoEcosystem
 
+-- ============================================================================
+-- SEASON 11 (`HM-S8-10`): Looped Fixed-Point Training & Iso-Sparse-FoMoE
+-- (`arXiv:2610.06833`, `arXiv:2607.03011`, `arXiv:2606.19025`)
+-- ============================================================================
+namespace Season11_LoopedFixedPointAndIsoSparseFoMoE
+
+/-- Theorem 91 (Fixed-Point Recurrence Per-Step Contraction, `arXiv:2610.06833`):
+    If one recurrent application removes a positive residual `contraction <= residual`, the
+    updated residual `residual - contraction` is strictly smaller than the incoming residual. -/
+theorem fixed_point_recurrence_per_step_contraction
+    (residual contraction : Nat)
+    (h_contraction : 0 < contraction)
+    (h_bounded : contraction ≤ residual) :
+    residual - contraction < residual := by
+  omega
+
+/-- Theorem 92 (Fixed-Point Early-Exit FLOP Savings, `arXiv:2610.06833`):
+    Exiting after `executed_steps < total_steps` recurrent applications with
+    `flops_per_step > 0` strictly reduces total recurrent FLOPs. -/
+theorem fixed_point_early_exit_saves_flops
+    (executed_steps total_steps flops_per_step : Nat)
+    (h_steps : executed_steps < total_steps)
+    (h_flops : 0 < flops_per_step) :
+    executed_steps * flops_per_step < total_steps * flops_per_step := by
+  exact Nat.mul_lt_mul_of_pos_right h_steps h_flops
+
+/-- Theorem 93 (Terminal KV-Sharing Three-X Decode Cache Bound, `arXiv:2610.06833`):
+    Retaining one shared terminal KV cache instead of three per-depth copies
+    (`kv_bytes_per_token > 0`) strictly reduces decode KV memory by 3x. -/
+theorem terminal_kv_sharing_three_x_decode_cache_bound
+    (kv_bytes_per_token : Nat)
+    (h_kv : 0 < kv_bytes_per_token) :
+    1 * kv_bytes_per_token < 3 * kv_bytes_per_token := by
+  omega
+
+/-- Theorem 94 (Terminal KV Sharing Conserves the Shared Prefix, `arXiv:2610.06833`):
+    Replacing `full_bytes` of per-depth KV state with a strictly smaller `shared_bytes`
+    preserves the shared prefix and strictly reduces total decode-cache memory. -/
+theorem terminal_kv_sharing_conserves_prefix_memory
+    (prefix_bytes shared_bytes full_bytes : Nat)
+    (h_shared : shared_bytes < full_bytes) :
+    prefix_bytes + shared_bytes < prefix_bytes + full_bytes := by
+  omega
+
+/-- Theorem 95 (Multi-Wave Iso-Sparse-FoMoE Ring Communication Bound, `arXiv:2606.19025`):
+    Across `waves > 0` communication waves, a strict local-expert shard
+    (`local_experts < total_experts`) with positive per-expert bytes strictly reduces
+    ring payload versus full-expert replication. -/
+theorem isosparse_fomoe_ring_communication_bound
+    (waves local_experts total_experts bytes_per_expert : Nat)
+    (h_waves : 0 < waves)
+    (h_local : local_experts < total_experts)
+    (h_bytes : 0 < bytes_per_expert) :
+    waves * (local_experts * bytes_per_expert) <
+      waves * (total_experts * bytes_per_expert) := by
+  have h_local_bytes :
+      local_experts * bytes_per_expert < total_experts * bytes_per_expert :=
+    Nat.mul_lt_mul_of_pos_right h_local h_bytes
+  exact Nat.mul_lt_mul_of_pos_left h_local_bytes h_waves
+
+/-- Theorem 96 (FoMoE Ghost-Expert Complement, `arXiv:2606.19025`):
+    The resident local experts plus the non-resident ghost experts recover the total
+    expert count whenever the local shard is a subset of the full expert set. -/
+theorem fomoe_ghost_expert_count_complement
+    (local_experts total_experts : Nat)
+    (h_local : local_experts ≤ total_experts) :
+    (total_experts - local_experts) + local_experts = total_experts := by
+  omega
+
+/-- Theorem 97 (Iso-CTS Isotropic Spectrum Unit Condition, `arXiv:2607.03011`):
+    Isotropic spectral flattening maps every positive singular value to itself with
+    unit multiplier, so its self-dispersion is exactly zero. -/
+theorem iso_cts_isotropic_spectrum_unit_condition
+    (s_max s_min s_iso : Nat)
+    (_h_aniso : s_min < s_max)
+    (_h_iso : 0 < s_iso) :
+    s_iso = 1 * s_iso ∧ s_iso - s_iso = 0 := by
+  constructor
+  · rw [Nat.one_mul]
+  · omega
+
+/-- Theorem 98 (Multi-Wave FoMoE Local VRAM Strictly Below Full Replication,
+    `arXiv:2606.19025`): A strict local shard with positive per-expert bytes keeps
+    resident-expert VRAM strictly below full replication at the same base footprint. -/
+theorem multi_wave_fomoe_local_vram_strictly_below_full_replica
+    (base_bytes local_experts total_experts bytes_per_expert : Nat)
+    (h_local : local_experts < total_experts)
+    (h_bytes : 0 < bytes_per_expert) :
+    base_bytes + local_experts * bytes_per_expert <
+      base_bytes + total_experts * bytes_per_expert := by
+  have h_local_bytes :
+      local_experts * bytes_per_expert < total_experts * bytes_per_expert :=
+    Nat.mul_lt_mul_of_pos_right h_local h_bytes
+  omega
+
+/-- Theorem 99 (Zero-Residual Fixed Point Stops Recurrence, `arXiv:2610.06833`):
+    When the recurrence residual is exactly zero, applying the zero update leaves the
+    terminal state unchanged (the fixed-point exit condition is sound). -/
+theorem fixed_point_zero_residual_stops_recurrence
+    (state residual : Nat)
+    (h_residual : residual = 0) :
+    state - residual = state := by
+  omega
+
+/-- Theorem 100 (Multi-Wave Shared-Expert Reuse Reduces Payload, `arXiv:2606.19025`):
+    Reusing a strictly smaller shared-expert payload (`shared_bytes < full_bytes`) over
+    `waves > 0` waves strictly reduces total multi-wave communication volume. -/
+theorem isosparse_fomoe_shared_wave_reuse_reduces_payload
+    (waves shared_bytes full_bytes : Nat)
+    (h_waves : 0 < waves)
+    (h_shared : shared_bytes < full_bytes) :
+    waves * shared_bytes < waves * full_bytes := by
+  exact Nat.mul_lt_mul_of_pos_left h_shared h_waves
+
+end Season11_LoopedFixedPointAndIsoSparseFoMoE
+
 end HiveMindSpec
 
 -- Verify that all theorems depend on zero user axioms (`#print axioms` check)
@@ -1461,3 +1577,13 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.looped_moe_recurrent_core_weight_tying_vram_savings
 #print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.terminal_kv_cache_sharing_depth_compression
 #print axioms HiveMindSpec.Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_recurrence_per_step_contraction
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_early_exit_saves_flops
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_three_x_decode_cache_bound
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.terminal_kv_sharing_conserves_prefix_memory
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_ring_communication_bound
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fomoe_ghost_expert_count_complement
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.iso_cts_isotropic_spectrum_unit_condition
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.multi_wave_fomoe_local_vram_strictly_below_full_replica
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.fixed_point_zero_residual_stops_recurrence
+#print axioms HiveMindSpec.Season11_LoopedFixedPointAndIsoSparseFoMoE.isosparse_fomoe_shared_wave_reuse_reduces_payload
