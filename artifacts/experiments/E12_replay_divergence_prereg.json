@@ -1,0 +1,38 @@
+{
+  "experiment_id": "E12-replay-divergence",
+  "registered_utc": "2026-10-23T21:20:00Z",
+  "registered_before_run": true,
+  "decides": [
+    "P12-same (same-class replay divergence <= the current eps = 1e-4)",
+    "P12-cross (cross-class replay divergence > 1e-4)"
+  ],
+  "not_decided_here": "P12's third clause ('fixed-point replay is exact') needs a fixed-point attention kernel, which does not exist in this repository; a named proxy cell is measured and reported, and the clause stays open",
+  "research_question": "RQ11 (docs/RESEARCH_PROGRAM.md), task HM-S10-08, from the external review of v3.5.0 (W1)",
+  "deviations_from_the_design_in_RESEARCH_PROGRAM": [
+    "Hardware available on this host: one Tesla T4 (sm_75) and its x86 CPU. The RTX 2070 and TPU-VM CPU cells are NOT RUN and are listed as such in the report; 'same class' is approximated by the same T4 in a separate process, which is weaker than a second T4.",
+    "Base model: Qwen2.5-0.5B-Instruct (the cached checkpoint) in float32 on both devices; the PoC used NF4 through bitsandbytes, which is not installed here. A mixed-dtype cross-class comparison would confound dtype with device, so both devices run float32.",
+    "LoRA is hand-rolled (peft is not installed): rank 8, alpha 16, on q_proj and v_proj of every layer, parameters named lora_A / lora_B, base weights requires_grad = False (so extract_lora_state_dict sees only the adapters). A ~ N(0, 1/r) from the init seed, B = 0."
+  ],
+  "procedure": "the honest worker's segment and every validator replay are the repository's own hivemind.core.diloco_inner.replay_inner_segment from step 0 to step 50 (AdamW lr 2e-4, weight decay 0.01, gradient clipping DEFAULT_MAX_GRAD_NORM, micro-batch 1, batches from get_deterministic_batch) on 64 sequences of 128 tokens from WikiText-2-raw train; configure_deterministic_runtime is called as in production (warn_only = True) and every determinism warning raised is captured into the report",
+  "grid": "batch-order seed (rng_seed) in {101, 202, 303} x LoRA-init seed in {1, 2, 3} = 9 segments per cell",
+  "metric": "||theta_validator - theta_worker||_inf over all LoRA tensors after 50 steps (the quantity DeterministicSpotCheckValidator compares with eps), plus the same at steps 10, 20, 30, 40 for the growth curve, and the relative L2 divergence",
+  "cells": {
+    "A_same_process_T4": "worker on the T4, validator on the T4 in the same process (re-run) - negative control",
+    "B_separate_process_T4": "worker and validator on the T4 in two separate Python processes (proxy for 'same class')",
+    "C_cross_T4_vs_cpu": "worker on the T4, validator on the x86 CPU of this host (cross class)",
+    "D_proxy_fp64_snap": "named proxy, NOT fixed-point: both devices run float64 and the LoRA parameters are snapped to a 2^-20 grid after every optimizer step; T4 vs CPU",
+    "E_tamper": "worker on the T4 flips the sign of one LoRA element (the largest-magnitude entry of the first lora_A) after step 25; validator is an honest T4 replay - positive control",
+    "not_run": ["RTX 2070 (sm_75, other host)", "TPU-VM CPU", "a second T4"]
+  },
+  "acceptance_rules": {
+    "P12-same": "supported if the max over the 9 segments of cell B is <= 1e-4; refuted if it exceeds 1e-4 (then eps itself is wrong for repeated runs on one device)",
+    "P12-cross": "supported if every one of the 9 segments of cell C exceeds 1e-4; refuted if every one is <= 1e-4 (architecture matching unnecessary between T4 and x86 CPU); inconclusive if mixed (fraction reported)",
+    "scope_of_the_decision": "decided only for the pairs measured here (T4 / T4-separate-process / x86 CPU); nothing is claimed for RTX 2070, TPU or other GPUs"
+  },
+  "controls": {
+    "negative": "cell A must give exactly 0.0 in all 9 segments; otherwise the T4 run is not deterministic under configure_deterministic_runtime and the report says so (a finding, not tuned away)",
+    "positive": "cell E must exceed 1e-4 in all 9 segments"
+  },
+  "decision_consequences": "P12-same supported and P12-cross supported: the validator assignment of DeterministicSpotCheckValidator must be architecture-matched (HM-S10-08), with eps kept; P12-cross refuted: eps survives T4/CPU and matching is not needed for that pair; P12-same refuted: eps must be re-derived from the measured same-device spread",
+  "scope": "one 0.5B model, LoRA rank 8, 50 steps, float32/float64; T4 and one x86 CPU"
+}
