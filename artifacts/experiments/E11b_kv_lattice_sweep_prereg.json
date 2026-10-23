@@ -1,0 +1,16 @@
+{
+  "experiment_id": "E11b-kv-lattice-sweep",
+  "registered_utc": "2026-10-23T22:05:00Z",
+  "registered_before_run": true,
+  "status": "exploratory - decides no prediction; E11 (E11_kv_lattice_prereg.json) alone decides P11a/P11b",
+  "question": "Does the codec ranking measured by E11 on WikiText-2 at 1024 tokens hold on other Hugging Face domains and at a longer context?",
+  "code": "scripts/run_experiment_E11_kv_lattice.py --dataset {fineweb-edu, code, gsm8k} [--window 4096 --windows-per-seed 4]; identical codecs, calibration rule, controls and statistics as E11; outputs artifacts/experiments/E11b_raw_<model>_<dataset>_w<window>.json",
+  "data": {
+    "fineweb-edu": "HuggingFaceFW/fineweb-edu sample/10BT/000_00000.parquet; calibration = documents 0-39, evaluation = documents 1000-1599",
+    "code": "codeparrot/codeparrot-clean-valid file-000000000054.json.gz (Python files); calibration = files 0-29, evaluation = files 200-899",
+    "gsm8k": "openai/gsm8k main: calibration = the first 60000 characters of train (question + answer), evaluation = test"
+  },
+  "grid": "models qwen0.5b, qwen7b, gemma4-e4b x the three datasets at window 1024 (8 windows per seed, 3 seeds); plus qwen0.5b and gemma4-e4b on WikiText-2 at window 4096 (4 windows per seed; the 7B does not fit 2048 tokens on the T4 in fp16)",
+  "reported_quantities": "per (model, dataset, window): dNLL per cell with df=2 95% t-intervals, the paired differences Z - A2 and Z - E8 at matched rates, the same controls as E11; a ranking-agreement table against E11 (same sign of each paired difference)",
+  "rule": "no prediction status may be changed by E11b; a disagreement with E11 is reported as a scope limit of E11's decision"
+}
