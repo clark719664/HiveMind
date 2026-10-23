@@ -33,6 +33,8 @@ The contract is [`docs/RESEARCH_PROGRAM.md`](docs/RESEARCH_PROGRAM.md) (thesis, 
 
 Decision rules for refuted predictions are in `RESEARCH_PROGRAM.md` §5; a refuted prediction is reported as refuted, never removed.
 
+**Merge authority (from 2026-10-23):** `scripts/pr_gatekeeper.py` runs hourly; only owner-authored PRs (`xaviercallens` + `callensxavier@gmail.com` on every commit, verified by `OwnerOrderGuardrail`) that pass every check are merged automatically; everything else is checked and held for a human. Details: `docs/ENGINEERING_COORDINATION_BRIEF.md` §3b.
+
 **Gate status (2026-10-23 evening, scientific lead):** G1 partial — E5-toy, E5-het (2,652 runs) and E10-lattice (36 runs) decided P2 (refuted at toy scale, rule to be sharpened), P3 (inconclusive), P4 (refuted at every heterogeneity level), P9 (refuted at M = 8), P10a (supported), P10b (inconclusive), P10c (supported); E6/E7/E7b not started. G2 — E8 pilot on 2 real hosts only (K = 2 exact; K = 1 loop defect fixed in spec, not yet in code). G3 — not started. G4 — one logged 3B-model transcript (no score) and one external review of v3.5.0 of unstated provenance (recorded verbatim with a response in `paper/review/`, drove v3.6.0); no human review of record. Independent Lean gate added (120/120); RDA Proposition machine-checked over ℝ (3 Mathlib theorems). Paper v3.5.1.
 
 ---
