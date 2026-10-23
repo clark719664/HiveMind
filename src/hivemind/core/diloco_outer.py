@@ -16,12 +16,19 @@ Implements:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Sequence
+
 import torch
 
 from hivemind.security.federated_learning_hardening import (
     DPGradientSanitizerConfig,
     FederatedDeltaAuditReport,
     FederatedLearningSecurityGuard,
+)
+from hivemind.swarm.diloco_nextgen import (
+    CGADStepTelemetry,
+    CPUOffloadedFlatBucketOuterState,
+    CosineGatedAdamDecayOuterOptimizer,
 )
 
 
@@ -51,6 +58,10 @@ class OuterStepResult:
     aggregated_delta_norm: float
     filter_report: ByzantineFilterReport
     federated_security_report: FederatedDeltaAuditReport | None = None
+    outer_optimizer_mode: str = "nesterov"
+    mean_cosine_gate: float | None = None
+    extra_gpu_vram_bytes: int = 0
+    cgad_telemetry: list[CGADStepTelemetry] = field(default_factory=list, repr=False)
 
 
 def flatten_delta_dict(delta_dict: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -176,7 +187,21 @@ def filter_byzantine_deltas_multikrum(
 
 
 class DiLoCoOuterOptimizer:
-    """Server-side DiLoCo Nesterov Momentum Outer Optimizer with Multi-Krum & Phase S-3 Federated Hardening."""
+    """Server-side DiLoCo outer optimizer with Multi-Krum & Phase S-3 Federated Hardening.
+
+    Supports two outer update families:
+
+    * ``"nesterov"`` — the original DiLoCo Nesterov momentum update (default).
+    * ``"cosine_gated_adam_decay"`` — ``SI-06`` PA-CGAD, which gates each aggregated
+      pseudo-gradient by a cosine/age decay before updating Adam's moments. Stale
+      fragments beyond ``cgad_tau_cut`` are frozen instead of polluting the moments.
+
+    Setting ``use_cpu_flat_bucket=True`` keeps the outer master parameters (and the
+    Nesterov velocity / CGAD moments) in contiguous CPU buffers, adding ``0 B`` of GPU
+    VRAM. The Byzantine filtering and federated security pipeline is unchanged.
+    """
+
+    _VALID_OUTER_MODES = frozenset({"nesterov", "cosine_gated_adam_decay"})
 
     def __init__(
         self,
@@ -185,15 +210,65 @@ class DiLoCoOuterOptimizer:
         max_byzantine_f: int = 1,
         cosine_sigma: float = 2.0,
         dp_config: DPGradientSanitizerConfig | None = None,
+        outer_optimizer_mode: str = "nesterov",
+        use_cpu_flat_bucket: bool = False,
+        cgad_lr: float = 1e-3,
+        cgad_alpha: float = 0.2,
+        cgad_tau_cut: float = 32.0,
+        cgad_betas: tuple[float, float] = (0.9, 0.99),
+        cgad_eps: float = 1e-8,
+        cgad_weight_decay: float = 0.01,
     ) -> None:
+        if outer_optimizer_mode not in self._VALID_OUTER_MODES:
+            raise ValueError(
+                f"outer_optimizer_mode must be one of {sorted(self._VALID_OUTER_MODES)}, "
+                f"got {outer_optimizer_mode!r}"
+            )
         self.outer_lr_eta = outer_lr_eta
         self.outer_momentum_mu = outer_momentum_mu
         self.max_byzantine_f = max_byzantine_f
         self.cosine_sigma = cosine_sigma
         self.dp_config = dp_config
+        self.outer_optimizer_mode = outer_optimizer_mode
+        self.use_cpu_flat_bucket = bool(use_cpu_flat_bucket)
+        self.cgad_lr = cgad_lr
+        self.cgad_alpha = cgad_alpha
+        self.cgad_tau_cut = cgad_tau_cut
+        self.cgad_betas = (float(cgad_betas[0]), float(cgad_betas[1]))
+        self.cgad_eps = cgad_eps
+        self.cgad_weight_decay = cgad_weight_decay
         self.fl_guard = FederatedLearningSecurityGuard()
         # Velocity buffers per expert branch: branch_name -> {param_name: tensor}
         self.velocities: dict[str, dict[str, torch.Tensor]] = {}
+        # Persistent PA-CGAD state (moments are CPU-resident) per expert branch.
+        self.cgad_optimizers: dict[str, CosineGatedAdamDecayOuterOptimizer] = {}
+        # Optional contiguous CPU flat-bucket mirror per expert branch.
+        self.cpu_buckets: dict[str, CPUOffloadedFlatBucketOuterState] = {}
+
+    def _get_cpu_bucket(
+        self, branch_name: str, theta_prev: dict[str, torch.Tensor]
+    ) -> CPUOffloadedFlatBucketOuterState:
+        """Return the branch's CPU flat-bucket, creating it from ``theta_prev`` once."""
+        bucket = self.cpu_buckets.get(branch_name)
+        if bucket is None:
+            bucket = CPUOffloadedFlatBucketOuterState(theta_prev)
+            self.cpu_buckets[branch_name] = bucket
+        return bucket
+
+    def _get_cgad_optimizer(self, branch_name: str) -> CosineGatedAdamDecayOuterOptimizer:
+        """Return the branch's persistent PA-CGAD optimizer (moments live on CPU)."""
+        optimizer = self.cgad_optimizers.get(branch_name)
+        if optimizer is None:
+            optimizer = CosineGatedAdamDecayOuterOptimizer(
+                lr=self.cgad_lr,
+                alpha=self.cgad_alpha,
+                tau_cut=self.cgad_tau_cut,
+                betas=self.cgad_betas,
+                eps=self.cgad_eps,
+                weight_decay=self.cgad_weight_decay,
+            )
+            self.cgad_optimizers[branch_name] = optimizer
+        return optimizer
 
     def step(
         self,
@@ -201,8 +276,14 @@ class DiLoCoOuterOptimizer:
         outer_step: int,
         theta_prev: dict[str, torch.Tensor],
         worker_deltas: dict[str, dict[str, torch.Tensor]],
+        worker_delays: dict[str, float] | None = None,
+        synced_fragments: Sequence[str] | None = None,
     ) -> OuterStepResult:
-        """Aggregate valid worker deltas via Multi-Krum + Adaptive Norm Clipping + Trimmed Mean and apply Nesterov outer update."""
+        """Aggregate valid worker deltas then apply the configured outer optimizer.
+
+        ``worker_delays`` and ``synced_fragments`` are forwarded to PA-CGAD for
+        per-fragment staleness gating (ignored by the Nesterov path).
+        """
         filter_report = filter_byzantine_deltas_multikrum(
             worker_deltas=worker_deltas,
             max_byzantine_f=self.max_byzantine_f,
@@ -218,36 +299,76 @@ class DiLoCoOuterOptimizer:
             dp_config=self.dp_config,
         )
 
-        if branch_name not in self.velocities:
-            self.velocities[branch_name] = {
-                k: torch.zeros_like(v, dtype=torch.float32, device="cpu")
-                for k, v in theta_prev.items()
-            }
-
-        vel_branch = self.velocities[branch_name]
-        theta_updated: dict[str, torch.Tensor] = {}
         sq_norm_sum = 0.0
+        for avg_delta in aggregated_deltas.values():
+            sq_norm_sum += float((avg_delta.detach().to(torch.float32) ** 2).sum().item())
+        aggregated_delta_norm = round(sq_norm_sum**0.5, 6)
 
-        for name, param_prev in theta_prev.items():
-            avg_delta = aggregated_deltas[name]
-            sq_norm_sum += float((avg_delta**2).sum().item())
+        cgad_telemetry: list[CGADStepTelemetry] = []
+        mean_cosine_gate: float | None = None
+        velocity_updated: dict[str, torch.Tensor] = {}
 
-            # v^(t) = mu * v^(t-1) + Delta^(t)
-            v_t = self.outer_momentum_mu * vel_branch[name] + avg_delta
-            vel_branch[name] = v_t
-
-            # theta^(t) = theta^(t-1) - eta_outer * (mu * v^(t) + Delta^(t))
-            nesterov_step = self.outer_momentum_mu * v_t + avg_delta
-            theta_updated[name] = (
-                param_prev.detach().to(torch.float32).cpu() - self.outer_lr_eta * nesterov_step
+        if self.outer_optimizer_mode == "cosine_gated_adam_decay":
+            cgad = self._get_cgad_optimizer(branch_name)
+            theta_updated, cgad_telemetry = cgad.step_fragments(
+                params=theta_prev,
+                pseudo_gradients=aggregated_deltas,
+                worker_delays=worker_delays,
+                synced_fragments=synced_fragments,
             )
+            if cgad_telemetry:
+                mean_cosine_gate = round(
+                    sum(t.cosine_gate_gamma for t in cgad_telemetry) / len(cgad_telemetry),
+                    6,
+                )
+            if self.use_cpu_flat_bucket:
+                theta_updated = self._get_cpu_bucket(
+                    branch_name, theta_prev
+                ).apply_outer_update_and_sync_inner(theta_updated)
+        elif self.use_cpu_flat_bucket:
+            bucket = self._get_cpu_bucket(branch_name, theta_prev)
+            theta_updated, velocity_updated = bucket.outer_nesterov_step(
+                pseudo_gradients=aggregated_deltas,
+                lr=self.outer_lr_eta,
+                momentum=self.outer_momentum_mu,
+                theta_prev=theta_prev,
+            )
+            self.velocities[branch_name] = velocity_updated
+        else:
+            if branch_name not in self.velocities:
+                self.velocities[branch_name] = {
+                    k: torch.zeros_like(v, dtype=torch.float32, device="cpu")
+                    for k, v in theta_prev.items()
+                }
+
+            vel_branch = self.velocities[branch_name]
+            theta_updated = {}
+
+            for name, param_prev in theta_prev.items():
+                avg_delta = aggregated_deltas[name]
+
+                # v^(t) = mu * v^(t-1) + Delta^(t)
+                v_t = self.outer_momentum_mu * vel_branch[name] + avg_delta
+                vel_branch[name] = v_t
+
+                # theta^(t) = theta^(t-1) - eta_outer * (mu * v^(t) + Delta^(t))
+                nesterov_step = self.outer_momentum_mu * v_t + avg_delta
+                theta_updated[name] = (
+                    param_prev.detach().to(torch.float32).cpu()
+                    - self.outer_lr_eta * nesterov_step
+                )
+            velocity_updated = vel_branch
 
         return OuterStepResult(
             branch_name=branch_name,
             outer_step=outer_step,
             theta_updated=theta_updated,
-            velocity_updated=vel_branch,
-            aggregated_delta_norm=round(sq_norm_sum**0.5, 6),
+            velocity_updated=velocity_updated,
+            aggregated_delta_norm=aggregated_delta_norm,
             filter_report=filter_report,
             federated_security_report=fl_report,
+            outer_optimizer_mode=self.outer_optimizer_mode,
+            mean_cosine_gate=mean_cosine_gate,
+            extra_gpu_vram_bytes=0,
+            cgad_telemetry=cgad_telemetry,
         )

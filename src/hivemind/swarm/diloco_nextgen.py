@@ -162,6 +162,7 @@ class CosineGatedAdamDecayOuterOptimizer:
         tau_cut: float = 32.0,
         betas: Tuple[float, float] = (0.9, 0.95),
         eps: float = 1e-8,
+        weight_decay: float = 0.0,
     ) -> None:
         if lr <= 0.0:
             raise ValueError("lr must be > 0")
@@ -169,6 +170,8 @@ class CosineGatedAdamDecayOuterOptimizer:
             raise ValueError("alpha must be > 0")
         if tau_cut <= 0.0:
             raise ValueError("tau_cut must be > 0")
+        if weight_decay < 0.0:
+            raise ValueError("weight_decay must be >= 0")
         b1, b2 = float(betas[0]), float(betas[1])
         if not (0.0 <= b1 < 1.0 and 0.0 <= b2 < 1.0):
             raise ValueError("betas must be in [0, 1)")
@@ -178,6 +181,7 @@ class CosineGatedAdamDecayOuterOptimizer:
         self.beta1 = b1
         self.beta2 = b2
         self.eps = float(eps)
+        self.weight_decay = float(weight_decay)
         self.step_count: Dict[str, int] = {}
         self.m_buffers: Dict[str, torch.Tensor] = {}
         self.v_buffers: Dict[str, torch.Tensor] = {}
@@ -259,7 +263,10 @@ class CosineGatedAdamDecayOuterOptimizer:
             v_hat = v / (1.0 - (self.beta2 ** t))
 
             step_vec = self.lr * sigma * (m_hat / (torch.sqrt(v_hat) + self.eps))
-            new_p = (p_fp32 - step_vec).to(device=param.device, dtype=param.dtype)
+            # Decoupled AdamW-style shrinkage, applied only to fragments that actually
+            # received a non-cutoff update (weight_decay=0 preserves the original CGAD math).
+            decayed_p = p_fp32 * (1.0 - self.lr * self.weight_decay)
+            new_p = (decayed_p - step_vec).to(device=param.device, dtype=param.dtype)
             updated_params[name] = new_p
             self.fragment_ages[name] = 0
 
@@ -854,6 +861,67 @@ class CPUOffloadedFlatBucketOuterState:
         for k in self.keys:
             lo, hi = self.offsets[k]
             self.flat_master_cpu[lo:hi].copy_(params[k].detach().to(torch.float32).cpu().reshape(-1))
+
+        # Lazily allocated on the first outer step so callers that only use the
+        # compute/commit helpers do not pay for a second flat buffer.
+        self.flat_velocity_cpu: Optional[torch.Tensor] = None
+
+    @torch.no_grad()
+    def outer_nesterov_step(
+        self,
+        pseudo_gradients: Dict[str, torch.Tensor],
+        lr: float = 0.7,
+        momentum: float = 0.9,
+        theta_prev: Optional[Dict[str, torch.Tensor]] = None,
+    ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+        """Apply one Nesterov outer step entirely inside the contiguous CPU flat buffers.
+
+        ``theta_prev`` (when supplied) refreshes the master weights before the update, so the
+        server can keep this state as a zero-GPU-VRAM mirror of its authoritative parameters.
+        Returns ``(updated_params, velocity)`` with each fragment restored to its original
+        device and dtype.
+        """
+        if lr <= 0.0:
+            raise ValueError("lr must be > 0")
+        if not (0.0 <= momentum < 1.0):
+            raise ValueError("momentum must be in [0, 1)")
+
+        if theta_prev is not None:
+            missing = set(self.keys) - set(theta_prev)
+            if missing:
+                raise KeyError(f"theta_prev is missing flat-bucket fragments: {sorted(missing)}")
+            for k in self.keys:
+                lo, hi = self.offsets[k]
+                self.flat_master_cpu[lo:hi].copy_(
+                    theta_prev[k].detach().to(torch.float32).cpu().reshape(-1)
+                )
+
+        if self.flat_velocity_cpu is None:
+            self.flat_velocity_cpu = torch.zeros_like(self.flat_master_cpu)
+        elif self.flat_velocity_cpu.numel() != self.flat_master_cpu.numel():
+            raise RuntimeError("flat velocity buffer shape drifted from the master parameter buffer")
+
+        updated_params: Dict[str, torch.Tensor] = {}
+        velocity: Dict[str, torch.Tensor] = {}
+        for k in self.keys:
+            lo, hi = self.offsets[k]
+            grad = pseudo_gradients[k].detach().to(torch.float32).cpu().reshape(-1)
+            if grad.numel() != hi - lo:
+                raise ValueError(
+                    f"pseudo-gradient for {k!r} has {grad.numel()} elements, expected {hi - lo}"
+                )
+            v = self.flat_velocity_cpu[lo:hi]
+            # v^(t) = mu * v^(t-1) + Delta^(t)
+            v.mul_(momentum).add_(grad)
+            # theta^(t) = theta^(t-1) - eta * (mu * v^(t) + Delta^(t))
+            nesterov_step = momentum * v + grad
+            self.flat_master_cpu[lo:hi].add_(nesterov_step, alpha=-lr)
+            updated_params[k] = self.flat_master_cpu[lo:hi].view(self.shapes[k]).to(
+                device=self.devices[k], dtype=self.dtypes[k]
+            ).clone()
+            velocity[k] = v.view(self.shapes[k]).clone()
+
+        return updated_params, velocity
 
     @torch.no_grad()
     def compute_pseudo_gradients(
