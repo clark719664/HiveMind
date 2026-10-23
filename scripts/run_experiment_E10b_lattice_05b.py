@@ -43,21 +43,26 @@ from hivemind.compress.lattice_quantizer import DECODERS, QuantizedDelta, SignDe
 EXP_DIR = PROJECT_ROOT / "artifacts" / "experiments"
 PREREG_PATH = EXP_DIR / "E10b_lattice_05b_prereg.json"
 PREREG_DRAFT_PATH = EXP_DIR / "E10b_lattice_05b_prereg_DRAFT.json"
+AMENDMENT_PATH = EXP_DIR / "E10b_lattice_05b_prereg_amendment_2.json"  # amendment 2 (2026-10-24): init, sizing, arms, fail-fast rule
 REPORT_PATH = EXP_DIR / "E10b_lattice_05b_report.json"
 HUB = Path(os.path.expanduser("~/.cache/huggingface/hub"))
 MODEL_REPO = "Qwen/Qwen2.5-0.5B-Instruct"
 FINEWEB_GLOB = str(HUB / "datasets--HuggingFaceFW--fineweb-edu" / "snapshots" / "*" / "sample" / "10BT" / "000_00000.parquet")
 T_CRIT_DF2 = 4.302652729911275  # two-sided 95% t quantile, df = 2 (three seeds)
 SEEDS = (1, 2, 3)
-RATES = (1.0, 2.0)
+RATES = (1.0,)  # amendment 2: R = 2 is no longer run
 FINE_RATE = 6.0
 MATCH_TOL = 0.1  # Z8 / E8 realised rates must agree within this many bits/dim (as E10)
 FINE_TOL = 5e-3  # negative control 1: |loss(E8 @ 6 bit) - loss(none)| per seed (E10 used 1e-3 on a CPU toy; GPU fp32 run-to-run noise is larger)
 OUTER_LR, OUTER_MOMENTUM = 0.7, 0.9
 INNER_LR, INNER_BETAS, INNER_WD, GRAD_CLIP = 5e-4, (0.9, 0.95), 0.01, 1.0
 SHARD_ROW_STRIDE = 10_000  # learner i reads fineweb rows from i * stride; the held-out slice starts at M * stride
-# time model (assumptions, to be replaced by measurements from the first run): see estimate()
-SEC_PER_STEP, SEC_PER_CODEC_CALL, SEC_PER_EVAL, SEC_SETUP = 0.12, 1.5, 1.3, 150.0
+# time model, see estimate(). SEC_PER_STEP is measured (first execution: 1385 s / 1920 steps = 0.72 s on the T4); the eval cost is the
+# old 1.3 s scaled by the same 6x; the codec call (1.5 s) and setup are still unmeasured assumptions.
+SEC_PER_STEP, SEC_PER_CODEC_CALL, SEC_PER_EVAL, SEC_SETUP = 0.72, 1.5, 7.8, 150.0
+# registered fail-fast rule (amendment 2), checked inside the first 'none' cell (seed 1)
+FAILFAST_STEPS, FAILFAST_SEC_FACTOR, FAILFAST_ROUND = 40, 1.3, 3
+EXIT_FAILFAST = 3
 
 
 @dataclass(frozen=True)
@@ -72,7 +77,7 @@ class Cfg:
     eval_every: int
 
 
-FULL = Cfg(rounds=12, learners=4, inner_steps=40, seq_len=256, micro_batch=4, eval_seqs=128, eval_batch=4, eval_every=3)
+FULL = Cfg(rounds=6, learners=4, inner_steps=20, seq_len=256, micro_batch=4, eval_seqs=128, eval_batch=4, eval_every=3)
 SMOKE = Cfg(rounds=2, learners=2, inner_steps=3, seq_len=16, micro_batch=2, eval_seqs=8, eval_batch=4, eval_every=1)
 
 
@@ -87,11 +92,8 @@ class Arm:
 
 ARMS: Tuple[Arm, ...] = (
     Arm("none", None, None, False, "baseline"),
-    Arm("sign+EF", "sign", 1.0, True, "arm"),
     Arm("Z8@1+EF", "Z", 1.0, True, "arm"),
     Arm("E8@1+EF", "E8", 1.0, True, "arm"),
-    Arm("Z8@2+EF", "Z", 2.0, True, "arm"),
-    Arm("E8@2+EF", "E8", 2.0, True, "arm"),
     Arm("sign", "sign", 1.0, False, "positive control"),
     Arm("E8@6", "E8", FINE_RATE, False, "negative control (fine scale)"),
 )
@@ -217,12 +219,14 @@ def attach_lora(model: torch.nn.Module, init_seed: int) -> None:
 
 @torch.no_grad()
 def reset_lora(model: torch.nn.Module, init_seed: int) -> None:
-    """Re-draw the LoRA init exactly as ``attach_lora(model, init_seed)`` would (shared by all learners of a run)."""
+    """E10b init (amendment 2): A ~ U(-1/sqrt(fan_in), 1/sqrt(fan_in)) (PEFT default kaiming_uniform a=sqrt 5), B = 0, from the seed's
+    generator, shared by all learners of a run. Overwrites the E12-style N(0, 1/r) init that ``attach_lora`` / E12's ``build_model``
+    draw, which diverged in the first execution; every run starts here."""
     gen = torch.Generator().manual_seed(init_seed)
     for layer in model.model.layers:
         for proj in (layer.self_attn.q_proj, layer.self_attn.v_proj):
             r, fan_in = proj.lora_A.shape
-            a = torch.randn(r, fan_in, generator=gen) / math.sqrt(r)
+            a = (torch.rand(r, fan_in, generator=gen) * 2.0 - 1.0) / math.sqrt(fan_in)
             proj.lora_A.copy_(a.to(proj.lora_A.dtype).to(proj.lora_A.device))
             proj.lora_B.zero_()
 
@@ -314,9 +318,26 @@ def eval_loss(model: torch.nn.Module, ids: torch.Tensor, bs: int, device: str) -
     return tot / ids.shape[0]
 
 
+class FailFast(Exception):
+    """Registered fail-fast rule (amendment 2) tripped inside the first 'none' cell."""
+
+    def __init__(self, reason: str, details: Dict[str, Any]) -> None:
+        super().__init__(reason)
+        self.reason, self.details = reason, details
+
+
+def _sync(device: str) -> None:
+    if device.startswith("cuda"):
+        torch.cuda.synchronize()
+
+
 def run_arm(model: torch.nn.Module, params: List[torch.nn.Parameter], arm: Arm, seed: int, shards: List[torch.Tensor], held: torch.Tensor, cfg: Cfg, device: str) -> Dict[str, Any]:
     t0 = time.perf_counter()
-    reset_lora(model, seed)
+    reset_lora(model, seed)  # always: overwrites the E12-style init drawn by attach_lora / build_model
+    a_std = statistics.fmean(float(p.std()) for n, p in model.named_parameters() if "lora_A" in n)
+    failfast = arm.name == "none" and seed == SEEDS[0]  # the first cell of the run
+    n_steps = 0
+    t_steps = 0.0
     torch.manual_seed(seed)
     theta = get_flat(params)
     buf = torch.zeros_like(theta)
@@ -335,6 +356,9 @@ def run_arm(model: torch.nn.Module, params: List[torch.nn.Parameter], arm: Arm, 
         for i in range(cfg.learners):
             set_flat(params, theta)
             for _ in range(cfg.inner_steps):
+                if failfast and n_steps == 0:
+                    _sync(device)
+                    t_steps = time.perf_counter()
                 idx = orders[i][pos[i] : pos[i] + cfg.micro_batch]
                 pos[i] += cfg.micro_batch
                 b = shards[i][torch.as_tensor(idx)].to(device)
@@ -343,6 +367,13 @@ def run_arm(model: torch.nn.Module, params: List[torch.nn.Parameter], arm: Arm, 
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(params, GRAD_CLIP)
                 opts[i].step()
+                n_steps += 1
+                if failfast and n_steps == FAILFAST_STEPS:
+                    _sync(device)
+                    sps = (time.perf_counter() - t_steps) / FAILFAST_STEPS
+                    if sps > SEC_PER_STEP * FAILFAST_SEC_FACTOR:
+                        raise FailFast(f"measured {sps:.3f} s per inner step over the first {FAILFAST_STEPS} steps exceeds {SEC_PER_STEP * FAILFAST_SEC_FACTOR:.3f} s ({FAILFAST_SEC_FACTOR} x the registered {SEC_PER_STEP})",
+                                       {"sec_per_inner_step": sps, "loss_curve": dict(curve)})
             inner_last.append(float(loss))
             d = theta - get_flat(params)
             if not bool(torch.isfinite(d).all()) or not math.isfinite(inner_last[-1]):
@@ -367,8 +398,10 @@ def run_arm(model: torch.nn.Module, params: List[torch.nn.Parameter], arm: Arm, 
             if not math.isfinite(curve[str(rnd)]):
                 diverged = True
                 break
+            if failfast and rnd == FAILFAST_ROUND and curve[str(rnd)] >= curve["0"]:
+                raise FailFast(f"held-out loss at round {FAILFAST_ROUND} ({curve[str(rnd)]:.4f}) >= round 0 ({curve['0']:.4f}): the 'none' arm does not learn", {"loss_curve": dict(curve)})
     final = curve.get(str(cfg.rounds), float("inf")) if not diverged else float("inf")
-    return {"arm": arm.name, "seed": seed, "diverged": diverged, "final_loss": final, "initial_loss": curve["0"], "loss_curve": curve,
+    return {"arm": arm.name, "seed": seed, "diverged": diverged, "final_loss": final, "initial_loss": curve["0"], "loss_curve": curve, "lora_A_std": a_std,
             "mean_relative_mse": statistics.fmean(rel) if rel else 0.0, "mean_rate_bits_per_dim": statistics.fmean(rates) if rates else 32.0,
             "scale_min": min(scales) if scales else None, "scale_max": max(scales) if scales else None, "last_inner_loss_mean": statistics.fmean(inner_last) if inner_last else None,
             "wall_seconds": round(time.perf_counter() - t0, 2)}
@@ -459,7 +492,7 @@ def analyse(results: List[Dict[str, Any]], seeds: Sequence[int], run_brute_force
         return {"minus_none_mean": m, "ci95": h, "per_seed": diffs, "status": "refuted" if m - h > 0 else "supported"}
 
     p10c = vs_none("E8@1+EF")
-    p10c["context_only"] = {a: vs_none(a) for a in ("Z8@1+EF", "sign+EF", "E8@2+EF", "Z8@2+EF")}
+    p10c["context_only"] = {a: vs_none(a) for a in ("Z8@1+EF",)}
 
     pos_rows = [{"seed": s, "sign_noEF": get("sign", s)["final_loss"], "none": get("none", s)["final_loss"]} for s in seeds]
     pos_ok = all(r["sign_noEF"] > r["none"] for r in pos_rows)  # a diverged sign run (inf) counts as hurting
@@ -483,6 +516,39 @@ def analyse(results: List[Dict[str, Any]], seeds: Sequence[int], run_brute_force
 
 
 # ---------------------------------------------------------------- main
+def load_partial(path: Path, design_sha: str) -> List[Dict[str, Any]]:
+    """Cells of a partial file, only if it was written under the same design hash (never resume across designs)."""
+    if not path.exists():
+        return []
+    try:
+        blob = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return []
+    if not isinstance(blob, dict) or blob.get("design_sha256") != design_sha:
+        print(f"[E10b] ignoring {path.name}: written under a different design", flush=True)
+        return []
+    runs = blob["runs"]
+    for r in runs:  # null -> inf for diverged runs
+        r["final_loss"] = float("inf") if r["final_loss"] is None else r["final_loss"]
+    return runs
+
+
+def write_aborted(out: Path, ff: FailFast, results: List[Dict[str, Any]], prereg_sha: str, amend_sha: str, design_sha: str, smoke: bool, device: str) -> int:
+    status = f"aborted by registered fail-fast rule: {ff.reason}"
+    report: Dict[str, Any] = {
+        "schema_version": "hivemind-experiment-E10b/v1.0", "experiment_id": "E10b-lattice-05b", "smoke": smoke, "status": status,
+        "prereg_sha256": prereg_sha, "amendment_2_sha256": amend_sha, "design_sha256": design_sha, "fail_fast_details": ff.details,
+        "completed_runs": results, "analysis": {k: {"status": "invalid"} for k in ("P10a", "P10b", "P10c")}, "controls_all_passed": False,
+        "hardware": {"device": device, "gpu": torch.cuda.get_device_name(0) if device.startswith("cuda") else None, "torch": torch.__version__},
+    }
+    report = clean(report)
+    report["receipt_sha256"] = hashlib.sha256(json.dumps(report, sort_keys=True).encode("utf-8")).hexdigest()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(status, flush=True)
+    return EXIT_FAILFAST
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--smoke", action="store_true", help="tiny random Qwen2, CPU, 2 rounds x 2 learners; writes only to --out (plumbing check, not evidence)")
@@ -503,14 +569,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if EXP_DIR.resolve() in out.parents or (PROJECT_ROOT / "artifacts").resolve() in out.parents:
             ap.error("--smoke must not write into artifacts/")
         device = "cpu"
+        torch.set_num_threads(2)  # other CPU jobs share this host
     else:
         out, device = REPORT_PATH, a.device
-        if not PREREG_PATH.exists():
-            raise SystemExit(f"{PREREG_PATH} not found: commit the reviewed prereg (the _DRAFT is not a registration) before the full run")
+        for need in (PREREG_PATH, AMENDMENT_PATH):
+            if not need.exists():
+                raise SystemExit(f"{need} not found: the full run needs the registered prereg AND amendment 2 (the _DRAFT is not a registration)")
         if device.startswith("cuda") and not torch.cuda.is_available():
             raise SystemExit("full run needs a CUDA device")
     prereg_path = PREREG_PATH if PREREG_PATH.exists() else PREREG_DRAFT_PATH
     prereg_sha = hashlib.sha256(prereg_path.read_bytes()).hexdigest()
+    amend_sha = hashlib.sha256(AMENDMENT_PATH.read_bytes()).hexdigest() if AMENDMENT_PATH.exists() else "absent"
+    design_sha = hashlib.sha256((prereg_sha + amend_sha).encode("utf-8")).hexdigest()  # identifies the design a partial file belongs to
 
     started = time.perf_counter()
     shards, held, data_prov = smoke_data(cfg) if a.smoke else real_data(cfg)
@@ -521,20 +591,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(f"[E10b] {'SMOKE ' if a.smoke else ''}device {device}, {n_coords} LoRA coordinates, plan: {json.dumps(estimate(cfg))}", flush=True)
 
     partial = Path(str(out) + ".partial.json")
-    results: List[Dict[str, Any]] = []
-    if a.resume and partial.exists():
-        results = json.loads(partial.read_text(encoding="utf-8"))
-        for r in results:  # null -> inf for diverged runs
-            r["final_loss"] = float("inf") if r["final_loss"] is None else r["final_loss"]
+    results: List[Dict[str, Any]] = load_partial(partial, design_sha) if a.resume else []
     done = {(r["arm"], r["seed"]) for r in results}
     for seed in SEEDS:  # seed-major so an interrupted run still holds complete seeds
         for arm in ARMS:
             if (arm.name, seed) in done:
                 continue
-            r = run_arm(model, params, arm, seed, shards, held, cfg, device)
+            try:
+                r = run_arm(model, params, arm, seed, shards, held, cfg, device)
+            except FailFast as ff:
+                return write_aborted(out, ff, results, prereg_sha, amend_sha, design_sha, bool(a.smoke), device)
             results.append(r)
             partial.parent.mkdir(parents=True, exist_ok=True)
-            partial.write_text(json.dumps(clean(results)), encoding="utf-8")
+            partial.write_text(json.dumps({"design_sha256": design_sha, "runs": clean(results)}), encoding="utf-8")
             print(f"seed {seed} {arm.name:8s} final {r['final_loss']:.4f} (init {r['initial_loss']:.4f}) relMSE {r['mean_relative_mse']:.4f} rate {r['mean_rate_bits_per_dim']:.3f} "
                   f"{'DIVERGED ' if r['diverged'] else ''}{r['wall_seconds']}s", flush=True)
 
@@ -542,8 +611,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     report: Dict[str, Any] = {
         "schema_version": "hivemind-experiment-E10b/v1.0", "experiment_id": "E10b-lattice-05b", "smoke": bool(a.smoke),
         "prereg_sha256": prereg_sha, "prereg_file": prereg_path.name, "prereg_is_draft": prereg_path == PREREG_DRAFT_PATH,
+        "amendment_2_sha256": amend_sha, "design_sha256": design_sha,
         "design": {"model": "tiny random Qwen2 (smoke)" if a.smoke else MODEL_REPO, "cfg": cfg.__dict__, "seeds": list(SEEDS), "outer_lr": OUTER_LR, "outer_momentum": OUTER_MOMENTUM,
                    "inner": {"lr": INNER_LR, "betas": list(INNER_BETAS), "weight_decay": INNER_WD, "grad_clip": GRAD_CLIP}, "lora_coordinates": n_coords,
+                   "lora_init": "A ~ U(-1/sqrt(fan_in), 1/sqrt(fan_in)), B = 0 (amendment 2)",
                    "calibration": "per (learner, round) bisection of the scale on delta + carry to the target measured factorised rate, tol 0.02 bit/dim"},
         "data": data_prov,
         "hardware": {"device": device, "gpu": torch.cuda.get_device_name(0) if device.startswith("cuda") else None, "cpu": platform.processor() or platform.machine(), "torch": torch.__version__},

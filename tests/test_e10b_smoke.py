@@ -38,12 +38,12 @@ def test_smoke_cpu_run(e10b, tmp_path):
     e10b.main(["--smoke", "--out", str(out)])
     r = json.loads(out.read_text(encoding="utf-8"))
     assert r["smoke"] is True and "SMOKE" in r["warning"]
-    assert r["num_runs"] == 24 and len(r["cells"]) == 8
+    assert r["num_runs"] == 15 and len(r["cells"]) == 5
     assert set(r["analysis"]) == {"P10a", "P10b", "P10c"}
     assert r["controls"]["negative_decoders"]["passed"] and r["controls"]["negative_matched_rate"]["passed"]
     assert len(r["receipt_sha256"]) == 64
     for run in r["runs"]:
-        if run["arm"] in ("Z8@1+EF", "E8@1+EF", "Z8@2+EF", "E8@2+EF"):
+        if run["arm"] in ("Z8@1+EF", "E8@1+EF"):
             assert abs(run["mean_rate_bits_per_dim"] - float(run["arm"].split("@")[1][0])) < 0.1  # per-round calibration hits the target
     assert e10b.REPORT_PATH != out  # smoke never targets the real report
 
@@ -57,19 +57,68 @@ def test_smoke_refuses_artifacts_and_missing_out(e10b):
 
 def test_estimate_within_budget(e10b):
     est = e10b.estimate()
-    assert est["runs"] == 24 and est["total_hours"] <= 2.5
+    assert est["runs"] == 15 and est["total_hours"] <= 2.5 and est["assumed_sec_per_inner_step"] == 0.72
 
 
-def test_prereg_matches_script_constants(e10b):
-    p = e10b.PREREG_PATH if e10b.PREREG_PATH.exists() else e10b.PREREG_DRAFT_PATH
-    d = json.loads(p.read_text(encoding="utf-8"))
-    assert d["acceptance_rules"]["t_interval"].find(str(e10b.T_CRIT_DF2)) >= 0
+def test_amendment_matches_script_constants(e10b):
+    d = json.loads(e10b.AMENDMENT_PATH.read_text(encoding="utf-8"))
     est = e10b.estimate()
-    assert d["sizing"]["runs"] == est["runs"] and d["sizing"]["inner_steps_total"] == est["inner_steps_total"]
-    assert d["sizing"]["lattice_codec_calls"] == est["lattice_codec_calls"] and d["sizing"]["eval_passes"] == est["eval_passes"]
+    for k in ("runs", "inner_steps_total", "lattice_codec_calls", "eval_passes"):
+        assert d["sizing"][k] == est[k]
     assert abs(d["sizing"]["estimated_hours"] - est["total_hours"]) < 0.01
-    assert d["testbed"]["seeds"] == list(e10b.SEEDS)
-    assert e10b.FULL.rounds == 12 and e10b.FULL.learners == 4 and e10b.FULL.inner_steps == 40
+    ch = d["changes"]["3_sizing"]
+    assert (ch["R"], ch["M"], ch["H"]) == (e10b.FULL.rounds, e10b.FULL.learners, e10b.FULL.inner_steps) == (6, 4, 20)
+    assert e10b.FULL.eval_every == 3 and ch["seeds"] == list(e10b.SEEDS)
+    assert [a.name for a in e10b.ARMS] == ["none", "Z8@1+EF", "E8@1+EF", "sign", "E8@6"]
+    assert e10b.RATES == (1.0,)
+    assert "2026-10-24" in d["made_utc_date"] and "NOT a rule registered" in d["first_execution"]["how_it_ended"] and "INCONCLUSIVE" in d["expected_power"]
+
+
+def test_lora_init_is_peft_uniform_and_always_reset(e10b):
+    model = e10b.tiny_model("cpu")  # attach_lora draws the E12 N(0, 1/r) init
+    std_e12 = statistics_std(model)
+    e10b.reset_lora(model, 1)
+    for n, p in model.named_parameters():
+        if "lora_A" in n:
+            assert float(p.abs().max()) <= 1.0 / (p.shape[1] ** 0.5) + 1e-9
+        if "lora_B" in n:
+            assert float(p.abs().max()) == 0.0
+    assert statistics_std(model) < 0.25 * std_e12
+    a1 = e10b.get_flat(e10b.lora_params(model))
+    e10b.reset_lora(model, 1)
+    assert torch.equal(a1, e10b.get_flat(e10b.lora_params(model)))  # deterministic in the seed
+
+
+def statistics_std(model) -> float:
+    return float(torch.cat([p.reshape(-1) for n, p in model.named_parameters() if "lora_A" in n]).std())
+
+
+def test_failfast_aborts_with_exit_code_3(e10b, tmp_path, monkeypatch):
+    monkeypatch.setattr(e10b, "FAILFAST_STEPS", 2)
+    monkeypatch.setattr(e10b, "FAILFAST_SEC_FACTOR", 1e-9)  # any real step time exceeds it
+    out = tmp_path / "aborted.json"
+    assert e10b.main(["--smoke", "--out", str(out)]) == 3
+    r = json.loads(out.read_text(encoding="utf-8"))
+    assert r["status"].startswith("aborted by registered fail-fast rule: ")
+    assert all(v["status"] == "invalid" for v in r["analysis"].values())
+
+
+def test_failfast_no_learning_rule(e10b, monkeypatch):
+    monkeypatch.setattr(e10b, "FAILFAST_ROUND", 1)  # smoke has no round 3; check after round 1
+    shards, held, _ = e10b.smoke_data(e10b.SMOKE)
+    model = e10b.tiny_model("cpu")
+    monkeypatch.setattr(e10b, "INNER_LR", 0.0)  # frozen LoRA: held-out loss cannot fall
+    with pytest.raises(e10b.FailFast, match="does not learn"):
+        e10b.run_arm(model, e10b.lora_params(model), e10b.ARMS[0], 1, shards, held, e10b.SMOKE, "cpu")
+
+
+def test_partial_ignored_under_other_design(e10b, tmp_path):
+    p = tmp_path / "x.partial.json"
+    p.write_text(json.dumps({"design_sha256": "aaa", "runs": [{"arm": "none", "seed": 1, "final_loss": 1.0}]}), encoding="utf-8")
+    assert len(e10b.load_partial(p, "aaa")) == 1
+    assert e10b.load_partial(p, "bbb") == []
+    p.write_text(json.dumps([{"arm": "none", "seed": 1, "final_loss": 1.0}]), encoding="utf-8")  # old list format
+    assert e10b.load_partial(p, "aaa") == []
 
 
 @pytest.mark.parametrize("kind", ["Z", "E8"])

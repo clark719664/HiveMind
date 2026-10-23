@@ -198,6 +198,13 @@
    "output": "artifacts/experiments/E11b_raw_qwen0.5b_wikitext2_w4096.json"
   },
   {
+   "name": "E10b_amended",
+   "argv": [
+    "scripts/run_experiment_E10b_lattice_05b.py"
+   ],
+   "output": "artifacts/experiments/E10b_lattice_05b_report.json"
+  },
+  {
    "name": "E11b_gemma4-e4b_wikitext2_w4096",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",
