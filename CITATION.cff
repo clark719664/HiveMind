@@ -10,8 +10,8 @@ authors:
 repository-code: "https://github.com/xaviercallens/HiveMind"
 url: "https://github.com/xaviercallens/HiveMind"
 license: MIT
-version: 2.3.0
-doi: 10.5281/zenodo.23601925
+version: 2.3.1
+doi: 10.5281/zenodo.23602528
 date-released: "2026-10-23"
 keywords:
   - decentralized-training
@@ -543,6 +543,51 @@ references:
     year: 2025
     url: "https://arxiv.org/abs/2512.17131"
     notes: "Meta Superintelligence Labs"
+  - type: article
+    title: "A laboratory method for AI-assisted science: formal proof, exact arithmetic, controlled experiment, and a claim ledger, tested for a month on the Navier-Stokes problem"
+    authors:
+      - family-names: Callens
+        given-names: Xavier
+    year: 2026
+    doi: 10.5281/zenodo.22829767
+    url: "https://doi.org/10.5281/zenodo.22829767"
+    notes: "Zenodo, v1.10.2; protocol of docs/RESEARCH_PROGRAM.md section 4"
+  - type: article
+    title: "Karpathy-autoresearch Screening and Machine-Checked Elenchus Deep-Dive Across Fermat's Last Theorem, Navier-Stokes Admissibility Censorship, and Kinetic Spectral Caps"
+    authors:
+      - family-names: Callens
+        given-names: Xavier
+    year: 2026
+    doi: 10.5281/zenodo.23467992
+    url: "https://doi.org/10.5281/zenodo.23467992"
+    notes: "Zenodo, 1.0; screening loop for the 0.5B E5 sweep (HM-S9-14)"
+  - type: article
+    title: "RunuX: Deterministic Fixed-Point Attention and Measured PolarQuant KV-Cache Compression on a Commodity GPU, with a Hardware Test of Its TPU Claims"
+    authors:
+      - family-names: Callens
+        given-names: Xavier
+    year: 2026
+    doi: 10.5281/zenodo.22879667
+    url: "https://doi.org/10.5281/zenodo.22879667"
+    notes: "Zenodo, 2.0.0; KV-cache measurement E11 must beat (HM-S10-05); runtime code not reused"
+  - type: article
+    title: "Non-Equilibrium Hopfield-Ninio Proofreading, Chimeric ART-Exo Fidelity, Gosset E8 Dicodon Quantization, and Topological DNA Supercoiling in LeanFlow, rusty-SUNDIALS, and Lean 4"
+    authors:
+      - family-names: Callens
+        given-names: Xavier
+    year: 2026
+    doi: 10.5281/zenodo.23526783
+    url: "https://doi.org/10.5281/zenodo.23526783"
+    notes: "Zenodo, 3; second user of the E8 decoder family (HM-S10-07)"
+  - type: article
+    title: "Laya-LoRA Coding Companion: Asymmetric Dual-Process Test-Time Compute, Full-Scale Curriculum on 10 Structured Coding Datasets, and Serverless Multi-Tier Inference Infrastructure on GCP"
+    authors:
+      - family-names: Callens
+        given-names: Xavier
+    year: 2026
+    doi: 10.5281/zenodo.23095224
+    url: "https://doi.org/10.5281/zenodo.23095224"
+    notes: "Zenodo, camera-ready v3; candidate real workload for the 8-domain campaign (HM-S10-06)"
   - type: software
     title: "fomoe: Fast Opportunistic Mixture-Of-Experts"
     authors:

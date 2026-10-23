@@ -1,11 +1,11 @@
 {
   "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-  "version": "3.5.0",
+  "version": "3.6.0",
   "is_peer_review": false,
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-23T17:44:54Z",
+  "timestamp_utc": "2026-10-23T18:43:00Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -717,8 +717,8 @@
     "tier_a_machine_checked": true
   },
   "manuscript_provenance_audit": {
-    "total_checks": 30,
-    "passed_checks": 30,
+    "total_checks": 31,
+    "passed_checks": 31,
     "failed_check_ids": [],
     "all_passed": true,
     "checks": [
@@ -982,6 +982,16 @@
         "passed": true
       },
       {
+        "check_id": "PROV-31",
+        "metric_name": "Mathlib RDA proposition theorems verified (lean4/mathlib/RDAMultiplier.lean)",
+        "expected_tokens": [
+          "3 theorems",
+          "(3 theorems over real inner-product spaces"
+        ],
+        "source_artifact": "artifacts/lean_rda_multiplier_check.json",
+        "passed": true
+      },
+      {
         "check_id": "PROV-28",
         "metric_name": "E10 E8/Z8 relative-MSE ratio at 1 bit/dim (EF off)",
         "expected_tokens": [
@@ -1018,7 +1028,7 @@
   "latex_typography_and_figures_audit": {
     "figures_verified": 4,
     "missing_figures": [],
-    "bibliography_entries": 42,
+    "bibliography_entries": 47,
     "uncited_bibitems": [],
     "undefined_citations": [],
     "formal_theorem_blocks": 3,
@@ -1061,7 +1071,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Programmatically verified 30/30 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Programmatically verified 31/31 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
         "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
       ]
     },
@@ -1083,7 +1093,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Verified 4/4 vector PDF/PNG figure pairs and 42/42 cited bibliography entries (0 uncited, 0 undefined).",
+        "Verified 4/4 vector PDF/PNG figure pairs and 47/47 cited bibliography entries (0 uncited, 0 undefined).",
         "Eliminated Overfull \\hbox (80.7pt) and fancyhdr headheight warnings via \\path{} line breaking and 21pt header height (0 Overfull \\hbox > 5pt)."
       ]
     }
@@ -1098,7 +1108,7 @@
     "architecture_receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
     "experiments_v3_receipt_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
     "champion_miner": "CyberValkyrie_FR",
-    "champion_points": 60711
+    "champion_points": 66879
   },
   "referee_reviews": [
     {

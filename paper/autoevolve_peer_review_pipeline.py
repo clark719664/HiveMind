@@ -363,6 +363,9 @@ def verify_manuscript_data_consistency(
     lean_ind = exp_v3_data.get("__lean_independent__", {})
     if lean_ind:
         _add_check("PROV-27", "independent Lean kernel gate: theorems verified / declared", [f"{lean_ind['compiled']}/{lean_ind['theorems']}", f"{lean_ind['compiled']} of {lean_ind['theorems']}"], "artifacts/lean_independent_runner_check.json")
+    lean_rda = exp_v3_data.get("__lean_rda__", {})
+    if lean_rda:
+        _add_check("PROV-31", "Mathlib RDA proposition theorems verified (lean4/mathlib/RDAMultiplier.lean)", [f"{lean_rda['compiled']} theorems", f"({lean_rda['compiled']} theorems over real inner-product spaces"], "artifacts/lean_rda_multiplier_check.json")
     e10 = exp_v3_data.get("__e10__", {})
     if e10:
         e10_ratio = float(e10["analysis"]["P10a"]["cells"]["R=1.0|EF=off"]["ratio_mean"])
@@ -476,6 +479,8 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
     e10_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_report.json"
     exp_v3_data["__e10__"] = json.loads(e10_report_path.read_text(encoding="utf-8")) if e10_report_path.exists() else {}
     lean_ind_path = PROJECT_ROOT / "artifacts" / "lean_independent_runner_check.json"
+    lean_rda_path = PROJECT_ROOT / "artifacts" / "lean_rda_multiplier_check.json"
+    exp_v3_data["__lean_rda__"] = json.loads(lean_rda_path.read_text(encoding="utf-8")) if lean_rda_path.exists() else {}
     exp_v3_data["__lean_independent__"] = json.loads(lean_ind_path.read_text(encoding="utf-8")) if lean_ind_path.exists() else {}
     e8_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E8_pilot_report.json"
     exp_v3_data["__e8__"] = json.loads(e8_report_path.read_text(encoding="utf-8")) if e8_report_path.exists() else {}
@@ -606,7 +611,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     peer_review_report = {
         "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-        "version": "3.5.0",
+        "version": "3.6.0",
         "is_peer_review": False,
         "disclosure": AUDIT_DISCLOSURE,
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
@@ -646,7 +651,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-        "version": "3.5.0",
+        "version": "3.6.0",
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
         "workspace_root": ".",
         "artifacts_and_entrypoints": {

@@ -33,6 +33,8 @@ question below is a piece of that thesis.
 | **RQ2** RDA and outer-LR retuning | Does Radial-Directional Averaging remove the need to retune the outer learning rate with M? | **P2**: under direct averaging the best `η_outer` grows with M (≈√M when learner deltas are near-orthogonal; report the measured mean pairwise cosine); under RDA the best `η_outer` is the same grid point for M ∈ {4, 8, 16}. | best `η_outer` under RDA moves by ≥ 1 grid step between M = 4 and M = 16, or deltas are not near-orthogonal (then the prediction does not apply and must be re-derived). | RDA as default merge | E5 |
 | **RQ2′** RDA as an outer-LR multiplier | Is RDA, in training, nothing but direct averaging with a per-round step multiplier `r_t = Σ w_i‖Δ_i‖ / ‖Σ w_i Δ_i‖ ≥ 1` (Proposition `prop:rda_multiplier` in the paper)? | **P9**: at the heterogeneity level where P2 applies, `log(best η_direct / best η_RDA)` lies within one √2 grid step of `log(mean r_t)` for every M. | the deviation exceeds one grid step at some M (then RDA changes the direction, not only the length, and RQ2 must be re-stated). | whether the campaign may replace RDA by a `√M`-style LR rule | E5-het |
 | **RQ9** Lattice codec for outer deltas (added 2026-10-23, leverages OptimalEnergyAI) | At matched measured rate, does E₈ blockwise quantisation of learner deltas beat scalar ℤ⁸ quantisation, and does error feedback recover the unquantised loss at 1 bit/dim? | **P10a**: relMSE(E₈)/relMSE(ℤ⁸) < 1 at 1 and 2 bits/dim (Gaussian prediction 0.86); **P10b**: loss(ℤ⁸) − loss(E₈) > 0 at 1 bit/dim with EF; **P10c**: loss(E₈, 1 bit, EF) − loss(none) ≈ 0. | P10a: ratio CI includes or exceeds 1; P10b: CI < 0; P10c: CI > 0. | default outer-delta codec of the campaign (`HM-S10-01`) | E10-lattice |
+| **RQ10** KV-cache codec for the inference ring (added 2026-10-23; leverages the RunuX KV study 10.5281/zenodo.22879667 and OptimalEnergyAI H1.6) | At equal bytes, does a lattice codec (A₂ per RoPE plane, or E₈ after a per-head transform) beat the FP8 paged KV cache on real `Qwen2.5-0.5B` keys/values? | **P11**: A₂ per RoPE plane lowers ΔNLL vs FP8-equivalent scalar quantisation at matched bits; E₈ does so only with the transform. | ΔNLL CI includes 0 at matched bytes, or FP8 wins. | page codec of `FP8PagedKVCache` (`HM-S10-05`) | E11 (prereg first) |
+| **RQ11** Spot-check replay across hardware (added 2026-10-23 from the external review of v3.5.0) | How large is `‖θ_validator − θ_k‖∞` after replaying one 50-step segment across accelerator classes (T4, RTX 2070, TPU-VM CPU), and does fixed-point replay remove it? | **P12**: same-class divergence ≤ 1e-4 (the current ε); cross-class divergence exceeds it; fixed-point replay is exact. | same-class divergence > 1e-4 (then ε itself is wrong), or cross-class ≤ 1e-4 (then matching is unnecessary). | validator assignment rule and ε of the Byzantine pillar (`HM-S10-08`) | E12 (prereg first) |
 | **RQ3** Grace window vs matched random | Is adaptive grace admission better than admitting the same expected number of extra learners at random? (lesson of WA-DiLoCo, `arXiv:2607.02544`: forecast-free policies must beat matched random) | **P3**: at equal loss, adaptive grace reaches it in fewer wall-clock seconds than matched-random admission with the same admission budget. | matched random ties or wins (then the grace window is only a budget knob and the EMA controller should be deleted). | keep or delete `AdaptiveGraceWindowController` | E5 |
 | **RQ4** Staleness gating under quorum | Does PA-CGAD still help once a quorum already excludes late learners? | **P4**: CGAD's terminal-MSE gain over un-gated outer AdamW is large without quorum (E2 reproduced) and shrinks with quorum `K < M`; it never hurts. | CGAD hurts under quorum, or its gain does not shrink. | whether to ship CGAD + quorum together | E5 (factorial) |
 | **RQ5** Ghost fraction and quality | Is Skip-Token quality loss governed by the *measured* ghost-assignment fraction rather than the ideal `N_le/N_e`? | **P5**: at a fixed ideal factor, perplexity degrades monotonically with the measured ghost fraction across routing-imbalance conditions. | no monotone relation, or the ideal factor predicts as well as the measured one. | whether to log and gate on the measured fraction (`HM-S9-02`) | E7 |
@@ -58,6 +60,8 @@ points; if the form does not fit single-host runs (R² < 0.9), say so and fall b
 ## 4. Pre-registered experiments
 
 Common protocol for every experiment:
+
+(The protocol is the one of *A laboratory method for AI-assisted science* (10.5281/zenodo.22829767): formal proof, exact arithmetic, controlled experiment and a claim ledger; the hyper-parameter search at scale uses the autoresearch screening loop of 10.5281/zenodo.23467992; the harness shape, preregister → run → ledger gate → Lean gate, is OptimalEnergyAI's.)
 
 - **Seeds**: ≥ 3 seeds per cell; report mean and 95 % t-interval; claim an effect only if the
   interval excludes zero. E1–E4 in paper v3.2.0 use a single seed (2026) and are therefore
@@ -112,6 +116,27 @@ sign without EF must hurt; negative = E₈ at ≥ 6 bits/dim must equal "none", 
 two-sided brute-force check, and the ℤ⁸/E₈ arms must realise the same rate within 0.1 bit/dim.
 Pre-registration: `artifacts/experiments/E10_lattice_prereg.json`; code:
 `src/hivemind/compress/lattice_quantizer.py` (decoders ported from OptimalEnergyAI with attribution).
+
+### E11 — Lattice KV-cache codecs for the inference ring (added 2026-10-23; decides RQ10; pre-registration still to be written)
+
+Real `Qwen2.5-0.5B` KV tensors captured with OptimalEnergyAI's `poc2_crystallized_attention/extract.py`
+(`capture_kv`, `rope_planes`), WikiText ΔNLL as the metric. Factors: codec ∈ {FP8 per-page absmax (current
+`FP8PagedKVCache`), scalar at matched bits, A₂ per RoPE plane, E₈} × transform ∈ {none, per-head KLT} × bits
+∈ {2, 3, 4} × 3 seeds (sequence samples). Controls: positive = 2-bit scalar must raise ΔNLL; negative = 8-bit
+A₂ must equal FP8 within CI; rate is *measured* (factorised entropy) as in E10, and a rate mismatch > 0.1
+bit/dim invalidates the cell. Not run yet: nothing about E11 may appear in the paper as a result.
+
+E8 amendment (from the external review of v3.5.0): the WAN factorial must include an *all-mechanisms-on* cell
+against *each-mechanism-off* cells (NF4, 2-bit DCT+EF21, Skip-Token, Skip-Attention, PA-CGAD, fixed-point
+exits) so that interactions between approximations, not only main effects, are detectable.
+
+### E12 — Spot-check replay divergence across hardware (added 2026-10-23; decides RQ11; pre-registration still to be written)
+
+One honest worker's 50-step segment (Qwen2.5-0.5B LoRA, the PoC configuration) replayed on the T4 of this
+workstation, the RTX 2070 of the PoC and the CPU of the TPU VM; metric `‖Δθ‖∞` per pair, 3 segments × 3
+seeds; cells: same class, cross class, cross class with a fixed-point replay of the attention kernel.
+Controls: positive = a tampered replay (one flipped sign) must exceed ε; negative = replay on the same device
+must give 0.0 exactly. Nothing about E12 may be stated as a result before it runs.
 
 ### E6 — Replica scaling vs inner optimizer (decides RQ6)
 
@@ -207,3 +232,15 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
 - **Decision consequences applied**: PA-CGAD stays off by default under quorum (P4); RDA stays "norm bookkeeping" in the paper's claims (P2/P9 at toy scale); the E5 rule for 0.5B gains an interval-separation clause and an LR sweep up to divergence for both merges; the E₈ codec is a selectable option, not the default, until E10b at 0.5B (`HM-S10-01`).
 - **Leveraged from the owner's other projects** (ROADMAP §3.8): OptimalEnergyAI decoders and rate accounting (E10), AutoevolveAI Lean runner (PROV-27) and APIExtractor (HM-S9-09), GWAYA zero-stub audit (78 files clean), runux signSGD as the 1-bit arm's motivation (re-implemented, licence), xavuntu `tpu_trainer.py` as the TPU-learner candidate (HM-S10-03), Xbrain/brain Rust learner feasibility (HM-S10-04).
 - Ledger: `artifacts/predictions_ledger.json` now carries E5-toy and E5-het decisions per prediction plus P9 and P10a–c.
+
+### 2026-10-23 (night) — publications leverage, RDA Proposition over ℝ, E11 design
+
+- **Formal**: the RDA-multiplier Proposition is machine-checked over real inner-product spaces in
+  `lean4/mathlib/RDAMultiplier.lean` (3 theorems; `r ≥ 1`, the Gram quadratic form, `R²/M` for orthogonal
+  common-norm deltas), gated by `anse.formal.lean_runner` with standard axioms only
+  (`artifacts/lean_rda_multiplier_check.json`, PROV-31). The RDA item of `HM-S9-08` is closed.
+- **Directions from the owner's publications** (ROADMAP §3.8): E11 KV-cache codec (RQ10, `HM-S10-05`),
+  Laya-LoRA curriculum as the campaign workload (`HM-S10-06`), one shared lattice package (`HM-S10-07`); the
+  method papers (10.5281/zenodo.22829767, 23467992) are now the cited source of §4's protocol.
+- Paper v3.5.1 (Directions subsection, 5 self-citations verified against the Zenodo API) republished on Zenodo.
+- **External review of v3.5.0 received** (provenance unstated; recorded verbatim in `paper/review/external_review_v3.5.0_2026-10-23.md` with a point-by-point response). Accepted: hardware-heterogeneity caveat on the ε-spot-check (new RQ11/E12, `HM-S10-08`), compounding-approximations threat (E8 all-on vs each-off cells), PoC-scale caveat, architecture figure, Skip-Token dropout note, PA-CGAD-under-quorum note. Declined: moving the scripted-review correction out of the manuscript. Four reported typos were PDF-text-extraction artefacts (source and PDF text checked). Paper v3.6.0.
