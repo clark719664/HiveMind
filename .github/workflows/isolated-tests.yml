@@ -1,6 +1,7 @@
 name: Isolated HiveMind tests
 
 on:
+  workflow_dispatch:
   push:
     branches: [safety/isolated-tests]
 
