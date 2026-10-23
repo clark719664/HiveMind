@@ -4,7 +4,7 @@
   "registered_before_run": true,
   "status": "exploratory - decides no prediction; E11 (E11_kv_lattice_prereg.json) alone decides P11a/P11b",
   "question": "Does the codec ranking measured by E11 on WikiText-2 at 1024 tokens hold on other Hugging Face domains and at a longer context?",
-  "code": "scripts/run_experiment_E11_kv_lattice.py --dataset {fineweb-edu, code, gsm8k} [--window 4096 --windows-per-seed 4]; identical codecs, calibration rule, controls and statistics as E11; outputs artifacts/experiments/E11b_raw_<model>_<dataset>_w<window>.json",
+  "code": "scripts/run_experiment_E11_kv_lattice.py --dataset {fineweb-edu, code, gsm8k} [--window 4096 --windows-per-seed 4]; identical codecs, calibration rule (as amended by E11_kv_lattice_prereg_amendment_1.json), controls and statistics as E11, plus one exploratory transform 'kltc' for Z, A2 and E8 at R in {2,3,4}: subtract the calibrated per-(layer, kv-head, channel) mean (a fixed fp16 table, no per-token side information) and then apply the KLT (motivated by the first E11 execution on qwen0.5b, where the k_proj bias leaves large constant channels that dominate the per-token RMS); outputs artifacts/experiments/E11b_raw_<model>_<dataset>_w<window>.json",
   "data": {
     "fineweb-edu": "HuggingFaceFW/fineweb-edu sample/10BT/000_00000.parquet; calibration = documents 0-39, evaluation = documents 1000-1599",
     "code": "codeparrot/codeparrot-clean-valid file-000000000054.json.gz (Python files); calibration = files 0-29, evaluation = files 200-899",

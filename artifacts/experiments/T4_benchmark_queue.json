@@ -11,15 +11,6 @@
    "output": "artifacts/experiments/E11_raw_qwen0.5b.json"
   },
   {
-   "name": "E11_qwen7b",
-   "argv": [
-    "scripts/run_experiment_E11_kv_lattice.py",
-    "--model",
-    "qwen7b"
-   ],
-   "output": "artifacts/experiments/E11_raw_qwen7b.json"
-  },
-  {
    "name": "E11_gemma4-e4b",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",
@@ -27,6 +18,15 @@
     "gemma4-e4b"
    ],
    "output": "artifacts/experiments/E11_raw_gemma4-e4b.json"
+  },
+  {
+   "name": "E11_qwen7b",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b"
+   ],
+   "output": "artifacts/experiments/E11_raw_qwen7b.json"
   },
   {
    "name": "E11_aggregate",
