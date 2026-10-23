@@ -318,8 +318,15 @@ class DiLoCoOuterOptimizer:
         )
 
         if self.outer_optimizer_mode != "nesterov" or self.use_cpu_flat_bucket:
-            if set(aggregated_deltas) != set(theta_prev) or any(
-                aggregated_deltas[k].shape != param.shape for k, param in theta_prev.items()
+            parameter_keys = set(theta_prev)
+            required_keys = parameter_keys
+            if self.outer_optimizer_mode == "cosine_gated_adam_decay" and synced_fragments is not None:
+                required_keys = set(synced_fragments)
+                if not required_keys <= parameter_keys:
+                    raise ValueError("synced_fragments must name existing branch parameters")
+            aggregate_keys = set(aggregated_deltas)
+            if not required_keys <= aggregate_keys or not aggregate_keys <= parameter_keys or any(
+                aggregated_deltas[k].shape != theta_prev[k].shape for k in aggregate_keys
             ):
                 raise ValueError("aggregated deltas must match all branch parameter keys and shapes")
             existing_bucket = self.cpu_buckets.get(branch_name)
