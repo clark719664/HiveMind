@@ -1107,6 +1107,7 @@ class LoopedExpertBackbone(nn.Module):
             aux_losses = aux_losses[:aux_start]
             blocks = self.get_moe_blocks()
             counts = [blk.expert_token_counts.clone() for blk in blocks]
+            ghost_counts = [blk.ghost_skipped_assignments for blk in blocks]
             devices = [hidden_states.device.index] if hidden_states.is_cuda else []
             # fork_rng leaves the caller's RNG at the end of logical execution.
             with torch.random.fork_rng(devices=devices):
@@ -1119,8 +1120,9 @@ class LoopedExpertBackbone(nn.Module):
                                                        run_args, aux_losses)
                 finally:
                     with torch.no_grad():
-                        for blk, count in zip(blocks, counts):
+                        for blk, count, ghost_count in zip(blocks, counts, ghost_counts):
                             blk.expert_token_counts.copy_(count)
+                            blk.ghost_skipped_assignments = ghost_count
         if real.any():
             self.last_mean_effective_steps = effective_steps[real].mean().item()
             self.last_early_exit_fraction = (effective_steps[real] < self.loop_steps).float().mean().item()
