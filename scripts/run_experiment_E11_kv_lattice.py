@@ -462,7 +462,7 @@ def run_model(key: str, dataset: str = "wikitext2") -> Dict[str, Any]:
     del capture
     print(f"[{key}] calibrated {len(scales)} lattice cells", flush=True)
 
-    head_dims = sorted({int(t.shape[-1]) for t in klt.values()})
+    head_dims = sorted({int(t["u"].shape[-1]) for t in klt.values()})
     cells = cell_names()
     runs: List[Dict[str, Any]] = []
     for seed in SEEDS:
