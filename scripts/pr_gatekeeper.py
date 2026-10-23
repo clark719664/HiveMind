@@ -69,16 +69,42 @@ def gh_json(args: List[str]) -> Any:
 
 
 def trust_report(pr: Dict[str, Any]) -> Dict[str, Any]:
-    """Owner-authored iff the PR author is the owner login and every commit author e-mail is the owner's."""
+    """Owner-authored iff the PR author is the owner login and the git author of EVERY commit is the owner.
+
+    GitHub lists ``Co-Authored-By`` trailers after the git author in ``commit.authors``; those trailers are
+    recorded for the report but carry no authority (a trailer cannot make a commit the owner's, and the
+    owner's own commits routinely carry an assistant trailer)."""
     author_login = (pr.get("author") or {}).get("login", "")
     commit_rows = []
     all_ok = author_login == OWNER_LOGIN
     for c in pr.get("commits", []):
-        for a in c.get("authors", []):
-            v = normalize_and_verify_owner_email(a.get("email"))
-            commit_rows.append({"sha": c.get("oid", "")[:10], "email": a.get("email"), "login": a.get("login"), "owner": v.is_authorized_owner, "rule": v.rule_id})
-            all_ok &= v.is_authorized_owner
+        authors = c.get("authors", [])
+        if not authors:
+            all_ok = False
+            continue
+        git_author = authors[0]
+        v = normalize_and_verify_owner_email(git_author.get("email"))
+        commit_rows.append({"sha": c.get("oid", "")[:10], "email": git_author.get("email"), "login": git_author.get("login"), "owner": v.is_authorized_owner, "rule": v.rule_id,
+                            "coauthor_trailers": [a.get("email") for a in authors[1:]]})
+        all_ok &= v.is_authorized_owner
     return {"author_login": author_login, "author_is_owner_login": author_login == OWNER_LOGIN, "commits": commit_rows, "owner_authored": bool(all_ok and commit_rows)}
+
+
+SCAN_EXEMPT_FILES = {"scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py"}  # they define and test the patterns
+SCAN_SKIP_SUFFIXES = (".md", ".txt", ".rst", ".tex", ".json", ".jsonl", ".csv")  # prose and data, not executed
+
+
+def scannable_diff(diff_text: str) -> str:
+    """Keep only the hunks of files whose content can execute; drop prose/data files and the gatekeeper's own files."""
+    out: List[str] = []
+    keep = True
+    for line in diff_text.splitlines():
+        if line.startswith("diff --git "):
+            path = line.split(" b/", 1)[-1] if " b/" in line else ""
+            keep = path not in SCAN_EXEMPT_FILES and not path.endswith(SCAN_SKIP_SUFFIXES)
+        if keep:
+            out.append(line)
+    return "\n".join(out)
 
 
 def forbidden_scan(diff_text: str) -> List[Dict[str, str]]:
@@ -159,7 +185,7 @@ def gate_pr(pr: Dict[str, Any], merge: bool, dry_run: bool) -> Dict[str, Any]:
         emails = [a.get("email") for c in pr.get("commits", []) for a in c.get("authors", [])]
         audit = PRSecurityScanner(trusted_maintainers={OWNER_LOGIN}).audit_pull_request(n, pr.get("title", ""), pr.get("body", "") or "", result["trust"]["author_login"], changed, commits_msgs, author_email=emails[0] if emails else None)
         result["security"] = {"critical": audit.critical_count, "high": audit.high_count, "medium": audit.medium_count, "passed": audit.critical_count == 0 and audit.high_count == 0, "findings": [f.to_dict() for f in audit.findings][:20]}
-        hits = forbidden_scan(diff)
+        hits = forbidden_scan(scannable_diff(diff))
         result["forbidden"] = {"hits": hits, "passed": not hits}
         result["gwaya_audit"] = gwaya_audit(wt, files)
         result["pytest"] = run_pytest(wt, files)
