@@ -18,8 +18,9 @@ Implements:
 from __future__ import annotations
 
 import copy
+import math
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Sequence
 
 import torch
 import torch.nn as nn
@@ -35,6 +36,9 @@ DEFAULT_EXPERT_DOMAINS = [
     "Reasoning",
     "General",
 ]
+
+# Season 8 (`HM-S8-03`): attention merge strategies for the shared backbone.
+ATTENTION_MERGE_MODES = ("uniform", "iso_cts", "tsv")
 
 
 @dataclass
@@ -61,6 +65,7 @@ class MoEUpcycleReport:
     router_initial_loss: float = 0.0
     router_final_loss: float = 0.0
     expert_utilization_distribution: dict[str, float] = field(default_factory=dict)
+    attention_merge_mode: str = "uniform"
 
 
 def initialize_domain_branches(
@@ -518,6 +523,60 @@ class TopKMoERouter(nn.Module):
         self.num_experts = new_num_experts
 
 
+def _normalize_local_expert_indices(
+    local_expert_indices: Sequence[int] | None,
+    num_experts: int,
+) -> tuple[int, ...] | None:
+    """Validate and canonicalize a FoMoE local-expert subset (`HM-S8-06`)."""
+    if local_expert_indices is None:
+        return None
+    try:
+        normalized = sorted({int(idx) for idx in local_expert_indices})
+    except (TypeError, ValueError) as exc:
+        raise ValueError("local_expert_indices must be a sequence of integers") from exc
+    if not normalized:
+        raise ValueError("local_expert_indices must contain at least one expert index")
+    if normalized[0] < 0 or normalized[-1] >= num_experts:
+        raise ValueError(
+            f"local_expert_indices must be within [0, {num_experts - 1}], got {normalized}"
+        )
+    return tuple(normalized)
+
+
+def _merge_attention_projection_deltas(
+    deltas: list[torch.Tensor],
+    weights: list[float],
+    mode: str,
+) -> torch.Tensor:
+    """Merge per-branch attention deltas with the requested `HM-S8-03` strategy."""
+    if not deltas:
+        raise ValueError("at least one attention delta is required")
+    if len(weights) != len(deltas):
+        raise ValueError("weights and deltas must have the same length")
+    if mode == "iso_cts":
+        # Import lazily: `hivemind.swarm` imports the full swarm stack.
+        from hivemind.swarm.diloco_nextgen import ReputationWeightedIsoCTSMerger
+
+        key = "__btm_attention_delta__"
+        base_state = {key: torch.zeros_like(deltas[0])}
+        worker_states = [{key: delta} for delta in deltas]
+        # Uniform scaling is applied by the caller; keep the merger's TIES/ISO-CTS
+        # spectral isotropy without inflating the merged delta by `scaling_lambda`.
+        merger = ReputationWeightedIsoCTSMerger(scaling_lambda=1.0)
+        merged_state, _ = merger.merge_worker_deltas(
+            base_lora_state=base_state,
+            worker_lora_states=worker_states,
+            worker_reputation_weights=weights,
+        )
+        return merged_state[key]
+    if mode == "tsv":
+        from hivemind.swarm.diloco_nextgen import TSVDecorrelatedMerger
+
+        merged, _ = TSVDecorrelatedMerger.merge_2d_deltas(deltas, weights)
+        return merged
+    raise ValueError(f"Unsupported attention merge mode: {mode!r}")
+
+
 class SparseMoEMLPBlock(nn.Module):
     """Phase C Upcycled Sparse MoE Layer replacing a dense Qwen/Gemma MLP block.
 
@@ -552,6 +611,20 @@ class SparseMoEMLPBlock(nn.Module):
         self.experts = nn.ModuleList(experts)
         self.last_aux_loss: torch.Tensor = torch.tensor(0.0)
         self.register_buffer("expert_token_counts", torch.zeros(self.num_experts, dtype=torch.long))
+        # Season 8 (`HM-S8-06`): FoMoE partial-replica routing state.
+        self.local_expert_indices: tuple[int, ...] | None = None
+        self.ghost_skipped_assignments: int = 0
+
+    def set_local_expert_subset(self, local_expert_indices: Sequence[int] | None) -> None:
+        """Restrict this worker to `M < E` resident experts (`HM-S8-06`).
+
+        Routing assignments that target any non-resident Ghost Expert are dropped
+        locally (`Skip-Token`), so no remote FFN activation RPC is ever issued.
+        Passing `None` restores the full-replica default.
+        """
+        self.local_expert_indices = _normalize_local_expert_indices(
+            local_expert_indices, self.num_experts
+        )
 
     def hotplug_expert(self, domain_name: str, expert_module: nn.Module) -> None:
         """Hot-plug a newly converged domain expert E_{N+1} into this MoE layer."""
@@ -570,13 +643,26 @@ class SparseMoEMLPBlock(nn.Module):
         routing_weights, selected_experts, aux_loss = self.router(flat_x)
         self.last_aux_loss = aux_loss
 
+        if self.local_expert_indices is None:
+            resident_indices: Sequence[int] = range(self.num_experts)
+        else:
+            resident_indices = self.local_expert_indices
+            resident_tensor = torch.tensor(
+                self.local_expert_indices,
+                dtype=selected_experts.dtype,
+                device=selected_experts.device,
+            )
+            ghost_mask = ~torch.isin(selected_experts, resident_tensor)
+            self.ghost_skipped_assignments += int(ghost_mask.sum().item())
+
         final_hidden = torch.zeros_like(flat_x)
         with torch.no_grad():
             for k_idx in range(self.top_k):
                 binc = torch.bincount(selected_experts[:, k_idx], minlength=self.num_experts)
                 self.expert_token_counts.add_(binc.to(self.expert_token_counts.device))
 
-        for expert_idx, expert_layer in enumerate(self.experts):
+        for expert_idx in resident_indices:
+            expert_layer = self.experts[expert_idx]
             # Find tokens routed to expert_idx in any of the top_k slots
             mask = selected_experts == expert_idx  # [N, top_k]
             if not mask.any():
@@ -608,6 +694,8 @@ class UpcycledSparseMoEModel(nn.Module):
         self.router_aux_loss_coef = router_aux_loss_coef
         # Season 4 (`HM-S4-05`): telemetry of the last SVD rank-adaptive projection.
         self.last_rank_projection_report: SVDLoARankProjectionReport | None = None
+        # Season 8 (`HM-S8-06`): FoMoE partial-replica expert residency.
+        self.local_expert_indices: tuple[int, ...] | None = None
 
     def get_moe_blocks(self) -> list[SparseMoEMLPBlock]:
         blocks: list[SparseMoEMLPBlock] = []
@@ -616,9 +704,27 @@ class UpcycledSparseMoEModel(nn.Module):
                 blocks.append(mod)
         return blocks
 
+    def set_local_expert_subset(self, local_expert_indices: Sequence[int] | None) -> None:
+        """Set the resident-expert subset on every MoE block (`HM-S8-06`).
+
+        Workers holding only `M < E` experts locally drop Ghost-Expert routing
+        assignments (`Skip-Token`) instead of issuing remote FFN activation RPCs.
+        """
+        self.local_expert_indices = _normalize_local_expert_indices(
+            local_expert_indices, self.num_experts
+        )
+        for blk in self.get_moe_blocks():
+            blk.set_local_expert_subset(self.local_expert_indices)
+
+    @property
+    def ghost_skipped_assignments(self) -> int:
+        """Total token-to-expert assignments dropped by FoMoE `Skip-Token` routing."""
+        return sum(blk.ghost_skipped_assignments for blk in self.get_moe_blocks())
+
     def reset_routing_telemetry(self) -> None:
         for blk in self.get_moe_blocks():
             blk.expert_token_counts.zero_()
+            blk.ghost_skipped_assignments = 0
 
     def get_expert_utilization(self) -> dict[str, float]:
         counts = torch.zeros(self.num_experts, dtype=torch.float64)
@@ -1119,12 +1225,52 @@ def upcycle_branches_to_sparse_moe(
     target_device: torch.device | None = None,
     target_dtype: torch.dtype = torch.float32,
     in_place: bool = False,
+    attention_merge_mode: str = "uniform",
+    branch_reputations: dict[str, float] | None = None,
 ) -> tuple[UpcycledSparseMoEModel, MoEUpcycleReport]:
-    """Phase C: Convert E converged QLoRA domain branches into a unified Sparse MoE model."""
+    """Phase C: Convert E converged QLoRA domain branches into a unified Sparse MoE model.
+
+    `attention_merge_mode` selects how the shared self-attention LoRA deltas are
+    merged (`HM-S8-03`):
+      - `"uniform"`: arithmetic mean across branches (legacy behavior).
+      - `"iso_cts"`: reputation-weighted TIES + ISO-CTS spectral isotropy.
+      - `"tsv"`: Task Singular Vector subspace decorrelation.
+
+    `branch_reputations` optionally supplies a non-negative reputation weight per
+    domain for the `"iso_cts"` and `"tsv"` strategies.
+    """
     expert_domains = list(branch_lora_states.keys())
     E = len(expert_domains)
     if E < 2:
         raise ValueError(f"Sparse MoE upcycling requires at least 2 expert branches, got {E}.")
+    if attention_merge_mode not in ATTENTION_MERGE_MODES:
+        raise ValueError(
+            f"attention_merge_mode must be one of {ATTENTION_MERGE_MODES}, "
+            f"got {attention_merge_mode!r}"
+        )
+
+    branch_weights = [1.0] * E
+    if branch_reputations is not None:
+        unknown_domains = sorted(set(branch_reputations) - set(expert_domains))
+        if unknown_domains:
+            raise ValueError(
+                f"branch_reputations contains unknown domains: {unknown_domains}"
+            )
+        for idx, domain in enumerate(expert_domains):
+            try:
+                weight = float(branch_reputations.get(domain, 1.0))
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"branch_reputations[{domain!r}] must be a finite non-negative number"
+                ) from exc
+            if not math.isfinite(weight) or weight < 0.0:
+                raise ValueError(
+                    f"branch_reputations[{domain!r}] must be finite and non-negative, "
+                    f"got {weight}"
+                )
+            branch_weights[idx] = weight
+        if not any(weight > 0.0 for weight in branch_weights):
+            raise ValueError("branch_reputations must contain at least one positive weight")
 
     scaling = float(lora_alpha) / float(lora_rank_r)
 
@@ -1171,12 +1317,18 @@ def upcycle_branches_to_sparse_moe(
                     src_layer.post_attention_layernorm.weight.detach().to(dtype=target_dtype, device="cpu")
                 )
 
-            # 1. Average self-attention LoRA adapters across all E branches and merge into W_0
+            # 1. Merge self-attention LoRA adapters across all E branches into W_0
             for proj_name in ("q_proj", "k_proj", "v_proj", "o_proj"):
                 src_proj = getattr(src_layer.self_attn, proj_name)
                 base_lin = getattr(src_proj, "base_layer", src_proj)
-                avg_delta = torch.zeros_like(base_lin.weight.data, dtype=torch.float32, device=work_dev)
-                for domain in expert_domains:
+                avg_delta = (
+                    torch.zeros_like(base_lin.weight.data, dtype=torch.float32, device=work_dev)
+                    if attention_merge_mode == "uniform"
+                    else None
+                )
+                projection_deltas: list[torch.Tensor] = []
+                projection_weights: list[float] = []
+                for branch_idx, domain in enumerate(expert_domains):
                     ab = _extract_ab_pair(
                         branch_lora_states[domain],
                         layer_idx=layer_idx,
@@ -1185,13 +1337,36 @@ def upcycle_branches_to_sparse_moe(
                     if ab is not None:
                         a_mat = ab[0].to(device=work_dev, dtype=torch.float32)
                         b_mat = ab[1].to(device=work_dev, dtype=torch.float32)
-                        avg_delta.add_(scaling * (b_mat @ a_mat))
-                        del a_mat, b_mat
-                avg_delta.div_(float(E))
+                        delta = scaling * (b_mat @ a_mat)
+                        if attention_merge_mode == "uniform":
+                            assert avg_delta is not None
+                            avg_delta.add_(delta)
+                        else:
+                            projection_deltas.append(delta)
+                            projection_weights.append(branch_weights[branch_idx])
+                        del a_mat, b_mat, delta
+
+                if attention_merge_mode == "uniform":
+                    assert avg_delta is not None
+                    # Missing adapters contribute a zero delta, preserving the 1/E mean.
+                    avg_delta.div_(float(E))
+                    merged_delta = avg_delta
+                elif projection_deltas:
+                    merged_delta = _merge_attention_projection_deltas(
+                        projection_deltas,
+                        projection_weights,
+                        attention_merge_mode,
+                    )
+                    del projection_deltas
+                else:
+                    merged_delta = torch.zeros_like(
+                        base_lin.weight.data, dtype=torch.float32, device=work_dev
+                    )
+                merged_delta = merged_delta.to(device=work_dev, dtype=torch.float32)
 
                 if in_place:
                     base_lin.weight.data.copy_(
-                        (base_lin.weight.data.to(torch.float32) + avg_delta).to(target_dtype)
+                        (base_lin.weight.data.to(torch.float32) + merged_delta).to(target_dtype)
                     )
                     setattr(dst_layer.self_attn, proj_name, base_lin)
                 else:
@@ -1203,12 +1378,12 @@ def upcycle_branches_to_sparse_moe(
                         device=work_dev,
                         dtype=target_dtype,
                     )
-                    new_attn_lin.weight.copy_((w0 + avg_delta).to(target_dtype))
+                    new_attn_lin.weight.copy_((w0 + merged_delta).to(target_dtype))
                     if base_lin.bias is not None and new_attn_lin.bias is not None:
                         new_attn_lin.bias.copy_(base_lin.bias.detach().to(device=work_dev, dtype=target_dtype))
                     setattr(dst_layer.self_attn, proj_name, new_attn_lin)
                     del w0
-                del avg_delta
+                del merged_delta
                 attn_merged_count += 1
 
             # 2. Construct E distinct FFN experts: W_{ffn, e} = W_0_ffn + (alpha/r) * B_e @ A_e
@@ -1312,6 +1487,7 @@ def upcycle_branches_to_sparse_moe(
         ffn_expert_modules_created=ffn_experts_created,
         total_moe_parameters=total_moe_params,
         active_parameters_per_token=active_params,
+        attention_merge_mode=attention_merge_mode,
     )
     return moe_model, report
 
