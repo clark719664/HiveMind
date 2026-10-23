@@ -1,6 +1,6 @@
 {
-  "schema_version": "hivemind-predictions-ledger/v1.0",
-  "updated_utc": "2026-10-23T14:04:25Z",
+  "schema_version": "hivemind-predictions-ledger/v1.1",
+  "updated_utc": "2026-10-23T17:43:57Z",
   "predictions": {
     "P1": {
       "rq": "RQ1",
@@ -14,29 +14,205 @@
       "rq": "RQ2",
       "claim": "best outer LR grows with M under direct averaging and is constant under RDA (conditional on near-orthogonal learner deltas)",
       "decided_by": "E5",
-      "status": "inapplicable",
-      "status_detail": "inapplicable (learner deltas not near-orthogonal)",
-      "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
-      "artifact": "artifacts/experiments/E5_toy_report.json",
-      "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
-      "prereg_sha256": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+      "status": "refuted",
+      "status_detail": "refuted",
+      "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+      "artifact": "artifacts/experiments/E5_het_report.json",
+      "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+      "prereg_sha256": "d274e93ebd48c28a0b515393412107bc69762c0d99befbe10195dd21394691eb",
       "controls_all_passed": true,
       "evidence": {
-        "best_outer_lr": {
+        "best_outer_lr_at_rho_max": {
           "direct": {
-            "M4": 1.1,
-            "M8": 1.1
+            "M4": 6.7882,
+            "M8": 6.7882
           },
           "rda": {
-            "M4": 1.1,
-            "M8": 1.1
+            "M4": 4.8,
+            "M8": 4.8
           }
         },
-        "mean_pairwise_cosine_all_ungated": 0.9094331058910916,
-        "applicable": false,
-        "status": "inapplicable (learner deltas not near-orthogonal)"
+        "best_outer_lr_all_rho": {
+          "rho0.0": {
+            "direct": {
+              "M4": 2.4,
+              "M8": 2.4
+            },
+            "rda": {
+              "M4": 2.4,
+              "M8": 2.4
+            }
+          },
+          "rho1.0": {
+            "direct": {
+              "M4": 2.4,
+              "M8": 2.4
+            },
+            "rda": {
+              "M4": 2.4,
+              "M8": 2.4
+            }
+          },
+          "rho2.0": {
+            "direct": {
+              "M4": 2.4,
+              "M8": 2.4
+            },
+            "rda": {
+              "M4": 2.4,
+              "M8": 2.4
+            }
+          },
+          "rho4.0": {
+            "direct": {
+              "M4": 6.7882,
+              "M8": 6.7882
+            },
+            "rda": {
+              "M4": 4.8,
+              "M8": 4.8
+            }
+          }
+        },
+        "mean_pairwise_cosine_at_rho_max": 0.07859453052333813,
+        "applicable": true,
+        "grid_boundary_hit": false,
+        "outer_lr_grid_used": [
+          0.15,
+          0.2121,
+          0.3,
+          0.4243,
+          0.6,
+          0.8485,
+          1.2,
+          1.6971,
+          2.4,
+          3.3941,
+          4.8,
+          6.7882,
+          9.6,
+          13.5765
+        ],
+        "status": "refuted"
       },
-      "note": "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+      "note": "decided at toy scale (E5-het supersedes E5-toy); the full-scale E5 cell on Qwen2.5-0.5B is still open",
+      "decisions": [
+        {
+          "experiment": "E5-toy",
+          "status": "inapplicable",
+          "status_detail": "inapplicable (learner deltas not near-orthogonal)",
+          "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+          "artifact": "artifacts/experiments/E5_toy_report.json",
+          "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
+          "evidence": {
+            "best_outer_lr": {
+              "direct": {
+                "M4": 1.1,
+                "M8": 1.1
+              },
+              "rda": {
+                "M4": 1.1,
+                "M8": 1.1
+              }
+            },
+            "mean_pairwise_cosine_all_ungated": 0.9094331058910916,
+            "applicable": false,
+            "status": "inapplicable (learner deltas not near-orthogonal)"
+          }
+        },
+        {
+          "experiment": "E5-het",
+          "status": "refuted",
+          "status_detail": "refuted",
+          "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+          "artifact": "artifacts/experiments/E5_het_report.json",
+          "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+          "evidence": {
+            "best_outer_lr_at_rho_max": {
+              "direct": {
+                "M4": 6.7882,
+                "M8": 6.7882
+              },
+              "rda": {
+                "M4": 4.8,
+                "M8": 4.8
+              }
+            },
+            "best_outer_lr_all_rho": {
+              "rho0.0": {
+                "direct": {
+                  "M4": 2.4,
+                  "M8": 2.4
+                },
+                "rda": {
+                  "M4": 2.4,
+                  "M8": 2.4
+                }
+              },
+              "rho1.0": {
+                "direct": {
+                  "M4": 2.4,
+                  "M8": 2.4
+                },
+                "rda": {
+                  "M4": 2.4,
+                  "M8": 2.4
+                }
+              },
+              "rho2.0": {
+                "direct": {
+                  "M4": 2.4,
+                  "M8": 2.4
+                },
+                "rda": {
+                  "M4": 2.4,
+                  "M8": 2.4
+                }
+              },
+              "rho4.0": {
+                "direct": {
+                  "M4": 6.7882,
+                  "M8": 6.7882
+                },
+                "rda": {
+                  "M4": 4.8,
+                  "M8": 4.8
+                }
+              }
+            },
+            "mean_pairwise_cosine_at_rho_max": 0.07859453052333813,
+            "applicable": true,
+            "grid_boundary_hit": false,
+            "outer_lr_grid_used": [
+              0.15,
+              0.2121,
+              0.3,
+              0.4243,
+              0.6,
+              0.8485,
+              1.2,
+              1.6971,
+              2.4,
+              3.3941,
+              4.8,
+              6.7882,
+              9.6,
+              13.5765
+            ],
+            "status": "refuted"
+          }
+        }
+      ],
+      "manipulation_check": {
+        "cosine_by_rho": {
+          "0.0": 0.9086253954771486,
+          "1.0": 0.6274166205050106,
+          "2.0": 0.28255759334293995,
+          "4.0": 0.07859453052333813
+        },
+        "monotone_non_increasing": true,
+        "cosine_at_rho_max_le_0.3": true
+      }
     },
     "P3": {
       "rq": "RQ3",
@@ -44,18 +220,58 @@
       "decided_by": "E5",
       "status": "inconclusive",
       "status_detail": "inconclusive (CI includes 0)",
-      "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
-      "artifact": "artifacts/experiments/E5_toy_report.json",
-      "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
-      "prereg_sha256": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+      "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+      "artifact": "artifacts/experiments/E5_het_report.json",
+      "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+      "prereg_sha256": "d274e93ebd48c28a0b515393412107bc69762c0d99befbe10195dd21394691eb",
       "controls_all_passed": true,
       "evidence": {
-        "paired_diff_random_minus_adaptive_mean": -0.0004166666666666763,
-        "ci95_halfwidth_df2": 0.00220869810489985,
+        "paired_diff_random_minus_adaptive_mean": 0.002654166666666643,
+        "ci95_halfwidth_df2": 0.012302832453966236,
         "n_pairs": 24,
         "status": "inconclusive (CI includes 0)"
       },
-      "note": "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+      "note": "decided at toy scale (E5-het supersedes E5-toy); the full-scale E5 cell on Qwen2.5-0.5B is still open",
+      "decisions": [
+        {
+          "experiment": "E5-toy",
+          "status": "inconclusive",
+          "status_detail": "inconclusive (CI includes 0)",
+          "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+          "artifact": "artifacts/experiments/E5_toy_report.json",
+          "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
+          "evidence": {
+            "paired_diff_random_minus_adaptive_mean": -0.0004166666666666763,
+            "ci95_halfwidth_df2": 0.00220869810489985,
+            "n_pairs": 24,
+            "status": "inconclusive (CI includes 0)"
+          }
+        },
+        {
+          "experiment": "E5-het",
+          "status": "inconclusive",
+          "status_detail": "inconclusive (CI includes 0)",
+          "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+          "artifact": "artifacts/experiments/E5_het_report.json",
+          "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+          "evidence": {
+            "paired_diff_random_minus_adaptive_mean": 0.002654166666666643,
+            "ci95_halfwidth_df2": 0.012302832453966236,
+            "n_pairs": 24,
+            "status": "inconclusive (CI includes 0)"
+          }
+        }
+      ],
+      "manipulation_check": {
+        "cosine_by_rho": {
+          "0.0": 0.9086253954771486,
+          "1.0": 0.6274166205050106,
+          "2.0": 0.28255759334293995,
+          "4.0": 0.07859453052333813
+        },
+        "monotone_non_increasing": true,
+        "cosine_at_rho_max_le_0.3": true
+      }
     },
     "P4": {
       "rq": "RQ4",
@@ -63,26 +279,146 @@
       "decided_by": "E5",
       "status": "refuted",
       "status_detail": "refuted",
-      "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
-      "artifact": "artifacts/experiments/E5_toy_report.json",
-      "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
-      "prereg_sha256": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+      "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+      "artifact": "artifacts/experiments/E5_het_report.json",
+      "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+      "prereg_sha256": "d274e93ebd48c28a0b515393412107bc69762c0d99befbe10195dd21394691eb",
       "controls_all_passed": true,
       "evidence": {
-        "quorum_grace": {
-          "gain_mean": -0.0006273786226908366,
-          "gain_ci95": 0.0002902091365898729,
-          "n": 12
-        },
-        "all": {
-          "gain_mean": 0.0,
-          "gain_ci95": 0.0,
-          "n": 12
+        "gains": {
+          "rho0.0|quorum_grace": {
+            "gain_mean": -0.005307992299397786,
+            "gain_ci95": 0.004021832585569666,
+            "n": 12
+          },
+          "rho0.0|all": {
+            "gain_mean": 0.0,
+            "gain_ci95": 0.0,
+            "n": 12
+          },
+          "rho1.0|quorum_grace": {
+            "gain_mean": -0.0038393537203470864,
+            "gain_ci95": 0.002384113524620498,
+            "n": 12
+          },
+          "rho1.0|all": {
+            "gain_mean": 0.0,
+            "gain_ci95": 0.0,
+            "n": 12
+          },
+          "rho2.0|quorum_grace": {
+            "gain_mean": -0.002680361270904541,
+            "gain_ci95": 0.0018125482283396863,
+            "n": 12
+          },
+          "rho2.0|all": {
+            "gain_mean": 0.0,
+            "gain_ci95": 0.0,
+            "n": 12
+          },
+          "rho4.0|quorum_grace": {
+            "gain_mean": -0.002543787161509196,
+            "gain_ci95": 0.002320126241937673,
+            "n": 12
+          },
+          "rho4.0|all": {
+            "gain_mean": 0.0,
+            "gain_ci95": 0.0,
+            "n": 12
+          }
         },
         "negative_control_all_gain_is_zero": true,
         "status": "refuted"
       },
-      "note": "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+      "note": "decided at toy scale (E5-het supersedes E5-toy); the full-scale E5 cell on Qwen2.5-0.5B is still open",
+      "decisions": [
+        {
+          "experiment": "E5-toy",
+          "status": "refuted",
+          "status_detail": "refuted",
+          "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+          "artifact": "artifacts/experiments/E5_toy_report.json",
+          "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
+          "evidence": {
+            "quorum_grace": {
+              "gain_mean": -0.0006273786226908366,
+              "gain_ci95": 0.0002902091365898729,
+              "n": 12
+            },
+            "all": {
+              "gain_mean": 0.0,
+              "gain_ci95": 0.0,
+              "n": 12
+            },
+            "negative_control_all_gain_is_zero": true,
+            "status": "refuted"
+          }
+        },
+        {
+          "experiment": "E5-het",
+          "status": "refuted",
+          "status_detail": "refuted",
+          "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+          "artifact": "artifacts/experiments/E5_het_report.json",
+          "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+          "evidence": {
+            "gains": {
+              "rho0.0|quorum_grace": {
+                "gain_mean": -0.005307992299397786,
+                "gain_ci95": 0.004021832585569666,
+                "n": 12
+              },
+              "rho0.0|all": {
+                "gain_mean": 0.0,
+                "gain_ci95": 0.0,
+                "n": 12
+              },
+              "rho1.0|quorum_grace": {
+                "gain_mean": -0.0038393537203470864,
+                "gain_ci95": 0.002384113524620498,
+                "n": 12
+              },
+              "rho1.0|all": {
+                "gain_mean": 0.0,
+                "gain_ci95": 0.0,
+                "n": 12
+              },
+              "rho2.0|quorum_grace": {
+                "gain_mean": -0.002680361270904541,
+                "gain_ci95": 0.0018125482283396863,
+                "n": 12
+              },
+              "rho2.0|all": {
+                "gain_mean": 0.0,
+                "gain_ci95": 0.0,
+                "n": 12
+              },
+              "rho4.0|quorum_grace": {
+                "gain_mean": -0.002543787161509196,
+                "gain_ci95": 0.002320126241937673,
+                "n": 12
+              },
+              "rho4.0|all": {
+                "gain_mean": 0.0,
+                "gain_ci95": 0.0,
+                "n": 12
+              }
+            },
+            "negative_control_all_gain_is_zero": true,
+            "status": "refuted"
+          }
+        }
+      ],
+      "manipulation_check": {
+        "cosine_by_rho": {
+          "0.0": 0.9086253954771486,
+          "1.0": 0.6274166205050106,
+          "2.0": 0.28255759334293995,
+          "4.0": 0.07859453052333813
+        },
+        "monotone_non_increasing": true,
+        "cosine_at_rho_max_le_0.3": true
+      }
     },
     "P5": {
       "rq": "RQ5",
@@ -115,13 +451,137 @@
       "status": "untested",
       "scale": null,
       "artifact": null
+    },
+    "P9": {
+      "rq": "RQ2'",
+      "claim": "RDA acts as an outer-LR multiplier: log(best_lr_direct / best_lr_rda) within one grid step of log(mean ||RDA||/||direct||)",
+      "decided_by": "E5-het",
+      "status": "refuted",
+      "status_detail": "refuted",
+      "scale": "toy synthetic LM with per-learner teachers (rho = 4, delta cosine < 0.3), single host, 3 seeds (E5-het)",
+      "artifact": "artifacts/experiments/E5_het_report.json",
+      "receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+      "prereg_sha256": "d274e93ebd48c28a0b515393412107bc69762c0d99befbe10195dd21394691eb",
+      "controls_all_passed": true,
+      "manipulation_check": {
+        "cosine_by_rho": {
+          "0.0": 0.9086253954771486,
+          "1.0": 0.6274166205050106,
+          "2.0": 0.28255759334293995,
+          "4.0": 0.07859453052333813
+        },
+        "monotone_non_increasing": true,
+        "cosine_at_rho_max_le_0.3": true
+      },
+      "evidence": {
+        "status": "refuted"
+      },
+      "note": "decided at toy scale only"
+    },
+    "P10a": {
+      "rq": "RQ9",
+      "claim": "E8 blockwise quantisation of outer deltas has lower distortion than Z8 at matched measured rate",
+      "decided_by": "E10-lattice",
+      "status": "supported",
+      "status_detail": "supported; R in [2.0] invalid (matched-rate control failed)",
+      "scale": "toy LoRA deltas (2048 coords) on the E5-het rho = 4, M = 8 testbed, 3 seeds (E10-lattice)",
+      "artifact": "artifacts/experiments/E10_lattice_report.json",
+      "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335",
+      "prereg_sha256": "3686099d8fbd5b89a0ad9e88ce7d51552c65e33f6fbb5ad78dcdf7e12a2140b0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "supported; R in [2.0] invalid (matched-rate control failed)",
+        "cells": {
+          "R=1.0|EF=off": {
+            "ratio_mean": 0.7893593190568766,
+            "ci95": 0.01640917554606678,
+            "gaussian_prediction": 0.86,
+            "rate_matched": true
+          },
+          "R=1.0|EF=on": {
+            "ratio_mean": 0.8087770928416321,
+            "ci95": 0.010590190567645702,
+            "gaussian_prediction": 0.86,
+            "rate_matched": true
+          },
+          "R=2.0|EF=off": {
+            "ratio_mean": 0.5155690542979398,
+            "ci95": 0.005020245962809805,
+            "gaussian_prediction": 0.86,
+            "rate_matched": false
+          },
+          "R=2.0|EF=on": {
+            "ratio_mean": 0.5195938546827842,
+            "ci95": 0.007472854009909944,
+            "gaussian_prediction": 0.86,
+            "rate_matched": false
+          }
+        }
+      },
+      "note": "decided at toy scale only"
+    },
+    "P10b": {
+      "rq": "RQ9",
+      "claim": "E8 reaches a lower held-out loss than Z8 at matched rate (headline: 1 bit/dim with error feedback)",
+      "decided_by": "E10-lattice",
+      "status": "inconclusive",
+      "status_detail": "inconclusive (CI includes 0)",
+      "scale": "toy LoRA deltas (2048 coords) on the E5-het rho = 4, M = 8 testbed, 3 seeds (E10-lattice)",
+      "artifact": "artifacts/experiments/E10_lattice_report.json",
+      "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335",
+      "prereg_sha256": "3686099d8fbd5b89a0ad9e88ce7d51552c65e33f6fbb5ad78dcdf7e12a2140b0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "inconclusive (CI includes 0)",
+        "cells": {
+          "R=1.0|EF=off": {
+            "z8_minus_e8_mean": 0.0673065185546875,
+            "ci95": 0.2585986337928207,
+            "status": "inconclusive (CI includes 0)"
+          },
+          "R=1.0|EF=on": {
+            "z8_minus_e8_mean": -0.0027511119842529297,
+            "ci95": 0.018701682730864082,
+            "status": "inconclusive (CI includes 0)"
+          },
+          "R=2.0|EF=off": {
+            "z8_minus_e8_mean": -0.006330092748006185,
+            "ci95": 0.05160960229648556,
+            "status": "invalid (matched-rate control failed)"
+          },
+          "R=2.0|EF=on": {
+            "z8_minus_e8_mean": -0.0019861062367757163,
+            "ci95": 0.011916309203581955,
+            "status": "invalid (matched-rate control failed)"
+          }
+        }
+      },
+      "note": "decided at toy scale only"
+    },
+    "P10c": {
+      "rq": "RQ9",
+      "claim": "error feedback recovers the unquantised loss at 1 bit/dim with E8",
+      "decided_by": "E10-lattice",
+      "status": "supported",
+      "status_detail": "supported",
+      "scale": "toy LoRA deltas (2048 coords) on the E5-het rho = 4, M = 8 testbed, 3 seeds (E10-lattice)",
+      "artifact": "artifacts/experiments/E10_lattice_report.json",
+      "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335",
+      "prereg_sha256": "3686099d8fbd5b89a0ad9e88ce7d51552c65e33f6fbb5ad78dcdf7e12a2140b0",
+      "controls_all_passed": true,
+      "evidence": {
+        "e8_r1_ef_minus_none_mean": -0.011964797973632812,
+        "ci95": 0.07729458851962026,
+        "status": "supported"
+      },
+      "note": "decided at toy scale only"
     }
   },
   "status_counts": {
     "untested": 5,
-    "inapplicable": 1,
-    "inconclusive": 1,
-    "refuted": 1
+    "refuted": 3,
+    "inconclusive": 2,
+    "supported": 2
   },
-  "receipt_sha256": "fd59d1cd0383552f6f3a54f83112342438001851310ba0e545edcf6375204ccd"
+  "receipt_sha256": "e51905a53983cbd609902bfdb54d13b8f33e0e729f0b38a6e1a6d0f9c34f2475"
 }

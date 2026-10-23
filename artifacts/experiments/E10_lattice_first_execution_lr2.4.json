@@ -1,0 +1,299 @@
+{
+  "schema_version": "hivemind-experiment-E10-lattice-first-execution/v1.0",
+  "experiment_id": "E10-lattice (first execution)",
+  "note": "First execution of scripts/run_experiment_E10_lattice.py, with the outer LR 2.4 that artifacts/experiments/E5_het_report.json reported as the best direct LR before the pre-registered P2/P9 grid extension (amendment 2) moved that best LR to 6.7882. Kept as a sensitivity run; the pre-registration binds E10 to the E5-het artifact, so the main report uses 6.7882. Values are copied from the run log (per-run lines printed by the script); the analysis statuses of that execution were: P10a supported (ratio 0.806 +- 0.032 at R=1, EF off; R=2 rates unmatched 2.34 vs 2.59), P10b inconclusive at R=1 with EF (+0.00002 +- 0.00005), P10c refuted by the rule (+0.00010 +- 0.00009), controls: positive, fine-scale and decoder passed, matched-rate failed at R=2 only.",
+  "outer_lr": 2.4,
+  "runs": [
+    {
+      "seed": 1,
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss": 3.9554,
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    {
+      "seed": 1,
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss": 3.9608,
+      "mean_relative_mse": 0.6516,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 1,
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss": 3.9587,
+      "mean_relative_mse": 0.7089,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 1,
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss": 3.9573,
+      "mean_relative_mse": 0.2277,
+      "mean_rate_bits_per_dim": 1.048
+    },
+    {
+      "seed": 1,
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss": 3.9555,
+      "mean_relative_mse": 0.2112,
+      "mean_rate_bits_per_dim": 1.282
+    },
+    {
+      "seed": 1,
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss": 3.9558,
+      "mean_relative_mse": 0.0356,
+      "mean_rate_bits_per_dim": 2.261
+    },
+    {
+      "seed": 1,
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss": 3.9554,
+      "mean_relative_mse": 0.0361,
+      "mean_rate_bits_per_dim": 2.348
+    },
+    {
+      "seed": 1,
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss": 3.957,
+      "mean_relative_mse": 0.187,
+      "mean_rate_bits_per_dim": 1.074
+    },
+    {
+      "seed": 1,
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss": 3.9555,
+      "mean_relative_mse": 0.175,
+      "mean_rate_bits_per_dim": 1.271
+    },
+    {
+      "seed": 1,
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss": 3.9557,
+      "mean_relative_mse": 0.0188,
+      "mean_rate_bits_per_dim": 2.514
+    },
+    {
+      "seed": 1,
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss": 3.9554,
+      "mean_relative_mse": 0.0189,
+      "mean_rate_bits_per_dim": 2.586
+    },
+    {
+      "seed": 2,
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss": 3.9675,
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    {
+      "seed": 2,
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss": 3.9729,
+      "mean_relative_mse": 0.6574,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 2,
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss": 3.9709,
+      "mean_relative_mse": 0.7149,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 2,
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss": 3.9691,
+      "mean_relative_mse": 0.215,
+      "mean_rate_bits_per_dim": 1.096
+    },
+    {
+      "seed": 2,
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss": 3.9676,
+      "mean_relative_mse": 0.2004,
+      "mean_rate_bits_per_dim": 1.314
+    },
+    {
+      "seed": 2,
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss": 3.968,
+      "mean_relative_mse": 0.0334,
+      "mean_rate_bits_per_dim": 2.303
+    },
+    {
+      "seed": 2,
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss": 3.9675,
+      "mean_relative_mse": 0.0339,
+      "mean_rate_bits_per_dim": 2.388
+    },
+    {
+      "seed": 2,
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss": 3.9689,
+      "mean_relative_mse": 0.1724,
+      "mean_rate_bits_per_dim": 1.106
+    },
+    {
+      "seed": 2,
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss": 3.9676,
+      "mean_relative_mse": 0.1634,
+      "mean_rate_bits_per_dim": 1.297
+    },
+    {
+      "seed": 2,
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss": 3.9677,
+      "mean_relative_mse": 0.0175,
+      "mean_rate_bits_per_dim": 2.549
+    },
+    {
+      "seed": 2,
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss": 3.9675,
+      "mean_relative_mse": 0.0177,
+      "mean_rate_bits_per_dim": 2.621
+    },
+    {
+      "seed": 3,
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss": 3.9664,
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    {
+      "seed": 3,
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss": 3.9746,
+      "mean_relative_mse": 0.649,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 3,
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss": 3.9719,
+      "mean_relative_mse": 0.7153,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 3,
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss": 3.9689,
+      "mean_relative_mse": 0.1795,
+      "mean_rate_bits_per_dim": 1.211
+    },
+    {
+      "seed": 3,
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss": 3.9666,
+      "mean_relative_mse": 0.1693,
+      "mean_rate_bits_per_dim": 1.416
+    },
+    {
+      "seed": 3,
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss": 3.967,
+      "mean_relative_mse": 0.0272,
+      "mean_rate_bits_per_dim": 2.447
+    },
+    {
+      "seed": 3,
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss": 3.9664,
+      "mean_relative_mse": 0.0278,
+      "mean_rate_bits_per_dim": 2.523
+    },
+    {
+      "seed": 3,
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss": 3.9684,
+      "mean_relative_mse": 0.1428,
+      "mean_rate_bits_per_dim": 1.222
+    },
+    {
+      "seed": 3,
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss": 3.9665,
+      "mean_relative_mse": 0.1378,
+      "mean_rate_bits_per_dim": 1.404
+    },
+    {
+      "seed": 3,
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss": 3.9667,
+      "mean_relative_mse": 0.0143,
+      "mean_rate_bits_per_dim": 2.703
+    },
+    {
+      "seed": 3,
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss": 3.9664,
+      "mean_relative_mse": 0.0145,
+      "mean_rate_bits_per_dim": 2.761
+    },
+    {
+      "seed": 1,
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss": 3.9554,
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 6.763
+    },
+    {
+      "seed": 2,
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss": 3.9675,
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 6.77
+    },
+    {
+      "seed": 3,
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss": 3.9664,
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 6.795
+    }
+  ],
+  "n_runs": 36,
+  "log_receipt_of_that_execution": "f5e406ea3579a9be3757423b535dfcd252fe69242f141473c47f0da1e0fd0f24",
+  "written_utc": "2026-10-23T17:41:17Z"
+}

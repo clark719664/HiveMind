@@ -1969,3 +1969,20 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_exhausted_slack_zero_grace
 #print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_token_weight_monotone
 #print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_quorum_admitted_count_bounds
+
+-- Coverage completion (2026-10-23): the thirteen theorems below had no `#print axioms` line, so an independent
+-- kernel gate (AutoevolveAI `anse.formal.lean_runner`, which requires one axioms line per declared theorem)
+-- reported them as unverified although they compile. Every theorem of this file now prints its axioms.
+#print axioms HiveMindSpec.Pillar1_NF4_DiLoCo.nf4_double_quant_compression_bound
+#print axioms HiveMindSpec.Pillar2_Byzantine_Defense.spot_check_rejects_tampered_worker
+#print axioms HiveMindSpec.Pillar3_BTM_Sparse_MoE.router_gate_strictly_higher_precision
+#print axioms HiveMindSpec.Pillar4_PoUW_Tokenomics.byzantine_slashing_strictly_reduces_positive_stake
+#print axioms HiveMindSpec.Phase2_SwarmFabric.georing_rejects_high_latency_wan_peer
+#print axioms HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_self_zero
+#print axioms HiveMindSpec.Phase2_SwarmFabric.kademlia_xor_comm
+#print axioms HiveMindSpec.Phase2_SwarmFabric.speculative_tree_gamma6_rtt_reduction
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.mem_le_sum
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.accepted_add_residual_sum
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.redistribute_eq
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.acceptedPrefix_le
+#print axioms HiveMindSpec.Season3_PrefixTrie_And_0RTT.strikeRegister_gt

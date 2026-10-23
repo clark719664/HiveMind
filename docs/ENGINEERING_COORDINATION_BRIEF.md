@@ -26,6 +26,8 @@ Suggested sequencing:
 | 7 | `HM-S9-07` WAN GameDay | E8 (RQ1) | requires 1, 5 and three volunteer machines |
 | 8 | `HM-S9-08` Lean 121–128 | paper §2 | can run in parallel at any time |
 | 9 | `HM-S9-09` real external review | G4 | after v3.4 numbers exist |
+| 10 | `HM-S9-13` eager / deferred learner rule in the E8 harness | E8 (RQ1) | the E8 pilot showed the round-synchronous loop drops the slow learner; this is the fix, measured |
+| 11 | `HM-S9-14` E5-het analysis on the 0.5B campaign deltas | E5 (RQ2, RQ2′) | reuses `run_experiment_E5_het.py`'s P2/P9 rules; decides whether RDA is the default merge |
 
 ## 2. Definition of Done for any task (all items, no exceptions)
 
@@ -51,7 +53,11 @@ Suggested sequencing:
    PYTHONPATH=src python -m pytest tests/ -q -p no:cacheprovider
    cd lean4 && lake build && cd ..
    PYTHONPATH=src python scripts/verify_decoupled_diloco_quorum.py
-   PYTHONPATH=src python paper/autoevolve_peer_review_pipeline.py   # scripted audit, 16/16 PROV
+   PYTHONPATH=src python paper/autoevolve_peer_review_pipeline.py   # scripted audit, 30/30 PROV
+   PYTHONPATH=src python scripts/run_experiment_E5_het.py            # ~20 min on 8 CPUs; controls must pass
+   PYTHONPATH=src python scripts/update_predictions_ledger.py        # statuses copied from artifacts, never typed
+   PYTHONPATH=src python scripts/run_experiment_E10_lattice.py       # ~1 min; E8/Z8/sign codecs, controls must pass
+   python -m anse.formal.lean_runner lean4/HiveMindSpec.lean          # from the AutoevolveAI root: independent Lean gate, 120/120
    ```
 
    Two pre-existing failures are known and environmental (UDP hole-punch tests fail with

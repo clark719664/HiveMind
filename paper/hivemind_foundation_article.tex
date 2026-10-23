@@ -55,7 +55,7 @@
 \pagestyle{fancy}
 \setlength{\headheight}{21pt}
 \fancyhf{}
-\lhead{\footnotesize \textbf{Project HiveMind v3.4.1} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
+\lhead{\footnotesize \textbf{Project HiveMind v3.5.0} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
 \rhead{\footnotesize \thepage}
 \cfoot{\footnotesize Preprint (not peer reviewed; scripted audits only) $\cdot$ Zenodo DOI: \zenodoDOI{} $\cdot$ \url{https://github.com/xaviercallens/HiveMind}}
 
@@ -67,7 +67,7 @@
   Project HiveMind Open-Source Contributors
 }
 
-\date{October 23, 2026 --- Version 3.4.1 (pre-registered research program; E5-toy three-seed factorial; E8 two-host internet pilot; Decoupled DiLoCo quorum syncer; 120 Lean 4 lemmas)}
+\date{October 23, 2026 --- Version 3.5.0 (pre-registered research program; E5-toy and E5-het three-seed factorials; RDA as an outer-LR multiplier; E8 two-host internet pilot; Decoupled DiLoCo quorum syncer; 120 Lean 4 lemmas)}
 
 \begin{document}
 
@@ -186,6 +186,8 @@ Season 14 (Decoupled DiLoCo Quorum) & Thms.\ 117--120 & 4 & Grace window $\gamma
 \end{table}
 
 % ============================================================================
+\paragraph{Independent kernel gate.} Besides the project's own \texttt{lake build} audit, the file was gated on 23 October 2026 by a second, independently written verifier (\texttt{anse.formal.lean\_runner} of the author's AutoevolveAI project), which compiles the file in place, requires one \texttt{\#print axioms} line per declared theorem and whitelists only \texttt{propext}, \texttt{Classical.choice} and \texttt{Quot.sound}. Its first run reported 13 of the 120 theorems as unverified: they compiled but had no axioms line, so nothing had ever printed their footprint. The lines were added; the gate now reports $\mathbf{120/120}$ theorems, $0$ \texttt{sorry}, $0$ untrusted axioms (\texttt{artifacts/lean\_independent\_runner\_check.json}; footprints: 57 on \{\texttt{propext}, \texttt{Quot.sound}\}, 30 add \texttt{Classical.choice}, 17 \texttt{propext} only, 16 none). The count of 120 was never wrong; the coverage of the axiom check was.
+
 \section{Pillar I: Zero-Copy 4-Bit NF4 \& DiLoCo-QLoRA Foundation}
 % ============================================================================
 
@@ -352,6 +354,24 @@ Google DeepMind's \textit{Decoupled DiLoCo} (\texttt{arXiv:2604.21428}) \cite{do
 \end{enumerate}
 The syncer emits $\Delta_p$ and leaves the outer optimizer untouched: check \texttt{H11} chains it into the CPU flat-bucket Nesterov step above with \texttt{0\,B} extra GPU memory. In \texttt{H11} (\texttt{artifacts/decoupled\_diloco\_quorum\_check.json}; three arms, one positive and two negative controls) RDA returns norm $R$ for $M \in \{2,4,8,16\}$ orthogonal equal-norm deltas while the direct mean follows $R/\sqrt{M}$ exactly (RDA-to-direct ratio $\mathbf{2.8284}$ at $M=8$); with $\tau=2$, $\xi_{\text{step}}=4.0\,$s, $\xi_{\text{quorum}}=0.3\,$s, $\xi_{\text{sync}}=1.0\,$s and $\gamma = 0.5$ the controller opens a $\mathbf{3.35}\,$s window on $6.7\,$s of slack, admits $6/8$ learners, defers two stragglers carrying $10{,}000$ of $40{,}000$ tokens, and the stragglers' coordinates do not leak into $\Delta_p$ (leak $= 0.0$); a $K = M = 8$ quorum with seven reports correctly refuses to merge. These are bookkeeping checks on synthetic tensors: the goodput and quality results under chaos engineering are DeepMind's, not ours, and nothing here has yet run across machines.
 
+What RDA does to the optimization problem is elementary and worth stating, because it turns the RQ2 prediction of Section~\ref{sec:research} into a statement about one scalar.
+\begin{proposition}[RDA is direct averaging with an adaptive outer-learning-rate multiplier]
+\label{prop:rda_multiplier}
+Let $\Delta_1,\dots,\Delta_M \in \mathbb{R}^d$ be non-zero and $\bar w_1,\dots,\bar w_M \ge 0$ sum to one; write $u = \sum_m \bar w_m \Delta_m$ for the direct weighted average and suppose $u \ne 0$ and $\sum_m \bar w_m \phi(\Delta_m) \neq 0$. Then
+\begin{equation}
+\mathrm{RDA}(\{(\Delta_m,\bar w_m)\}) \;=\; r\,\|u\|\;\phi(u_\phi) \quad\text{with}\quad r \;=\; \frac{\sum_m \bar w_m \|\Delta_m\|}{\|u\|} \;\ge\; 1,
+\end{equation}
+where $u_\phi = \sum_m \bar w_m \phi(\Delta_m)$ is the weighted mean \emph{direction}; equality $r = 1$ holds iff all $\Delta_m$ with $\bar w_m > 0$ are positively collinear. If the $\Delta_m$ have a common norm $R$, then $\phi(u_\phi) = \phi(u)$ (RDA and direct averaging point the same way) and
+\begin{equation}
+r \;=\; \big(\bar w^{\top} C\,\bar w\big)^{-1/2}, \qquad C_{ij} = \cos\angle(\Delta_i,\Delta_j),
+\end{equation}
+so for $M$ equally weighted orthogonal learners $r = \sqrt{M}$, and for equally weighted learners with mean pairwise cosine $\bar c$, $r = \big(1/M + (1-1/M)\,\bar c\big)^{-1/2}$.
+\end{proposition}
+\begin{proof}
+$\|\mathrm{RDA}\| = \sum_m \bar w_m \|\Delta_m\|$ by definition, and $\|u\| \le \sum_m \bar w_m \|\Delta_m\|$ is the triangle inequality, with equality iff the weighted terms are positively collinear. With a common norm $R$, $\phi(\Delta_m) = \Delta_m / R$, hence $u_\phi = u/R$ and the directions coincide; $\|u\|^2 = \sum_{i,j} \bar w_i \bar w_j \langle \Delta_i, \Delta_j \rangle = R^2\, \bar w^{\top} C \bar w$ gives the second formula, and $\bar w = \mathbf{1}/M$ with $C = I$ gives $\sqrt{M}$.
+\end{proof}
+Two consequences shape the experiments. First, in the common-norm case RDA changes nothing but the step length: a run with RDA at outer learning rate $\eta$ takes, in each round $t$, exactly the step that direct averaging would take at $\eta \cdot r_t$. The RQ2 prediction is therefore not that RDA finds a better direction but that the sequence $r_t$ absorbs the $\sqrt{M}$ shrinkage, so that one $\eta$ serves every $M$. Second, $r_t$ is a cheap, per-round observable ($\|\mathrm{RDA}\|/\|u\|$), and with the mean pairwise cosine it is reported for every cell of E5 (Section~\ref{sec:e5het}): a testbed on which $\bar c \approx 0.9$ has $r_t \approx 1.04$ and cannot separate the merges, which is precisely what E5-toy found. Theorem~120 and the H11 check verify the integer bookkeeping and the $\sqrt{M}$ instance; the proposition itself is elementary and is not among the Lean lemmas (the local Lean build has no real-valued norm).
+
 \subsection{Streaming DiLoCo Fragments \& Cosine-Gated Adam-Decay (\texttt{PA-CGAD})}
 
 Google DeepMind's \texttt{Streaming DiLoCo} (\texttt{arXiv:2501.18512}) \cite{douillard2025streamingdiloco} reduces peak WAN bandwidth by synchronizing only a subset of parameter fragments $\mathcal{S}_t \subset \{1, \dots, F\}$ per outer round (\textbf{Theorem 102}). However, under asynchronous WAN delays $\tau_w$ and staggered fragment ages $a_f$, standard outer Adam/Nesterov suffers from \textit{stale variance pollution}: stale pseudo-gradients inflate the second-moment buffer $v_f$, shrinking future honest step sizes. Following V.~Shah and J.~Sun (\textbf{\texttt{CGAD} / \texttt{PA-CGAD}}, \texttt{arXiv:2605.09126}) \cite{shah2026cgad}, \texttt{CosineGatedAdamDecayOuterOptimizer} (\texttt{HM-S8-01}) defines the effective fragment staleness $\tau_{\text{eff}}(f) = \max(0, \tau_w(f), a_f)$ and gates $\bar{\Delta}_f^{(t)}$ \textbf{before} updating $(m_f, v_f)$:
@@ -363,6 +383,7 @@ When $\tau_{\text{eff}}(f) \ge \tau_{\text{cut}}$, $\sigma(\tau_{\text{eff}}(f))
     \sup_{\tau \ge 0} \, \tau \sigma(\tau) \le \sup_{\tau \ge 0} \, \tau e^{-\alpha \tau} = \frac{1}{e \alpha}.
 \end{equation}
 This bound is analytic and is due to \cite{shah2026cgad}. Check H2 only confirms that our implementation of $\sigma$ respects it ($\max_{\tau \in [0, 64]} \tau \sigma(\tau) = 1.7417 \le 1.8394$ at $\alpha = 0.2$, $\tau_{\text{cut}} = 32$) and that cut-off fragments leave $(m_f, v_f)$ untouched; it says nothing about training dynamics under real delays.
+Two further DeepMind and Meta results bound what the outer loop can hide. \emph{Eager updates}~\cite{kale2025eager} overlap the outer all-reduce with a whole inner phase by applying each replica's fresh local outer gradient together with the one-round-stale average of the others ($\tilde\Delta_m = \tfrac{1}{M}(\Delta_m^{(t)} - \Delta_m^{(t-H)}) + \Delta^{(t-H)}$); on a 500M model this tolerates $2.4$\,s of communication latency at an evaluation-loss cost of $2.67 \to 2.69$, whereas the na\"ive delayed variant costs $2.67 \to 3.01$ unless its outer learning rate is cut $4\times$. Our E8 pilot (Section~\ref{sec:e8pilot}) found exactly the regime this addresses, round trip $\gg$ compute, and the eager rule is the first candidate for the deferred-learner path of \texttt{HM-S9-01}. \emph{Generalized Primal Averaging}~\cite{defazio2025gpa} shows that single-worker DiLoCo is a choppy special case of a two-constant primal-averaging scheme ($\mu_x$ for the evaluated iterate, $\mu_y$ for the gradient point) that removes the inner/outer split and one hyper-parameter; it is the natural control for the outer-momentum-restart factor of E5.
 
 \subsection{\texttt{DeMo} Chunked 2D DCT + \texttt{SparseLoCo} 2-Bit LUT + \texttt{PULSELoCo} + \texttt{EF21}}
 
@@ -607,7 +628,8 @@ Sections~3--8 describe a system and verify that its parts do what their specific
 \textbf{RQ} & \textbf{Question} & \textbf{Prediction} & \textbf{Refuted if} & \textbf{Exp.} \\
 \midrule
 RQ1 & Volunteer tax: WAN swarm vs.\ single host at matched tokens & With $K<M$ quorum, grace window and RDA, WAN loss $\le$ single-host loss with $M(1-\text{churn})$ workers & WAN loss exceeds that baseline by more than the 95\,\% seed interval & E8 \\
-RQ2 & Does RDA remove outer-LR retuning with $M$? & Under direct averaging the best $\eta_{\text{outer}}$ grows with $M$ ($\approx\sqrt{M}$ if learner deltas are near-orthogonal); under RDA it is the same grid point for $M\in\{4,8,16\}$ & Best RDA $\eta_{\text{outer}}$ moves by $\ge 1$ grid step, or deltas are not near-orthogonal (prediction then inapplicable) & E5 \\
+RQ2 & Does RDA remove outer-LR retuning with $M$? & Under direct averaging the best $\eta_{\text{outer}}$ grows with $M$ ($\approx\sqrt{M}$ if learner deltas are near-orthogonal); under RDA it is the same grid point for $M\in\{4,8,16\}$ & Best RDA $\eta_{\text{outer}}$ moves by $\ge 1$ grid step, or deltas are not near-orthogonal (prediction then inapplicable) & E5, E5-het \\
+RQ2$'$ & Is RDA only an outer-LR multiplier in practice (Prop.~\ref{prop:rda_multiplier})? & $\log(\eta^\star_{\text{direct}}/\eta^\star_{\text{RDA}})$ lies within one grid step of $\log \bar r$, the mean per-round $\|\mathrm{RDA}\|/\|u\|$ & Deviation exceeds one grid step at some $M$ & E5-het (P9) \\
 RQ3 & Is the adaptive grace window better than matched-random admission?~\cite{twelftree2026wadiloco} & At equal loss, adaptive grace reaches it in less wall-clock time than random admission with the same budget & Matched random ties or wins (controller is then deleted) & E5 \\
 RQ4 & Does PA-CGAD still help under a quorum? & Its gain over un-gated AdamW is large without quorum (E2 reproduced) and shrinks with $K<M$; it never hurts & CGAD hurts under quorum, or its gain does not shrink & E5 \\
 RQ5 & Is Skip-Token quality loss governed by the measured ghost fraction? & At fixed ideal factor $N_{\text{le}}/N_e$, perplexity degrades monotonically with the measured ghost fraction & No monotone relation, or the ideal factor predicts as well & E7 \\
@@ -654,6 +676,29 @@ The main lesson is methodological: every cell of the factorial lies within $0.01
 \label{fig:e5toy}
 \end{figure}
 
+\subsection{Second pre-registered result: E5-het, a heterogeneity-controlled testbed}
+\label{sec:e5het}
+
+E5-toy failed to discriminate because every learner saw the same teacher. E5-het adds one knob: learner $m$ is labelled by its own teacher whose LoRA factors are $B_{\text{shared}} + \rho\,B_m$, and the held-out set mixes all teachers equally; $\rho = 0$ reproduces E5-toy bit for bit (one of the negative controls: the $\rho=0$ cell equals the E5-toy artifact to $10^{-9}$). The $\rho$ grid was chosen from a calibration of round-0 delta cosines only, before pre-registration (\texttt{artifacts/experiments/E5\_het\_prereg.json}, with its two amendments recorded: a reference-LR fix after an analysis crash that had printed no result, and the LR-grid extension below). The outer-LR grid is geometric with ratio $\sqrt2$ so that the $\sqrt2$ shift predicted between $M=4$ and $M=8$ is one grid step; 2{,}652 runs in 22 minutes on eight CPU cores (\texttt{artifacts/experiments/E5\_het\_report.json}, Figure~\ref{fig:e5het}).
+
+\textbf{Manipulation check.} The mean pairwise delta cosine falls monotonically, $0.909 \to 0.627 \to 0.283 \to \mathbf{0.079}$ for $\rho \in \{0,1,2,4\}$, and the measured per-round multiplier $\bar r = \|\mathrm{RDA}\|/\|u\|$ rises to $1.80$ ($M=4$) and $\mathbf{2.25}$ ($M=8$) at $\rho=4$. Proposition~\ref{prop:rda_multiplier} predicts $r = (1/M + (1-1/M)\bar c)^{-1/2} = 1.80$ and $2.27$ from the cosines alone, within $1\,\%$ of the measurements: the common-norm formula describes these deltas. P2 and P9 are therefore applicable at $\rho = 4$.
+
+\textbf{Grid censoring and its pre-registered repair.} On the original grid ($0.15$--$2.4$) every best outer LR, direct or RDA, sat at the top: the held-out loss falls monotonically with the outer LR in every cell, i.e.\ the toy was trained far below its optimal step. P2 and P9 were reported as censored, and the grid was extended upward by five more $\sqrt2$ steps (to $13.6$) for the $\rho=4$ merge cells only, as a second pre-registered amendment written before the extra 60 runs. The extension finds the optimum where the runs begin to diverge: direct averaging is best at $\eta=6.79$ for both $M$ (loss $3.62 \pm 0.45$ at $M=4$, $3.78 \pm 0.05$ at $M=8$; $9.6$ diverges), RDA at $\eta=4.8$ for both $M$ ($3.61 \pm 0.08$ and $3.74 \pm 0.15$; $6.79$ already diverges at $M=8$).
+\begin{itemize}[leftmargin=1.8em]
+    \item \textbf{P2 (direct best LR grows with $M$, RDA's does not): refuted by the rule.} RDA's best LR is indeed the same grid point at both $M$, but so is direct averaging's: the best step is set by the divergence edge, which did not move between $M=4$ and $M=8$, not by the $\sqrt{M}$ shrinkage. The refutation is not statistically sharp, because the intervals of the candidate cells overlap (the $M=4$ direct cells at $4.8$ and $6.79$ have intervals $\pm0.06$ and $\pm0.45$); the acceptance rule should have required the arg-min to be separated from its neighbours by its interval, and the 0.5B rule (\texttt{HM-S9-14}) now does.
+    \item \textbf{P9 (RDA is an LR multiplier): refuted at $M=8$, supported at $M=4$.} The direct/RDA best-LR ratio is $\sqrt2$ at both $M$, against $\bar r = 1.80$ ($M=4$: within one grid step, $|\Delta\log| = 0.24 < 0.35$) and $2.25$ ($M=8$: $0.46 > 0.35$). Near the divergence edge the multiplier identity (exact for the merged vector) no longer maps onto a shift of the stable region, which depends on the whole trajectory.
+    \item \textbf{P3 (adaptive grace vs matched random): inconclusive}, $+0.0027 \pm 0.0123$ (24 pairs), as at $\rho=0$; adaptive grace admits more tokens ($0.80$ vs $0.57$ at $M=8$) at the same wall-clock, but at these outer LRs the loss does not see it.
+    \item \textbf{P4 (PA-CGAD under quorum): refuted at every $\rho$}; at $\rho=4$ the gate changes the loss by $-0.0025 \pm 0.0023$ (harm, interval excludes zero), and by exactly $0$ without stale deltas. P3 and P4 were evaluated on the original grid, i.e.\ at outer LRs well below the optimum found by the extension; they stand as pre-registered but their power is low.
+\end{itemize}
+Two lessons carry forward. First, a toy that trains far below its optimal step cannot rank merge rules; the extension, not the factorial, produced the only cells with a real effect ($3.96 \to 3.61$). Second, the multiplier formula of Proposition~\ref{prop:rda_multiplier} is confirmed on the merged vectors to $1\,\%$, so RDA's practical question at scale is only whether the stable LR region shifts by $\bar r$; E5 at 0.5B must sweep the LR up to divergence for both merges.
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=\textwidth]{figures/fig6_e5_het_rda_vs_direct.pdf}
+\caption{E5-het. Left: manipulation check, mean pairwise delta cosine and measured $\|\mathrm{RDA}\|/\|u\|$ against $\rho$ for $M=4$ (solid) and $M=8$ (dashed); the dotted line is the P2 applicability bound. Centre and right: held-out loss after 12 rounds against the outer learning rate (log axis, extended grid) for direct averaging and RDA at $\rho=4$; the losses fall until the runs diverge, and RDA's curve is the direct curve shifted left by about one $\sqrt2$ step.}
+\label{fig:e5het}
+\end{figure}
+
 \subsection{First two-host measurement: E8-pilot over the public internet}
 \label{sec:e8pilot}
 
@@ -665,6 +710,25 @@ E8 was scaled down to the smallest real instance of its question: one learner on
 \end{itemize}
 RQ1 remains open: a two-host toy with a round-synchronous learner loop is not the volunteer-tax measurement, but it has already produced a protocol fix, an exactness check across machines, and the first latency distribution for the roadmap's WAN tasks.
 
+\subsection{E10: a lattice codec for outer deltas, leveraged from the author's OptimalEnergyAI project}
+\label{sec:e10}
+
+HiveMind ships outer deltas through scalar codecs (the 2-bit \texttt{SparseLoCo} LUT, \texttt{DeMo} DCT blocks). Lattice vector quantisation is the classical way to do better at the same rate: the normalised second moment of $E_8$ is $929/12960 \approx 0.0717$ against $1/12 \approx 0.0833$ for $\mathbb{Z}^8$, a $0.654$\,dB distortion gain on a Gaussian source~\cite{conway1982fast}. The author's OptimalEnergyAI project~\cite{callens2026triangular} maintains reference nearest-point decoders for $\mathbb{Z}^n$, $D_n$ and $E_8 = D_8 \cup (D_8 + \tfrac12)$ that were checked against exhaustive search (0 mismatches in $3\cdot 10^6$ queries per lattice) together with a \emph{measured} rate (the achievable rate of a coset-then-coordinates entropy coder). They were ported, with the same tie rules, to \texttt{hivemind.compress.lattice\_quantizer}, with a two-sided brute-force check (lattice membership \emph{and} distance) as a negative control, a 1-bit sign arm after signSGD~\cite{bernstein2018signsgd}, and EF21 error feedback (Theorem~107). E10 was pre-registered (\texttt{artifacts/experiments/E10\_lattice\_prereg.json}) on the E5-het $\rho = 4$, $M=8$ testbed at the best direct outer LR of the E5-het artifact ($6.79$ after the grid extension): arms none, sign, $\mathbb{Z}^8$ and $E_8$ at target rates of $1$ and $2$ bits per coordinate (scales calibrated once on a round-0 delta), each with and without error feedback, three seeds, 36 runs in 46\,s (\texttt{artifacts/experiments/E10\_lattice\_report.json}, Figure~\ref{fig:e10}). A first execution at the pre-extension LR of $2.4$ is kept as a sensitivity run (\texttt{E10\_lattice\_first\_execution\_lr2.4.json}).
+\begin{itemize}[leftmargin=1.8em]
+    \item \textbf{Controls.} The 1-bit sign codec without error feedback raises the final loss in every seed, by $+0.09$ to $+0.17$ nats (positive control); $E_8$ at $6.9$ bits per coordinate reproduces the unquantised loss to $2\cdot10^{-5}$ (negative control); both decoders pass the two-sided brute-force check (1000 queries each, 0 mismatches, 0 non-lattice outputs). The matched-rate control passed at the 1-bit target and failed at the 2-bit target ($3.10$ vs.\ $3.36$ measured bits), so the 2-bit comparisons are reported as invalid. The realised rates also drift above their targets ($1.71$ and $1.76$ bits at the ``1-bit'' target) because the deltas grow over rounds at this outer LR while the scale was fixed from round 0: the codec needs per-round scale adaptation before any rate is quoted for it.
+    \item \textbf{P10a (distortion at matched rate): supported.} At the matched 1.7-bit rate the relative quantisation error of $E_8$ is $\mathbf{0.79} \pm 0.02$ times that of $\mathbb{Z}^8$ (paired over seeds; $0.81 \pm 0.03$ in the sensitivity run; the Gaussian-source value is $0.86$). The lattice gain survives on real LoRA deltas.
+    \item \textbf{P10b (loss at matched rate): inconclusive.} With error feedback $E_8$ ends $-0.003 \pm 0.019$ nats relative to $\mathbb{Z}^8$; without it $+0.07 \pm 0.26$ (one $E_8$ seed landed $0.2$ nats lower, the others $0.04$--$0.06$ higher: at an outer LR on the divergence edge the quantisation noise acts as a perturbation of a barely stable trajectory). In the sensitivity run at LR $2.4$ the same comparison was $+0.00002 \pm 0.00005$ with error feedback: once the residual is carried, both codecs reproduce the unquantised loss and there is nothing left for the lattice to win on this testbed.
+    \item \textbf{P10c (error feedback recovers the unquantised loss at 1 bit): supported}, $-0.012 \pm 0.077$ nats (interval includes zero; $+0.0001 \pm 0.0001$ in the sensitivity run, where the rule's letter called it refuted at a $10^{-4}$ residual). Error feedback cuts the 1-bit penalty of the sign codec from $+0.14$ to $+0.11$ and that of $E_8$ from $+0.07$ to $-0.01$.
+\end{itemize}
+What transfers and what does not: the distortion ratio is a property of the codec and the delta statistics and is expected to hold at scale; the loss effects are at the $10^{-4}$ level on a toy that barely moves in twelve rounds and say nothing about the 0.5B campaign (\texttt{HM-S10-01} compares $E_8$ with the \texttt{SparseLoCo} LUT there, with per-fragment measured rates).
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=\textwidth]{figures/fig7_e10_lattice_codecs.pdf}
+\caption{E10 on the E5-het $\rho=4$, $M=8$ testbed, three seeds. Left: final held-out loss by codec (grey unquantised, red 1-bit sign, orange $\mathbb{Z}^8$, blue $E_8$; ``+EF'' = error feedback). Right: relative quantisation error against the measured rate for $\mathbb{Z}^8$ and $E_8$; the 2-bit points are not rate-matched (see text).}
+\label{fig:e10}
+\end{figure}
+
 % ============================================================================
 \section{Limitations, Threats to Validity, and Future Multi-Host Benchmarks}
 \label{sec:limitations}
@@ -673,7 +737,7 @@ RQ1 remains open: a two-host toy with a round-synchronous learner loop is not th
 \textbf{What this paper establishes vs.\ what remains open.}
 \begin{enumerate}[leftmargin=1.8em]
     \item \textbf{Single-host process simulation vs.\ multi-host WAN deployment.} While Experiments E1--E4 validate held-out generalization across synchronization regimes, PA-CGAD straggler resilience, fixed-point halting trade-offs, and subspace spectra in controlled PyTorch runs, all workers to date have executed on a single physical host. Real residential WAN packet loss, NAT hole-punching failure rates, and cross-vendor GPU floating-point drift remain to be measured over a live multi-node deployment.
-    \item \textbf{Single seed in E1--E4.} Every experiment in Section~\ref{sec:exp_eval} uses one seed (2026) and therefore demonstrates that the mechanisms behave as specified without estimating an effect size. E5-toy (Section~\ref{sec:e5toy}) and the E8 pilot (Section~\ref{sec:e8pilot}) are the first three-seed, controlled measurements, and their main finding is that the toy model is too easy to rank the mechanisms.
+    \item \textbf{Single seed in E1--E4.} Every experiment in Section~\ref{sec:exp_eval} uses one seed (2026) and therefore demonstrates that the mechanisms behave as specified without estimating an effect size. E5-toy (Section~\ref{sec:e5toy}), E5-het (Section~\ref{sec:e5het}) and the E8 pilot (Section~\ref{sec:e8pilot}) are the first three-seed, controlled measurements; the IID toy's main finding is that it is too easy to rank the mechanisms.
     \item \textbf{Full-scale standard benchmark suites.} While Experiment E1 evaluates held-out cross-entropy and perplexity on a 128-sequence disjoint validation split, full zero-shot/few-shot evaluations on standard LLM benchmarks (full GSM8K test split, HumanEval pass@1, PubMedQA) for 0.5B--7B upcycled MoE checkpoints are still required.
     \item \textbf{128-expert training scale.} The largest MoE trained end-to-end on the RTX 2070 has 4 experts (96 FFN modules). The 3-tier 128-expert hierarchical router, FoMoE partial replication, and Skip-Attention prefetching have been verified at the module/planner level (\texttt{H3}, \texttt{H5}, \texttt{E4}) but not yet trained across 128 domain branches.
     \item \textbf{Adaptive Byzantine adversaries.} Our Multi-Krum + $2\sigma$ cosine filter has been verified against sign-flipped/scaled poisoners; subtle inner-product manipulation (ALIE) and coordinated Sybil coalitions under non-IID drift warrant dedicated red-team evaluation.
@@ -721,6 +785,11 @@ To prevent conflating machine-checked discrete arithmetic with empirical single-
 \bibitem{liu2024asynclocalsgd} B.~Liu, R.~Chhaparia, A.~Douillard, S.~Kale, A.~A. Rusu, J.~Shen, A.~Szlam, and M.~Ranzato, ``Asynchronous Local-SGD Training for Language Modeling,'' \textit{arXiv:2401.09135}, 2024. Code: \url{https://github.com/google-deepmind/asyncdiloco}.
 \bibitem{douillard2025streamingdiloco} A.~Douillard, Y.~Donchev, J.~K. Rush, S.~Kale, Z.~Charles, G.~Teston, Z.~Garrett, J.~Shen, R.~McIlroy, D.~Lacey, A.~Ram\'e, A.~Szlam, M.~Ranzato, and P.~R. Barham, ``Streaming DiLoCo with Overlapping Communication: Towards a Distributed Free Lunch,'' in \textit{Second Conference on Language Modeling (COLM)}, 2025, \textit{arXiv:2501.18512}.
 \bibitem{douillard2026decoupled} Decoupled DiLoCo Team (Google DeepMind \& Google Research; A.~Douillard, K.~Rush, Y.~Donchev, Z.~Charles, A.~Dubey, B.~Woodworth, \textit{et al.}), ``Decoupled DiLoCo for Resilient Distributed Pre-training,'' \textit{arXiv:2604.21428}, 2026.
+\bibitem{conway1982fast} J.~H.~Conway and N.~J.~A.~Sloane, ``Fast Quantizing and Decoding Algorithms for Lattice Quantizers and Codes,'' \textit{IEEE Trans.\ Inf.\ Theory}, 28(2):227--232, 1982.
+\bibitem{callens2026triangular} X.~Callens, ``The Triangular Lattice and Universal Optimality: human proofs, Lean 4 verification, numerical validation in Python and Rust, and physics from fluids to plasmas,'' Zenodo, 2026, doi:10.5281/zenodo.23295142; companion code \textit{OptimalEnergyAI} (\texttt{oai\_ml.core.quantise}, \texttt{oai\_ml.core.rate}).
+\bibitem{bernstein2018signsgd} J.~Bernstein, Y.-X.~Wang, K.~Azizzadenesheli, and A.~Anandkumar, ``signSGD: Compressed Optimisation for Non-Convex Problems,'' in \textit{ICML}, 2018, \textit{arXiv:1802.04434}.
+\bibitem{kale2025eager} S.~Kale, A.~Douillard, and Y.~Donchev, ``Eager Updates for Overlapped Communication and Computation in DiLoCo,'' \textit{arXiv:2502.12996}, 2025.
+\bibitem{defazio2025gpa} A.~Defazio, K.~Mishchenko, P.~Raman, H.-J.~M.~Shi, and L.~Xiao, ``Smoothing DiLoCo with Primal Averaging for Faster Training of LLMs,'' \textit{arXiv:2512.17131}, 2025.
 \bibitem{charles2025scalingdiloco} Z.~Charles, G.~Teston, L.~Dery, K.~Rush, N.~Fallen, Z.~Garrett, A.~Szlam, and A.~Douillard, ``Communication-Efficient Language Model Training Scales Reliably and Robustly: Scaling Laws for DiLoCo,'' \textit{arXiv:2503.09799}, 2025.
 \bibitem{jaghouar2024opendiloco} S.~Jaghouar, J.~M. Ong, and J.~Hagemann, ``OpenDiLoCo: An Open-Source Framework for Globally Distributed Low-Communication Training,'' \textit{arXiv:2407.07852}, 2024. Code: \url{https://github.com/PrimeIntellect-ai/OpenDiLoCo}, \url{https://github.com/PrimeIntellect-ai/prime-diloco}.
 \bibitem{sukhbaatar2024btm} S.~Sukhbaatar \textit{et al.}, ``Branch-Train-MiX: Mixing Expert LLMs into a Mixture-of-Experts LLM,'' \textit{arXiv:2403.07816}, 2024.

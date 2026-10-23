@@ -1,0 +1,1201 @@
+{
+  "schema_version": "hivemind-experiment-E10-lattice/v1.0",
+  "experiment_id": "E10-lattice",
+  "prereg_sha256": "3686099d8fbd5b89a0ad9e88ce7d51552c65e33f6fbb5ad78dcdf7e12a2140b0",
+  "e5_het_receipt_sha256": "d51be068a6e31bab50bc7ac115ff57505aa87ee8ece162ef43694c041fe8e7ca",
+  "outer_lr_from_e5_het": 6.7882,
+  "calibration": {
+    "Z@1.0": {
+      "scale": 0.0006032814258504242,
+      "rate_on_calibration_sample": 0.999049722773885
+    },
+    "Z@2.0": {
+      "scale": 0.00021637518601079492,
+      "rate_on_calibration_sample": 1.9985861818206008
+    },
+    "E8@1.0": {
+      "scale": 0.0005715871466986445,
+      "rate_on_calibration_sample": 0.989476843803619
+    },
+    "E8@2.0": {
+      "scale": 0.0001652037701535801,
+      "rate_on_calibration_sample": 2.0186941382210364
+    },
+    "E8@6.0 (negative control)": {
+      "scale": 7.486347016979294e-07,
+      "rate_on_calibration_sample": 5.995677923773929
+    }
+  },
+  "num_runs": 36,
+  "cells": {
+    "none|EF=off": {
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss_mean": 3.781449317932129,
+      "final_loss_ci95": 0.054202529392861715,
+      "final_loss_per_seed": [
+        3.75657057762146,
+        3.790442705154419,
+        3.797334671020508
+      ],
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    "sign|EF=off": {
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss_mean": 3.9178603490193686,
+      "final_loss_ci95": 0.05948161079605467,
+      "final_loss_per_seed": [
+        3.926504373550415,
+        3.9362826347351074,
+        3.890794038772583
+      ],
+      "mean_relative_mse": 0.5831033659219781,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    "sign|EF=on": {
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss_mean": 3.8925915559132895,
+      "final_loss_ci95": 0.09993456150856048,
+      "final_loss_per_seed": [
+        3.9094626903533936,
+        3.921638011932373,
+        3.8466739654541016
+      ],
+      "mean_relative_mse": 0.6912255359989384,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    "Z@1.0|EF=off": {
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss_mean": 3.8125479221343994,
+      "final_loss_ci95": 0.06877042439016744,
+      "final_loss_per_seed": [
+        3.827646017074585,
+        3.8294003009796143,
+        3.780597448348999
+      ],
+      "mean_relative_mse": 0.14070987078339522,
+      "mean_rate_bits_per_dim": 1.7106415046408905
+    },
+    "Z@1.0|EF=on": {
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss_mean": 3.766733407974243,
+      "final_loss_ci95": 0.07183969178753977,
+      "final_loss_per_seed": [
+        3.766223907470703,
+        3.7959041595458984,
+        3.738072156906128
+      ],
+      "mean_relative_mse": 0.1202728390268082,
+      "mean_rate_bits_per_dim": 1.9363901826240566
+    },
+    "Z@2.0|EF=off": {
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss_mean": 3.7706891695658364,
+      "final_loss_ci95": 0.07285491422425158,
+      "final_loss_per_seed": [
+        3.770334243774414,
+        3.8001930713653564,
+        3.7415401935577393
+      ],
+      "mean_relative_mse": 0.019709128234893614,
+      "mean_rate_bits_per_dim": 3.099439664466502
+    },
+    "Z@2.0|EF=on": {
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss_mean": 3.7786125342051187,
+      "final_loss_ci95": 0.04353693012731936,
+      "final_loss_per_seed": [
+        3.7587456703186035,
+        3.791883707046509,
+        3.785208225250244
+      ],
+      "mean_relative_mse": 0.019201267427773203,
+      "mean_rate_bits_per_dim": 3.1542617095216947
+    },
+    "E8@1.0|EF=off": {
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss_mean": 3.745241403579712,
+      "final_loss_ci95": 0.32736534673083534,
+      "final_loss_per_seed": [
+        3.815870761871338,
+        3.8266537189483643,
+        3.5931997299194336
+      ],
+      "mean_relative_mse": 0.11118793723667918,
+      "mean_rate_bits_per_dim": 1.7594400241208106
+    },
+    "E8@1.0|EF=on": {
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss_mean": 3.769484519958496,
+      "final_loss_ci95": 0.05786127261560165,
+      "final_loss_per_seed": [
+        3.7639236450195312,
+        3.7950539588928223,
+        3.7494759559631348
+      ],
+      "mean_relative_mse": 0.09730081626010163,
+      "mean_rate_bits_per_dim": 1.935145737962068
+    },
+    "E8@2.0|EF=off": {
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss_mean": 3.7770192623138428,
+      "final_loss_ci95": 0.040599883859958164,
+      "final_loss_per_seed": [
+        3.7638907432556152,
+        3.7953243255615234,
+        3.7718427181243896
+      ],
+      "mean_relative_mse": 0.010159070811913475,
+      "mean_rate_bits_per_dim": 3.3598355699208384
+    },
+    "E8@2.0|EF=on": {
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss_mean": 3.7805986404418945,
+      "final_loss_ci95": 0.04889611824853707,
+      "final_loss_per_seed": [
+        3.757888078689575,
+        3.791175127029419,
+        3.7927327156066895
+      ],
+      "mean_relative_mse": 0.009979595194902048,
+      "mean_rate_bits_per_dim": 3.391815421716118
+    },
+    "E8@6.0|EF=off": {
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss_mean": 3.7814435958862305,
+      "final_loss_ci95": 0.05417873317892687,
+      "final_loss_per_seed": [
+        3.756574869155884,
+        3.790438413619995,
+        3.7973175048828125
+      ],
+      "mean_relative_mse": 2.3372768131496242e-07,
+      "mean_rate_bits_per_dim": 6.850105564017194
+    }
+  },
+  "runs": [
+    {
+      "seed": 1,
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss": 3.75657057762146,
+      "loss_curve": [
+        3.96448,
+        3.96353,
+        3.9623,
+        3.96073,
+        3.95865,
+        3.95577,
+        3.95162,
+        3.94541,
+        3.93583,
+        3.9205,
+        3.8945,
+        3.84632,
+        3.75657
+      ],
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    {
+      "seed": 1,
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss": 3.926504373550415,
+      "loss_curve": [
+        3.96448,
+        3.96417,
+        3.96372,
+        3.96306,
+        3.96215,
+        3.96092,
+        3.95927,
+        3.95704,
+        3.95405,
+        3.95001,
+        3.94452,
+        3.93699,
+        3.9265
+      ],
+      "mean_relative_mse": 0.5828360934512561,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 1,
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss": 3.9094626903533936,
+      "loss_curve": [
+        3.96448,
+        3.96417,
+        3.96359,
+        3.96258,
+        3.96171,
+        3.96001,
+        3.95817,
+        3.95543,
+        3.95154,
+        3.946,
+        3.93815,
+        3.92654,
+        3.90946
+      ],
+      "mean_relative_mse": 0.6893133722516803,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 1,
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss": 3.827646017074585,
+      "loss_curve": [
+        3.96448,
+        3.96356,
+        3.96241,
+        3.96109,
+        3.95952,
+        3.95744,
+        3.95444,
+        3.94997,
+        3.94311,
+        3.93235,
+        3.91493,
+        3.88479,
+        3.82765
+      ],
+      "mean_relative_mse": 0.16255405935068548,
+      "mean_rate_bits_per_dim": 1.5521747383679685
+    },
+    {
+      "seed": 1,
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss": 3.766223907470703,
+      "loss_curve": [
+        3.96448,
+        3.96356,
+        3.96235,
+        3.96094,
+        3.95888,
+        3.95609,
+        3.95207,
+        3.94606,
+        3.93683,
+        3.92221,
+        3.89758,
+        3.85231,
+        3.76622
+      ],
+      "mean_relative_mse": 0.13584864258271254,
+      "mean_rate_bits_per_dim": 1.7915448574059836
+    },
+    {
+      "seed": 1,
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss": 3.770334243774414,
+      "loss_curve": [
+        3.96448,
+        3.96353,
+        3.96234,
+        3.96085,
+        3.95888,
+        3.95616,
+        3.95222,
+        3.94636,
+        3.93733,
+        3.92296,
+        3.89885,
+        3.85479,
+        3.77033
+      ],
+      "mean_relative_mse": 0.02253794913944296,
+      "mean_rate_bits_per_dim": 2.9464236472713345
+    },
+    {
+      "seed": 1,
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss": 3.7587456703186035,
+      "loss_curve": [
+        3.96448,
+        3.96353,
+        3.96233,
+        3.96076,
+        3.95871,
+        3.95584,
+        3.95172,
+        3.94555,
+        3.93605,
+        3.92091,
+        3.89522,
+        3.84771,
+        3.75875
+      ],
+      "mean_relative_mse": 0.02182298060030544,
+      "mean_rate_bits_per_dim": 3.003861107132572
+    },
+    {
+      "seed": 1,
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss": 3.815870761871338,
+      "loss_curve": [
+        3.96448,
+        3.96353,
+        3.96235,
+        3.96099,
+        3.95933,
+        3.95708,
+        3.95381,
+        3.94898,
+        3.9416,
+        3.9301,
+        3.91126,
+        3.87852,
+        3.81587
+      ],
+      "mean_relative_mse": 0.12924837692923066,
+      "mean_rate_bits_per_dim": 1.6189515283513156
+    },
+    {
+      "seed": 1,
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss": 3.7639236450195312,
+      "loss_curve": [
+        3.96448,
+        3.96353,
+        3.96235,
+        3.96087,
+        3.95883,
+        3.95599,
+        3.95194,
+        3.94593,
+        3.93662,
+        3.92182,
+        3.89678,
+        3.85101,
+        3.76392
+      ],
+      "mean_relative_mse": 0.11052102251582423,
+      "mean_rate_bits_per_dim": 1.7967514851994923
+    },
+    {
+      "seed": 1,
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss": 3.7638907432556152,
+      "loss_curve": [
+        3.96448,
+        3.96354,
+        3.96234,
+        3.96082,
+        3.95881,
+        3.95602,
+        3.95199,
+        3.94599,
+        3.93674,
+        3.92197,
+        3.89705,
+        3.85117,
+        3.76389
+      ],
+      "mean_relative_mse": 0.011637215057451756,
+      "mean_rate_bits_per_dim": 3.223127369912648
+    },
+    {
+      "seed": 1,
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss": 3.757888078689575,
+      "loss_curve": [
+        3.96448,
+        3.96354,
+        3.96232,
+        3.96075,
+        3.95868,
+        3.95582,
+        3.95168,
+        3.94549,
+        3.93599,
+        3.92075,
+        3.89493,
+        3.84722,
+        3.75789
+      ],
+      "mean_relative_mse": 0.01141107786443984,
+      "mean_rate_bits_per_dim": 3.2577296562204325
+    },
+    {
+      "seed": 2,
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss": 3.790442705154419,
+      "loss_curve": [
+        3.97644,
+        3.97553,
+        3.97434,
+        3.97281,
+        3.97077,
+        3.96791,
+        3.96374,
+        3.95745,
+        3.94773,
+        3.93217,
+        3.90611,
+        3.86024,
+        3.79044
+      ],
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    {
+      "seed": 2,
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss": 3.9362826347351074,
+      "loss_curve": [
+        3.97644,
+        3.97615,
+        3.97571,
+        3.97508,
+        3.9742,
+        3.97299,
+        3.97134,
+        3.96911,
+        3.96604,
+        3.96183,
+        3.956,
+        3.94782,
+        3.93628
+      ],
+      "mean_relative_mse": 0.5925372128584717,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 2,
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss": 3.921638011932373,
+      "loss_curve": [
+        3.97644,
+        3.97615,
+        3.97561,
+        3.97466,
+        3.97384,
+        3.97218,
+        3.97038,
+        3.96766,
+        3.96392,
+        3.95843,
+        3.95059,
+        3.9387,
+        3.92164
+      ],
+      "mean_relative_mse": 0.6968126065616197,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 2,
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss": 3.8294003009796143,
+      "loss_curve": [
+        3.97644,
+        3.97553,
+        3.9744,
+        3.97308,
+        3.97146,
+        3.96926,
+        3.96601,
+        3.96112,
+        3.95357,
+        3.94164,
+        3.92208,
+        3.88851,
+        3.8294
+      ],
+      "mean_relative_mse": 0.1486196384243827,
+      "mean_rate_bits_per_dim": 1.6305202780303862
+    },
+    {
+      "seed": 2,
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss": 3.7959041595458984,
+      "loss_curve": [
+        3.97644,
+        3.97553,
+        3.97439,
+        3.97299,
+        3.97099,
+        3.96818,
+        3.96413,
+        3.95801,
+        3.94866,
+        3.93358,
+        3.9087,
+        3.86486,
+        3.7959
+      ],
+      "mean_relative_mse": 0.12787886184382,
+      "mean_rate_bits_per_dim": 1.8273151722746312
+    },
+    {
+      "seed": 2,
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss": 3.8001930713653564,
+      "loss_curve": [
+        3.97644,
+        3.97554,
+        3.97439,
+        3.97295,
+        3.97102,
+        3.96833,
+        3.9644,
+        3.95849,
+        3.94937,
+        3.93484,
+        3.91073,
+        3.86845,
+        3.80019
+      ],
+      "mean_relative_mse": 0.020994913435438623,
+      "mean_rate_bits_per_dim": 2.98360062373346
+    },
+    {
+      "seed": 2,
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss": 3.791883707046509,
+      "loss_curve": [
+        3.97644,
+        3.97554,
+        3.97437,
+        3.97285,
+        3.97081,
+        3.96798,
+        3.96383,
+        3.9576,
+        3.94796,
+        3.93258,
+        3.90686,
+        3.86157,
+        3.79188
+      ],
+      "mean_relative_mse": 0.020421586755680603,
+      "mean_rate_bits_per_dim": 3.0396706925690737
+    },
+    {
+      "seed": 2,
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss": 3.8266537189483643,
+      "loss_curve": [
+        3.97644,
+        3.97554,
+        3.9744,
+        3.97308,
+        3.9714,
+        3.96908,
+        3.96571,
+        3.96062,
+        3.95282,
+        3.94057,
+        3.92055,
+        3.88619,
+        3.82665
+      ],
+      "mean_relative_mse": 0.11753186873092542,
+      "mean_rate_bits_per_dim": 1.6605586804898185
+    },
+    {
+      "seed": 2,
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss": 3.7950539588928223,
+      "loss_curve": [
+        3.97644,
+        3.97554,
+        3.9744,
+        3.97296,
+        3.97095,
+        3.96813,
+        3.96407,
+        3.95799,
+        3.94853,
+        3.93347,
+        3.90837,
+        3.86433,
+        3.79505
+      ],
+      "mean_relative_mse": 0.10299071342213145,
+      "mean_rate_bits_per_dim": 1.8268790052129775
+    },
+    {
+      "seed": 2,
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss": 3.7953243255615234,
+      "loss_curve": [
+        3.97644,
+        3.97553,
+        3.97436,
+        3.97286,
+        3.97087,
+        3.96809,
+        3.96403,
+        3.95795,
+        3.94853,
+        3.93349,
+        3.90842,
+        3.86444,
+        3.79532
+      ],
+      "mean_relative_mse": 0.010776193450463559,
+      "mean_rate_bits_per_dim": 3.254139635061947
+    },
+    {
+      "seed": 2,
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss": 3.791175127029419,
+      "loss_curve": [
+        3.97644,
+        3.97553,
+        3.97435,
+        3.97283,
+        3.97079,
+        3.96795,
+        3.96379,
+        3.95753,
+        3.94786,
+        3.93237,
+        3.90646,
+        3.86089,
+        3.79118
+      ],
+      "mean_relative_mse": 0.010558008104254854,
+      "mean_rate_bits_per_dim": 3.2879382391652445
+    },
+    {
+      "seed": 3,
+      "arm": "none",
+      "error_feedback": false,
+      "final_loss": 3.797334671020508,
+      "loss_curve": [
+        3.98009,
+        3.97891,
+        3.97734,
+        3.97524,
+        3.97223,
+        3.9676,
+        3.96006,
+        3.94714,
+        3.92356,
+        3.87581,
+        3.76004,
+        3.84482,
+        3.79733
+      ],
+      "mean_relative_mse": 0.0,
+      "mean_rate_bits_per_dim": 32.0
+    },
+    {
+      "seed": 3,
+      "arm": "sign",
+      "error_feedback": false,
+      "final_loss": 3.890794038772583,
+      "loss_curve": [
+        3.98009,
+        3.9797,
+        3.97908,
+        3.97817,
+        3.97685,
+        3.97496,
+        3.97224,
+        3.96832,
+        3.96263,
+        3.9542,
+        3.94155,
+        3.9221,
+        3.89079
+      ],
+      "mean_relative_mse": 0.5739367914562067,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 3,
+      "arm": "sign",
+      "error_feedback": true,
+      "final_loss": 3.8466739654541016,
+      "loss_curve": [
+        3.98009,
+        3.9797,
+        3.97896,
+        3.97768,
+        3.9764,
+        3.97399,
+        3.97097,
+        3.96622,
+        3.95893,
+        3.9475,
+        3.92962,
+        3.89963,
+        3.84667
+      ],
+      "mean_relative_mse": 0.6875506291835153,
+      "mean_rate_bits_per_dim": 1.0
+    },
+    {
+      "seed": 3,
+      "arm": "Z@1.0",
+      "error_feedback": false,
+      "final_loss": 3.780597448348999,
+      "loss_curve": [
+        3.98009,
+        3.97893,
+        3.97745,
+        3.97566,
+        3.97324,
+        3.96961,
+        3.96375,
+        3.95384,
+        3.93636,
+        3.90285,
+        3.82889,
+        3.66778,
+        3.7806
+      ],
+      "mean_relative_mse": 0.11095591457511746,
+      "mean_rate_bits_per_dim": 1.949229497524317
+    },
+    {
+      "seed": 3,
+      "arm": "Z@1.0",
+      "error_feedback": true,
+      "final_loss": 3.738072156906128,
+      "loss_curve": [
+        3.98009,
+        3.97893,
+        3.97745,
+        3.97546,
+        3.97247,
+        3.96799,
+        3.96067,
+        3.94827,
+        3.92574,
+        3.88059,
+        3.77256,
+        3.7766,
+        3.73807
+      ],
+      "mean_relative_mse": 0.0970910126538921,
+      "mean_rate_bits_per_dim": 2.190310518191555
+    },
+    {
+      "seed": 3,
+      "arm": "Z@2.0",
+      "error_feedback": false,
+      "final_loss": 3.7415401935577393,
+      "loss_curve": [
+        3.98009,
+        3.97892,
+        3.97739,
+        3.97535,
+        3.97245,
+        3.96801,
+        3.9608,
+        3.94842,
+        3.92593,
+        3.88085,
+        3.77271,
+        3.77922,
+        3.74154
+      ],
+      "mean_relative_mse": 0.015594522129799256,
+      "mean_rate_bits_per_dim": 3.3682947223947117
+    },
+    {
+      "seed": 3,
+      "arm": "Z@2.0",
+      "error_feedback": true,
+      "final_loss": 3.785208225250244,
+      "loss_curve": [
+        3.98009,
+        3.97892,
+        3.97738,
+        3.97528,
+        3.97228,
+        3.96768,
+        3.9602,
+        3.94741,
+        3.92406,
+        3.87692,
+        3.76299,
+        3.8277,
+        3.78521
+      ],
+      "mean_relative_mse": 0.015359234927333562,
+      "mean_rate_bits_per_dim": 3.4192533288634386
+    },
+    {
+      "seed": 3,
+      "arm": "E8@1.0",
+      "error_feedback": false,
+      "final_loss": 3.5931997299194336,
+      "loss_curve": [
+        3.98009,
+        3.97893,
+        3.97747,
+        3.97566,
+        3.97314,
+        3.96927,
+        3.96303,
+        3.95241,
+        3.93344,
+        3.89665,
+        3.81319,
+        3.66818,
+        3.5932
+      ],
+      "mean_relative_mse": 0.08678356604988142,
+      "mean_rate_bits_per_dim": 1.998809863521297
+    },
+    {
+      "seed": 3,
+      "arm": "E8@1.0",
+      "error_feedback": true,
+      "final_loss": 3.7494759559631348,
+      "loss_curve": [
+        3.98009,
+        3.97893,
+        3.97743,
+        3.97542,
+        3.97245,
+        3.96791,
+        3.96061,
+        3.94812,
+        3.92541,
+        3.87995,
+        3.7708,
+        3.78756,
+        3.74948
+      ],
+      "mean_relative_mse": 0.07839071284234926,
+      "mean_rate_bits_per_dim": 2.1818067234737346
+    },
+    {
+      "seed": 3,
+      "arm": "E8@2.0",
+      "error_feedback": false,
+      "final_loss": 3.7718427181243896,
+      "loss_curve": [
+        3.98009,
+        3.97891,
+        3.97737,
+        3.9753,
+        3.97235,
+        3.96781,
+        3.96042,
+        3.94776,
+        3.92471,
+        3.87821,
+        3.76618,
+        3.81133,
+        3.77184
+      ],
+      "mean_relative_mse": 0.00806380392782511,
+      "mean_rate_bits_per_dim": 3.6022397047879213
+    },
+    {
+      "seed": 3,
+      "arm": "E8@2.0",
+      "error_feedback": true,
+      "final_loss": 3.7927327156066895,
+      "loss_curve": [
+        3.98009,
+        3.97891,
+        3.97736,
+        3.97526,
+        3.97224,
+        3.96762,
+        3.96011,
+        3.94724,
+        3.92374,
+        3.87625,
+        3.76115,
+        3.8382,
+        3.79273
+      ],
+      "mean_relative_mse": 0.007969699616011452,
+      "mean_rate_bits_per_dim": 3.6297783697626773
+    },
+    {
+      "seed": 1,
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss": 3.756574869155884,
+      "loss_curve": [
+        3.96448,
+        3.96353,
+        3.9623,
+        3.96073,
+        3.95865,
+        3.95577,
+        3.95162,
+        3.94541,
+        3.93583,
+        3.9205,
+        3.89451,
+        3.84632,
+        3.75657
+      ],
+      "mean_relative_mse": 2.656896343981553e-07,
+      "mean_rate_bits_per_dim": 6.838979818469244
+    },
+    {
+      "seed": 2,
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss": 3.790438413619995,
+      "loss_curve": [
+        3.97644,
+        3.97553,
+        3.97434,
+        3.97281,
+        3.97077,
+        3.96791,
+        3.96374,
+        3.95745,
+        3.94773,
+        3.93217,
+        3.90611,
+        3.86024,
+        3.79044
+      ],
+      "mean_relative_mse": 2.4820371085918657e-07,
+      "mean_rate_bits_per_dim": 6.845996694102088
+    },
+    {
+      "seed": 3,
+      "arm": "E8@6.0",
+      "error_feedback": false,
+      "final_loss": 3.7973175048828125,
+      "loss_curve": [
+        3.98009,
+        3.97891,
+        3.97734,
+        3.97524,
+        3.97223,
+        3.9676,
+        3.96006,
+        3.94714,
+        3.92356,
+        3.87581,
+        3.76004,
+        3.84479,
+        3.79732
+      ],
+      "mean_relative_mse": 1.8728969868754532e-07,
+      "mean_rate_bits_per_dim": 6.86534017948025
+    }
+  ],
+  "analysis": {
+    "P10a": {
+      "cells": {
+        "R=1.0|EF=off": {
+          "ratio_mean": 0.7893593190568766,
+          "ci95": 0.01640917554606678,
+          "per_seed": [
+            0.7951101156471096,
+            0.7908232719239546,
+            0.7821445695995657
+          ],
+          "gaussian_prediction": 0.86,
+          "rate_matched": true
+        },
+        "R=1.0|EF=on": {
+          "ratio_mean": 0.8087770928416321,
+          "ci95": 0.010590190567645702,
+          "per_seed": [
+            0.8135600063028426,
+            0.805377150978363,
+            0.8073941212436907
+          ],
+          "gaussian_prediction": 0.86,
+          "rate_matched": true
+        },
+        "R=2.0|EF=off": {
+          "ratio_mean": 0.5155690542979398,
+          "ci95": 0.005020245962809805,
+          "per_seed": [
+            0.5163386866059535,
+            0.5132763935227164,
+            0.5170920827651493
+          ],
+          "gaussian_prediction": 0.86,
+          "rate_matched": false
+        },
+        "R=2.0|EF=on": {
+          "ratio_mean": 0.5195938546827842,
+          "ci95": 0.007472854009909944,
+          "per_seed": [
+            0.5228927282408036,
+            0.5170023382888193,
+            0.5188864975187296
+          ],
+          "gaussian_prediction": 0.86,
+          "rate_matched": false
+        }
+      },
+      "status": "supported; R in [2.0] invalid (matched-rate control failed)"
+    },
+    "P10b": {
+      "cells": {
+        "R=1.0|EF=off": {
+          "z8_minus_e8_mean": 0.0673065185546875,
+          "ci95": 0.2585986337928207,
+          "per_seed": [
+            0.01177525520324707,
+            0.00274658203125,
+            0.18739771842956543
+          ],
+          "status": "inconclusive (CI includes 0)"
+        },
+        "R=1.0|EF=on": {
+          "z8_minus_e8_mean": -0.0027511119842529297,
+          "ci95": 0.018701682730864082,
+          "per_seed": [
+            0.002300262451171875,
+            0.0008502006530761719,
+            -0.011403799057006836
+          ],
+          "status": "inconclusive (CI includes 0)"
+        },
+        "R=2.0|EF=off": {
+          "z8_minus_e8_mean": -0.006330092748006185,
+          "ci95": 0.05160960229648556,
+          "per_seed": [
+            0.006443500518798828,
+            0.004868745803833008,
+            -0.03030252456665039
+          ],
+          "status": "invalid (matched-rate control failed)"
+        },
+        "R=2.0|EF=on": {
+          "z8_minus_e8_mean": -0.0019861062367757163,
+          "ci95": 0.011916309203581955,
+          "per_seed": [
+            0.0008575916290283203,
+            0.0007085800170898438,
+            -0.0075244903564453125
+          ],
+          "status": "invalid (matched-rate control failed)"
+        }
+      },
+      "status": "inconclusive (CI includes 0)"
+    },
+    "P10c": {
+      "e8_r1_ef_minus_none_mean": -0.011964797973632812,
+      "ci95": 0.07729458851962026,
+      "status": "supported"
+    }
+  },
+  "controls": {
+    "positive_sign_hurts": {
+      "rows": [
+        {
+          "seed": 1,
+          "sign_noEF": 3.926504373550415,
+          "none": 3.75657057762146
+        },
+        {
+          "seed": 2,
+          "sign_noEF": 3.9362826347351074,
+          "none": 3.790442705154419
+        },
+        {
+          "seed": 3,
+          "sign_noEF": 3.890794038772583,
+          "none": 3.797334671020508
+        }
+      ],
+      "passed": true
+    },
+    "negative_fine_scale_e8_equals_none": {
+      "rows": [
+        {
+          "seed": 1,
+          "e8_fine": 3.756574869155884,
+          "none": 3.75657057762146
+        },
+        {
+          "seed": 2,
+          "e8_fine": 3.790438413619995,
+          "none": 3.790442705154419
+        },
+        {
+          "seed": 3,
+          "e8_fine": 3.7973175048828125,
+          "none": 3.797334671020508
+        }
+      ],
+      "passed": true
+    },
+    "negative_decoder_brute_force": {
+      "Z": {
+        "kind": "Z",
+        "n_queries": 1000,
+        "lattice_points_in_ball": 33809,
+        "non_members": 0,
+        "mismatches": 0,
+        "passed": true
+      },
+      "E8": {
+        "kind": "E8",
+        "n_queries": 1000,
+        "lattice_points_in_ball": 26641,
+        "non_members": 0,
+        "mismatches": 0,
+        "passed": true
+      },
+      "passed": true
+    },
+    "negative_matched_rate": {
+      "R=1.0": {
+        "z8_rate": 1.7106415046408905,
+        "e8_rate": 1.7594400241208106,
+        "matched": true
+      },
+      "R=2.0": {
+        "z8_rate": 3.099439664466502,
+        "e8_rate": 3.3598355699208384,
+        "matched": false
+      },
+      "valid_rates": [
+        1.0
+      ],
+      "passed": true,
+      "rule": "an unmatched R invalidates the P10 comparisons at that R; the headline R = 1 must be matched"
+    }
+  },
+  "controls_all_passed": true,
+  "elapsed_seconds": 45.81,
+  "scope_note": "toy LoRA deltas (2048 coordinates) on one CPU; distortion gains on Gaussian-like blocks are expected to transfer, loss effects at this scale are not",
+  "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335"
+}

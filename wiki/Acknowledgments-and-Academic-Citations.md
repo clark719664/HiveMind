@@ -1,4 +1,4 @@
-# 📚 11. Acknowledgments, Leveraged Open-Source GitHub Repositories & Academic Citations (`v2.2.0`, citations re-verified 2026-10-23)
+# 📚 11. Acknowledgments, Leveraged Open-Source GitHub Repositories & Academic Citations (`v2.3.0`, 32 papers, citations re-verified 2026-10-23)
 
 **Project HiveMind** gratefully acknowledges the open-source distributed machine learning community, academic researchers across outer-loop `DiLoCo` and Mixture-of-Experts (`MoE`) architectures, and our human & AI contributor community (`52/52` merged Pull Requests across Waves 1–6).
 
@@ -78,6 +78,8 @@ Entries are ordered by arXiv id. **Removed in this revision** (fabricated identi
 28. **Huang, Benhao, Shi, Chufan, Chen, Junlin, Wen, Shicheng, Liu, Zhengzhong, Xing, Eric, Ma, Xuezhe (2026).** *Towards Looped Models Done Right, Part II: Rethinking at Fixed Points.* [`arXiv:2610.06833`](https://arxiv.org/abs/2610.06833) — Institute of Foundation Models / USC / CMU. HiveMind use: Terminal-KV sharing, truncated BPTT, learned depth prior (`LoopedExpertBackbone`).
 29. **Belilovsky, Eugene, Horoi, Stefan, Oyallon, Edouard, Thérien, Benjamin (2026).** *How Inner Optimizers Shape Replica Scaling.* [`arXiv:2610.19064`](https://arxiv.org/abs/2610.19064) — Mila / Concordia / Université de Montréal / CNRS. HiveMind use: Whitening inner optimizers restore replica scaling (`SI-11`).
 30. **Huang, Benhao, Shi, Chufan, Chen, Junlin, Wen, Shicheng, Liu, Zhengzhong, Xing, Eric, Ma, Xuezhe (2026).** *Towards Looped Models Done Right, Part I: Topology, Input Injection, Recurrent-State Design.* [`arXiv:2610.23036`](https://arxiv.org/abs/2610.23036) — Institute of Foundation Models / USC / CMU; code `ifm-ai/xllm-loop`. HiveMind use: Prelude / recurrent core / coda topology (`LoopedExpertBackbone`).
+31. **Kale, Satyen, Douillard, Arthur, Donchev, Yanislav (2025).** *Eager Updates for Overlapped Communication and Computation in DiLoCo.* [`arXiv:2502.12996`](https://arxiv.org/abs/2502.12996) — Google DeepMind / Google Research. HiveMind use: 1-outer-step eager overlap as the candidate deferred-learner rule for `HM-S9-01` / `HM-S9-13` (verified 2026-10-23).
+32. **Defazio, Aaron, Mishchenko, Konstantin, Raman, Parameswaran, Shi, Hao-Jun Michael, Xiao, Lin (2025).** *Smoothing DiLoCo with Primal Averaging for Faster Training of LLMs.* [`arXiv:2512.17131`](https://arxiv.org/abs/2512.17131) — Meta Superintelligence Labs. HiveMind use: Generalized Primal Averaging as the control for the outer-momentum-restart factor of E5 (`HM-S9-05`) (verified 2026-10-23).
 
 Software without an arXiv paper: [`pmerolla/fomoe`](https://github.com/pmerolla/fomoe) (Paul Merolla, MIT; multi-tier expert cache and cache-aware routing; it is **not** the FoMoE paper above), [`learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind) (MIT), [`PrimeIntellect-ai/prime-diloco`](https://github.com/PrimeIntellect-ai/prime-diloco) (Apache-2.0), Muon (Keller Jordan et al., 2024, blog post).
 

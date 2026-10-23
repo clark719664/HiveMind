@@ -349,6 +349,29 @@ def verify_manuscript_data_consistency(
     _add_check("PROV-21", "E8-pilot K=2 round latency p50 (s)", [f"{e8_k2_p50:.1f}"], "artifacts/experiments/E8_pilot_report.json")
     _add_check("PROV-22", "E8-pilot K=1 round-synchronous loss penalty vs baseline", [f"{e8_k1_diff:+.2f}", f"{e8_k1_diff:.2f}"], "artifacts/experiments/E8_pilot_report.json")
 
+    e5h = exp_v3_data.get("__e5het__", {})
+    if e5h:
+        e5h_cos = float(e5h["analysis"]["P2"]["mean_pairwise_cosine_at_rho_max"])
+        e5h_ratio_m8 = float(e5h["manipulation_check"]["rda_over_direct_norm_ratio"]["rho4.0|M8"])
+        e5h_p3 = float(e5h["analysis"]["P3"]["paired_diff_random_minus_adaptive_mean"])
+        e5h_p4 = float(e5h["analysis"]["P4"]["gains"]["rho4.0|quorum_grace"]["gain_mean"])
+        _add_check("PROV-23", "E5-het mean pairwise learner-delta cosine at rho = 4", [f"{e5h_cos:.3f}", f"{e5h_cos:.2f}"], "artifacts/experiments/E5_het_report.json")
+        _add_check("PROV-24", "E5-het mean RDA/direct norm ratio at rho = 4, M = 8", [f"{e5h_ratio_m8:.2f}", f"{e5h_ratio_m8:.3f}"], "artifacts/experiments/E5_het_report.json")
+        _add_check("PROV-25", "E5-het random-minus-adaptive paired loss difference at rho = 4", [f"{e5h_p3:+.4f}", f"{e5h_p3:.4f}"], "artifacts/experiments/E5_het_report.json")
+        _add_check("PROV-26", "E5-het PA-CGAD gate gain under quorum at rho = 4", [f"{e5h_p4:+.5f}", f"{e5h_p4:.5f}", f"{e5h_p4:+.4f}"], "artifacts/experiments/E5_het_report.json")
+
+    lean_ind = exp_v3_data.get("__lean_independent__", {})
+    if lean_ind:
+        _add_check("PROV-27", "independent Lean kernel gate: theorems verified / declared", [f"{lean_ind['compiled']}/{lean_ind['theorems']}", f"{lean_ind['compiled']} of {lean_ind['theorems']}"], "artifacts/lean_independent_runner_check.json")
+    e10 = exp_v3_data.get("__e10__", {})
+    if e10:
+        e10_ratio = float(e10["analysis"]["P10a"]["cells"]["R=1.0|EF=off"]["ratio_mean"])
+        e10_lossdiff = float(e10["analysis"]["P10b"]["cells"]["R=1.0|EF=on"]["z8_minus_e8_mean"])
+        e10_ef = float(e10["analysis"]["P10c"]["e8_r1_ef_minus_none_mean"])
+        _add_check("PROV-28", "E10 E8/Z8 relative-MSE ratio at 1 bit/dim (EF off)", [f"{e10_ratio:.2f}", f"{e10_ratio:.3f}"], "artifacts/experiments/E10_lattice_report.json")
+        _add_check("PROV-29", "E10 Z8-minus-E8 final loss at 1 bit/dim with EF", [f"{e10_lossdiff:+.4f}", f"{e10_lossdiff:.4f}", f"{e10_lossdiff:+.3f}"], "artifacts/experiments/E10_lattice_report.json")
+        _add_check("PROV-30", "E10 E8 1-bit EF minus unquantised final loss", [f"{e10_ef:+.4f}", f"{e10_ef:.4f}", f"{e10_ef:+.3f}"], "artifacts/experiments/E10_lattice_report.json")
+
     failed = [c["check_id"] for c in checks if not c["passed"]]
     return {
         "total_checks": len(checks),
@@ -448,6 +471,12 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
     exp_v3_data["__h11__"] = json.loads(h11_report_path.read_text(encoding="utf-8")) if h11_report_path.exists() else {}
     e5_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_report.json"
     exp_v3_data["__e5__"] = json.loads(e5_report_path.read_text(encoding="utf-8")) if e5_report_path.exists() else {}
+    e5h_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_report.json"
+    exp_v3_data["__e5het__"] = json.loads(e5h_report_path.read_text(encoding="utf-8")) if e5h_report_path.exists() else {}
+    e10_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_report.json"
+    exp_v3_data["__e10__"] = json.loads(e10_report_path.read_text(encoding="utf-8")) if e10_report_path.exists() else {}
+    lean_ind_path = PROJECT_ROOT / "artifacts" / "lean_independent_runner_check.json"
+    exp_v3_data["__lean_independent__"] = json.loads(lean_ind_path.read_text(encoding="utf-8")) if lean_ind_path.exists() else {}
     e8_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E8_pilot_report.json"
     exp_v3_data["__e8__"] = json.loads(e8_report_path.read_text(encoding="utf-8")) if e8_report_path.exists() else {}
     tex_text = TEX_PATH.read_text(encoding="utf-8") if TEX_PATH.exists() else ""
@@ -577,7 +606,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     peer_review_report = {
         "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-        "version": "3.2.0",
+        "version": "3.5.0",
         "is_peer_review": False,
         "disclosure": AUDIT_DISCLOSURE,
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
@@ -617,7 +646,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-        "version": "3.2.0",
+        "version": "3.5.0",
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
         "workspace_root": ".",
         "artifacts_and_entrypoints": {

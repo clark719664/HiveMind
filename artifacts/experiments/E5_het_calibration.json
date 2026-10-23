@@ -1,0 +1,258 @@
+{
+  "note": "manipulation-check calibration run before pre-registration: round-0 delta cosines only, no loss was computed or looked at",
+  "rows": [
+    {
+      "rho": 0.0,
+      "M": 4,
+      "seed": 1,
+      "round0_cosine": 0.9062110519791761,
+      "round0_rda_over_direct": 1.037077645719193
+    },
+    {
+      "rho": 0.0,
+      "M": 4,
+      "seed": 2,
+      "round0_cosine": 0.9212543283408587,
+      "round0_rda_over_direct": 1.030937947872956
+    },
+    {
+      "rho": 0.0,
+      "M": 4,
+      "seed": 3,
+      "round0_cosine": 0.8930109938153418,
+      "round0_rda_over_direct": 1.0426500722871048
+    },
+    {
+      "rho": 0.0,
+      "M": 8,
+      "seed": 1,
+      "round0_cosine": 0.9052022079100712,
+      "round0_rda_over_direct": 1.0442401188690038
+    },
+    {
+      "rho": 0.0,
+      "M": 8,
+      "seed": 2,
+      "round0_cosine": 0.9218190570248651,
+      "round0_rda_over_direct": 1.0360899559063905
+    },
+    {
+      "rho": 0.0,
+      "M": 8,
+      "seed": 3,
+      "round0_cosine": 0.8874898191336537,
+      "round0_rda_over_direct": 1.0531258346109613
+    },
+    {
+      "rho": 0.5,
+      "M": 4,
+      "seed": 1,
+      "round0_cosine": 0.8128178271553965,
+      "round0_rda_over_direct": 1.0784979913378114
+    },
+    {
+      "rho": 0.5,
+      "M": 4,
+      "seed": 2,
+      "round0_cosine": 0.809823141588693,
+      "round0_rda_over_direct": 1.0800827922417842
+    },
+    {
+      "rho": 0.5,
+      "M": 4,
+      "seed": 3,
+      "round0_cosine": 0.8124546018310715,
+      "round0_rda_over_direct": 1.0786894147164725
+    },
+    {
+      "rho": 0.5,
+      "M": 8,
+      "seed": 1,
+      "round0_cosine": 0.8112134811022658,
+      "round0_rda_over_direct": 1.0944093666488728
+    },
+    {
+      "rho": 0.5,
+      "M": 8,
+      "seed": 2,
+      "round0_cosine": 0.8308792177786646,
+      "round0_rda_over_direct": 1.0830937120229296
+    },
+    {
+      "rho": 0.5,
+      "M": 8,
+      "seed": 3,
+      "round0_cosine": 0.7962773058207427,
+      "round0_rda_over_direct": 1.103143686461012
+    },
+    {
+      "rho": 1.0,
+      "M": 4,
+      "seed": 1,
+      "round0_cosine": 0.5989479022444667,
+      "round0_rda_over_direct": 1.1956989884513458
+    },
+    {
+      "rho": 1.0,
+      "M": 4,
+      "seed": 2,
+      "round0_cosine": 0.5844470105064752,
+      "round0_rda_over_direct": 1.2048080450345688
+    },
+    {
+      "rho": 1.0,
+      "M": 4,
+      "seed": 3,
+      "round0_cosine": 0.6652916417022386,
+      "round0_rda_over_direct": 1.155468627932631
+    },
+    {
+      "rho": 1.0,
+      "M": 8,
+      "seed": 1,
+      "round0_cosine": 0.5971358548761392,
+      "round0_rda_over_direct": 1.2421911181405993
+    },
+    {
+      "rho": 1.0,
+      "M": 8,
+      "seed": 2,
+      "round0_cosine": 0.6381522924325819,
+      "round0_rda_over_direct": 1.2075982728464338
+    },
+    {
+      "rho": 1.0,
+      "M": 8,
+      "seed": 3,
+      "round0_cosine": 0.6219711229086238,
+      "round0_rda_over_direct": 1.2223417027597943
+    },
+    {
+      "rho": 2.0,
+      "M": 4,
+      "seed": 1,
+      "round0_cosine": 0.2697711346585711,
+      "round0_rda_over_direct": 1.4848754662170147
+    },
+    {
+      "rho": 2.0,
+      "M": 4,
+      "seed": 2,
+      "round0_cosine": 0.2123471564710455,
+      "round0_rda_over_direct": 1.5627829838872784
+    },
+    {
+      "rho": 2.0,
+      "M": 4,
+      "seed": 3,
+      "round0_cosine": 0.3336843642146863,
+      "round0_rda_over_direct": 1.413096451802742
+    },
+    {
+      "rho": 2.0,
+      "M": 8,
+      "seed": 1,
+      "round0_cosine": 0.26875487798910747,
+      "round0_rda_over_direct": 1.6641797134706773
+    },
+    {
+      "rho": 2.0,
+      "M": 8,
+      "seed": 2,
+      "round0_cosine": 0.2736655614946591,
+      "round0_rda_over_direct": 1.649831084504823
+    },
+    {
+      "rho": 2.0,
+      "M": 8,
+      "seed": 3,
+      "round0_cosine": 0.2853705294369011,
+      "round0_rda_over_direct": 1.631731415751398
+    },
+    {
+      "rho": 4.0,
+      "M": 4,
+      "seed": 1,
+      "round0_cosine": 0.07789680969997925,
+      "round0_rda_over_direct": 1.7985329435098008
+    },
+    {
+      "rho": 4.0,
+      "M": 4,
+      "seed": 2,
+      "round0_cosine": 0.06914523740749294,
+      "round0_rda_over_direct": 1.8183692852068354
+    },
+    {
+      "rho": 4.0,
+      "M": 4,
+      "seed": 3,
+      "round0_cosine": 0.05988452661797231,
+      "round0_rda_over_direct": 1.834723146947464
+    },
+    {
+      "rho": 4.0,
+      "M": 8,
+      "seed": 1,
+      "round0_cosine": 0.08622398389800577,
+      "round0_rda_over_direct": 2.2329933001711235
+    },
+    {
+      "rho": 4.0,
+      "M": 8,
+      "seed": 2,
+      "round0_cosine": 0.06748842673364212,
+      "round0_rda_over_direct": 2.3364422495174493
+    },
+    {
+      "rho": 4.0,
+      "M": 8,
+      "seed": 3,
+      "round0_cosine": 0.08149774259209115,
+      "round0_rda_over_direct": 2.2378704841812938
+    }
+  ],
+  "summary": {
+    "rho0.0|M4": {
+      "cosine_mean": 0.9068254580451255,
+      "ratio_mean": 1.0368885552930847
+    },
+    "rho0.0|M8": {
+      "cosine_mean": 0.9048370280228634,
+      "ratio_mean": 1.0444853031287853
+    },
+    "rho0.5|M4": {
+      "cosine_mean": 0.8116985235250537,
+      "ratio_mean": 1.0790900660986893
+    },
+    "rho0.5|M8": {
+      "cosine_mean": 0.8127900015672244,
+      "ratio_mean": 1.0935489217109382
+    },
+    "rho1.0|M4": {
+      "cosine_mean": 0.6162288514843935,
+      "ratio_mean": 1.1853252204728486
+    },
+    "rho1.0|M8": {
+      "cosine_mean": 0.6190864234057817,
+      "ratio_mean": 1.224043697915609
+    },
+    "rho2.0|M4": {
+      "cosine_mean": 0.27193421844810095,
+      "ratio_mean": 1.4869183006356783
+    },
+    "rho2.0|M8": {
+      "cosine_mean": 0.2759303229735559,
+      "ratio_mean": 1.648580737908966
+    },
+    "rho4.0|M4": {
+      "cosine_mean": 0.06897552457514818,
+      "ratio_mean": 1.8172084585547001
+    },
+    "rho4.0|M8": {
+      "cosine_mean": 0.07840338440791302,
+      "ratio_mean": 2.2691020112899554
+    }
+  },
+  "written_utc": "2026-10-23T16:43:45Z"
+}

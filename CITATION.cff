@@ -10,8 +10,8 @@ authors:
 repository-code: "https://github.com/xaviercallens/HiveMind"
 url: "https://github.com/xaviercallens/HiveMind"
 license: MIT
-version: 2.2.0
-doi: 10.5281/zenodo.23598417
+version: 2.3.0
+doi: 10.5281/zenodo.23601925
 date-released: "2026-10-23"
 keywords:
   - decentralized-training
@@ -515,6 +515,34 @@ references:
     year: 2026
     url: "https://arxiv.org/abs/2610.23036"
     notes: "Institute of Foundation Models / USC / CMU; code `ifm-ai/xllm-loop`"
+  - type: article
+    title: "Eager Updates for Overlapped Communication and Computation in DiLoCo"
+    authors:
+      - family-names: Kale
+        given-names: Satyen
+      - family-names: Douillard
+        given-names: Arthur
+      - family-names: Donchev
+        given-names: Yanislav
+    year: 2025
+    url: "https://arxiv.org/abs/2502.12996"
+    notes: "Google DeepMind / Google Research"
+  - type: article
+    title: "Smoothing DiLoCo with Primal Averaging for Faster Training of LLMs"
+    authors:
+      - family-names: Defazio
+        given-names: Aaron
+      - family-names: Mishchenko
+        given-names: Konstantin
+      - family-names: Raman
+        given-names: Parameswaran
+      - family-names: Shi
+        given-names: Hao-Jun Michael
+      - family-names: Xiao
+        given-names: Lin
+    year: 2025
+    url: "https://arxiv.org/abs/2512.17131"
+    notes: "Meta Superintelligence Labs"
   - type: software
     title: "fomoe: Fast Opportunistic Mixture-Of-Experts"
     authors:

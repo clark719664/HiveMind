@@ -1,7 +1,7 @@
 {
   "schema_version": "hivemind-gwaya-stub-audit/v1.0",
   "auditor": "gwaya.ast_audit.ZeroStubAudit (GWAYA-GwenLayaOpenModel)",
-  "files_audited": 77,
+  "files_audited": 81,
   "files_failed": [],
   "all_passed": true,
   "results": [
@@ -178,6 +178,24 @@
     },
     {
       "file": "src/hivemind/client/worker_node.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/compress/__init__.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/compress/lattice_quantizer.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -618,6 +636,24 @@
       }
     },
     {
+      "file": "scripts/run_experiment_E10_lattice.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/run_experiment_E5_het.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "scripts/run_experiment_E5_toy.py",
       "passed": true,
       "detail": {
@@ -699,6 +735,6 @@
       }
     }
   ],
-  "written_utc": "2026-10-23T14:22:41Z",
-  "receipt_sha256": "8303c4c0b180cc06a4233fac803d80cbe265978f7469f87a77a6f60ae4c23dd8"
+  "written_utc": "2026-10-23T17:42:18Z",
+  "receipt_sha256": "4025cd2ec998f55a2e2c7d1cbfe84cb8c8f2194c2980ed8a950584d906007f10"
 }

@@ -1,0 +1,116 @@
+{
+  "experiment_id": "E5-het",
+  "registered_utc": "2026-10-23T18:55:00Z",
+  "registered_before_run": true,
+  "decides": [
+    "RQ2",
+    "RQ3",
+    "RQ4",
+    "P9 (RDA as an adaptive outer-LR multiplier)"
+  ],
+  "spec_source": "docs/RESEARCH_PROGRAM.md section 4 (E5) on the E5-toy harness with one added factor, rho (learner heterogeneity); written after E5-toy returned P2 inapplicable (cosine 0.909)",
+  "model": "SyntheticLoRACausalLM (scripts/run_paper_experiments_and_figures.py), d_model=64, rank 8, vocab 64; disjoint 128-sequence held-out split",
+  "heterogeneity_knob": "learner m is labelled by teacher_m whose LoRA B factors are B_shared + rho * B_m, with B_m ~ N(0, 0.35^2) drawn once per learner from a generator separate from the shared stream; the held-out set of 128 sequences mixes the learners' teachers equally (row j labelled by teacher j mod M); rho = 0 reproduces the E5-toy dataset bit for bit",
+  "calibration": "artifacts/experiments/E5_het_calibration.json: the rho grid was chosen from a calibration of round-0 delta cosines only (rho 0/0.5/1/2/4 -> 0.91/0.81/0.62/0.27/0.07); no loss was computed before this pre-registration",
+  "fixed": {
+    "outer_rounds": 12,
+    "inner_steps_h": 8,
+    "batch_size": 16,
+    "inner_lr": 0.045,
+    "outer_momentum": 0.65,
+    "sync_duration_units": 0.1
+  },
+  "reference_outer_lr": 0.6,
+  "factors": {
+    "rho": [
+      0.0,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "num_learners_m": [
+      4,
+      8
+    ],
+    "merge": [
+      "direct",
+      "rda"
+    ],
+    "admission": [
+      "all",
+      "quorum_grace",
+      "quorum_random"
+    ],
+    "gate": [
+      "ungated",
+      "cgad"
+    ],
+    "outer_lr": [
+      0.15,
+      0.2121,
+      0.3,
+      0.4243,
+      0.6,
+      0.8485,
+      1.2,
+      1.6971,
+      2.4
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "outer_lr_grid_note": "geometric grid with ratio sqrt(2) so that a sqrt(2) shift of the best outer LR (the RDA-vs-direct effect expected between M=4 and M=8 under orthogonal deltas) is one grid step; 0.7 is kept as the reference LR of the controls",
+  "arrival_model": "per learner per round: t = lognormal(median 1.0, sigma 0.25) compute units; with probability 0.2 the learner is a straggler and t is multiplied by uniform(3, 8). Sampled once per (M, seed) and replayed identically across all cells. This is a parametric model, not a WAN trace; artifacts/wan_quic_turn_fault_report.json only contains localhost latencies and is not used.",
+  "admission_rules": {
+    "all": "wait for every learner (K = M); wall per round = max arrival + sync",
+    "quorum_grace": "K = ceil(M/2); AdaptiveGraceWindowController(tau=2, gamma=0.5, ema_beta=0.5, sync=0.1) fed with the median arrival as step duration and the K-th arrival as quorum duration; learners inside the window admitted; deferred learners contribute their delta at the next round with staleness tau=1 and skip that round's fresh compute",
+    "quorum_random": "same K; window length drawn uniform in [0, 2 * mean adaptive window of the same (M, seed)] so the expected window matches the adaptive cell (matched-random control)"
+  },
+  "gate_rule": "the outer optimizer is Nesterov in every cell; 'cgad' multiplies each stale learner delta by sigma(tau) = 0.5(1+cos(pi tau/32)) exp(-0.2 tau) before merging (PA-CGAD gate factor only, so that the gate is the sole difference)",
+  "metrics": [
+    "final held-out loss at round 12",
+    "cumulative simulated wall-clock",
+    "admitted-token fraction",
+    "mean pairwise cosine between learner deltas per round",
+    "loss at matched wall budget (for RQ3)",
+    "per-round ||RDA(v)|| / ||direct(v)|| (reported for every cell)"
+  ],
+  "predictions_tested_at": "rho_max = 4.0 unless stated; every quantity is also reported at every rho",
+  "acceptance_rules": {
+    "manipulation_check": "the mean pairwise cosine of learner deltas (direct/all/ungated at the reference LR, averaged over M and seeds) must be non-increasing in rho and <= 0.3 at rho_max; otherwise P2 and P9 are reported inapplicable",
+    "P2": "best outer_lr = argmin over the grid of the 3-seed mean final loss (admission all, ungated) at rho_max. Supported if under direct the best LR at M=8 is strictly larger than at M=4 and under rda it is the same grid point; refuted otherwise; inconclusive if any of the four best LRs sits on a grid boundary (censored)",
+    "P3": "at the best lr of each cell and the same (M, seed), compare the held-out loss reached within the smaller of the two cells' total wall budgets; supported if adaptive < random with the 95% t-interval of the paired seed differences excluding 0; refuted if random <= adaptive; inconclusive otherwise (evaluated at rho_max)",
+    "P4": "gate gain = mean final loss(ungated) - mean final loss(cgad) at the best lr; reported under quorum_grace (stale deltas present) and under all (no stale deltas, gain must be 0 by construction = negative control); supported if gain under quorum_grace > 0 with CI excluding 0 and the gate never raises loss by more than the CI (evaluated at rho_max; the 'all' negative control must be exactly 0 at every rho)",
+    "P9": "RDA equals direct averaging with a per-round outer-LR multiplier r_t = sum_i w_i ||v_i|| / ||sum_i w_i v_i|| >= 1 (elementary identity, Proposition in the paper). Prediction: at rho_max and each M, log(best_lr_direct / best_lr_rda) lies within one grid step (log sqrt 2) of log(mean r_t) measured in the direct/all/ungated reference cell; supported if it does at both M; refuted otherwise; inconclusive on a grid boundary"
+  },
+  "controls": {
+    "positive": "stale_burst cell at every (rho, M, seed) as in E5-toy, run at the reference LR (0.6): must raise the final loss above the clean direct/all/ungated cell at the same LR",
+    "negative_1": "rda_identity at rho_max (M=4, seed 1): identical shards must give rda == direct to within 1e-5 relative",
+    "negative_2": "rho0_regression: the (rho=0, M=4, seed=1, direct/all/ungated, lr 0.7) final loss must equal the E5-toy report value (cell M4|direct|all|ungated|lr0.7, seed 1) to within 1e-6, proving that rho=0 is E5-toy and that the harness edit changed nothing"
+  },
+  "decision_consequences": "if P2 is supported, the campaign keeps a single outer LR under RDA across M and Section 7.2 of the paper may claim retuning-free merging at toy scale; if refuted or censored, RDA is reported as norm bookkeeping only. P3 refuted at rho_max: the EMA grace controller is deleted (RESEARCH_PROGRAM.md section 5). P4 refuted at rho_max as at rho=0: PA-CGAD is off by default under quorum. P9 refuted: the Proposition's premise (merges differ only by a scalar) does not describe what training sees, and RQ2 must be re-stated",
+  "amendments": [
+    {
+      "utc": "2026-10-23T19:30:00Z",
+      "change": "reference_outer_lr 0.7 -> 0.6 (the nearest point of the sqrt-2 grid); the stale-burst positive control now also runs at 0.6 so that it is compared with the clean cell at the same LR; the rho0 regression control keeps lr 0.7 because it compares against the E5-toy artifact",
+      "reason": "the first full run crashed in the analysis step with KeyError 'rho0.0|M4|direct|all|ungated|lr0.7' because 0.7 is not on the geometric grid; the crash happened before any loss or status was printed or written, so no result informed this change",
+      "raw_dump_added": "artifacts/experiments/E5_het_raw_runs.json is written before analysis so an analysis bug can be fixed without re-running"
+    },
+    {
+      "utc": "2026-10-23T20:20:00Z",
+      "change": "P2/P9 grid extension: for the rho_max cells with admission 'all' and gate 'ungated' only, the outer-LR grid is continued upward by five more sqrt-2 steps (3.3941, 4.8, 6.7882, 9.6, 13.5765) and P2/P9 are re-evaluated on the union grid with the acceptance rules unchanged (boundary rule applies to the union grid)",
+      "reason": "the first analysis found every best outer LR (direct and RDA, M = 4 and 8) at the top of the original grid (2.4), so P2 and P9 were censored; P3 and P4 are not touched and keep their original-grid status",
+      "seen_before_amendment": "the full E5_het_report.json of the original grid (receipt 39108cd5fbe6657983ac6337ca5b7c2a5718058a27ddee066af0167246e5f9d7), including the fact that the loss decreases monotonically in the outer LR up to 2.4 in every rho_max cell"
+    }
+  ],
+  "p2_grid_extension_outer_lr": [
+    3.3941,
+    4.8,
+    6.7882,
+    9.6,
+    13.5765
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "experiment_id": "E10-lattice",
+  "registered_utc": "2026-10-23T20:05:00Z",
+  "registered_before_run": true,
+  "decides": [
+    "P10a (E8 vs Z8 distortion at matched rate)",
+    "P10b (E8 vs Z8 held-out loss at matched rate)",
+    "P10c (error feedback recovers the unquantised loss at 1 bit/dim)"
+  ],
+  "leverages": "OptimalEnergyAI oai_ml.core.quantise / rate (X. Callens, 2026; textbook doi:10.5281/zenodo.23295142) ported to src/hivemind/compress/lattice_quantizer.py; signSGD (arXiv:1802.04434) 1-bit arm; EF21 error feedback (HiveMind Lean Theorem 107)",
+  "testbed": "E5-het HetToyRun at rho = 4.0, M = 8, merge direct, admission all, ungated, 12 outer rounds, 3 seeds (1, 2, 3); outer LR = the best direct LR of the E5-het cell rho4.0|M8|direct|all|ungated read from artifacts/experiments/E5_het_report.json (its receipt is recorded in the E10 report)",
+  "quantiser_arms": {
+    "none": "learner deltas merged unquantised",
+    "sign": "Q(v) = mean|v| sign(v), 1 bit/dim",
+    "Z8@R": "blockwise (8 coords) nearest point of scale*Z^8, scale calibrated so that the measured factorised rate is R bits/dim",
+    "E8@R": "blockwise nearest point of scale*E8, same calibration rule",
+    "rates_R": [
+      1.0,
+      2.0
+    ],
+    "error_feedback": [
+      "off",
+      "on"
+    ],
+    "calibration": "scale per (lattice, R) found by bisection on the round-0 delta of learner 0, seed 1 (tolerance 0.02 bit/dim); the same scale is then used for every learner, seed and round; the realised per-round rate is measured and reported"
+  },
+  "metrics": [
+    "final held-out loss at round 12",
+    "mean per-round relative quantisation MSE ||v - Q(v)||^2 / ||v||^2 over learners and rounds",
+    "mean measured rate (bits/dim)"
+  ],
+  "acceptance_rules": {
+    "P10a": "for each (R, EF): paired per-seed ratio relMSE(E8)/relMSE(Z8); supported if the mean ratio < 1 with the df=2 95% t-interval excluding 1 at both R (EF off); refuted if the interval excludes 1 on the other side at some R; inconclusive otherwise. The Gaussian-source prediction is a ratio of 0.86 (0.654 dB); the realised ratio is reported against it without a pass/fail band because deltas are not Gaussian",
+    "P10b": "for each (R, EF): paired per-seed final-loss difference loss(Z8) - loss(E8); supported at that cell if > 0 with CI excluding 0; refuted if < 0 with CI excluding 0; inconclusive if the CI includes 0. Headline status = the EF-on, R = 1 cell",
+    "P10c": "loss(E8, R = 1, EF on) - loss(none): supported if its CI includes 0 or is < 0 (EF recovers the unquantised loss at 1 bit/dim); refuted if > 0 with CI excluding 0"
+  },
+  "controls": {
+    "positive": "sign without EF must end with a higher final loss than 'none' in every seed (if the harness cannot see 1-bit quantisation of the deltas the run is invalid)",
+    "negative_1_fine_scale": "E8 at the scale giving >= 6 bits/dim (EF off) must reproduce the 'none' final loss to within 1e-3 in every seed",
+    "negative_2_decoder": "brute_force_decoder_check(kind, 1000 queries, seed 2026) must report 0 mismatches and 0 non-members for Z8 and E8 (two-sided check, lesson of OptimalEnergyAI h0.md)",
+    "negative_3_matched_rate": "at each R the realised mean rates of the Z8 and E8 arms must agree within 0.1 bit/dim, otherwise the P10 comparisons at that R are reported invalid"
+  },
+  "decision_consequences": "P10a and P10b supported: E8 blockwise quantisation becomes the default outer-delta codec of the campaign at 1-2 bits/dim with EF on (HM-S10-01) and SparseLoCo's 2-bit LUT is compared against it in E10b at 0.5B scale; P10b refuted: the 0.654 dB distortion gain does not reach the loss and the codec stays an option; P10c refuted: error feedback is insufficient at 1 bit/dim on this testbed and the campaign floor is 2 bits/dim",
+  "scope": "toy LoRA deltas (2048 coordinates) on one CPU; distortion gains on Gaussian-like blocks are expected to transfer, loss effects at this scale are not"
+}

@@ -1,0 +1,1203 @@
+{
+  "schema_version": "hivemind-lean-independent-runner-check/v1.0",
+  "verifier": "AutoevolveAI anse.formal.lean_runner.LeanKernelVerifier.verify_file (compile in place + one '#print axioms' line required per declared theorem; whitelist propext, Classical.choice, Quot.sound)",
+  "file": "lean4/HiveMindSpec.lean",
+  "file_sha256": "afae1dc1408c5f102d55c669a9bb24b19de6cf4c0faf63bb450169b4c735f577",
+  "run_utc": "2026-10-23T17:33:03Z",
+  "theorems": 120,
+  "compiled": 120,
+  "has_sorry": 0,
+  "untrusted_axioms": 0,
+  "axiom_footprints": {
+    "Quot.sound+propext": 57,
+    "Classical.choice+Quot.sound+propext": 30,
+    "none": 16,
+    "propext": 17
+  },
+  "before_coverage_fix": {
+    "compiled": 107,
+    "unverified_theorems_without_axioms_line": [
+      "nf4_double_quant_compression_bound",
+      "spot_check_rejects_tampered_worker",
+      "router_gate_strictly_higher_precision",
+      "byzantine_slashing_strictly_reduces_positive_stake",
+      "georing_rejects_high_latency_wan_peer",
+      "kademlia_xor_self_zero",
+      "kademlia_xor_comm",
+      "speculative_tree_gamma6_rtt_reduction",
+      "mem_le_sum",
+      "accepted_add_residual_sum",
+      "redistribute_eq",
+      "acceptedPrefix_le",
+      "strikeRegister_gt"
+    ]
+  },
+  "results": [
+    {
+      "theorem": "nf4_double_quant_compression_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "rtx2070_8gb_vram_envelope_verified",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "diloco_topk_fp8_bandwidth_reduction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "spot_check_10pct_and_20x_boinc_savings",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "spot_check_rejects_tampered_worker",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "multikrum_neighborhood_contains_honest_worker",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "top2_sparse_moe_quarter_active_compute",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "router_gate_strictly_higher_precision",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "pouw_reward_pools_conserve_100pct",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "hive_geometric_halving_respects_21m_cap",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "byzantine_slashing_strictly_reduces_positive_stake",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "georing_rejects_high_latency_wan_peer",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "kademlia_xor_self_zero",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "kademlia_xor_comm",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "dma_double_buffer_zero_exposed_stall",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "speculative_tree_gamma6_rtt_reduction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "l2_state_channel_settlement_conservation",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "prefix_trie_shared_nodes_reduce_attention_flops",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "quic_0rtt_anti_replay_rejects_duplicate_nonce",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fused_moe_fp8_vram_fits_16_experts_in_8gb",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "nat_hole_punch_direct_p2p_avoids_turn_relay_latency",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "prefix_trie_dedup_node_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "mem_le_sum",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "accepted_add_residual_sum",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "redistribute_eq",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "speculative_rejection_sampling_target_invariance",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "acceptedPrefix_le",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "prefix_trie_speculative_progress_bounds",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "speculative_run_progress_bounds",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "strikeRegister_gt",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "rfc9001_0rtt_monotonic_nonce_anti_replay",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "rfc9001_0rtt_no_nonce_accepted_twice",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "rfc9001_0rtt_ticket_expiration_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "wan_nat_hole_punch_rtt_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "quadratic_voting_cost_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "steamworks_sybil_account_cost_lower_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "continental_super_ring_hop_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "svd_rank_truncation_parameter_savings",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "opoi_merkle_inclusion_depth_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "opoi_merkle_inclusion_depth_logarithmic",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ties_sign_consensus_majority_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "guild_synergy_multiplier_reward_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "interactive_bisection_interval_halving_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "interactive_bisection_single_layer_replay_savings",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "hierarchical_64_expert_gating_flop_reduction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fp8_paged_kv_cache_vram_fits_in_2200mib",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fisher_spectral_rank_budget_conservation",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "adaptive_diloco_communication_sla_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ef21_error_feedback_residual_contraction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "hierarchical_128_expert_3tier_gating_savings",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ucb1_bandit_exploration_bonus_monotonicity",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "slashing_insurance_pool_solvency_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "adaptive_median_norm_clipping_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "sybil_one_vote_per_steamid_quorum_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "staleness_window_outer_step_rejection",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "free_rider_zero_gradient_rejection",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "gpu_thermal_hysteresis_deadband_prevents_oscillation",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "wddm_tdr_watchdog_preempts_before_driver_reset",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "duty_cycle_thermal_throttle_reduces_sustained_power",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "nan_loss_early_abort_saves_wasted_gpu_steps",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ledger_positive_inference_fee_prevents_balance_inflation",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ledger_supply_cap_conservation_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ring_peer_admission_sla_rejects_high_loss_or_zero_ping",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "speculative_decoding_gamma_bound_limits_forward_width",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ef_conservation_any_compressor",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "int_mul_self_nonneg",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "energy_nonneg",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "sparsify_residual_energy_le",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "sparsify_energy_split",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "sparsify_strict_contraction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ef_conservation_with_carry_map",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "keptCount_le_length",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "threshold_bounds",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "topk_contraction_rate",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ef_residual_stays_bounded_under_decay",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ucb1_well_sampled_suboptimal_arm_is_not_selected",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ucb1_sample_threshold_bounds_bonus",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "cgad_cosine_cutoff_zeroes_stale_variance_pollution",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fomoe_partial_replica_reduces_ring_communication_volume",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fomoe_skip_token_reduces_local_expert_flops",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "pulseloco_compute_visible_gate_preserves_forward_rounding",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "skip_attention_car_fallback_eliminates_synchronous_pcie_stall",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "isoloco_isotropic_singular_spectrum_unit_condition",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "autoloco_doubled_interval_monotonic_accumulated_lr",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "heloco_conflicting_component_projection_orthogonality",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "prime_diloco_cpu_flat_bucket_zero_gpu_vram_overhead",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "sparseloco_2bit_lut_wire_payload_bound",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "looped_moe_recurrent_core_weight_tying_vram_savings",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "terminal_kv_cache_sharing_depth_compression",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "muon_newton_schulz_replica_scaling_throughput_bound",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fixed_point_recurrence_per_step_contraction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fixed_point_early_exit_saves_flops",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "terminal_kv_sharing_three_x_decode_cache_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "terminal_kv_sharing_conserves_prefix_memory",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "isosparse_fomoe_ring_communication_bound",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fomoe_ghost_expert_count_complement",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "iso_cts_isotropic_spectrum_unit_condition",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "multi_wave_fomoe_local_vram_strictly_below_full_replica",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fixed_point_zero_residual_stops_recurrence",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "isosparse_fomoe_shared_wave_reuse_reduces_payload",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "opendiloco_flat_bucket_partition_conserves_numel",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "streaming_diloco_fragment_bandwidth_reduction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "pacgad_staleness_cutoff_preserves_second_moment",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "deepmind_moe_diloco_active_flop_and_comm_bound",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "demo_sparseloco_2bit_package_exceeds_16x_compression",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "muloco_newton_schulz_condition_contraction",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ef21_multistep_telescoping_sum_conservation",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "looped_moe_tbptt_gradient_memory_bound",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "fomoe_ghost_skip_token_zero_remote_rpc",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "tsv_procrustes_subspace_rank_bound",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "skip_attention_dma_overlap_zero_stall_budget",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "non_monetary_compute_reciprocity_zero_fiat_invariant",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "ef21_disabled_loses_untransmitted_residual",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "pacgad_missing_cutoff_inflates_stale_second_moment",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "multikrum_violated_quorum_loses_honest_majority",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "inhabited_hivemind_rtx2070_deployment_witness",
+      "compiled": true,
+      "axioms": [],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "decoupled_grace_window_strictly_below_slack",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "decoupled_exhausted_slack_zero_grace",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "decoupled_token_weight_monotone",
+      "compiled": true,
+      "axioms": [
+        "propext"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "decoupled_quorum_admitted_count_bounds",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    }
+  ],
+  "passed": true
+}
