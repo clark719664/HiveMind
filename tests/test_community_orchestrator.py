@@ -10,6 +10,7 @@ from hivemind.cli.community_orchestrator import (
     compose_discussion_reply,
     evaluate_pull_request_for_merge,
     recommend_wiki_references,
+    run_hourly_quality_and_experiment_audit,
 )
 
 
@@ -135,3 +136,24 @@ def test_recommend_wiki_references_matches_topic_keywords() -> None:
     refs_gpu = recommend_wiki_references("Here is my GPU benchmark receipt_sha256 for 8GB VRAM")
     slugs_gpu = [r["slug"] for r in refs_gpu]
     assert "Community-GPU-Benchmark-and-WAN-GameDay" in slugs_gpu
+
+
+def test_season9_task_coordination_and_hourly_quality_audit() -> None:
+    disc_s9 = {
+        "id": "D_99",
+        "number": 109,
+        "title": "Claiming Season 9 WAN Benchmark",
+        "body": "I would like to work on HM-S9-01 on branch feat/s9-multi-host-wan-benchmark.",
+        "author": {"login": "clark719664"},
+        "comments": {"nodes": []},
+    }
+    res_s9 = compose_discussion_reply(disc_s9)
+    assert res_s9["needs_reply"] is True
+    assert res_s9["reply_category"] == "task_coordination_HM-S9-01"
+    assert "feat/s9-multi-host-wan-benchmark" in res_s9["reply_markdown"]
+
+    audit = run_hourly_quality_and_experiment_audit()
+    assert audit["lean4_theorems_verified"] >= 116
+    assert audit["lean4_sorry_count"] == 0
+    assert audit["open_season9_tasks_count"] == 8
+    assert audit["all_quality_gates_healthy"] is True

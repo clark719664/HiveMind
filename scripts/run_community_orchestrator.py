@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Runner script for the 3-Hour Autonomous PR Review, Merge & Discussion Orchestrator."""
+"""Runner script for the 1-Hour Autonomous PR Review, Merge, Roadmap, Experimentation & Discussion Orchestrator."""
 
 from __future__ import annotations
 

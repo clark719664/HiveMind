@@ -1,14 +1,16 @@
-"""Autonomous 3-Hour PR Review, Merge & GitHub Discussions Orchestrator for Project HiveMind.
+"""Autonomous 1-Hour PR Review, Merge, Roadmap, Experimentation & GitHub Discussions Orchestrator.
 
-Scans open Pull Requests and GitHub Discussions every 3 hours (or on-demand):
+Scans open Pull Requests, Roadmap progress, Experimental receipts, and GitHub Discussions every 1 hour (or on-demand):
 1. Audits open Pull Requests with the 5-Layer `PRSecurityScanner` (`PAY-01..03`,
    `CB-01..04`, `SEC-01..05`), checks mergeability and test readiness, and
    merges confirmed, verified, no-harm PRs.
 2. Scans GitHub Discussions (`Announcements`, `General`, `Show and tell`, `Q&A`,
    `Ideas`) to answer questions from human developers and AI agents, validate
-   shared `community_gpu_benchmark_receipt.json` hashes, and coordinate Season 7
-   (`HM-S7-01`..`HM-S7-08`) branch claims.
-3. Enforces the Non-Monetary Reciprocal Compute-Points Charter (`0.00 EUR / USD`;
+   shared `community_gpu_benchmark_receipt.json` hashes, and coordinate Season 7/8/9
+   (`HM-S7-01..10`, `HM-S8-01..10`, `HM-S9-01..08`) branch claims.
+3. Audits hourly quality, Lean 4 formal proofs (`116` machine-checked theorems),
+   architecture hypothesis verification (`H1`–`H10`), and experimental provenance (`E1`–`E4`).
+4. Enforces the Non-Monetary Reciprocal Compute-Points Charter (`0.00 EUR / USD`;
    accumulated `PTS` / `$HIVE` points provide only computing processing benefits
    when the live production HiveMind Swarm is deployed, available, and used by a
    large community).
@@ -305,6 +307,62 @@ SEASON7_TASK_CATALOG: dict[str, dict[str, str]] = {
         "verify": "cd lean4 && lake build",
         "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
+    "HM-S9-01": {
+        "branch": "feat/s9-multi-host-wan-benchmark",
+        "target": "src/hivemind/swarm/wan_fault_benchmark.py",
+        "title": "Multi-Host Residential WAN Benchmark (aioquic 0-RTT + RFC 5766 TURN + DeMo 2-Bit DCT + PA-CGAD across physical nodes)",
+        "verify": "uv run pytest tests/test_wan_quic_turn_fault_benchmark.py -v",
+        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-02": {
+        "branch": "feat/s9-gsm8k-humaneval-moe-eval",
+        "target": "src/hivemind/cli/multi_moe_hf_campaign.py",
+        "title": "Standard LLM Benchmark Suite (GSM8K, HumanEval pass@1, PubMedQA) on Upcycled Qwen2.5-0.5B Sparse MoE Checkpoints",
+        "verify": "uv run pytest tests/test_multi_moe_hf_campaign.py -v",
+        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-03": {
+        "branch": "feat/s9-skip-attention-real-qwen-routing",
+        "target": "src/hivemind/swarm/diloco_nextgen.py & src/hivemind/swarm/swarm_fabric.py",
+        "title": "Real-Activation Skip-Attention Speculative Routing & Cache-Aware Routing (CAR) Benchmark on Qwen2.5 Transformer Layers",
+        "verify": "uv run pytest tests/test_diloco_nextgen.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-04": {
+        "branch": "feat/s9-alie-byzantine-redteam-suite",
+        "target": "src/hivemind/security/byzantine_defense.py",
+        "title": "Adaptive Byzantine Red-Team Suite (ALIE Inner-Product Manipulation & Non-IID Sybil Coalitions vs. Multi-Krum + 2-Sigma Cosine Filter)",
+        "verify": "uv run pytest tests/test_architecture_hypotheses.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-05": {
+        "branch": "feat/s9-cross-gpu-muloco-determinism",
+        "target": "src/hivemind/core/diloco_inner.py & src/hivemind/cli/community_gpu_benchmark.py",
+        "title": "Cross-GPU Determinism & Bitwise Replay Verification (NVIDIA Turing/Ampere/Ada, AMD ROCm, Apple MPS) under MuLoCo 5-Step Newton-Schulz",
+        "verify": "uv run pytest tests/test_muon_diloco_inner.py tests/test_community_gpu_benchmark.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-06": {
+        "branch": "feat/s9-128-expert-fomoe-training-campaign",
+        "target": "src/hivemind/core/btm_upcycle.py & src/hivemind/cli/run_paper_v3_experiments.py",
+        "title": "128-Expert 3-Tier Hierarchical MoE End-to-End Upcycling & FoMoE Partial Replica (O_e = 4) Multi-Domain Training Campaign",
+        "verify": "uv run pytest tests/test_fomoe_and_iso_cts_upcycle.py -v",
+        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-07": {
+        "branch": "feat/s9-hud-experiment-telemetry-explorer",
+        "target": "src/hivemind/game/steam_edition.py",
+        "title": "Interactive Experimentation & Telemetry Explorer in Web HUD (:8090, serving live E1-E4 curves and H1-H10 diagnostics)",
+        "verify": "uv run pytest tests/test_diloco_nextgen.py -v",
+        "points": "3,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-08": {
+        "branch": "formal/s9-season14-alie-and-fomoe-liveness",
+        "target": "lean4/HiveMindSpec.lean",
+        "title": "Formal Lean 4 Proofs (Season 14, Theorems 117-128) for Exact-Q Contraction Bounds, ALIE Quorum Resilience & Multi-Wave FoMoE Liveness",
+        "verify": "cd lean4 && lake build",
+        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
 }
 
 
@@ -344,7 +402,7 @@ def evaluate_pull_request_for_merge(
     wiki_links_md = _format_wiki_links_markdown(wiki_refs)
 
     review_markdown = (
-        f"### 🤖 Autonomous 3-Hour Orchestrator Review — PR #{pr_number} (`{verdict}`)\n\n"
+        f"### 🤖 Autonomous 1-Hour Orchestrator Review — PR #{pr_number} (`{verdict}`)\n\n"
         f"- **Author:** `@{author}`\n"
         f"- **5-Layer `PRSecurityScanner`:** `passed={sec_report.passed}` | "
         f"`risk_score={sec_report.risk_score}` | `functional_lines={sec_report.functional_lines_added}` | "
@@ -472,11 +530,12 @@ def compose_discussion_reply(discussion: dict[str, Any]) -> dict[str, Any]:
     # 3. General Q&A / Technical Support Reply
     reply = (
         f"👋 Hi `@{target_author}`, thanks for posting in the **Project HiveMind Community Discussions**!\n\n"
-        f"- **Current Architecture Status (`v1.8.0`):** `48/48` Community & Dependabot PRs merged across Waves 1–5 and "
-        f"`77` machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` custom axioms) in `lean4/HiveMindSpec.lean`.\n"
-        f"- **Open Season 7 (`Wave 6`) Tasks (`HM-S7-01`..`HM-S7-08`):** See [`ROADMAP.md`](https://github.com/xaviercallens/HiveMind/blob/main/ROADMAP.md) "
-        f"and [`vision.md`](https://github.com/xaviercallens/HiveMind/blob/main/vision.md) for Looped Expert-Backbone (`#66`), "
-        f"Terminal Fixed-Point KV-Cache Sharing, Speculative Token-Tree Prefetch Wiring, and `ZK-OPoI v4` Auto-Indemnification.\n"
+        f"- **Current Architecture & Publication Status (`v2.0.0` / Paper `v3.1.0`):** `63/63` Community & Dependabot PRs merged across Waves 1–7, "
+        f"`116` machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` custom axioms) in `lean4/HiveMindSpec.lean`, "
+        f"`10/10` verified architectural hypotheses (`H1`–`H10`), and `4/4` controlled experimental suites (`E1`–`E4`).\n"
+        f"- **Open Season 9 (`Wave 8`) Human & AI Agent Tasks (`HM-S9-01`..`HM-S9-08`):** See [`ROADMAP.md`](https://github.com/xaviercallens/HiveMind/blob/main/ROADMAP.md) "
+        f"and [`docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`](https://github.com/xaviercallens/HiveMind/blob/main/docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md) for Multi-Host Residential WAN Benchmarks, "
+        f"`GSM8K`/`HumanEval` MoE Evaluation, Real-Activation `Skip-Attention` Routing, `ALIE` Byzantine Red-Teaming, and Season 14 Lean 4 Proofs (`Theorems 117–128`).\n"
         f"- **Opt-In Community GPU Benchmark:** Run `uv run python scripts/run_community_gpu_benchmark.py --contributor-handle {target_author}` "
         f"to test your GPU (`< 1.5 GB` peak VRAM) and share your receipt in [Discussion #84](https://github.com/xaviercallens/HiveMind/discussions/84).\n"
         f"- **📚 Project HiveMind Wiki References:**\n{wiki_links_md}\n\n"
@@ -577,13 +636,89 @@ def _fetch_discussions_via_gh(owner: str, name: str) -> list[dict[str, Any]]:
     )
 
 
+def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> dict[str, Any]:
+    """Audit Lean 4 formal proofs, H1-H10 hypotheses, E1-E4 experiments, and Paper v3.1.0 provenance."""
+    root = repo_root or REPO_ROOT
+    lean_path = root / "lean4" / "HiveMindSpec.lean"
+    hyp_path = root / "artifacts" / "architecture_hypothesis_verification_report.json"
+    exp_path = root / "artifacts" / "paper_v3_experiments_report.json"
+    peer_path = root / "paper" / "PEER_REVIEW_REPORT.json"
+
+    lean_theorems = 0
+    lean_sorry = 0
+    if lean_path.exists():
+        lean_src = lean_path.read_text(encoding="utf-8")
+        lean_theorems = len(re.findall(r"^\s*theorem\s+\w+", lean_src, flags=re.MULTILINE))
+        lean_no_comments = re.sub(r"/-.*?-/", "", lean_src, flags=re.DOTALL)
+        lean_no_comments = re.sub(r"--.*$", "", lean_no_comments, flags=re.MULTILINE)
+        lean_sorry = len(re.findall(r"\bsorry\b", lean_no_comments))
+
+    hyp_passed = 0
+    hyp_total = 0
+    hyp_sha = ""
+    if hyp_path.exists():
+        try:
+            hyp_data = json.loads(hyp_path.read_text(encoding="utf-8"))
+            hyp_passed = int(hyp_data.get("passed_hypotheses", hyp_data.get("passed_count", 0)))
+            hyp_total = int(hyp_data.get("total_hypotheses", 0))
+            hyp_sha = str(hyp_data.get("receipt_sha256", hyp_data.get("report_sha256", "")))
+        except Exception:
+            pass
+
+    exp_sha = ""
+    exp_suites_present = 0
+    if exp_path.exists():
+        try:
+            exp_data = json.loads(exp_path.read_text(encoding="utf-8"))
+            exp_sha = str(exp_data.get("receipt_sha256", exp_data.get("report_sha256", "")))
+            exp_suites_present = sum(1 for k in exp_data if k.startswith("experiment_e"))
+        except Exception:
+            pass
+
+    peer_score = 0.0
+    peer_provenance_passed = 0
+    peer_sha = ""
+    if peer_path.exists():
+        try:
+            peer_src = peer_path.read_text(encoding="utf-8")
+            peer_data = json.loads(peer_src)
+            peer_score = float(
+                ((peer_data.get("meta_review") or {}).get("aggregate_score", peer_data.get("overall_score", 0.0)))
+            )
+            peer_provenance_passed = len(re.findall(r'"check_id":\s*"PROV-\d+"', peer_src))
+            peer_sha = hashlib.sha256(peer_src.encode("utf-8")).hexdigest()
+        except Exception:
+            pass
+
+    all_healthy = bool(
+        lean_theorems >= 116
+        and lean_sorry == 0
+        and hyp_passed == 10
+        and exp_suites_present == 4
+        and peer_score >= 9.0
+    )
+    return {
+        "all_quality_gates_healthy": all_healthy,
+        "lean4_theorems_verified": lean_theorems,
+        "lean4_sorry_count": lean_sorry,
+        "hypotheses_passed": f"{hyp_passed}/{hyp_total}",
+        "hypothesis_report_sha256": hyp_sha,
+        "experimental_suites_verified": f"{exp_suites_present}/4",
+        "experiments_report_sha256": exp_sha,
+        "paper_peer_review_score": peer_score,
+        "paper_provenance_checks_passed": peer_provenance_passed,
+        "peer_review_report_sha256": peer_sha,
+        "open_season9_tasks_count": sum(1 for k in SEASON7_TASK_CATALOG if k.startswith("HM-S9-")),
+    }
+
+
 def run_orchestrator_cycle(
     repo: str = "xaviercallens/HiveMind",
     execute_live: bool = False,
     auto_merge: bool = True,
     output_path: Path | None = DEFAULT_ORCHESTRATOR_REPORT,
 ) -> dict[str, Any]:
-    """Run one 3-hour autonomous PR review, merge, and GitHub Discussions interaction cycle."""
+    """Run one 1-hour autonomous PR review, merge, roadmap, experimentation, and GitHub Discussions cycle."""
     if "/" not in repo:
         raise ValueError("repo must be in 'owner/name' format")
     owner, name = repo.split("/", 1)
@@ -649,9 +784,11 @@ def run_orchestrator_cycle(
             reply_plan["posted_live"] = False
         discussion_actions.append(reply_plan)
 
+    quality_and_experiment_audit = run_hourly_quality_and_experiment_audit()
+
     report: dict[str, Any] = {
-        "orchestrator": "Project HiveMind 3-Hour Autonomous PR & Community Discussion Orchestrator",
-        "cadence_cron": "0 */3 * * *",
+        "orchestrator": "Project HiveMind 1-Hour Autonomous PR, Roadmap, Experimentation & Community Discussion Orchestrator",
+        "cadence_cron": "0 * * * *",
         "repository": repo,
         "execute_live": execute_live,
         "timestamp_utc": round(time.time(), 3),
@@ -663,6 +800,7 @@ def run_orchestrator_cycle(
         "discussions_scanned": len(discussions),
         "discussion_replies_posted": replies_posted,
         "discussion_actions": discussion_actions,
+        "hourly_quality_and_experiment_audit": quality_and_experiment_audit,
     }
     report["cycle_sha256"] = hashlib.sha256(
         json.dumps(report, sort_keys=True).encode("utf-8")

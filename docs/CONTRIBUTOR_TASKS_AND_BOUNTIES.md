@@ -1,7 +1,7 @@
-# 🛠️ Project HiveMind — Developer Community Tasks, Opt-In GPU Testing & Reciprocal Compute Points (`v1.8.0`)
+# 🛠️ Project HiveMind — Developer & Agent Community Tasks, 1-Hour Orchestrator & Reciprocal Compute Points (`v2.0.0` / Paper `v3.1.0`)
 
 <div align="center">
-<img src="assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v1.8.0 — 45/45 Merged PRs, 77 Lean 4 Theorems & Season 7 Developer Community Roadmap" width="100%"/>
+<img src="assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v2.0.0 — 63/63 Merged PRs, 116 Lean 4 Theorems & Season 9 Human + Agent Roadmap" width="100%"/>
 </div>
 
 > [!IMPORTANT]
@@ -10,15 +10,18 @@
 
 > **Steam status:** The Hack-Miner and RTX Steam Tool package run locally from this repository. The default test App ID `3133700` belongs to another product on the public Steam Store; see [Steam integration status](STEAM_STATUS.md).
 >
-> **Current Status (`v1.8.0` — Season 6 / Wave 5 Complete):**
-> - **All 45 Community Pull Requests Merged (`100%` Merge Rate across Waves 1, 2, 3, 3.5, 4 & 5):**
+> **Current Status (`v2.0.0` / Paper `v3.1.0` — Waves 1–7 Complete, 1-Hour Orchestrator Active):**
+> - **All 63 Community & Dependabot Pull Requests Merged (`100%` Merge Rate across Waves 1–7):**
 >   - **Wave 1 (`PR #6`–`#10` by `@clark719664`, `PR #11` by `@radialmonster`):** Closed Issues `#1`–`#5`.
 >   - **Wave 2 Season 3 (`PR #21`–`#25` by `@clark719664`):** Closed Issues `#14`–`#18`.
 >   - **Wave 3 Season 4 (`PR #32`, `#34`–`#37` by `@clark719664` & `PR #33` by `@pedromineo`):** Closed Issues `#26`–`#31`.
 >   - **Wave 3.5 Season 4.5 (`PR #39`, `#40`, `#41`, `#42` by `@clark719664`):** Real `aioquic` 0-RTT & RFC 5389/5766 STUN/TURN (`PR #40`), raw WebGL 3D Globe (`PR #42`), and non-circular 40-theorem Lean 4 spec (`PR #41` & `#39`).
 >   - **Wave 4 Season 5 (`PR #52`, `#53`, `#54`, `#55` by `@pedromineo` + Core `@xaviercallens`):** Closed Issues `#43`–`#48` (`HM-S5-01` through `HM-S5-06`) + **Pareto Swarm Strategy Optimizer (`SI-01`..`SI-05`)**.
->   - **Wave 5 Season 6 (`PR #63`–`#65`, `#67`–`#77`, `#79` by `@clark719664` & `PR #78` by `@radialmonster`):** Closed Issues `#56`–`#60` (`HM-S6-01` through `HM-S6-05`) + `FL-08` ownership hardening (`PR #72`), RFC 5766 per-allocation TURN `ChannelBind` (`PR #73`), real-token LoRA smoke test (`PR #64`), and scientific provenance hygiene (`PR #65`, `#67`, `#70`, `#74`, `#76`, `#77`).
-> - **Hardware & Formal Verification:** **`77 / 77` machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean) and full Season 6/7 verification suite passing on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)**.
+>   - **Wave 5 Season 6 (`PR #63`–`#65`, `#67`–`#77`, `#79`–`#82` by `@clark719664` & `PR #78` by `@radialmonster`):** Closed Issues `#56`–`#60` (`HM-S6-01` through `HM-S6-05`) + `FL-08` ownership hardening (`PR #72`), RFC 5766 per-allocation TURN `ChannelBind` (`PR #73`), real-token LoRA smoke test (`PR #64`), and scientific provenance hygiene (`PR #65`, `#67`, `#70`, `#74`, `#76`, `#77`).
+>   - **Wave 6 Season 7 (`PR #88`–`#92` by `@clark719664`):** Closed Issue `#66` (`HM-S7-01`..`HM-S7-04` Looped MoE Backbone, Terminal-KV Sharing, Speculative Token-Tree Prefetch Wiring, and Automated `ZK-OPoI v4` Batch Fault Indemnification).
+>   - **Wave 7 Season 8 (`PR #99`–`#103` by `@clark719664`, `PR #104`–`#105` by `@radialmonster`, `PR #106`–`#108` by `@lyrasol99-dev`):** Closed Issues `#94`–`#98` (`HM-S8-01`..`HM-S8-10` `PA-CGAD`, `CPUOffloadedFlatBucketOuterState`, `IsoLoCo`/`TSVLoCo`, `FoMoE` Partial Replicas, `DeMo` 2D DCT + 2-Bit `SparseLoCo`, `MuLoCo` 5-Step Newton-Schulz Inner Preconditioner, `/api/diloco-nextgen` HUD, and `Theorems 91–100`).
+> - **Hardware, Experimental & Formal Verification:** **`116 / 116` machine-checked Lean 4 `theorem` declarations (`0 sorry`, `0` user axioms)** in [`lean4/HiveMindSpec.lean`](../lean4/HiveMindSpec.lean), **`10/10` verified architectural hypotheses (`H1`–`H10`)**, **`4/4` controlled experimental suites (`E1`–`E4`)**, and **Foundation Paper `v3.1.0` (`20 pages`, `9.45/10` Opus 5.5 + Elenchus review)** passing on **NVIDIA GeForce RTX 2070 (8.0 GB VRAM)**.
+> - **⏱️ 1-Hour Autonomous Orchestrator (`0 * * * *`):** [`community_orchestrator.py`](../src/hivemind/cli/community_orchestrator.py) scans open PRs, GitHub Discussions, and experimental quality gates **every 1 hour**.
 
 ---
 
@@ -64,6 +67,29 @@
 | **HM-SEC-TURN** | **Wave 5 / M1** | RFC 5766 Per-Allocation TURN `ChannelBind` Scoping & Honest QUIC 0-RTT Probe | ✅ **[`PR #73`](https://github.com/xaviercallens/HiveMind/pull/73)** (`@clark719664`) | Isolates `0x4000–0x7FFE` channels per client allocation | `2,000 $HIVE` |
 | **HM-EVAL-64..77** | **Wave 5 / QA** | Real-Token Causal-LM LoRA Smoke Test, WebGL `uRing` Shader, Pad Masking & Provenance | ✅ **[`PR #64, #65, #67, #70, #74, #76, #77`](https://github.com/xaviercallens/HiveMind/pulls)** (`@clark719664`) | `168 passed` across all 16 Season 6 PR suites | `4,500 $HIVE` |
 | **CI-DEP-01..04** | **DevSecOps** | Automated GitHub Actions & Python Dependency Security Updates | ✅ **`PR #12, #13, #19, #20`** (`@dependabot`) | Verified green across all CI checks | `Automated` |
+| **HM-S7-01..04** ([`#66`](https://github.com/xaviercallens/HiveMind/issues/66)) | **Wave 6 / S7** | Looped MoE Backbone (`Prelude -> RecurrentCore × T -> Coda`), Terminal-KV Sharing, Live Token-Tree Prefetch & `ZK-OPoI v4` Auto-Indemnification | ✅ **[`PR #88, #89, #90, #91, #92`](https://github.com/xaviercallens/HiveMind/pulls)** (`@clark719664`) | `5.6x` combined KV reduction + zero static NF4 weight growth | `12,000 $HIVE` |
+| **HM-S8-01..02** ([`#94`](https://github.com/xaviercallens/HiveMind/issues/94)) | **Wave 7 / S8** | `CosineGatedAdamDecayOuterOptimizer` (`PA-CGAD`) & `CPUOffloadedFlatBucketOuterState` (`0 B` GPU VRAM) in `DiLoCoOuterOptimizer` | ✅ **[`PR #104`](https://github.com/xaviercallens/HiveMind/pull/104)** (`@radialmonster`) + **[`PR #106`](https://github.com/xaviercallens/HiveMind/pull/106)** (`@lyrasol99-dev`) | `-20.7%` async staleness loss vs Nesterov (`0.00 MiB` outer VRAM) | `7,000 $HIVE` |
+| **HM-S8-03 & 06** ([`#95`](https://github.com/xaviercallens/HiveMind/issues/95)) | **Wave 7 / S8** | `ReputationWeightedIsoCTSMerger`, `TSVDecorrelatedMerger` & `FoMoEPartialReplicaPlanner` ($O_e = 4$, Ghost-Expert `Skip-Token`) | ✅ **[`PR #99`](https://github.com/xaviercallens/HiveMind/pull/99)** (`@clark719664`) + **[`PR #108`](https://github.com/xaviercallens/HiveMind/pull/108)** (`@lyrasol99-dev`) | `3.22x` effective rank boost + `3.31x` WAN ring payload reduction | `7,000 $HIVE` |
+| **HM-S8-04 & 05** ([`#96`](https://github.com/xaviercallens/HiveMind/issues/96)) | **Wave 7 / S8** | `ChunkedOrthonormalDCTTransform` (`DeMo`) & 2-Bit `ComputeVisibleSparseLoCoCompressor` Wire Transport (`146x`–`158x`) | ✅ **[`PR #100`](https://github.com/xaviercallens/HiveMind/pull/100)** (`@clark719664`) + **[`PR #105`](https://github.com/xaviercallens/HiveMind/pull/105)** (`@radialmonster`) | `2.45x` lower reconstruction error on structured LoRA deltas | `6,500 $HIVE` |
+| **HM-S8-09** ([`#97`](https://github.com/xaviercallens/HiveMind/issues/97)) | **Wave 7 / S8** | `MuonNewtonSchulzLoRAPreconditioner` (`5`-step quintic Newton-Schulz inner whitening) in `diloco_inner.py` | ✅ **[`PR #101`](https://github.com/xaviercallens/HiveMind/pull/101)** (`@clark719664`) + **[`PR #107`](https://github.com/xaviercallens/HiveMind/pull/107)** (`@lyrasol99-dev`) | `-4.7%` lower final NLL & `7.2x` singular-value conditioning | `3,000 $HIVE` |
+| **HM-S8-10** ([`#98`](https://github.com/xaviercallens/HiveMind/issues/98)) | **Wave 7 / S8** | Live `/api/diloco-nextgen` Command HUD & Formal Lean 4 Proofs (`Seasons 9–13`, **`116` total theorems**) | ✅ **[`PR #102` & `#103`](https://github.com/xaviercallens/HiveMind/pull/103)** (`@clark719664`) + **Core** (`@xaviercallens`) | **`116/116` Lean 4 theorems (`0 sorry`, `0` user axioms)** | `3,500 $HIVE` |
+
+---
+
+## 🔬 2.5 Open Season 9 (`Wave 8`) Tasks for Human Developers & AI Agents (`HM-S9-01`..`HM-S9-08`)
+
+Coordinated **every 1 hour (`0 * * * *`)** by [`community_orchestrator.py`](../src/hivemind/cli/community_orchestrator.py). Claim any task below in [GitHub Discussions](https://github.com/xaviercallens/HiveMind/discussions) by mentioning its Task ID (`HM-S9-01`..`HM-S9-08`):
+
+| Task ID | Branch Prefix | Target Module | Season 9 (`Wave 8`) Human & AI Agent Task Description | Reciprocal Compute Points (No Money) |
+| :--- | :--- | :--- | :--- | :---: |
+| **`HM-S9-01`** | `feat/s9-multi-host-wan-benchmark` | `src/hivemind/swarm/wan_fault_benchmark.py` | **Multi-Host Residential WAN Benchmark (`aioquic` 0-RTT + RFC 5766 TURN + `DeMo` 2-Bit DCT + `PA-CGAD`)**: Run cross-internet benchmarks measuring real p50/p95/p99 latency, NAT rebind recovery, and `PA-CGAD` outer convergence across physical nodes. | `4,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-02`** | `feat/s9-gsm8k-humaneval-moe-eval` | `src/hivemind/cli/multi_moe_hf_campaign.py` | **Standard LLM Benchmark Suite (`GSM8K`, `HumanEval pass@1`, `PubMedQA`) on Upcycled `Qwen2.5-0.5B` Sparse MoE Checkpoints**: Evaluate downstream accuracy of `ISO-CTS` + `TSVLoCo` upcycled Sparse MoE models against single-domain QLoRA adapters. | `4,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-03`** | `feat/s9-skip-attention-real-qwen-routing` | `src/hivemind/swarm/diloco_nextgen.py` | **Real-Activation `Skip-Attention` Speculative Routing & Cache-Aware Routing (`CAR`) Benchmark on `Qwen2.5` Transformer Layers**: Measure empirical pre-attention Top-2 expert overlap (`pmerolla/fomoe`) and PCIe DMA stall hiding on real `Qwen2.5-0.5B` hidden states. | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-04`** | `feat/s9-alie-byzantine-redteam-suite` | `src/hivemind/security/byzantine_defense.py` | **Adaptive Byzantine Red-Team Suite (`ALIE` Inner-Product Manipulation & Non-IID Sybil Coalitions vs. Multi-Krum + $2\sigma$ Cosine Filter)**: Stress-test `ByzantineDefenseEngine` against Baruch et al. `ALIE` and Xie et al. `IPM` under Dirichlet non-IID domain skew. | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-05`** | `feat/s9-cross-gpu-muloco-determinism` | `src/hivemind/core/diloco_inner.py` | **Cross-GPU Determinism & Bitwise Replay Verification (`NVIDIA Turing/Ampere/Ada`, `AMD ROCm`, `Apple MPS`) under `MuLoCo` 5-Step Newton-Schulz**: Bound cross-vendor floating-point drift during 10% `ZK-OPoI v4` spot-check replays. | `3,500 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-06`** | `feat/s9-128-expert-fomoe-training-campaign` | `src/hivemind/core/btm_upcycle.py` | **128-Expert 3-Tier Hierarchical MoE End-to-End Upcycling & `FoMoE` Partial Replica ($O_e = 4$) Training Campaign**: Scale Experiment `E3`/`E4` from 8 experts to the full `4 × 4 × 8 = 128` expert hierarchy with `FoMoEPartialReplicaPlanner` and Ghost-Expert `Skip-Token` scheduling. | `4,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-07`** | `feat/s9-hud-experiment-telemetry-explorer` | `src/hivemind/game/steam_edition.py` | **Interactive Experimentation & Telemetry Explorer in Web HUD (`:8090`)**: Serve live `E1`–`E4` experimental convergence curves and `H1`–`H10` hypothesis receipts via `/api/experiments-v3`. | `3,000 PTS / $HIVE` *(Compute Benefits Only)* |
+| **`HM-S9-08`** | `formal/s9-season14-alie-and-fomoe-liveness` | `lean4/HiveMindSpec.lean` | **Formal Lean 4 Proofs (`Season 14`, `Theorems 117–128`)**: Mechanize exact-$\mathbb{Q}$ contraction bounds, `ALIE` quorum resilience thresholds, and multi-wave `FoMoE` partial-replica liveness (`0 sorry`, `0` user axioms). | `4,000 PTS / $HIVE` *(Compute Benefits Only)* |
 
 ---
 
