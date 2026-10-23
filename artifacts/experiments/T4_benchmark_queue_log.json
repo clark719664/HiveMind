@@ -1,0 +1,176 @@
+{
+ "started_unix": 1792788630.1757412,
+ "deadline_unix": 1792824630.1757412,
+ "hours": 10.0,
+ "jobs": [
+  {
+   "name": "E11_qwen0.5b",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b"
+   ],
+   "start_unix": 1792788630.1764047,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 70.3,
+   "log_tail": [
+    "Loading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 290/290 [00:00<00:00, 642.69it/s]",
+    "[qwen0.5b] loaded in 5.4s; GPU alloc 0.92 GiB",
+    "[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (299078 > 131072). Running this sequence through the model will result in indexing errors",
+    "[qwen0.5b] hook identity {'stock_nll_sum': 2277.9309692382812, 'hooked_nll_sum': 2277.9309692382812, 'bitwise_equal': True, 'passed': True}",
+    "[qwen0.5b] calibrated 19 lattice cells",
+    "Traceback (most recent call last):",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 756, in <module>",
+    "    raise SystemExit(main())",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 745, in main",
+    "    raw = run_model(a.model, a.dataset)",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 465, in run_model",
+    "    head_dims = sorted({int(t.shape[-1]) for t in klt.values()})",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 465, in <setcomp>",
+    "    head_dims = sorted({int(t.shape[-1]) for t in klt.values()})",
+    "AttributeError: 'dict' object has no attribute 'shape'"
+   ]
+  },
+  {
+   "name": "E11_qwen7b",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b"
+   ],
+   "start_unix": 1792788700.4924972,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 110.4,
+   "log_tail": [
+    "Some parameters are on the meta device because they were offloaded to the cpu.",
+    "[qwen7b] loaded in 17.9s; GPU alloc 13.17 GiB",
+    "[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (299078 > 32768). Running this sequence through the model will result in indexing errors",
+    "[qwen7b] hook identity {'stock_nll_sum': 1984.2227172851562, 'hooked_nll_sum': 1984.2227172851562, 'bitwise_equal': True, 'passed': True}",
+    "[qwen7b] calibrated 19 lattice cells",
+    "Traceback (most recent call last):",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 756, in <module>",
+    "    raise SystemExit(main())",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 745, in main",
+    "    raw = run_model(a.model, a.dataset)",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 465, in run_model",
+    "    head_dims = sorted({int(t.shape[-1]) for t in klt.values()})",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 465, in <setcomp>",
+    "    head_dims = sorted({int(t.shape[-1]) for t in klt.values()})",
+    "AttributeError: 'dict' object has no attribute 'shape'"
+   ]
+  },
+  {
+   "name": "E11_gemma4-e4b",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b"
+   ],
+   "start_unix": 1792788810.8980923,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 316.1,
+   "log_tail": [
+    "Loading weights:  93%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e| 1938/2076 [00:09<00:00, 779.08it/s]",
+    "Loading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 2076/2076 [00:09<00:00, 211.91it/s]",
+    "[gemma4-e4b] loaded in 187.1s; GPU alloc 8.65 GiB",
+    "[gemma4-e4b] hook identity {'stock_nll_sum': 1625.8536987304688, 'hooked_nll_sum': 1625.8536987304688, 'bitwise_equal': True, 'passed': True}",
+    "[gemma4-e4b] calibrated 19 lattice cells",
+    "Traceback (most recent call last):",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 756, in <module>",
+    "    raise SystemExit(main())",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 745, in main",
+    "    raw = run_model(a.model, a.dataset)",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 465, in run_model",
+    "    head_dims = sorted({int(t[\"u\"].shape[-1]) for t in klt.values()})",
+    "  File \"/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/scripts/run_experiment_E11_kv_lattice.py\", line 465, in <setcomp>",
+    "    head_dims = sorted({int(t[\"u\"].shape[-1]) for t in klt.values()})",
+    "AttributeError: 'dict' object has no attribute 'shape'"
+   ]
+  },
+  {
+   "name": "E11_qwen0.5b_retry",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b"
+   ],
+   "start_unix": 1792789127.0425029,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 200.8,
+   "log_tail": [
+    "[qwen0.5b] seed 2 window 85: base NLL 3.2524",
+    "[qwen0.5b] seed 2 window 121: base NLL 2.7835",
+    "[qwen0.5b] seed 2 window 158: base NLL 3.0300",
+    "[qwen0.5b] seed 2 window 194: base NLL 3.3226",
+    "[qwen0.5b] seed 2 window 231: base NLL 3.0729",
+    "[qwen0.5b] seed 2 window 267: base NLL 2.6516",
+    "[qwen0.5b] seed 3 window 24: base NLL 2.6498",
+    "[qwen0.5b] seed 3 window 60: base NLL 2.7262",
+    "[qwen0.5b] seed 3 window 97: base NLL 3.1720",
+    "[qwen0.5b] seed 3 window 133: base NLL 2.8735",
+    "[qwen0.5b] seed 3 window 170: base NLL 2.5075",
+    "[qwen0.5b] seed 3 window 206: base NLL 2.9242",
+    "[qwen0.5b] seed 3 window 243: base NLL 2.3724",
+    "[qwen0.5b] seed 3 window 279: base NLL 3.1017",
+    "[qwen0.5b] wrote E11_raw_qwen0.5b.json in 194.2s, peak 1.295 GiB"
+   ]
+  }
+ ],
+ "gpu_samples": 24,
+ "gpu_util_mean_pct": 40.7,
+ "gpu_util_by_job": {
+  "E11_qwen0.5b_retry": 72.9,
+  "E11_gemma4-e4b": 26.8,
+  "E11_qwen0.5b": 26.0,
+  "E11_qwen7b": 31.3
+ },
+ "gpu_mem_peak_gib": 13.94,
+ "gpu_trace": [
+  {
+   "t": 1792788631.6,
+   "job": "E11_qwen0.5b",
+   "util_pct": 0,
+   "mem_used_gib": 0.44,
+   "power_w": 27.6
+  },
+  {
+   "t": 1792788751.6,
+   "job": "E11_qwen7b",
+   "util_pct": 43,
+   "mem_used_gib": 13.92,
+   "power_w": 44.9
+  },
+  {
+   "t": 1792788871.7,
+   "job": "E11_gemma4-e4b",
+   "util_pct": 0,
+   "mem_used_gib": 2.15,
+   "power_w": 27.7
+  },
+  {
+   "t": 1792788991.7,
+   "job": "E11_gemma4-e4b",
+   "util_pct": 0,
+   "mem_used_gib": 8.78,
+   "power_w": 27.7
+  },
+  {
+   "t": 1792789111.7,
+   "job": "E11_gemma4-e4b",
+   "util_pct": 62,
+   "mem_used_gib": 9.72,
+   "power_w": 63.9
+  },
+  {
+   "t": 1792789231.7,
+   "job": "E11_qwen0.5b_retry",
+   "util_pct": 98,
+   "mem_used_gib": 2.05,
+   "power_w": 72.3
+  }
+ ]
+}
