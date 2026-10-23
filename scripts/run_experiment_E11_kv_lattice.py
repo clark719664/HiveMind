@@ -598,12 +598,16 @@ def decide_model(raw: Dict[str, Any]) -> Dict[str, Any]:
                 valid_b += 1
                 klt_beats += st == "E8 better"
                 klt_null += st != "E8 better"
-    if valid_b == 0:
+    # the registered refutation clause 'E8 beats Z without the transform at some matched R' is decidable from the
+    # rate-matched 'none' cells alone, so it is applied even when the KLT cells are not rate-matched
+    if none_beats > 0:
+        p11b = "refuted (E8 already beats Z without the transform)"
+    elif valid_b == 0:
         p11b = "invalid (no matched rate)"
-    elif none_beats == 0 and klt_beats == valid_b:
+    elif klt_beats == valid_b:
         p11b = "supported"
-    elif none_beats > 0 or klt_null == valid_b:
-        p11b = "refuted" + (" (E8 already beats Z without the transform)" if none_beats > 0 else " (the transform does not make E8 beat Z)")
+    elif klt_null == valid_b:
+        p11b = "refuted (the transform does not make E8 beat Z)"
     else:
         p11b = "inconclusive"
 

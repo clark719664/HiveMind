@@ -118,13 +118,43 @@
     "[qwen0.5b] seed 3 window 279: base NLL 3.1017",
     "[qwen0.5b] wrote E11_raw_qwen0.5b.json in 194.2s, peak 1.295 GiB"
    ]
+  },
+  {
+   "name": "E11_gemma4-e4b_retry",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b"
+   ],
+   "start_unix": 1792789327.8856826,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 3113.3,
+   "log_tail": [
+    "[gemma4-e4b] seed 2 window 83: base NLL 2.5166",
+    "[gemma4-e4b] seed 2 window 118: base NLL 2.1029",
+    "[gemma4-e4b] seed 2 window 154: base NLL 2.2425",
+    "[gemma4-e4b] seed 2 window 190: base NLL 2.6025",
+    "[gemma4-e4b] seed 2 window 225: base NLL 2.1640",
+    "[gemma4-e4b] seed 2 window 261: base NLL 1.9920",
+    "[gemma4-e4b] seed 3 window 23: base NLL 2.2865",
+    "[gemma4-e4b] seed 3 window 59: base NLL 2.0501",
+    "[gemma4-e4b] seed 3 window 95: base NLL 2.4623",
+    "[gemma4-e4b] seed 3 window 130: base NLL 1.7826",
+    "[gemma4-e4b] seed 3 window 166: base NLL 1.7433",
+    "[gemma4-e4b] seed 3 window 201: base NLL 2.1323",
+    "[gemma4-e4b] seed 3 window 237: base NLL 1.8788",
+    "[gemma4-e4b] seed 3 window 273: base NLL 2.3620",
+    "[gemma4-e4b] wrote E11_raw_gemma4-e4b.json in 3109.6s, peak 9.484 GiB"
+   ]
   }
  ],
- "gpu_samples": 24,
- "gpu_util_mean_pct": 40.7,
+ "gpu_samples": 127,
+ "gpu_util_mean_pct": 86.9,
  "gpu_util_by_job": {
-  "E11_qwen0.5b_retry": 72.9,
   "E11_gemma4-e4b": 26.8,
+  "E11_qwen0.5b_retry": 72.9,
+  "E11_gemma4-e4b_retry": 97.7,
   "E11_qwen0.5b": 26.0,
   "E11_qwen7b": 31.3
  },
@@ -171,6 +201,188 @@
    "util_pct": 98,
    "mem_used_gib": 2.05,
    "power_w": 72.3
+  },
+  {
+   "t": 1792789351.7,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.35,
+   "power_w": 62.9
+  },
+  {
+   "t": 1792789471.8,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.9
+  },
+  {
+   "t": 1792789591.8,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.9
+  },
+  {
+   "t": 1792789711.8,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 42.4
+  },
+  {
+   "t": 1792789831.9,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792789951.9,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 71.9
+  },
+  {
+   "t": 1792790071.9,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792790191.9,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 76.3
+  },
+  {
+   "t": 1792790312.0,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 63.7
+  },
+  {
+   "t": 1792790432.0,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792790552.0,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 84,
+   "mem_used_gib": 10.43,
+   "power_w": 38.8
+  },
+  {
+   "t": 1792790672.0,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 69.0
+  },
+  {
+   "t": 1792790792.1,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 78.1
+  },
+  {
+   "t": 1792790912.1,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 96,
+   "mem_used_gib": 10.43,
+   "power_w": 74.0
+  },
+  {
+   "t": 1792791032.1,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 57.3
+  },
+  {
+   "t": 1792791152.1,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 79.6
+  },
+  {
+   "t": 1792791272.2,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 84.3
+  },
+  {
+   "t": 1792791392.2,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 68.7
+  },
+  {
+   "t": 1792791512.2,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 97,
+   "mem_used_gib": 10.43,
+   "power_w": 69.1
+  },
+  {
+   "t": 1792791632.3,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.7
+  },
+  {
+   "t": 1792791752.3,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792791872.3,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 70.0
+  },
+  {
+   "t": 1792791992.3,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 50.1
+  },
+  {
+   "t": 1792792112.4,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 71.0
+  },
+  {
+   "t": 1792792232.4,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 96,
+   "mem_used_gib": 10.43,
+   "power_w": 71.2
+  },
+  {
+   "t": 1792792352.4,
+   "job": "E11_gemma4-e4b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.0
   }
  ]
 }
