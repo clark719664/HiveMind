@@ -1,6 +1,6 @@
 {
   "schema_version": "hivemind-predictions-ledger/v1.1",
-  "updated_utc": "2026-10-23T17:43:57Z",
+  "updated_utc": "2026-10-23T20:58:28Z",
   "predictions": {
     "P1": {
       "rq": "RQ1",
@@ -575,13 +575,84 @@
         "status": "supported"
       },
       "note": "decided at toy scale only"
+    },
+    "P12a": {
+      "rq": "RQ11",
+      "claim": "replaying the same 50-step LoRA segment in a second process on the same host and thread count reproduces the parameters bit for bit",
+      "decided_by": "E12-pilot",
+      "status": "supported",
+      "status_detail": "supported",
+      "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
+      "artifact": "artifacts/experiments/E12_pilot_report.json",
+      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
+      "controls_all_passed": true,
+      "evidence": {
+        "same_process_repeat_linf": 0.0,
+        "status": "supported"
+      },
+      "note": "CPU pilot; GPU classes remain HM-S10-08"
+    },
+    "P12b": {
+      "rq": "RQ11",
+      "claim": "changing only the CPU thread count gives a non-zero divergence that stays within eps = 1e-4",
+      "decided_by": "E12-pilot",
+      "status": "refuted",
+      "status_detail": "refuted",
+      "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
+      "artifact": "artifacts/experiments/E12_pilot_report.json",
+      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
+      "controls_all_passed": true,
+      "evidence": {
+        "threads_1": 0.0002622827887535095,
+        "threads_8": 0.00025490671396255493,
+        "status": "refuted"
+      },
+      "note": "CPU pilot; GPU classes remain HM-S10-08"
+    },
+    "P12c": {
+      "rq": "RQ11",
+      "claim": "a different host (CPU, torch build, library versions) diverges by more than the thread-count cells and more than 1e-6; whether it stays within eps decides the matching rule",
+      "decided_by": "E12-pilot",
+      "status": "refuted",
+      "status_detail": "refuted",
+      "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
+      "artifact": "artifacts/experiments/E12_pilot_report.json",
+      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
+      "controls_all_passed": true,
+      "evidence": {
+        "remote_cpu": 0.00015172502025961876,
+        "exceeds_thread_cells": false,
+        "within_eps": false,
+        "status": "refuted"
+      },
+      "note": "CPU pilot; GPU classes remain HM-S10-08"
+    },
+    "P12d": {
+      "rq": "RQ11",
+      "claim": "bf16 autocast (the consumer-GPU precision class) exceeds eps",
+      "decided_by": "E12-pilot",
+      "status": "untested",
+      "status_detail": "not run",
+      "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
+      "artifact": "artifacts/experiments/E12_pilot_report.json",
+      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
+      "controls_all_passed": true,
+      "evidence": {
+        "bf16_autocast": NaN,
+        "status": "not run"
+      },
+      "note": "CPU pilot; GPU classes remain HM-S10-08"
     }
   },
   "status_counts": {
-    "untested": 5,
-    "refuted": 3,
+    "untested": 6,
+    "refuted": 5,
     "inconclusive": 2,
-    "supported": 2
+    "supported": 3
   },
-  "receipt_sha256": "e51905a53983cbd609902bfdb54d13b8f33e0e729f0b38a6e1a6d0f9c34f2475"
+  "receipt_sha256": "c0e7de9fe76c1bd19eeeadbf96b16360e76c1f8eae36e82444e5c831ace62767"
 }

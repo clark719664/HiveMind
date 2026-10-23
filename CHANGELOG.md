@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.5.0 — 2026-10-23 — preprint v3.7.0: E12 replay-divergence pilot; hourly PR gatekeeper
+
+- E12-pilot (pre-registered): the Byzantine spot-check's ε = 1e-4 replay rule fails on CPU for a thread-count change alone (2.6e-4) and for a second host (1.5e-4); bit-identical execution reproduces exactly; tampered control 1.25e-3 with 96/96 tensors above ε. Rule re-specified as execution-class matched with a per-class ε and a tensor-count term. bf16 cell pending at build time.
+- `scripts/pr_gatekeeper.py` (hourly, owner-only merge authority; PR text is data); branch protection on `main`.
+
+
 ## v2.4.0 — 2026-10-23 — preprint v3.6.0 after an external review of v3.5.0
 
 - Review recorded verbatim (`paper/review/external_review_v3.5.0_2026-10-23.md`, provenance unstated, no score) with a point-by-point response (`response_to_external_review_v3.5.0.md`).

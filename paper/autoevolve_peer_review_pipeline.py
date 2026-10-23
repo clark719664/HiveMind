@@ -366,6 +366,12 @@ def verify_manuscript_data_consistency(
     lean_rda = exp_v3_data.get("__lean_rda__", {})
     if lean_rda:
         _add_check("PROV-31", "Mathlib RDA proposition theorems verified (lean4/mathlib/RDAMultiplier.lean)", [f"{lean_rda['compiled']} theorems", f"({lean_rda['compiled']} theorems over real inner-product spaces"], "artifacts/lean_rda_multiplier_check.json")
+    e12 = exp_v3_data.get("__e12__", {})
+    if e12:
+        e12_remote = float(e12["cells"]["remote_cpu"]["linf_vs_ref"])
+        e12_thr = max(float(e12["cells"][c]["linf_vs_ref"]) for c in ("threads_1", "threads_8") if c in e12["cells"])
+        _add_check("PROV-32", "E12 cross-host CPU replay divergence (L-inf after 50 steps)", [f"{e12_remote * 1e4:.1f}\\cdot 10^{{-4}}", f"{e12_remote * 1e4:.2f}\\cdot 10^{{-4}}"], "artifacts/experiments/E12_pilot_report.json")
+        _add_check("PROV-33", "E12 largest thread-count replay divergence (L-inf after 50 steps)", [f"{e12_thr * 1e4:.1f}\\cdot 10^{{-4}}", f"{e12_thr * 1e4:.2f}\\cdot 10^{{-4}}"], "artifacts/experiments/E12_pilot_report.json")
     e10 = exp_v3_data.get("__e10__", {})
     if e10:
         e10_ratio = float(e10["analysis"]["P10a"]["cells"]["R=1.0|EF=off"]["ratio_mean"])
@@ -479,6 +485,8 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
     e10_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_report.json"
     exp_v3_data["__e10__"] = json.loads(e10_report_path.read_text(encoding="utf-8")) if e10_report_path.exists() else {}
     lean_ind_path = PROJECT_ROOT / "artifacts" / "lean_independent_runner_check.json"
+    e12_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E12_pilot_report.json"
+    exp_v3_data["__e12__"] = json.loads(e12_report_path.read_text(encoding="utf-8")) if e12_report_path.exists() else {}
     lean_rda_path = PROJECT_ROOT / "artifacts" / "lean_rda_multiplier_check.json"
     exp_v3_data["__lean_rda__"] = json.loads(lean_rda_path.read_text(encoding="utf-8")) if lean_rda_path.exists() else {}
     exp_v3_data["__lean_independent__"] = json.loads(lean_ind_path.read_text(encoding="utf-8")) if lean_ind_path.exists() else {}
@@ -611,7 +619,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     peer_review_report = {
         "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-        "version": "3.6.0",
+        "version": "3.7.0",
         "is_peer_review": False,
         "disclosure": AUDIT_DISCLOSURE,
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
@@ -651,7 +659,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-        "version": "3.6.0",
+        "version": "3.7.0",
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
         "workspace_root": ".",
         "artifacts_and_entrypoints": {

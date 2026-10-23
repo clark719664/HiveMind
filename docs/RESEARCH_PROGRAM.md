@@ -244,3 +244,16 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   method papers (10.5281/zenodo.22829767, 23467992) are now the cited source of §4's protocol.
 - Paper v3.5.1 (Directions subsection, 5 self-citations verified against the Zenodo API) republished on Zenodo.
 - **External review of v3.5.0 received** (provenance unstated; recorded verbatim in `paper/review/external_review_v3.5.0_2026-10-23.md` with a point-by-point response). Accepted: hardware-heterogeneity caveat on the ε-spot-check (new RQ11/E12, `HM-S10-08`), compounding-approximations threat (E8 all-on vs each-off cells), PoC-scale caveat, architecture figure, Skip-Token dropout note, PA-CGAD-under-quorum note. Declined: moving the scripted-review correction out of the manuscript. Four reported typos were PDF-text-extraction artefacts (source and PDF text checked). Paper v3.6.0.
+
+### 2026-10-23 (late) — E12 pilot run (CPU classes), gatekeeper in place
+
+- **E12-pilot** (`artifacts/experiments/E12_pilot_report.json`; prereg before any run): same host + same thread
+  count reproduces the 50-step LoRA segment bit for bit (P12a supported); **thread count alone** (1 or 8 instead
+  of 4) diverges to 2.6e-4 / 2.5e-4 > ε = 1e-4 (P12b **refuted**); the TPU-VM CPU host (other CPU, torch build,
+  library versions, same 4 threads) diverges to 1.5e-4, above ε but *less* than the thread cells (P12c refuted
+  as stated: reduction order, not the host, dominates); tampered control 1.25e-3 with 96/96 tensors above ε vs
+  3–5/96 for honest divergence. bf16 cell (P12d) still running at the time of writing. Decision applied: the
+  spot-check rule is re-specified as execution-class matched (accelerator class, build, dtype, thread count /
+  deterministic-kernel flags) with a per-class ε and a tensor-count term; GPU classes remain `HM-S10-08`.
+- **Merge authority**: `scripts/pr_gatekeeper.py` runs hourly (owner-only automatic merges, PR text is data);
+  branch protection on `main` blocks forced pushes and deletions and requires the two CI jobs.
