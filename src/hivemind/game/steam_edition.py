@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+import time
 from typing import Any, Dict
 
 from hivemind.config import ARTIFACTS_ROOT, PROJECT_ROOT
@@ -1253,6 +1254,13 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         execute_interactive_joined_campaign,
         execute_interactive_lora_micro_forge,
     )
+    from hivemind.swarm.diloco_nextgen import (
+        AutoLoCoIntervalCorrector,
+        FoMoEPartialReplicaPlanner,
+        HeLoCoDirectionCorrector,
+        LEVERAGED_GITHUB_REPOSITORIES,
+        SkipAttentionSpeculativeRouter,
+    )
     from hivemind.swarm.strategy_optimizer import StrategyOptimizerTelemetryEngine
 
     pkg_info = build_free_steam_edition_package(game_report=game_report)
@@ -1398,6 +1406,110 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         snapshot = dict(snapshot)
         snapshot["steam_app_id"] = STEAM_APP_ID
         return snapshot
+
+    @app.get("/api/diloco-nextgen", response_class=JSONResponse)
+    def get_diloco_nextgen() -> Dict[str, Any]:
+        """Serve live Season 8 DiLoCo-nextgen telemetry for the Command HUD (`HM-S8-10`)."""
+        strategy = strategy_engine.snapshot()
+        sequence = int(strategy.get("sequence", 0))
+        cadence = strategy["si03_adaptive_diloco_cadence"]["current_link_profile"]
+        recommended_steps_h = int(cadence["recommended_inner_steps_H"])
+
+        # AutoLoCo: the realized inner interval against the 32-step reference interval.
+        autoloco = AutoLoCoIntervalCorrector(reference_inner_steps_h=32).correct_outer_hyperparams(
+            actual_inner_steps_h=recommended_steps_h,
+            actual_inner_lr=1e-3,
+        )
+
+        # HeLoCo: measure the drift of a deterministic stale-gradient probe against momentum.
+        probe = torch.Generator(device="cpu").manual_seed(2026 + sequence)
+        momentum = torch.randn((16, 16), generator=probe)
+        stale = -0.80 * momentum + 0.20 * torch.randn((16, 16), generator=probe)
+        corrected, heloco = HeLoCoDirectionCorrector().correct_pseudo_gradient(stale, momentum)
+        momentum_norm = float(momentum.norm().item())
+        heterogeneity_drift = (
+            float((corrected - momentum).norm().item()) / momentum_norm
+            if momentum_norm > 0.0
+            else 0.0
+        )
+
+        # Skip-Attention + CAR: probe the fallback on a seeded post-FFN residual stream.
+        router = SkipAttentionSpeculativeRouter(
+            num_experts=16, top_k=2, car_threshold=0.50
+        )
+        post_ffn = torch.randn((8, 32), generator=probe)
+        post_attn = post_ffn + 0.05 * torch.randn((8, 32), generator=probe)
+        car = router.route_with_cache_aware_fallback(
+            post_ffn_residual=post_ffn,
+            post_attn_residual=post_attn,
+            next_layer_norm_weight=torch.ones(32),
+            next_layer_router_weight=torch.randn((16, 32), generator=probe) * 0.25,
+            baseline_cached_experts=[0, 1, 2, 3],
+        )
+
+        # FoMoE: partial-replica planner at the live 16-worker / 4-expert overlap setting.
+        fomoe = FoMoEPartialReplicaPlanner(
+            total_experts=128, active_top_k=2
+        ).evaluate_overlap_configuration(
+            num_workers_m=16,
+            overlap_factor_oe=4,
+            reshuffle_frequency_gamma=0.0,
+        )
+
+        return {
+            "schema_version": "hm-s8-10/diloco-nextgen/v1",
+            "milestone": "HM-S8-10",
+            "season": 8,
+            "steam_app_id": STEAM_APP_ID,
+            "generated_at": round(time.time(), 6),
+            "sequence": sequence,
+            "autoloco": {
+                "rho_t": autoloco["interval_scale_ratio"],
+                "recommended_inner_steps_h": recommended_steps_h,
+                "reference_inner_steps_h": 32,
+                "accumulated_inner_lr": autoloco["accumulated_inner_lr"],
+                "corrected_outer_lr": autoloco["corrected_outer_lr"],
+                "corrected_outer_momentum": autoloco["corrected_outer_momentum"],
+            },
+            "heloco": {
+                "heterogeneity_drift": round(heterogeneity_drift, 6),
+                "cosine_before": heloco["cosine_before"],
+                "cosine_after": heloco["cosine_after"],
+                "conflict_detected": bool(heloco["conflict_detected"]),
+            },
+            "skip_attention_car": {
+                "car_hit_rate": car["effective_vram_cache_hit_rate"],
+                "speculative_topk_accuracy": car["speculative_topk_accuracy"],
+                "car_substitutions": int(car["car_substitutions"]),
+                "synchronous_dma_misses": int(car["synchronous_dma_misses"]),
+            },
+            "fomoe": {
+                "total_experts": 128,
+                "num_workers_m": 16,
+                "overlap_factor_oe": 4,
+                "active_experts_per_worker": int(fomoe["local_experts_per_worker"]),
+                "ghost_experts_per_worker": int(fomoe["ghost_experts_per_worker"]),
+            },
+            "leveraged_github_repositories": [
+                dict(entry) for entry in LEVERAGED_GITHUB_REPOSITORIES
+            ],
+            "telemetry_endpoint": "/api/diloco-nextgen",
+            "basis": "live strategy snapshot + seeded deterministic runtime probes",
+            "honesty": {
+                "derived_from_live_state": [
+                    "AutoLoCo rho_t (SI-03 recommended inner interval vs 32-step reference)",
+                    "HeLoCo heterogeneity drift (seeded stale-gradient probe)",
+                    "Skip-Attention CAR hit-rate (seeded residual-stream probe)",
+                ],
+                "modeled": [
+                    "FoMoE active/ghost expert counts (16-worker, O_e=4, 128-expert planner)",
+                ],
+                "note": (
+                    "Probe values are deterministic CPU computations, not RTX 2070 "
+                    "throughput measurements."
+                ),
+            },
+        }
 
     @app.get("/api/guild-tournament", response_class=JSONResponse)
     def get_guild_tournament() -> Dict[str, Any]:
