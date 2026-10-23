@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import copy
 import math
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Sequence
 
@@ -910,6 +911,9 @@ class LoopedBackboneReport:
     loop_adapter_bytes: int
     looped_weight_bytes: int
     unrolled_weight_bytes: int
+    last_mean_effective_steps: float | None = None
+    last_early_exit_fraction: float | None = None
+    last_fixed_point_residual: float | None = None
 
     @property
     def extra_weight_bytes(self) -> int:
@@ -935,6 +939,14 @@ class LoopedExpertBackbone(nn.Module):
     Wraps either an `UpcycledSparseMoEModel` (routing telemetry, router aux loss
     and `train_moe_router_gating` keep working) or a plain Qwen2-style causal LM.
     Runs without a KV cache.
+
+    Optional fixed-point halting freezes recurrent token states, retaining them
+    as attention context. Effective steps describe logical depth: decoder kernels
+    remain dense until the whole batch halts. Truncated BPTT tracks a global
+    suffix of at most k executed core passes; tokens halted before its boundary
+    may stay detached. With adaptive halting and k < T, gradient-enabled forwards
+    discover the depth without gradients, then recompute at most k passes with
+    RNG restored. Replay replaces auxiliary losses and does not count routes twice.
     """
 
     def __init__(
@@ -946,6 +958,8 @@ class LoopedExpertBackbone(nn.Module):
         per_step_lora_rank: int = 4,
         input_injection: str = "add",
         router_aux_loss_coef: float | None = None,
+        fixed_point_tol: float | None = None,
+        truncated_bptt_steps: int | None = None,
     ) -> None:
         super().__init__()
         moe_model = model if isinstance(model, UpcycledSparseMoEModel) else None
@@ -968,6 +982,14 @@ class LoopedExpertBackbone(nn.Module):
             raise ValueError(f"input_injection must be one of {LOOPED_INPUT_INJECTION_MODES}")
         if per_step_lora_rank < 0:
             raise ValueError("per_step_lora_rank must be non-negative")
+        if fixed_point_tol is not None and (not math.isfinite(fixed_point_tol) or fixed_point_tol < 0):
+            raise ValueError("fixed_point_tol must be finite and non-negative")
+        if truncated_bptt_steps is not None and (
+            isinstance(truncated_bptt_steps, bool)
+            or not isinstance(truncated_bptt_steps, int)
+            or not 1 <= truncated_bptt_steps <= loop_steps
+        ):
+            raise ValueError("truncated_bptt_steps must be an integer in [1, loop_steps]")
 
         self.source_model = model
         self.moe_model = moe_model
@@ -981,6 +1003,11 @@ class LoopedExpertBackbone(nn.Module):
         self.loop_steps = loop_steps
         self.input_injection = input_injection
         self.per_step_lora_rank = per_step_lora_rank
+        self.fixed_point_tol = fixed_point_tol
+        self.truncated_bptt_steps = truncated_bptt_steps
+        self.last_mean_effective_steps: float | None = None
+        self.last_early_exit_fraction: float | None = None
+        self.last_fixed_point_residual: float | None = None
         if router_aux_loss_coef is None:
             router_aux_loss_coef = moe_model.router_aux_loss_coef if moe_model is not None else 0.0
         self.router_aux_loss_coef = router_aux_loss_coef
@@ -1042,13 +1069,64 @@ class LoopedExpertBackbone(nn.Module):
         for layer in self.prelude:
             hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
         injected = hidden_states
+        real = torch.ones_like(input_ids, dtype=torch.bool, device=hidden_states.device)
+        if attention_mask is not None:
+            real = attention_mask.to(device=hidden_states.device, dtype=torch.bool)
+        active = real.clone()
+        effective_steps = torch.zeros_like(input_ids, dtype=torch.float32, device=hidden_states.device)
+        residual = torch.zeros_like(effective_steps)
+        adaptive = self.fixed_point_tol is not None
+        grad_enabled = torch.is_grad_enabled()
+        k = self.truncated_bptt_steps or self.loop_steps
+        replay = adaptive and k < self.loop_steps and grad_enabled
+        history = deque(maxlen=k)
         for step in range(self.loop_steps):
-            if step > 0 and self.input_injection == "add":
-                hidden_states = hidden_states + injected
-            if self.step_adapters:
-                hidden_states = self.step_adapters[step](hidden_states)
-            for layer in self.core:
-                hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
+            if adaptive and not active.any():
+                break
+            if replay:
+                history.append((step, hidden_states.detach(), active.clone(), torch.get_rng_state(),
+                                torch.cuda.get_rng_state(hidden_states.device) if hidden_states.is_cuda else None,
+                                len(aux_losses)))
+            if k < self.loop_steps and step == self.loop_steps - k:
+                hidden_states, injected = hidden_states.detach(), injected.detach()
+            previous = hidden_states
+            with torch.set_grad_enabled(grad_enabled and not replay and step >= self.loop_steps - k):
+                hidden_states = self._run_core(step, previous, injected, active if adaptive else None,
+                                               run_args, aux_losses)
+            # Detached FP32 drift compares complete passes to the pre-injection state.
+            with torch.no_grad():
+                prev = previous.detach().float()
+                drift = (hidden_states.detach().float() - prev).norm(dim=-1) / prev.norm(dim=-1).clamp_min(1e-6)
+                residual = torch.where(active, drift, residual)
+                effective_steps += active
+                if adaptive:
+                    active = active & (drift > self.fixed_point_tol)
+        if replay and history:
+            _, hidden_states, _, cpu_rng, cuda_rng, aux_start = history[0]
+            injected = injected.detach()
+            aux_losses = aux_losses[:aux_start]
+            blocks = self.get_moe_blocks()
+            counts = [blk.expert_token_counts.clone() for blk in blocks]
+            devices = [hidden_states.device.index] if hidden_states.is_cuda else []
+            # fork_rng leaves the caller's RNG at the end of logical execution.
+            with torch.random.fork_rng(devices=devices):
+                torch.set_rng_state(cpu_rng)
+                if cuda_rng is not None:
+                    torch.cuda.set_rng_state(cuda_rng, hidden_states.device)
+                try:
+                    for step, _, step_active, _, _, _ in history:
+                        hidden_states = self._run_core(step, hidden_states, injected, step_active,
+                                                       run_args, aux_losses)
+                finally:
+                    with torch.no_grad():
+                        for blk, count in zip(blocks, counts):
+                            blk.expert_token_counts.copy_(count)
+        if real.any():
+            self.last_mean_effective_steps = effective_steps[real].mean().item()
+            self.last_early_exit_fraction = (effective_steps[real] < self.loop_steps).float().mean().item()
+            self.last_fixed_point_residual = residual[real].mean().item()
+        else:
+            self.last_mean_effective_steps = self.last_early_exit_fraction = self.last_fixed_point_residual = 0.0
         for layer in self.coda:
             hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
 
@@ -1060,6 +1138,26 @@ class LoopedExpertBackbone(nn.Module):
             loss = F.cross_entropy(shift_logits, labels[:, 1:].reshape(-1), ignore_index=-100)
             loss = loss + self.router_aux_loss_coef * self.last_aux_loss.to(loss.device)
         return CausalLMOutputWithPast(loss=loss, logits=logits)
+
+    def _run_core(
+        self,
+        step: int,
+        previous: torch.Tensor,
+        injected: torch.Tensor,
+        active: torch.Tensor | None,
+        run_args: tuple,
+        aux_losses: list[torch.Tensor],
+    ) -> torch.Tensor:
+        hidden_states = previous
+        if step > 0 and self.input_injection == "add":
+            hidden_states = hidden_states + injected
+        if self.step_adapters:
+            hidden_states = self.step_adapters[step](hidden_states)
+        if active is not None:
+            hidden_states = torch.where(active.unsqueeze(-1), hidden_states, previous)
+        for layer in self.core:
+            hidden_states = self._run_layer(layer, hidden_states, *run_args, aux_losses)
+        return hidden_states if active is None else torch.where(active.unsqueeze(-1), hidden_states, previous)
 
     def report(self) -> LoopedBackboneReport:
         source_depth = len(self.prelude) + len(self.core) + len(self.coda)
@@ -1082,6 +1180,9 @@ class LoopedExpertBackbone(nn.Module):
             loop_adapter_bytes=adapter_bytes,
             looped_weight_bytes=_unique_weight_bytes(self),
             unrolled_weight_bytes=source_bytes + core_bytes * (self.loop_steps - 1) + adapter_bytes,
+            last_mean_effective_steps=self.last_mean_effective_steps,
+            last_early_exit_fraction=self.last_early_exit_fraction,
+            last_fixed_point_residual=self.last_fixed_point_residual,
         )
 
 
