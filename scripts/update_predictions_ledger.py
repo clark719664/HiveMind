@@ -21,6 +21,7 @@ LEDGER_PATH = PROJECT_ROOT / "artifacts" / "predictions_ledger.json"
 E5_TOY = PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_report.json"
 E5_HET = PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_report.json"
 E10 = PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_report.json"
+E12 = PROJECT_ROOT / "artifacts" / "experiments" / "E12_pilot_report.json"
 
 PREDICTIONS: Dict[str, Dict[str, str]] = {
     "P1": {"rq": "RQ1", "claim": "WAN loss with K<M quorum, grace and RDA <= single-host loss with M(1-churn) workers", "decided_by": "E8"},
@@ -35,6 +36,10 @@ PREDICTIONS: Dict[str, Dict[str, str]] = {
     "P10a": {"rq": "RQ9", "claim": "E8 blockwise quantisation of outer deltas has lower distortion than Z8 at matched measured rate", "decided_by": "E10-lattice"},
     "P10b": {"rq": "RQ9", "claim": "E8 reaches a lower held-out loss than Z8 at matched rate (headline: 1 bit/dim with error feedback)", "decided_by": "E10-lattice"},
     "P10c": {"rq": "RQ9", "claim": "error feedback recovers the unquantised loss at 1 bit/dim with E8", "decided_by": "E10-lattice"},
+    "P12a": {"rq": "RQ11", "claim": "replaying the same 50-step LoRA segment in a second process on the same host and thread count reproduces the parameters bit for bit", "decided_by": "E12-pilot"},
+    "P12b": {"rq": "RQ11", "claim": "changing only the CPU thread count gives a non-zero divergence that stays within eps = 1e-4", "decided_by": "E12-pilot"},
+    "P12c": {"rq": "RQ11", "claim": "a different host (CPU, torch build, library versions) diverges by more than the thread-count cells and more than 1e-6; whether it stays within eps decides the matching rule", "decided_by": "E12-pilot"},
+    "P12d": {"rq": "RQ11", "claim": "bf16 autocast (the consumer-GPU precision class) exceeds eps", "decided_by": "E12-pilot"},
 }
 
 
@@ -76,6 +81,7 @@ def main() -> int:
     e5 = json.loads(E5_TOY.read_text(encoding="utf-8")) if E5_TOY.exists() else None
     e5h = json.loads(E5_HET.read_text(encoding="utf-8")) if E5_HET.exists() else None
     e10 = json.loads(E10.read_text(encoding="utf-8")) if E10.exists() else None
+    e12 = json.loads(E12.read_text(encoding="utf-8")) if E12.exists() else None
     for pid, meta in PREDICTIONS.items():
         entry: Dict[str, Any] = dict(meta)
         if e5 is not None and pid in ("P2", "P3", "P4"):
@@ -91,6 +97,13 @@ def main() -> int:
                     entry["evidence"] = het["evidence"]
                     entry["manipulation_check"] = het["manipulation_check"]
                     entry["note"] = "decided at toy scale (E5-het supersedes E5-toy); the full-scale E5 cell on Qwen2.5-0.5B is still open"
+        elif e12 is not None and pid.startswith("P12"):
+            a = e12["analysis"][pid]
+            status = a["status"]
+            entry.update({"status": "untested" if status.startswith("not run") else status.split(" ")[0], "status_detail": status,
+                          "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)", "artifact": "artifacts/experiments/E12_pilot_report.json",
+                          "receipt_sha256": e12["receipt_sha256"], "prereg_sha256": e12["prereg_sha256"], "controls_all_passed": e12["controls_all_passed"],
+                          "evidence": a, "note": "CPU pilot; GPU classes remain HM-S10-08"})
         elif e10 is not None and pid.startswith("P10"):
             a = e10["analysis"][pid]
             status = a["status"]
