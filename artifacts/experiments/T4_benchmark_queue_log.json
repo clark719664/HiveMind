@@ -147,18 +147,76 @@
     "[gemma4-e4b] seed 3 window 273: base NLL 2.3620",
     "[gemma4-e4b] wrote E11_raw_gemma4-e4b.json in 3109.6s, peak 9.484 GiB"
    ]
+  },
+  {
+   "name": "E11_qwen7b_retry",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b"
+   ],
+   "start_unix": 1792792441.1548393,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 944.2,
+   "log_tail": [
+    "[qwen7b] seed 2 window 85: base NLL 2.8646",
+    "[qwen7b] seed 2 window 121: base NLL 2.3278",
+    "[qwen7b] seed 2 window 158: base NLL 2.5774",
+    "[qwen7b] seed 2 window 194: base NLL 2.9187",
+    "[qwen7b] seed 2 window 231: base NLL 2.6533",
+    "[qwen7b] seed 2 window 267: base NLL 2.2709",
+    "[qwen7b] seed 3 window 24: base NLL 2.3440",
+    "[qwen7b] seed 3 window 60: base NLL 2.3134",
+    "[qwen7b] seed 3 window 97: base NLL 2.8816",
+    "[qwen7b] seed 3 window 133: base NLL 2.5164",
+    "[qwen7b] seed 3 window 170: base NLL 2.1628",
+    "[qwen7b] seed 3 window 206: base NLL 2.3776",
+    "[qwen7b] seed 3 window 243: base NLL 2.0709",
+    "[qwen7b] seed 3 window 279: base NLL 2.6695",
+    "[qwen7b] wrote E11_raw_qwen7b.json in 939.1s, peak 14.228 GiB"
+   ]
+  },
+  {
+   "name": "E11_aggregate",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--aggregate"
+   ],
+   "start_unix": 1792793385.3483076,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 10.1,
+   "log_tail": [
+    "      \"qwen7b\": \"refuted\",",
+    "      \"gemma4-e4b\": \"refuted\"",
+    "    }",
+    "  },",
+    "  \"P11b\": {",
+    "    \"status\": \"refuted (on gemma4-e4b)\",",
+    "    \"per_model\": {",
+    "      \"qwen0.5b\": \"inconclusive\",",
+    "      \"qwen7b\": \"supported\",",
+    "      \"gemma4-e4b\": \"refuted (E8 already beats Z without the transform)\"",
+    "    }",
+    "  },",
+    "  \"controls_all_passed\": false,",
+    "  \"receipt\": \"d47e0956eef3a8314e1a0ab3c64c5d8679ca8a7d28f0af9f088920d19b20ac51\"",
+    "}"
+   ]
   }
  ],
- "gpu_samples": 127,
- "gpu_util_mean_pct": 86.9,
+ "gpu_samples": 159,
+ "gpu_util_mean_pct": 84.2,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E11_qwen0.5b_retry": 72.9,
   "E11_gemma4-e4b_retry": 97.7,
   "E11_qwen0.5b": 26.0,
-  "E11_qwen7b": 31.3
+  "E11_qwen7b": 31.3,
+  "E11_qwen7b_retry": 73.2
  },
- "gpu_mem_peak_gib": 13.94,
+ "gpu_mem_peak_gib": 14.81,
  "gpu_trace": [
   {
    "t": 1792788631.6,
@@ -383,6 +441,62 @@
    "util_pct": 100,
    "mem_used_gib": 10.43,
    "power_w": 66.0
+  },
+  {
+   "t": 1792792472.4,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 0,
+   "mem_used_gib": 13.71,
+   "power_w": 31.0
+  },
+  {
+   "t": 1792792592.5,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 49,
+   "mem_used_gib": 13.94,
+   "power_w": 53.6
+  },
+  {
+   "t": 1792792712.5,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 64.4
+  },
+  {
+   "t": 1792792832.5,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 70,
+   "mem_used_gib": 14.81,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792792952.6,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 62.0
+  },
+  {
+   "t": 1792793072.6,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 67.9
+  },
+  {
+   "t": 1792793192.6,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 63.4
+  },
+  {
+   "t": 1792793312.6,
+   "job": "E11_qwen7b_retry",
+   "util_pct": 93,
+   "mem_used_gib": 14.81,
+   "power_w": 63.2
   }
  ]
 }
