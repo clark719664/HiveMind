@@ -1,0 +1,74 @@
+name: Isolated HiveMind tests
+
+on:
+  push:
+    branches: [safety/isolated-tests]
+
+permissions: {}
+
+concurrency:
+  group: isolated-hivemind-tests
+  cancel-in-progress: true
+
+jobs:
+  offline-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      TRUSTED_COMMIT: ${{ github.sha }}
+      HOSTED_ENVIRONMENT: ${{ runner.environment }}
+    steps:
+      - name: Fetch trusted harness without credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$HOSTED_ENVIRONMENT" = github-hosted
+          [[ "$TRUSTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          mkdir -p "$RUNNER_TEMP/empty-hooks"
+          git -c init.templateDir= -c core.hooksPath="$RUNNER_TEMP/empty-hooks" init "$RUNNER_TEMP/guard"
+          git -C "$RUNNER_TEMP/guard" -c core.hooksPath="$RUNNER_TEMP/empty-hooks" -c core.fsmonitor=false fetch --depth=1 https://github.com/clark719664/HiveMind.git "$TRUSTED_COMMIT"
+          git -C "$RUNNER_TEMP/guard" -c core.hooksPath="$RUNNER_TEMP/empty-hooks" -c core.fsmonitor=false checkout --detach FETCH_HEAD
+          test "$(git -C "$RUNNER_TEMP/guard" rev-parse HEAD)" = "$TRUSTED_COMMIT"
+
+      - name: Build reviewed tools before introducing project source
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --tag hivemind-sandbox:local "$RUNNER_TEMP/guard/sandbox"
+
+      - name: Fetch the exact public source revision as data
+        shell: bash
+        run: |
+          set -euo pipefail
+          revision="$(cat "$RUNNER_TEMP/guard/revision.txt")"
+          repository="$(cat "$RUNNER_TEMP/guard/source-repository.txt")"
+          [[ "$revision" =~ ^[0-9a-f]{40}$ ]]
+          case "$repository" in xaviercallens/HiveMind|clark719664/HiveMind) ;; *) exit 1 ;; esac
+          git -c init.templateDir= -c core.hooksPath="$RUNNER_TEMP/empty-hooks" init "$RUNNER_TEMP/source"
+          git -C "$RUNNER_TEMP/source" -c core.hooksPath="$RUNNER_TEMP/empty-hooks" -c core.fsmonitor=false fetch --depth=1 "https://github.com/$repository.git" "$revision"
+          test "$(git -C "$RUNNER_TEMP/source" rev-parse FETCH_HEAD)" = "$revision"
+          mkdir "$RUNNER_TEMP/input"
+          git -C "$RUNNER_TEMP/source" -c core.hooksPath="$RUNNER_TEMP/empty-hooks" archive FETCH_HEAD | tar -x -C "$RUNNER_TEMP/input"
+          printf 'Testing %s at %s in an offline container\n' "$repository" "$revision"
+
+      - name: Verify isolation and run tests inside the offline container
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker="$(openssl rand -hex 32)"
+          printf '::stop-commands::%s\n' "$marker"
+          set +e
+          docker run --rm --pull=never \
+            --network none --cap-drop ALL --security-opt no-new-privileges \
+            --read-only --user 10001:10001 --cpus 2 --memory 5g --memory-swap 5g --pids-limit 512 \
+            --tmpfs /tmp:rw,nosuid,nodev,exec,size=1g,mode=1777 \
+            --tmpfs /work:rw,nosuid,nodev,exec,size=3g,uid=10001,gid=10001 \
+            --mount "type=bind,src=$RUNNER_TEMP/input,dst=/input,readonly" \
+            --env HOME=/tmp/hivemind --env PYTHONPATH=/work/src:/work \
+            --env COVERAGE_FILE=/work/.coverage --env LEAN_BIN=/opt/lean/bin/lean \
+            --env OMP_NUM_THREADS=1 --env OPENBLAS_NUM_THREADS=1 --env PYTHONHASHSEED=42 \
+            --env HF_HUB_OFFLINE=1 --env TRANSFORMERS_OFFLINE=1 \
+            hivemind-sandbox:local
+          result=$?
+          printf '::%s::\n' "$marker"
+          exit "$result"
