@@ -97,7 +97,7 @@
   "passed_arms": 3,
   "total_arms": 3,
   "all_passed": true,
-  "elapsed_seconds": 0.0142,
+  "elapsed_seconds": 0.0165,
   "scope_note": "Single-process controlled check on synthetic tensors; no network, no trained model.",
-  "receipt_sha256": "df3e1f137dd4f3848bbffc517f58bcb1bc305eb54c85d429b874b56c2cf4e235"
+  "receipt_sha256": "b4dd89f3aef483618baebce65ad9ec8818cedae965873c420d28c71e87ee52c0"
 }

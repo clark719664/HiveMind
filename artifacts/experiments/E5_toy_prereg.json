@@ -1,0 +1,36 @@
+{
+  "experiment_id": "E5-toy",
+  "registered_utc": "2026-10-23T00:00:00Z",
+  "registered_before_run": true,
+  "decides": ["RQ2", "RQ3", "RQ4"],
+  "spec_source": "docs/RESEARCH_PROGRAM.md section 4, reduced to the E1 synthetic LoRA causal LM so that the full factorial fits one CPU session",
+  "model": "SyntheticLoRACausalLM (scripts/run_paper_experiments_and_figures.py), d_model=64, rank 8, vocab 64; disjoint 128-sequence held-out split",
+  "fixed": {"outer_rounds": 12, "inner_steps_h": 8, "batch_size": 16, "inner_lr": 0.045, "outer_momentum": 0.65, "sync_duration_units": 0.1},
+  "factors": {
+    "num_learners_m": [4, 8],
+    "merge": ["direct", "rda"],
+    "admission": ["all", "quorum_grace", "quorum_random"],
+    "gate": ["ungated", "cgad"],
+    "outer_lr": [0.3, 0.5, 0.7, 0.9, 1.1],
+    "seeds": [1, 2, 3]
+  },
+  "arrival_model": "per learner per round: t = lognormal(median 1.0, sigma 0.25) compute units; with probability 0.2 the learner is a straggler and t is multiplied by uniform(3, 8). Sampled once per (M, seed) and replayed identically across all cells. This is a parametric model, not a WAN trace; artifacts/wan_quic_turn_fault_report.json only contains localhost latencies and is not used.",
+  "admission_rules": {
+    "all": "wait for every learner (K = M); wall per round = max arrival + sync",
+    "quorum_grace": "K = ceil(M/2); AdaptiveGraceWindowController(tau=2, gamma=0.5, ema_beta=0.5, sync=0.1) fed with the median arrival as step duration and the K-th arrival as quorum duration; learners inside the window admitted; deferred learners contribute their delta at the next round with staleness tau=1 and skip that round's fresh compute",
+    "quorum_random": "same K; window length drawn uniform in [0, 2 * mean adaptive window of the same (M, seed)] so the expected window matches the adaptive cell (matched-random control)"
+  },
+  "gate_rule": "the outer optimizer is Nesterov in every cell; 'cgad' multiplies each stale learner delta by sigma(tau) = 0.5(1+cos(pi tau/32)) exp(-0.2 tau) before merging (PA-CGAD gate factor only, so that the gate is the sole difference)",
+  "metrics": ["final held-out loss at round 12", "cumulative simulated wall-clock", "admitted-token fraction", "mean pairwise cosine between learner deltas per round", "loss at matched wall budget (for RQ3)"],
+  "acceptance_rules": {
+    "P2": "best outer_lr = argmin over the grid of the 3-seed mean final loss. Supported if under 'direct' the best lr at M=8 is strictly larger than at M=4 and under 'rda' it is the same grid point; refuted if the rda best lr moves by >= 1 grid step; inapplicable (reported as such) if the mean pairwise cosine of learner deltas exceeds 0.3 in magnitude",
+    "P3": "at the best lr of each cell and the same (M, seed), compare the held-out loss reached within the smaller of the two cells' total wall budgets; supported if adaptive < random with the 95% t-interval of the paired seed differences excluding 0; refuted if random <= adaptive; inconclusive otherwise",
+    "P4": "gate gain = mean final loss(ungated) - mean final loss(cgad) at the best lr; reported under quorum_grace (stale deltas present) and under all (no stale deltas, gain must be 0 by construction = negative control); supported if gain under quorum_grace > 0 with CI excluding 0 and the gate never raises loss by more than the CI"
+  },
+  "controls": {
+    "positive": "stale_burst cell: admission 'all', ungated, but every learner delta at rounds 4 and 8 is replaced by the delta computed from the global state of round 0 (staleness 40 rounds, as in E2); its final loss must exceed the clean 'all' cell at the same lr, otherwise the harness cannot see staleness and the run is invalid",
+    "negative_1": "rda_identity: with all M learners holding the same shard and the same seed, rda merge must equal direct merge to within 1e-5 relative",
+    "negative_2": "grace_gamma0: AdaptiveGraceWindowController with gamma = 0 must admit exactly the first K learners every round"
+  },
+  "seeds_and_statistics": "3 seeds per cell; mean and 95% t-interval (df=2); an effect is claimed only if the interval excludes 0"
+}

@@ -1,0 +1,127 @@
+{
+  "schema_version": "hivemind-predictions-ledger/v1.0",
+  "updated_utc": "2026-10-23T13:49:53Z",
+  "predictions": {
+    "P1": {
+      "rq": "RQ1",
+      "claim": "WAN loss with K<M quorum, grace and RDA <= single-host loss with M(1-churn) workers",
+      "decided_by": "E8",
+      "status": "untested",
+      "scale": null,
+      "artifact": null
+    },
+    "P2": {
+      "rq": "RQ2",
+      "claim": "best outer LR grows with M under direct averaging and is constant under RDA (conditional on near-orthogonal learner deltas)",
+      "decided_by": "E5",
+      "status": "inapplicable",
+      "status_detail": "inapplicable (learner deltas not near-orthogonal)",
+      "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+      "artifact": "artifacts/experiments/E5_toy_report.json",
+      "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
+      "prereg_sha256": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+      "controls_all_passed": true,
+      "evidence": {
+        "best_outer_lr": {
+          "direct": {
+            "M4": 1.1,
+            "M8": 1.1
+          },
+          "rda": {
+            "M4": 1.1,
+            "M8": 1.1
+          }
+        },
+        "mean_pairwise_cosine_all_ungated": 0.9094331058910916,
+        "applicable": false,
+        "status": "inapplicable (learner deltas not near-orthogonal)"
+      },
+      "note": "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+    },
+    "P3": {
+      "rq": "RQ3",
+      "claim": "adaptive grace admission beats matched-random admission at equal loss on wall-clock",
+      "decided_by": "E5",
+      "status": "inconclusive",
+      "status_detail": "inconclusive (CI includes 0)",
+      "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+      "artifact": "artifacts/experiments/E5_toy_report.json",
+      "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
+      "prereg_sha256": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+      "controls_all_passed": true,
+      "evidence": {
+        "paired_diff_random_minus_adaptive_mean": -0.0004166666666666763,
+        "ci95_halfwidth_df2": 0.00220869810489985,
+        "n_pairs": 24,
+        "status": "inconclusive (CI includes 0)"
+      },
+      "note": "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+    },
+    "P4": {
+      "rq": "RQ4",
+      "claim": "PA-CGAD gate helps under quorum with stale deltas and never hurts; zero effect without stale deltas",
+      "decided_by": "E5",
+      "status": "refuted",
+      "status_detail": "refuted",
+      "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+      "artifact": "artifacts/experiments/E5_toy_report.json",
+      "receipt_sha256": "0047a56a40427998094352259cfa6f0ab5dcf474410990eb88f2ca7d27ab954d",
+      "prereg_sha256": "741b37aecac8dfb363954a388a46119a0d4f5e7aeeba66ca1e91511c71783c6b",
+      "controls_all_passed": true,
+      "evidence": {
+        "quorum_grace": {
+          "gain_mean": -0.0006273786226908366,
+          "gain_ci95": 0.0002902091365898729,
+          "n": 12
+        },
+        "all": {
+          "gain_mean": 0.0,
+          "gain_ci95": 0.0,
+          "n": 12
+        },
+        "negative_control_all_gain_is_zero": true,
+        "status": "refuted"
+      },
+      "note": "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+    },
+    "P5": {
+      "rq": "RQ5",
+      "claim": "Skip-Token quality loss is governed by the measured ghost fraction",
+      "decided_by": "E7",
+      "status": "untested",
+      "scale": null,
+      "artifact": null
+    },
+    "P6": {
+      "rq": "RQ6",
+      "claim": "whitening inner optimizer flattens loss-vs-M slope",
+      "decided_by": "E6",
+      "status": "untested",
+      "scale": null,
+      "artifact": null
+    },
+    "P7": {
+      "rq": "RQ7",
+      "claim": "learned depth prior makes terminal-KV sharing safe",
+      "decided_by": "E7b",
+      "status": "untested",
+      "scale": null,
+      "artifact": null
+    },
+    "P8": {
+      "rq": "RQ8",
+      "claim": "Multi-Krum + 2sigma does not stop ALIE at f/n >= 0.2; spot-check replay does",
+      "decided_by": "E9",
+      "status": "untested",
+      "scale": null,
+      "artifact": null
+    }
+  },
+  "status_counts": {
+    "untested": 5,
+    "inapplicable": 1,
+    "inconclusive": 1,
+    "refuted": 1
+  },
+  "receipt_sha256": "b1c643fc7750c144be1ca2e791aba8bf5e8c38baf31bd96b65fbf1656b7e67f3"
+}

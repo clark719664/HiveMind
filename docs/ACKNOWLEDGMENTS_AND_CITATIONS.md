@@ -1,4 +1,4 @@
-# Acknowledgments, Open-Source Attribution & Academic Citations (`v1.9.2-dev`, citations re-verified 2026-10-23)
+# Acknowledgments, Open-Source Attribution & Academic Citations (`v2.2.0`, citations re-verified 2026-10-23)
 
 **Project HiveMind** stands on the shoulders of the open-source distributed machine learning community, academic researchers across decentralized optimization and Mixture-of-Experts (`MoE`) architectures, and our human & AI contributor community. This document formally acknowledges every external repository, algorithm, dataset, and research paper integrated into or leveraged by **Project HiveMind** (`src/hivemind/swarm/diloco_nextgen.py`, `src/hivemind/swarm/strategy_optimizer.py`, `src/hivemind/core/`, and `lean4/HiveMindSpec.lean`).
 

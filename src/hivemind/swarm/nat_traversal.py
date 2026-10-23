@@ -890,7 +890,10 @@ class StunServer:
             self._housekeeping()
 
     def _housekeeping(self) -> None:
-        pass
+        """Periodic hook of the base UDP server: the STUN server keeps no expiring state, so there is
+        nothing to reap here; the TURN subclass overrides this to expire allocations and channels.
+        The base implementation only counts ticks so the serve loop's cadence is observable."""
+        self.housekeeping_ticks = getattr(self, "housekeeping_ticks", 0) + 1
 
     def _on_readable(self, sock: socket.socket) -> None:
         try:

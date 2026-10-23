@@ -1,4 +1,4 @@
-# 📚 11. Acknowledgments, Leveraged Open-Source GitHub Repositories & Academic Citations (`v1.9.2-dev`, citations re-verified 2026-10-23)
+# 📚 11. Acknowledgments, Leveraged Open-Source GitHub Repositories & Academic Citations (`v2.2.0`, citations re-verified 2026-10-23)
 
 **Project HiveMind** gratefully acknowledges the open-source distributed machine learning community, academic researchers across outer-loop `DiLoCo` and Mixture-of-Experts (`MoE`) architectures, and our human & AI contributor community (`52/52` merged Pull Requests across Waves 1–6).
 

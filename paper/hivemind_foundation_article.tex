@@ -51,12 +51,13 @@
   showstringspaces=false
 }
 
+\IfFileExists{zenodo_doi.tex}{\input{zenodo_doi}}{\newcommand{\zenodoDOI}{pending}}
 \pagestyle{fancy}
 \setlength{\headheight}{21pt}
 \fancyhf{}
-\lhead{\footnotesize \textbf{Project HiveMind v3.3.0} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
+\lhead{\footnotesize \textbf{Project HiveMind v3.4.0} --- Decentralized Sparse MoE \& DiLoCo on 8\,GB GPUs: System Design, Experiments \& Proofs}
 \rhead{\footnotesize \thepage}
-\cfoot{\footnotesize Preprint (revised after internal scripted audits; not peer reviewed) $\cdot$ \url{https://github.com/xaviercallens/HiveMind}}
+\cfoot{\footnotesize Preprint (not peer reviewed; scripted audits only) $\cdot$ Zenodo DOI: \zenodoDOI{} $\cdot$ \url{https://github.com/xaviercallens/HiveMind}}
 
 \title{\vspace{-1.3cm}\textbf{Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8\,GB Consumer GPUs}\\[0.35em]
 \large \textit{Integration of Low-Communication Training Methods, Controlled Experimental Evaluations, and Lean 4 Bookkeeping Lemmas}}
@@ -66,7 +67,7 @@
   Project HiveMind Open-Source Contributors
 }
 
-\date{October 23, 2026 --- Version 3.3.0 (adds a pre-registered research program with falsifiable predictions; Decoupled DiLoCo quorum syncer; 120 Lean 4 lemmas)}
+\date{October 23, 2026 --- Version 3.4.0 (pre-registered research program; first three-seed controlled experiment E5-toy; Decoupled DiLoCo quorum syncer; 120 Lean 4 lemmas)}
 
 \begin{document}
 
@@ -679,6 +680,7 @@ To prevent conflating machine-checked discrete arithmetic with empirical single-
     \item \texttt{PYTHONPATH=src python scripts/verify\_decoupled\_diloco\_quorum.py} $\to$ \texttt{artifacts/decoupled\_diloco\_quorum\_check.json} (\texttt{H11}, \texttt{pytest tests/test\_decoupled\_diloco\_quorum.py tests/test\_fomoe\_sigma\_routing.py}).
     \item \texttt{PYTHONPATH=src python paper/autoevolve\_peer\_review\_pipeline.py} $\to$ \texttt{paper/PEER\_REVIEW\_REPORT.json} (scripted static audit: Lean inventory, JSON-to-LaTeX provenance lock, LaTeX lint; it calls no language model and is not a peer review).
     \item \texttt{cd lean4 \&\& lake build} $\to$ compiles all 120 theorems in \texttt{lean4/HiveMindSpec.lean} with zero \texttt{sorry}.
+    \item The PDF, the LaTeX source, the Lean specification and every JSON artifact quoted above are deposited on Zenodo under DOI \zenodoDOI{} (\texttt{scripts/publish\_hivemind\_paper\_zenodo.py}, receipt \texttt{paper/ZENODO\_DEPOSIT\_RECEIPT.json} with per-file MD5 verification).
 \end{itemize}
 
 \begin{thebibliography}{99}

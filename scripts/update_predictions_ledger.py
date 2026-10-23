@@ -1,0 +1,74 @@
+"""Write ``artifacts/predictions_ledger.json`` from the experiment artifacts that exist.
+
+The ledger lists every prediction of ``docs/RESEARCH_PROGRAM.md`` with its status
+(``untested`` / ``supported`` / ``refuted`` / ``inconclusive`` / ``inapplicable``), the artifact
+and receipt that decided it, and the scale at which it was decided. Statuses are copied from
+the artifacts, never typed here.
+
+Run: ``PYTHONPATH=src python scripts/update_predictions_ledger.py``
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+import time
+from typing import Any, Dict
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+LEDGER_PATH = PROJECT_ROOT / "artifacts" / "predictions_ledger.json"
+E5_TOY = PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_report.json"
+
+PREDICTIONS: Dict[str, Dict[str, str]] = {
+    "P1": {"rq": "RQ1", "claim": "WAN loss with K<M quorum, grace and RDA <= single-host loss with M(1-churn) workers", "decided_by": "E8"},
+    "P2": {"rq": "RQ2", "claim": "best outer LR grows with M under direct averaging and is constant under RDA (conditional on near-orthogonal learner deltas)", "decided_by": "E5"},
+    "P3": {"rq": "RQ3", "claim": "adaptive grace admission beats matched-random admission at equal loss on wall-clock", "decided_by": "E5"},
+    "P4": {"rq": "RQ4", "claim": "PA-CGAD gate helps under quorum with stale deltas and never hurts; zero effect without stale deltas", "decided_by": "E5"},
+    "P5": {"rq": "RQ5", "claim": "Skip-Token quality loss is governed by the measured ghost fraction", "decided_by": "E7"},
+    "P6": {"rq": "RQ6", "claim": "whitening inner optimizer flattens loss-vs-M slope", "decided_by": "E6"},
+    "P7": {"rq": "RQ7", "claim": "learned depth prior makes terminal-KV sharing safe", "decided_by": "E7b"},
+    "P8": {"rq": "RQ8", "claim": "Multi-Krum + 2sigma does not stop ALIE at f/n >= 0.2; spot-check replay does", "decided_by": "E9"},
+}
+
+
+def _status_from_e5(report: Dict[str, Any], key: str) -> Dict[str, Any]:
+    a = report["analysis"][key]
+    status = a["status"]
+    norm = "inapplicable" if status.startswith("inapplicable") else status.split(" ")[0]
+    return {
+        "status": norm,
+        "status_detail": status,
+        "scale": "toy synthetic LM, single host, 3 seeds (E5-toy)",
+        "artifact": "artifacts/experiments/E5_toy_report.json",
+        "receipt_sha256": report["receipt_sha256"],
+        "prereg_sha256": report["prereg_sha256"],
+        "controls_all_passed": report["controls_all_passed"],
+        "evidence": {k: v for k, v in a.items() if k not in ("rows",)},
+    }
+
+
+def main() -> int:
+    ledger: Dict[str, Any] = {"schema_version": "hivemind-predictions-ledger/v1.0", "updated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "predictions": {}}
+    e5 = json.loads(E5_TOY.read_text(encoding="utf-8")) if E5_TOY.exists() else None
+    for pid, meta in PREDICTIONS.items():
+        entry: Dict[str, Any] = dict(meta)
+        if e5 is not None and pid in ("P2", "P3", "P4"):
+            entry.update(_status_from_e5(e5, pid))
+            entry["note"] = "decided at toy scale only; the full-scale E5 cell on Qwen2.5-0.5B is still open"
+        else:
+            entry.update({"status": "untested", "scale": None, "artifact": None})
+        ledger["predictions"][pid] = entry
+    counts: Dict[str, int] = {}
+    for e in ledger["predictions"].values():
+        counts[e["status"]] = counts.get(e["status"], 0) + 1
+    ledger["status_counts"] = counts
+    payload = json.dumps({k: v for k, v in ledger.items() if k != "receipt_sha256"}, sort_keys=True).encode("utf-8")
+    ledger["receipt_sha256"] = hashlib.sha256(payload).hexdigest()
+    LEDGER_PATH.write_text(json.dumps(ledger, indent=2), encoding="utf-8")
+    print(json.dumps({"status_counts": counts, "receipt": ledger["receipt_sha256"]}, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
