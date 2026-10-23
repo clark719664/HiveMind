@@ -66,7 +66,7 @@ To enable multiple human developers and autonomous AI coding agents (`@clark7196
   1. Add `compress_lora_delta_dct_sparse_2bit` and `decompress_lora_delta_dct_sparse_2bit` to `src/hivemind/core/compression.py` with 4-values-per-byte `uint8` bit-packing (`0.25 B/val`, `>= 16.0x` wire reduction).
 
 ### 🔹 Track 5 (`HM-S8-09`): Inner-Loop `Muon` Newton-Schulz Orthogonalized LoRA Preconditioner (`MuLoCo`)
-- **Literature & Reference**: Morales (`arXiv:2610.19064`) & Therien et al. (`MuLoCo`, `arXiv:2607.12925`).
+- **Literature & Reference**: Belilovsky, Horoi, Oyallon & Thérien (`arXiv:2610.19064`) & Thérien et al. (`MuLoCo`, `arXiv:2505.23725`).
 - **What to Implement Next**:
   1. Wire `MuonNewtonSchulzLoRAPreconditioner` (`SI-11`) into `run_diloco_inner_loop` (`src/hivemind/core/diloco_inner.py`) and `HiveMindWorkerNode.execute_workunit` (`src/hivemind/client/worker_node.py`) via `use_muon_lora_preconditioner: bool = False`.
 

@@ -1,0 +1,103 @@
+{
+  "schema_version": "hivemind-decoupled-diloco-quorum-check/v1.0",
+  "hypothesis_id": "H11",
+  "reference": {
+    "name": "Decoupled DiLoCo for Resilient Distributed Pre-training",
+    "authors": "Decoupled DiLoCo Team (Google DeepMind & Google Research), incl. A. Douillard, K. Rush, Y. Donchev, Z. Charles",
+    "arxiv_url": "https://arxiv.org/abs/2604.21428",
+    "integrated_components": "Minimum-quorum aggregation, adaptive grace window bounded by gamma * slack, token-weighted learner weights, and Radial-Directional Averaging (RDA)"
+  },
+  "seed": 2026,
+  "arms": [
+    {
+      "arm_id": "H11-A",
+      "kind": "positive",
+      "name": "RDA norm invariance vs direct-average shrinkage",
+      "passed": true,
+      "rows": [
+        {
+          "num_learners_m": 2.0,
+          "common_norm_r": 3.0,
+          "direct_average_norm": 2.1213202476501465,
+          "direct_average_predicted_r_over_sqrt_m": 2.1213203435596424,
+          "rda_norm": 3.000000238418579,
+          "rda_over_direct_ratio": 1.41421377658844
+        },
+        {
+          "num_learners_m": 4.0,
+          "common_norm_r": 3.0,
+          "direct_average_norm": 1.5,
+          "direct_average_predicted_r_over_sqrt_m": 1.5,
+          "rda_norm": 3.0,
+          "rda_over_direct_ratio": 2.0
+        },
+        {
+          "num_learners_m": 8.0,
+          "common_norm_r": 3.0,
+          "direct_average_norm": 1.0606601238250732,
+          "direct_average_predicted_r_over_sqrt_m": 1.0606601717798212,
+          "rda_norm": 3.000000238418579,
+          "rda_over_direct_ratio": 2.82842755317688
+        },
+        {
+          "num_learners_m": 16.0,
+          "common_norm_r": 3.0,
+          "direct_average_norm": 0.75,
+          "direct_average_predicted_r_over_sqrt_m": 0.75,
+          "rda_norm": 3.0,
+          "rda_over_direct_ratio": 4.0
+        }
+      ]
+    },
+    {
+      "arm_id": "H11-B",
+      "kind": "negative_control",
+      "name": "Late stragglers excluded by adaptive grace window; Delta feeds flat-bucket Nesterov step",
+      "passed": true,
+      "grace_controller": {
+        "overlap_steps_tau": 2.0,
+        "safety_margin_gamma": 0.5,
+        "step_duration_ema_s": 4.0,
+        "quorum_duration_ema_s": 0.3,
+        "sync_duration_s": 1.0,
+        "slack_s": 6.7,
+        "grace_window_s": 3.35
+      },
+      "admitted_learner_ids": [
+        "fast0",
+        "fast1",
+        "fast2",
+        "fast3",
+        "fast4",
+        "fast5"
+      ],
+      "deferred_learner_ids": [
+        "slow0",
+        "slow1"
+      ],
+      "admitted_tokens": 30000,
+      "deferred_tokens": 10000,
+      "straggler_coordinate_leak": 0.0,
+      "merged_delta_norm": 1.9999998807907104,
+      "direct_average_norm": 0.8164966106414795,
+      "learner_weight_each": 500000.0,
+      "outer_step_linf": 1.0859403610229492,
+      "extra_gpu_vram_bytes": 0
+    },
+    {
+      "arm_id": "H11-C",
+      "kind": "negative_control",
+      "name": "Quorum K = M not reached with 7/8 learners -> syncer waits (no merge)",
+      "passed": true,
+      "num_arrivals": 7,
+      "num_admitted": 0,
+      "num_deferred": 7
+    }
+  ],
+  "passed_arms": 3,
+  "total_arms": 3,
+  "all_passed": true,
+  "elapsed_seconds": 0.0142,
+  "scope_note": "Single-process controlled check on synthetic tensors; no network, no trained model.",
+  "receipt_sha256": "df3e1f137dd4f3848bbffc517f58bcb1bc305eb54c85d429b874b56c2cf4e235"
+}

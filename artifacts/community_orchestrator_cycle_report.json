@@ -3,8 +3,8 @@
   "cadence_cron": "0 * * * *",
   "repository": "xaviercallens/HiveMind",
   "execute_live": true,
-  "timestamp_utc": 1792758401.351,
-  "elapsed_ms": 1433.567,
+  "timestamp_utc": 1792760694.353,
+  "elapsed_ms": 1416.162,
   "non_monetary_charter": "NO FINANCIAL PAYMENT (0.00 EUR / 0.00 USD): Project HiveMind is a voluntary, non-commercial open-source research project. No money, fiat currency, cryptocurrency, or wage is ever promised or paid. Accumulated 'points' (PTS and $HIVE PoUW accounting units) confer exclusively reciprocal computing processing benefits (shared Sparse MoE inference and training quota) when the live production HiveMind Swarm is deployed, available, and used by a large community.",
   "open_prs_scanned": 0,
   "prs_merged_live": [],
@@ -85,16 +85,17 @@
   ],
   "hourly_quality_and_experiment_audit": {
     "all_quality_gates_healthy": true,
-    "lean4_theorems_verified": 116,
+    "lean4_theorems_verified": 120,
     "lean4_sorry_count": 0,
     "hypotheses_passed": "10/10",
+    "decoupled_diloco_h11_passed": true,
     "hypothesis_report_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
     "experimental_suites_verified": "4/4",
     "experiments_report_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
-    "paper_peer_review_score": 9.45,
-    "paper_provenance_checks_passed": 14,
-    "peer_review_report_sha256": "d70c5f4e7c858a3073faa8b4672d91592968d88bd5223d629d7b0ad8ab5a6fb9",
-    "open_season9_tasks_count": 8
+    "paper_technical_gate_pass_rate": 1.0,
+    "paper_provenance_checks_passed": 16,
+    "peer_review_report_sha256": "cdea3ff953efdfe7e8211569f3bc3334c9ae836861a251f027e710d0bd697c71",
+    "open_season9_tasks_count": 9
   },
-  "cycle_sha256": "41d40a6ae6917d5a60fff0abba81b362b7c1cb749e157a703b3a45373759acbf"
+  "cycle_sha256": "55b2d0574436bed855e7db70634351dd8e118d1d84f3fdb6f76d9defa543181d"
 }

@@ -15,10 +15,10 @@
     {
       "block_height": 1,
       "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
-      "timestamp": 1792571508.3961103,
+      "timestamp": 1792759758.7890055,
       "outer_step": 1,
-      "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-9e43c945e0235215424d1110",
-      "merkle_root": "c953fb5e2337ef63e54dbf21a8036d53e089d6537c10deda2a759c75b24d6a8d",
+      "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-6305ecde43b046bb9a5a185e",
+      "merkle_root": "91a2f9422fff53e7c2636be8afc9e8419427b9183eb94fbf709ec23b4516959a",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c01": 20.0,
@@ -29,15 +29,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c01"
       ],
-      "block_hash": "6f5683457854defc7d865da1b2bafd62a0d52b2f93b342e545b01deadae3ea30"
+      "block_hash": "c460adb76174c9648ef26e13c3d5471a1ef1a5c50f0ac90394f17b3f005f5248"
     },
     {
       "block_height": 2,
-      "prev_block_hash": "6f5683457854defc7d865da1b2bafd62a0d52b2f93b342e545b01deadae3ea30",
-      "timestamp": 1792571511.617751,
+      "prev_block_hash": "c460adb76174c9648ef26e13c3d5471a1ef1a5c50f0ac90394f17b3f005f5248",
+      "timestamp": 1792759764.6425693,
       "outer_step": 2,
-      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-e9e175f1e7ddab7222de4cf7",
-      "merkle_root": "6b7715a3e6e1d39c45bfcfa7110cb8f8441110266fbd607fc861ca1513cb2ef4",
+      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-a0907a77a1b8889a6fc26299",
+      "merkle_root": "9cba03460cef5f27157473c5483d1ceb154ece535b21725a03848b23fa7846d9",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c02": 20.0,
@@ -48,15 +48,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c02"
       ],
-      "block_hash": "d01432d2abf1a2cdac379cf3adbc0feb56ff5c343ceb32412a91877fe423e7ac"
+      "block_hash": "c72b77b2d5a478c3ffc030b2a13c47b2d4da62b2ad38a74863b3f2f9653ba787"
     },
     {
       "block_height": 3,
-      "prev_block_hash": "d01432d2abf1a2cdac379cf3adbc0feb56ff5c343ceb32412a91877fe423e7ac",
-      "timestamp": 1792571514.8870845,
+      "prev_block_hash": "c72b77b2d5a478c3ffc030b2a13c47b2d4da62b2ad38a74863b3f2f9653ba787",
+      "timestamp": 1792759770.3306704,
       "outer_step": 3,
-      "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-f239aefa09522dc3d79c45ce",
-      "merkle_root": "4ecb0e82089425ed929c42e6548a4c61a813919fa2774aedd08059388c35906f",
+      "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-aed59b7c49020da150f5ca63",
+      "merkle_root": "fe467f4243b763dd19bd95ea6f2279293fee2f7cb673cb43ad7d97f8a3a10d96",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c03": 20.0,
@@ -67,15 +67,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c03"
       ],
-      "block_hash": "f73aeeee993ef655786867042767417a86920e93ca08ef87f770644543a6f790"
+      "block_hash": "6070f6b6ad3f7d35aa800073eab7dd1cb92116975ca7c93af86a723fb12bf115"
     },
     {
       "block_height": 4,
-      "prev_block_hash": "f73aeeee993ef655786867042767417a86920e93ca08ef87f770644543a6f790",
-      "timestamp": 1792571518.2036529,
+      "prev_block_hash": "6070f6b6ad3f7d35aa800073eab7dd1cb92116975ca7c93af86a723fb12bf115",
+      "timestamp": 1792759776.018607,
       "outer_step": 4,
-      "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-91229e5e68d1535f37bac5a1",
-      "merkle_root": "3ff916aafa46e8c4c5e613d3d8274ba489a8f7b8ad301d7a2222c9eb9b5fb96a",
+      "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-20ccbb6d896569f5a7daaabd",
+      "merkle_root": "2be4ee8bddd20d1e2e0cb68d7afabf0792957cc1455b6032fb9cf079d75ecb34",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c04": 20.0,
@@ -86,15 +86,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c04"
       ],
-      "block_hash": "00a2bf8b1eba370db9d239f92ab28662375b7e6f77cbec43dcbb2d3ccdd0750d"
+      "block_hash": "34aae5f44f23855d15558dbdd71b8bfcbc9eac69c75184e50ba3bb250b559529"
     },
     {
       "block_height": 5,
-      "prev_block_hash": "00a2bf8b1eba370db9d239f92ab28662375b7e6f77cbec43dcbb2d3ccdd0750d",
-      "timestamp": 1792571521.4463482,
+      "prev_block_hash": "34aae5f44f23855d15558dbdd71b8bfcbc9eac69c75184e50ba3bb250b559529",
+      "timestamp": 1792759781.8096933,
       "outer_step": 5,
-      "expert_cid": "cid://sha256/expert-sdss_desi_cosmology_redshift_bao_analyzer-fef45a8848883a24909a37b1",
-      "merkle_root": "5edda4dd8f30497ff062651a9aa52cae8007733cc01fffbc15ecaa24f29c373f",
+      "expert_cid": "cid://sha256/expert-sdss_desi_cosmology_redshift_bao_analyzer-e36048e3b68c0d0ac872f7fc",
+      "merkle_root": "f3e081bff3407eb5b06c07e547bc8c415379fd766974028501b3997389f674e4",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c05": 20.0,
@@ -105,15 +105,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c05"
       ],
-      "block_hash": "8eaaffc2b09b6347597e010141a95209c303e9a8ef8e5c4fc206087931a5a75a"
+      "block_hash": "42a774b65aa6c60f709e2e83283dc3464056ecd40f81141631afa694f041d8ca"
     },
     {
       "block_height": 6,
-      "prev_block_hash": "8eaaffc2b09b6347597e010141a95209c303e9a8ef8e5c4fc206087931a5a75a",
-      "timestamp": 1792571524.7111042,
+      "prev_block_hash": "42a774b65aa6c60f709e2e83283dc3464056ecd40f81141631afa694f041d8ca",
+      "timestamp": 1792759787.4520597,
       "outer_step": 6,
-      "expert_cid": "cid://sha256/expert-pantheon_typeia_supernova_darkenergy_probe-48c6a37aeddabc44fd01367f",
-      "merkle_root": "3204f148a4722e4991ad3e55d8e7135fddeabbb415489ea43f9b06fd6c8e2690",
+      "expert_cid": "cid://sha256/expert-pantheon_typeia_supernova_darkenergy_probe-3d771341db834fb317ce562e",
+      "merkle_root": "057862f419ef788b6f1bbfdd99f5231ebe8250c30db82cc6322529d6637cddd5",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c06": 20.0,
@@ -124,7 +124,7 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c06"
       ],
-      "block_hash": "c40c655a01af4f6e2079d8112d44142808ea5c9c909f9a727a5bdfc56b9d7f12"
+      "block_hash": "76bae2f6b9c98fa3c3b5b79894affb91d85b50df47c868039cdf5e4020d81f19"
     }
   ],
   "balances": {

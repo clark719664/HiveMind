@@ -1651,11 +1651,13 @@ end Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses
 
 /-!
 ===========================================================================
-SEASON 13 (WAVE 12): OPUS 5.5 PEER-REVIEW HYPOTHESIS-NECESSITY
-COUNTEREXAMPLES & NON-VACUITY INHABITATION WITNESSES (THEOREMS 113-116)
+SEASON 13 (WAVE 12): HYPOTHESIS-NECESSITY COUNTEREXAMPLES & NON-VACUITY
+INHABITATION WITNESSES (THEOREMS 113-116)
 ===========================================================================
-Formalizes the 4 mathematical necessity / counterexample theorems required by
-the Claude Opus 5.5 (`claude-opus-5-5`) 5-Round Elenchus Peer Review:
+Formalizes the 4 mathematical necessity / counterexample theorems added for the
+scripted manuscript audit (`paper/autoevolve_peer_review_pipeline.py`, a static
+checklist that calls no language model; an earlier header here wrongly attributed
+these requirements to a "Claude Opus 5.5 peer review"):
   - Theorem 113 (`ef21_disabled_loses_untransmitted_residual`): Without EF21
     error-feedback carry (`r_1 = 0`), any step where the compressor drops
     non-zero residual (`c_1 < g_1`) strictly loses cumulative gradient mass
@@ -1674,7 +1676,7 @@ the Claude Opus 5.5 (`claude-opus-5-5`) 5-Round Elenchus Peer Review:
     complete `InhabitedRTX2070SwarmPackage` parameter tuple (`6656 MiB` usable
     VRAM, `1527 MiB` 96-MoE, `6490 MiB` 7B worker, `n = 10`, `f = 3`).
 -/
-namespace Season13_Opus55HypothesisNecessityAndInhabitation
+namespace Season13_HypothesisNecessityAndInhabitation
 
 /-- Structure packaging a concrete, simultaneously satisfiable Project HiveMind
     8 GB RTX 2070 deployment configuration (`ARGOS-CENTAUR-002` Anti-Vacuity). -/
@@ -1761,7 +1763,101 @@ theorem inhabited_hivemind_rtx2070_deployment_witness :
   · decide
   · decide
 
-end Season13_Opus55HypothesisNecessityAndInhabitation
+end Season13_HypothesisNecessityAndInhabitation
+
+/-!
+===========================================================================
+SEASON 14 (WAVE 13): DECOUPLED DILOCO QUORUM, ADAPTIVE GRACE WINDOW,
+TOKEN-WEIGHTED MERGING (THEOREMS 117-120)
+===========================================================================
+Discrete bookkeeping behind `src/hivemind/swarm/decoupled_diloco.py` (`SI-12`),
+after Google DeepMind's Decoupled DiLoCo (`arXiv:2604.21428`, Algorithm 2 and
+Eq. 3). All statements are over ℕ. The real-valued Radial-Directional
+Averaging norm identity `||RDA|| = R` is checked numerically in `H11`
+(`scripts/verify_decoupled_diloco_quorum.py`), not here.
+  - Theorem 117 (`decoupled_grace_window_strictly_below_slack`): with safety
+    margin `gamma = g_num / g_den < 1`, the grace window `gamma * slack` is
+    strictly smaller than any positive slack, so waiting for extra learners
+    can never consume the whole compute overlap.
+  - Theorem 118 (`decoupled_exhausted_slack_zero_grace`): if reaching quorum
+    plus synchronising already takes at least `tau` compute steps, slack and
+    grace window are both zero (the syncer proceeds immediately).
+  - Theorem 119 (`decoupled_token_weight_monotone`): the learner weight
+    `tokens * (tokens / steps)` is monotone in tokens and antitone in steps.
+  - Theorem 120 (`decoupled_quorum_admitted_count_bounds`): the admitted set
+    (first `K` by arrival plus `extra` inside the grace window) has size in
+    `[K, M]`, admitted + deferred = arrivals, and the degenerate `K = 0` rule
+    would admit zero learners (why `1 <= K` is enforced).
+-/
+namespace Season14_DecoupledDiLoCoQuorumAndRDA
+
+/-- Slack in time units (Eq. 3): `xi_slack = tau * xi_step - (xi_quorum + xi_sync)`,
+    truncated at `0` in ℕ. -/
+def slackUnits (tau step quorum sync : Nat) : Nat := tau * step - (quorum + sync)
+
+/-- Grace window with rational safety margin `gamma = g_num / g_den`. -/
+def graceUnits (g_num g_den slack : Nat) : Nat := g_num * slack / g_den
+
+/-- Learner weight `Weight(c_tokens, c_steps) = c_tokens * (c_tokens / c_steps)`,
+    written as `tokens * tokens / steps` to stay in ℕ. -/
+def tokenQualityWeight (tokens steps : Nat) : Nat := tokens * tokens / steps
+
+/-- Number of admitted learners: the first `K` by arrival plus `extra` learners that
+    arrived inside the grace window. -/
+def admittedCount (K extra : Nat) : Nat := K + extra
+
+/-- Theorem 117: `gamma < 1` keeps the grace window strictly below any positive slack. -/
+theorem decoupled_grace_window_strictly_below_slack
+    (g_num g_den slack : Nat)
+    (h_gamma : g_num < g_den)
+    (h_pos : slack > 0) :
+    graceUnits g_num g_den slack < slack := by
+  unfold graceUnits
+  have h_den : 0 < g_den := Nat.lt_of_le_of_lt (Nat.zero_le _) h_gamma
+  have h_lt : g_num * slack < g_den * slack := Nat.mul_lt_mul_of_pos_right h_gamma h_pos
+  rw [Nat.div_lt_iff_lt_mul h_den, Nat.mul_comm slack g_den]
+  exact h_lt
+
+/-- Theorem 118: an exhausted compute budget yields zero slack and zero grace window. -/
+theorem decoupled_exhausted_slack_zero_grace
+    (tau step quorum sync g_num g_den : Nat)
+    (h_exhausted : tau * step <= quorum + sync) :
+    slackUnits tau step quorum sync = 0 ∧
+    graceUnits g_num g_den (slackUnits tau step quorum sync) = 0 := by
+  unfold slackUnits graceUnits
+  have h0 : tau * step - (quorum + sync) = 0 := Nat.sub_eq_zero_of_le h_exhausted
+  rw [h0]
+  simp
+
+/-- Theorem 119: the token-weighted quality weight is monotone in tokens (fixed steps)
+    and antitone in steps (fixed tokens, `0 < s1 <= s2`). -/
+theorem decoupled_token_weight_monotone
+    (t1 t2 s1 s2 : Nat)
+    (h_tokens : t1 <= t2)
+    (h_s1 : 0 < s1)
+    (h_steps : s1 <= s2) :
+    tokenQualityWeight t1 s2 <= tokenQualityWeight t2 s2 ∧
+    tokenQualityWeight t2 s2 <= tokenQualityWeight t2 s1 := by
+  unfold tokenQualityWeight
+  constructor
+  · exact Nat.div_le_div_right (Nat.mul_le_mul h_tokens h_tokens)
+  · exact Nat.div_le_div_left h_steps h_s1
+
+/-- Theorem 120: admitted-set size bounds, conservation with the deferred set, and the
+    `K = 0` degenerate counterexample. -/
+theorem decoupled_quorum_admitted_count_bounds
+    (M K extra : Nat)
+    (h_K : 1 <= K)
+    (h_KM : K <= M)
+    (h_extra : extra <= M - K) :
+    K <= admittedCount K extra ∧
+    admittedCount K extra <= M ∧
+    admittedCount K extra + (M - admittedCount K extra) = M ∧
+    admittedCount 0 0 = 0 := by
+  unfold admittedCount
+  omega
+
+end Season14_DecoupledDiLoCoQuorumAndRDA
 
 end HiveMindSpec
 
@@ -1865,7 +1961,11 @@ end HiveMindSpec
 #print axioms HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.tsv_procrustes_subspace_rank_bound
 #print axioms HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.skip_attention_dma_overlap_zero_stall_budget
 #print axioms HiveMindSpec.Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses.non_monetary_compute_reciprocity_zero_fiat_invariant
-#print axioms HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.ef21_disabled_loses_untransmitted_residual
-#print axioms HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.pacgad_missing_cutoff_inflates_stale_second_moment
-#print axioms HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.multikrum_violated_quorum_loses_honest_majority
-#print axioms HiveMindSpec.Season13_Opus55HypothesisNecessityAndInhabitation.inhabited_hivemind_rtx2070_deployment_witness
+#print axioms HiveMindSpec.Season13_HypothesisNecessityAndInhabitation.ef21_disabled_loses_untransmitted_residual
+#print axioms HiveMindSpec.Season13_HypothesisNecessityAndInhabitation.pacgad_missing_cutoff_inflates_stale_second_moment
+#print axioms HiveMindSpec.Season13_HypothesisNecessityAndInhabitation.multikrum_violated_quorum_loses_honest_majority
+#print axioms HiveMindSpec.Season13_HypothesisNecessityAndInhabitation.inhabited_hivemind_rtx2070_deployment_witness
+#print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_grace_window_strictly_below_slack
+#print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_exhausted_slack_zero_grace
+#print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_token_weight_monotone
+#print axioms HiveMindSpec.Season14_DecoupledDiLoCoQuorumAndRDA.decoupled_quorum_admitted_count_bounds

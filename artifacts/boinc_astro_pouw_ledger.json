@@ -15,10 +15,10 @@
     {
       "block_height": 1,
       "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
-      "timestamp": 1792568034.6602592,
+      "timestamp": 1792759724.036511,
       "outer_step": 1,
-      "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-301d959dbcc7845c2302949c",
-      "merkle_root": "e427f373a0706657b95a6552e0faec21b8832586b6842ab1b5fd8b0894b04465",
+      "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-f035cf78cad433b02f48938c",
+      "merkle_root": "23554d74ab1eda2304c945a0b67fcd97b267bcaef4eca85e73e7f440c15c4fc3",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx-miner-alpha-d0": 20.0,
@@ -29,15 +29,15 @@
       "slashed_nodes": [
         "boinc-byzantine-rogue-99-d0"
       ],
-      "block_hash": "614de9c56ccda35769a82e11aa2de852b87a8b8a2c3ae7cc4113e831540f3e22"
+      "block_hash": "21ad18e35daf5a4caa9059afe16254ade8bd933be53985b97137e503ff26cb85"
     },
     {
       "block_height": 2,
-      "prev_block_hash": "614de9c56ccda35769a82e11aa2de852b87a8b8a2c3ae7cc4113e831540f3e22",
-      "timestamp": 1792568038.9929714,
+      "prev_block_hash": "21ad18e35daf5a4caa9059afe16254ade8bd933be53985b97137e503ff26cb85",
+      "timestamp": 1792759732.3128405,
       "outer_step": 1,
-      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-be7061f3108de9bf15db152f",
-      "merkle_root": "368ed346b8a0f68d9f8bc7b1cc2a2c08b8def66d4ff1ab1ecad206c394c93d77",
+      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-ea09e8688ec5c352362eccd8",
+      "merkle_root": "1e0b39893229a27281353d551f69266bed0f2ac406bcd7ce3d2eb421c92187c4",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx-miner-alpha-d1": 20.0,
@@ -48,15 +48,15 @@
       "slashed_nodes": [
         "boinc-byzantine-rogue-99-d1"
       ],
-      "block_hash": "e860e87bf9cd4b9c5d989a9eedf37e900e8ee2f67464fbb63e5792e960afac99"
+      "block_hash": "692b47613df9153631438ffdd4c6c44d6445addb451d3d97db7e2041988a2041"
     },
     {
       "block_height": 3,
-      "prev_block_hash": "e860e87bf9cd4b9c5d989a9eedf37e900e8ee2f67464fbb63e5792e960afac99",
-      "timestamp": 1792568043.3606248,
+      "prev_block_hash": "692b47613df9153631438ffdd4c6c44d6445addb451d3d97db7e2041988a2041",
+      "timestamp": 1792759740.5195205,
       "outer_step": 1,
-      "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-dd4679ab775e1db8531854c1",
-      "merkle_root": "dd67e28996cd6120487a9db6426d5f818bfb323601b390e8eb56f94ff0099f6c",
+      "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-76399ea6808386704d6150de",
+      "merkle_root": "17ee0a671ef002b6318463c9e4c01b212f652cac640e7bced781b545eb813f81",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx-miner-alpha-d2": 20.0,
@@ -67,15 +67,15 @@
       "slashed_nodes": [
         "boinc-byzantine-rogue-99-d2"
       ],
-      "block_hash": "077018d21e68606f34f8f66782b04f6f3f8144dd9306ba01534ba346d9337cf3"
+      "block_hash": "02368d9bf163ffc5cd119f5ad5970302b67280ed6925e97637fdb12a502cb476"
     },
     {
       "block_height": 4,
-      "prev_block_hash": "077018d21e68606f34f8f66782b04f6f3f8144dd9306ba01534ba346d9337cf3",
-      "timestamp": 1792568047.721691,
+      "prev_block_hash": "02368d9bf163ffc5cd119f5ad5970302b67280ed6925e97637fdb12a502cb476",
+      "timestamp": 1792759748.6633172,
       "outer_step": 1,
-      "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-c46fc74fced342af732e7622",
-      "merkle_root": "8e0827684aa4f2b56e428cbff483cd5fefb7141925694a4096a2084468c53ef5",
+      "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-2b484dd0d716ad5407c6e33a",
+      "merkle_root": "ce84e167787211a17055b11dc3db983e63aed6696e219be2f4d26bdf0b744c6a",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx-miner-alpha-d3": 20.0,
@@ -86,7 +86,7 @@
       "slashed_nodes": [
         "boinc-byzantine-rogue-99-d3"
       ],
-      "block_hash": "4ce2f5636aa9107a166f5325f190ded33cb850bc730f471fd0b2ec8055fa36f0"
+      "block_hash": "105ae8eddfdad5e1d725d8478f0830ce523d06f37d74e5d0b2b8c2209d336df6"
     }
   ],
   "balances": {

@@ -1,4 +1,4 @@
-# Acknowledgments, Open-Source Attribution & Academic Citations (`v1.9.0`)
+# Acknowledgments, Open-Source Attribution & Academic Citations (`v1.9.2-dev`, citations re-verified 2026-10-23)
 
 **Project HiveMind** stands on the shoulders of the open-source distributed machine learning community, academic researchers across decentralized optimization and Mixture-of-Experts (`MoE`) architectures, and our human & AI contributor community. This document formally acknowledges every external repository, algorithm, dataset, and research paper integrated into or leveraged by **Project HiveMind** (`src/hivemind/swarm/diloco_nextgen.py`, `src/hivemind/swarm/strategy_optimizer.py`, `src/hivemind/core/`, and `lean4/HiveMindSpec.lean`).
 
@@ -17,48 +17,69 @@ All 8 upstream reference repositories are archived locally in `/home/xavkal/xdev
 | **[`bloc97/DeMo`](https://github.com/bloc97/DeMo)** | Bowen Peng (`bloc97`), Jeffrey Quesnelle, Diederik P. Kingma (*Nous Research*) | `Apache-2.0` | [`arXiv:2411.19870`](https://arxiv.org/abs/2411.19870) | [`ChunkedOrthonormalDCTTransform`](../src/hivemind/swarm/diloco_nextgen.py) (`SI-09C`: orthonormal 2D chunked Type-II Discrete Cosine Transform `TransformDCT`, hardened with bitwise-deterministic `index_copy_` instead of CUDA `scatter_reduce_`) |
 | **[`google-deepmind/asyncdiloco`](https://github.com/google-deepmind/asyncdiloco)** | Arthur Douillard, Qixuan Feng, Andrei A. Rusu, Rachita Chhaparia, Yani Donchev, Adhiguna Kuncoro, Marc'Aurelio Ranzato, Arthur Szlam, Jiajun Shen (*Google DeepMind*) | `Apache-2.0` | [`arXiv:2401.09135`](https://arxiv.org/abs/2401.09135) | [`CosineGatedAdamDecayOuterOptimizer`](../src/hivemind/swarm/diloco_nextgen.py) (`SI-06`: asynchronous worker-delay & streaming fragment-age tables) |
 | **[`pmerolla/fomoe`](https://github.com/pmerolla/fomoe)** | Paul Merolla (*Fast Opportunistic Mixture of Experts*) | `MIT` | [`github.com/pmerolla/fomoe`](https://github.com/pmerolla/fomoe) | [`SkipAttentionSpeculativeRouter`](../src/hivemind/swarm/diloco_nextgen.py) (`SI-10`: Skip-Attention pre-attention speculative expert prefetch achieving `~85.8%` top-$k$ accuracy + Cache-Aware Routing `CAR` fallback) |
-| **[`learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind)** | Max Ryabinin, Anton Gusev, Anton Diskin, Denis Mazur et al. (*Learning@Home / Yandex Research / HSE*) | `MIT` | [`arXiv:2006.16668`](https://arxiv.org/abs/2006.16668) | Foundational inspiration for decentralized Kademlia DHT parameter averaging (`DecentralizedAverager`) and WAN Mixture-of-Experts routing |
+| **[`learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind)** | Max Ryabinin, Anton Gusev, Anton Diskin, Denis Mazur et al. (*Learning@Home / Yandex Research / HSE*) | `MIT` | [`arXiv:2002.04013`](https://arxiv.org/abs/2002.04013) | Foundational inspiration for decentralized Kademlia DHT parameter averaging (`DecentralizedAverager`) and WAN Mixture-of-Experts routing |
 
 ---
 
-## 2. Complete Academic Citations (2020–2026 DiLoCo, MoE & Subspace Merging Literature)
+## 2. Academic Citations (every arXiv id opened and checked on 2026-10-23)
 
-### 2.1 Core Outer-Loop `DiLoCo` & Asynchronous Scaling Papers
-1. **Douillard, A., Feng, Q., Rusu, A. A., Chhaparia, R., Donchev, Y., Kuncoro, A., Ranzato, M., Szlam, A., & Shen, J. (2023).** *DiLoCo: Distributed Low-Communication Training of Language Models.* [`https://arxiv.org/abs/2311.08105`](https://arxiv.org/abs/2311.08105)
-2. **Douillard, A., Feng, Q., Rusu, A. A., Chhaparia, R., Donchev, Y., Kuncoro, A., Ranzato, M., Szlam, A., & Shen, J. (2024).** *Asynchronous Local-SGD Training for Language Modeling.* [`https://arxiv.org/abs/2401.09135`](https://arxiv.org/abs/2401.09135) — Code: [`https://github.com/google-deepmind/asyncdiloco`](https://github.com/google-deepmind/asyncdiloco)
-3. **Jaghouar, S., Ong, J. M., & Hagemann, J. (2024).** *OpenDiLoCo: An Open-Source Framework for Globally Distributed Low-Communication Training.* [`https://arxiv.org/abs/2407.07852`](https://arxiv.org/abs/2407.07852) — Code: [`https://github.com/PrimeIntellect-ai/OpenDiLoCo`](https://github.com/PrimeIntellect-ai/OpenDiLoCo) & [`https://github.com/PrimeIntellect-ai/prime-diloco`](https://github.com/PrimeIntellect-ai/prime-diloco)
-4. **Douillard, A., Donchev, Y., Rush, K., Kale, S., Charles, Z., Garrett, Z., Testuggine, D., Ramasesh, V., & Shen, J. (2025).** *Streaming DiLoCo with overlapping communication: Towards a Distributed Free Lunch.* [`https://arxiv.org/abs/2501.18512`](https://arxiv.org/abs/2501.18512)
-5. **Charles, Z., Testuggine, D., Garrett, Z., Rush, K., Donchev, Y., Shen, J., & Douillard, A. (2025).** *Communication-Efficient Language Model Training Scales Reliably and Robustly: Scaling Laws for DiLoCo.* [`https://arxiv.org/abs/2503.09799`](https://arxiv.org/abs/2503.09799)
+Entries are ordered by arXiv id. **Removed in this revision** (fabricated identifiers or wrong papers found during the 2026-10-23 review):
 
-### 2.2 Staleness-Aware, Barrier-Free & Heterogeneous Outer Optimizers (2026)
-6. **Sani, L., Iacob, A., Cao, Z., Qiu, X., & Lane, N. D. (2026).** *Decoupled DiLoCo: Asynchronous Distributed Training Without Global Barriers.* [`https://arxiv.org/abs/2604.21428`](https://arxiv.org/abs/2604.21428) (CaMLSys / University of Cambridge & Flower Labs)
-7. **Shah, N., & Sun, M. (2026).** *Cosine-Gated Adam-Decay (CGAD): Staleness-Aware Outer Optimization for Asynchronous DiLoCo.* [`https://arxiv.org/abs/2605.09126`](https://arxiv.org/abs/2605.09126) — Integrated as `SI-06` (`CosineGatedAdamDecayOuterOptimizer`) and proven in Lean 4 (`Theorem 73`).
-8. **Asif, M., & Belilovsky, E. (2026).** *HeLoCo: Direction-Aware Outer Optimization for Heterogeneous Non-IID DiLoCo.* [`https://arxiv.org/abs/2606.00271`](https://arxiv.org/abs/2606.00271) — Integrated as `SI-08A` (`HeLoCoDirectionCorrector`).
-9. **He, Z., & Tao, L. (2026).** *AutoLoCo: Adaptive Synchronization Intervals and Outer Optimizer Correction for DiLoCo.* [`https://arxiv.org/abs/2609.36662`](https://arxiv.org/abs/2609.36662) — Integrated as `SI-08B` (`AutoLoCoIntervalCorrector`).
-10. **Li, H., et al. (2026).** *FedLoCo: Federated Low-Communication Optimization with Drift Correction.* [`https://arxiv.org/abs/2609.02737`](https://arxiv.org/abs/2609.02737)
-11. **Khaled, A., & Jin, C. (2026).** *Tighter Convergence Bounds for Distributed Low-Communication Training.* [`https://arxiv.org/abs/2602.06954`](https://arxiv.org/abs/2602.06954) (Princeton University)
-12. **Bogachev, N., & Ryabinin, M. (2026).** *Analysis of the Generalization Fidelity of DiLoCo vs Data-Parallel Training.* [`https://arxiv.org/abs/2602.23029`](https://arxiv.org/abs/2602.23029)
+- `arXiv:2607.12925` listed as MuLoCo — is a condensed-matter physics paper (spin-1 parent Hamiltonians); MuLoCo is arXiv:2505.23725.
+- `arXiv:2610.19064 attributed to "Lucas Morales"`  — the paper is by Belilovsky, Horoi, Oyallon & Thérien; no author named Morales.
+- `arXiv:2602.23029` "Bogachev & Ryabinin, Generalization Fidelity of DiLoCo" — is WISER, a composed-image-retrieval paper.
+- `arXiv:2602.06954` "Khaled & Jin, Tighter Convergence Bounds" — is an astrophysics paper on self-gravitating disks.
+- `arXiv:2608.05958` "Wang, Subspace-Constrained Outer Optimization for DiLoCo" — is a paper on pairwise comparisons in the Analytic Hierarchy Process.
+- `arXiv:2609.02737` "Li, FedLoCo" — is "Language Models Can Control Their Own Attention".
+- `arXiv:2510.17558` "Kwon & Kim, PoLoCo one-bit quantization" — is "The Free Transformer" (Fleuret).
+- `arXiv:2512.02042` "Kwon & Kim, SNQ-L" — is a paper on Fermat-type partial differential-difference equations.
+- `arXiv:2603.24124` "Sani & Lane, FGBoost" — is "The Alignment Tax" (uncertainty estimation in aligned LLMs).
+- `arXiv:2002.04013` listed as the Hivemind paper — is GShard; the Hivemind paper is arXiv:2002.04013.
 
-### 2.3 Spectral Isotropy, Subspace Merging & Inner Preconditioning (2025–2026)
-13. **Horoi, S., Sarfi, A., & Belilovsky, E. (2026).** *IsoLoCo: Isotropic Subspace Merging for Scalable Low-Communication Training.* [`https://arxiv.org/abs/2607.03011`](https://arxiv.org/abs/2607.03011) — Code: [`https://github.com/shoroi/isoloco`](https://github.com/shoroi/isoloco). Integrated as `SI-07` (`ReputationWeightedIsoCTSMerger`) & `SI-07B` (`TSVDecorrelatedMerger`).
-14. **Gargiulo, A. A., Crisostomi, D., Bucarelli, M. S., Scardapane, S., Silvestri, F., & Rodolà, E. (2025).** *Task Singular Vectors: Reducing Task Interference in Model Merging (CVPR 2025).* [`https://arxiv.org/abs/2412.00081`](https://arxiv.org/abs/2412.00081)
-15. **Marczak, D., Twardowski, B., Trzciński, T., & Cygert, S. (2025).** *No Task Left Behind: Isotropic Model Merging with Common and Task-Specific Subspaces (`ISO-C` / `ISO-CTS`).* [`https://arxiv.org/abs/2502.04959`](https://arxiv.org/abs/2502.04959)
-16. **Thérien, B., Sarfi, A., & Belilovsky, E. (2026).** *MuLoCo: Inner Muon Optimization for Low-Communication Distributed Training.* [`https://arxiv.org/abs/2607.12925`](https://arxiv.org/abs/2607.12925)
-17. **Morales, L. (2026).** *How Inner Optimizers Shape Replica Scaling in Distributed Low-Communication Training.* [`https://arxiv.org/abs/2610.19064`](https://arxiv.org/abs/2610.19064) — Integrated as `SI-11` (`MuonNewtonSchulzLoRAPreconditioner`).
-18. **Wang, Y., et al. (2026).** *Subspace-Constrained Outer Optimization for DiLoCo.* [`https://arxiv.org/abs/2608.05958`](https://arxiv.org/abs/2608.05958)
+**Corrected metadata:**
 
-### 2.4 Ultra-Low-Bit Pseudo-Gradient Compression & Compute-Visible Sparsification
-19. **Peng, B., Quesnelle, J., & Kingma, D. P. (2024).** *DeMo: Decoupled Momentum Optimization.* [`https://arxiv.org/abs/2411.19870`](https://arxiv.org/abs/2411.19870) — Code: [`https://github.com/bloc97/DeMo`](https://github.com/bloc97/DeMo). Integrated as `SI-09C` (`ChunkedOrthonormalDCTTransform`).
-20. **Sarfi, A., Thérien, B., Horoi, S., & Belilovsky, E. (2025).** *SparseLoCo: Communication-Efficient Distributed Training with Sparse Low-Bit Pseudo-Gradients.* [`https://arxiv.org/abs/2508.15706`](https://arxiv.org/abs/2508.15706) — Code: [`https://github.com/one-covenant/SparseLoCo`](https://github.com/one-covenant/SparseLoCo). Integrated as `SI-09B` (`ComputeVisibleSparseLoCoCompressor`).
-21. **Miahi, E., & Belilovsky, E. (2026).** *Skip the Invisible Updates: Checkpointing Pseudo-Gradient Sparsification for DiLoCo (PULSELoCo).* [`https://arxiv.org/abs/2602.03839`](https://arxiv.org/abs/2602.03839) — Integrated as `SI-09B` and proven in Lean 4 (`Theorem 76`).
-22. **Kwon, K., & Kim, J. (2025).** *Scaling Distributed Low-Communication Training with One-Bit Quantization (PoLoCo).* [`https://arxiv.org/abs/2510.17558`](https://arxiv.org/abs/2510.17558)
-23. **Kwon, K., & Kim, J. (2025).** *Skip the Negatives: Clamp-Guided Quantization for Outer-Loop Distributed Training (SNQ-L).* [`https://arxiv.org/abs/2512.02042`](https://arxiv.org/abs/2512.02042)
+- Decoupled DiLoCo (2604.21428) was attributed to Sani et al. / CaMLSys; it is by the Decoupled DiLoCo Team at Google DeepMind & Google Research.
+- CGAD (2605.09126) authors are Vatsal Shah & Jiahao Sun (FLock.io), not "Neil Shah & Ming Sun".
+- HeLoCo (2606.00271) is by Al Asif, Diem, Muñoz, Wolf, Jannesari & Mazaheri, not "Asif & Belilovsky".
+- AutoLoCo (2609.36662) is by He, Zhang, Li & Yang, not "He & Tao"; its title is "Communication Efficient Distributed LLM Training via Adaptive Synchronization".
+- FoMoE (2606.19025) is titled "Breaking the Full-Replica Barrier with a Federation of MoEs" with eight authors, not a three-author "Federated Mixture-of-Experts ...".
+- IsoLoCo (2607.03011) is titled "Can Model Merging Improve Aggregation in DiLoCo?" by Horoi, Thérien, Wolf & Belilovsky.
+- PULSE (2602.03839) is titled "Understanding and Exploiting Weight Update Sparsity for Communication-Efficient Distributed RL".
+- SparseLoCo (2508.15706) is titled "Communication Efficient LLM Pre-training with SparseLoCo" by Sarfi, Thérien, Lidin & Belilovsky.
+- Streaming DiLoCo (2501.18512) and Scaling Laws (2503.09799) carried invented co-authors ("Testuggine", "Ramasesh").
 
-### 2.5 Federated Mixture-of-Experts (`FoMoE`) & Speculative Expert Routing
-24. **Sani, L., Iacob, A., & Lane, N. D. (2026).** *FoMoE: Federated Mixture-of-Experts with Partial Expert Replication and Skip-Token.* [`https://arxiv.org/abs/2606.19025`](https://arxiv.org/abs/2606.19025) — Integrated as `SI-09A` (`FoMoEPartialReplicaPlanner`) and proven in Lean 4 (`Theorem 74` & `Theorem 75`).
-25. **Merolla, P. (2026).** *fomoe: Fast Opportunistic Mixture of Experts with Skip-Attention Speculative Expert Routing (`85.8%` Top-4 Accuracy) and Cache-Aware Routing (`CAR`).* Code: [`https://github.com/pmerolla/fomoe`](https://github.com/pmerolla/fomoe) — Integrated as `SI-10` (`SkipAttentionSpeculativeRouter`) and proven in Lean 4 (`Theorem 77`).
-26. **Sani, L., & Lane, N. D. (2026).** *Gradient-Less Federated Gradient Boosted Trees (FGBoost).* [`https://arxiv.org/abs/2603.24124`](https://arxiv.org/abs/2603.24124)
-27. **Ryabinin, M., & Gusev, A. (2020).** *Towards Crowdsourced Training of Large Neural Networks using Decentralized Mixture-of-Experts (Learning@Home Hivemind).* [`https://arxiv.org/abs/2006.16668`](https://arxiv.org/abs/2006.16668) — Code: [`https://github.com/learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind)
+1. **Ryabinin, Max, Gusev, Anton (2020).** *Towards Crowdsourced Training of Large Neural Networks using Decentralized Mixture-of-Experts.* [`arXiv:2002.04013`](https://arxiv.org/abs/2002.04013) — NeurIPS 2020; code `learning-at-home/hivemind`. HiveMind use: DHT averaging and decentralized MoE inspiration.
+2. **Richtárik, Peter, Sokolov, Igor, Fatkhullin, Ilyas (2021).** *EF21: A New, Simpler, Theoretically Better, and Practically Faster Error Feedback.* [`arXiv:2106.05203`](https://arxiv.org/abs/2106.05203) — NeurIPS 2021. HiveMind use: `EF21DiLoCoErrorFeedbackBuffer`.
+3. **Douillard, Arthur, Feng, Qixuan, Rusu, Andrei A., Chhaparia, Rachita, Donchev, Yani, Kuncoro, Adhiguna, Ranzato, Marc'Aurelio, Szlam, Arthur, Shen, Jiajun (2023).** *DiLoCo: Distributed Low-Communication Training of Language Models.* [`arXiv:2311.08105`](https://arxiv.org/abs/2311.08105) — Google DeepMind. HiveMind use: Inner-AdamW / outer-Nesterov baseline (`DiLoCoOuterOptimizer`).
+4. **Liu, Bo, Chhaparia, Rachita, Douillard, Arthur, Kale, Satyen, Rusu, Andrei A., Shen, Jiajun, Szlam, Arthur, Ranzato, Marc'Aurelio (2024).** *Asynchronous Local-SGD Training for Language Modeling.* [`arXiv:2401.09135`](https://arxiv.org/abs/2401.09135) — Google DeepMind; code `google-deepmind/asyncdiloco`. HiveMind use: Delayed-Nesterov / asynchronous outer updates (`SI-06` baseline).
+5. **Sukhbaatar, Sainbayar, Golovneva, Olga, Sharma, Vasu, Xu, Hu, Lin, Xi Victoria, Rozière, Baptiste, Kahn, Jacob, Li, Daniel, Yih, Wen-tau, Weston, Jason, Li, Xian (2024).** *Branch-Train-MiX: Mixing Expert LLMs into a Mixture-of-Experts LLM.* [`arXiv:2403.07816`](https://arxiv.org/abs/2403.07816) — FAIR at Meta. HiveMind use: BTM upcycling into a sparse MoE (`btm_upcycle.py`).
+6. **Jaghouar, Sami, Ong, Jack Min, Hagemann, Johannes (2024).** *OpenDiLoCo: An Open-Source Framework for Globally Distributed Low-Communication Training.* [`arXiv:2407.07852`](https://arxiv.org/abs/2407.07852) — Prime Intellect; code `PrimeIntellect-ai/OpenDiLoCo`, `prime-diloco`. HiveMind use: CPU flat-bucket outer state (`SI-06B`).
+7. **Peng, Bowen, Quesnelle, Jeffrey, Kingma, Diederik P. (2024).** *DeMo: Decoupled Momentum Optimization.* [`arXiv:2411.19870`](https://arxiv.org/abs/2411.19870) — Nous Research; code `bloc97/DeMo`. HiveMind use: Chunked orthonormal DCT (`SI-09C`).
+8. **Gargiulo, Antonio Andrea, Crisostomi, Donato, Bucarelli, Maria Sofia, Scardapane, Simone, Silvestri, Fabrizio, Rodolà, Emanuele (2024).** *Task Singular Vectors: Reducing Task Interference in Model Merging.* [`arXiv:2412.00081`](https://arxiv.org/abs/2412.00081) — CVPR 2025. HiveMind use: TSV decorrelated merging (`SI-07B`).
+9. **Douillard, Arthur, Donchev, Yani, Rush, J. Keith, Kale, Satyen, Charles, Zachary, Teston, Gabriel, Garrett, Zachary, Shen, Jiajun, McIlroy, Ross, Lacey, David, Ramé, Alexandre, Szlam, Arthur, Ranzato, Marc'Aurelio, Barham, Paul R. (2025).** *Streaming DiLoCo with Overlapping Communication: Towards a Distributed Free Lunch.* [`arXiv:2501.18512`](https://arxiv.org/abs/2501.18512) — COLM 2025; Google DeepMind. HiveMind use: Fragment streaming (`synced_fragments`).
+10. **Marczak, Daniel, Magistri, Simone, Cygert, Sebastian, Twardowski, Bartłomiej, Bagdanov, Andrew D., van de Weijer, Joost (2025).** *No Task Left Behind: Isotropic Model Merging with Common and Task-Specific Subspaces.* [`arXiv:2502.04959`](https://arxiv.org/abs/2502.04959) — ICML 2025. HiveMind use: Iso-C / Iso-CTS merging (`SI-07`).
+11. **Charles, Zachary, Teston, Gabriel, Dery, Lucio, Rush, Keith, Fallen, Nova, Garrett, Zachary, Szlam, Arthur, Douillard, Arthur (2025).** *Communication-Efficient Language Model Training Scales Reliably and Robustly: Scaling Laws for DiLoCo.* [`arXiv:2503.09799`](https://arxiv.org/abs/2503.09799) — Google DeepMind / Google Research. HiveMind use: Replica-count scaling expectations.
+12. **Thérien, Benjamin, Huang, Xiaolong, Defazio, Aaron, Rish, Irina, Belilovsky, Eugene (2025).** *MuLoCo: Muon is a Practical Inner Optimizer for DiLoCo.* [`arXiv:2505.23725`](https://arxiv.org/abs/2505.23725) — FAIR at Meta / Mila / Concordia. HiveMind use: Newton-Schulz inner preconditioner (`SI-11`).
+13. **Sarfi, Amir, Thérien, Benjamin, Lidin, Joel, Belilovsky, Eugene (2025).** *Communication Efficient LLM Pre-training with SparseLoCo.* [`arXiv:2508.15706`](https://arxiv.org/abs/2508.15706) — Covenant AI / Mila / Concordia; code `one-covenant/SparseLoCo`. HiveMind use: Top-k + 2-bit centroid quantisation + outer error feedback (`SI-09B`).
+14. **Miahi, Erfan, Belilovsky, Eugene (2026).** *Understanding and Exploiting Weight Update Sparsity for Communication-Efficient Distributed RL.* [`arXiv:2602.03839`](https://arxiv.org/abs/2602.03839) — Covenant AI / Mila / Concordia (PULSE). HiveMind use: Compute-visible gate below the BF16 rounding threshold (`SI-09B`).
+15. **Kim, Yongwan, Park, Sungchul (2026).** *MAGNET: Autonomous Expert Model Generation via Decentralized Autoresearch and BitNet Training.* [`arXiv:2603.25813`](https://arxiv.org/abs/2603.25813) — Holo Studio. HiveMind use: Related decentralized specialist-merging system (survey only).
+16. **Agarwala, Atish (2026).** *High dimensional theory of two-phase optimizers.* [`arXiv:2603.26954`](https://arxiv.org/abs/2603.26954) — Google DeepMind. HiveMind use: Theory behind outer-momentum choices (Season 9 `HM-S9-05`).
+17. **Decoupled DiLoCo Team (Google DeepMind & Google Research; incl. Douillard, Arthur; Rush, Keith; Donchev, Yani; Charles, Zachary; Dubey, Ayush; Woodworth, Blake) (2026).** *Decoupled DiLoCo for Resilient Distributed Pre-training.* [`arXiv:2604.21428`](https://arxiv.org/abs/2604.21428) — Google DeepMind & Google Research. HiveMind use: Minimum quorum, adaptive grace window, token-weighted RDA merge (`SI-12`, `DecoupledDiLoCoQuorumSyncer`).
+18. **Shah, Vatsal, Sun, Jiahao (2026).** *Cosine-Gated Adam-Decay: Drop-In Staleness-Aware Outer Optimization for Decoupled DiLoCo.* [`arXiv:2605.09126`](https://arxiv.org/abs/2605.09126) — FLock.io. HiveMind use: PA-CGAD staleness gate (`SI-06`).
+19. **Topollai, Kristi, Ma, Allan, Dimlioglu, Tolga, Tay, Sui Jiet, Choromanska, Anna (2026).** *Outer-Momentum Restarting in High-Dimensional Two-Phase Optimization.* [`arXiv:2605.28585`](https://arxiv.org/abs/2605.28585) — HiLD 2026 workshop; NYU. HiveMind use: Periodic outer-momentum reset (Season 9 `HM-S9-05`).
+20. **Al Asif, Abdullah, Diem, Patrick, Muñoz, Juan Pablo, Wolf, Felix, Jannesari, Ali, Mazaheri, Arya (2026).** *HeLoCo: Efficient asynchronous low-communication training under data and device heterogeneity.* [`arXiv:2606.00271`](https://arxiv.org/abs/2606.00271) — Iowa State / TU Darmstadt / Maro Systems / PanocularAI. HiveMind use: Direction-aware stale-drift projection (`SI-08A`).
+21. **Cagnasso, Pietro, Belilovsky, Eugene, Oyallon, Edouard (2026).** *Unifying Local Communications and Local Updates for LLM Pretraining.* [`arXiv:2606.11081`](https://arxiv.org/abs/2606.11081) — Concordia / Mila / CNRS, Sorbonne. HiveMind use: Gossip-accelerated outer optimizer (Season 9 `HM-S9-04`).
+22. **Sani, Lorenzo, Cao, Zeyu, Kurmanji, Meghdad, Iacob, Alex, Jovanović, Andrej, Gao, Yan, Zhao, Wanru, Lane, Nicholas D. (2026).** *FoMoE: Breaking the Full-Replica Barrier with a Federation of MoEs.* [`arXiv:2606.19025`](https://arxiv.org/abs/2606.19025) — CaMLSys, University of Cambridge / Flower Labs. HiveMind use: Partial expert replication, ghost experts, Skip-Token, sigma-MoE (`SI-09A`, `fomoe_sigma_routing.py`).
+23. **Koneputugodage, Chamin Hewa, Ajanthan, Thalaiyasingam, Ramasinghe, Sameera, Dolatabadi, Hadi Mohaghegh, Siriwardhana, Shamane, Avraham, Gil, Shevchenko, Violetta, Pajak, Karol, Snewin, James, Long, Alexander (2026).** *Factored Gossip DiLoCo: Reducing Blocking Communication in DiLoCo.* [`arXiv:2606.22768`](https://arxiv.org/abs/2606.22768) — Pluralis Research. HiveMind use: Non-blocking Mix1 / blocking Mix2 factorisation (Season 9 `HM-S9-04`).
+24. **Twelftree, Maxwell, Lemphers, David, He, An-chi, Yang, Yue (2026).** *Not Every Sync Is Safe: Calibrated DiLoCo Scheduling for Shared AI Infrastructure.* [`arXiv:2607.02544`](https://arxiv.org/abs/2607.02544) — Maincode. HiveMind use: Sync-deferral controller and matched-random control (survey only).
+25. **Horoi, Stefan, Thérien, Benjamin, Wolf, Guy, Belilovsky, Eugene (2026).** *Can Model Merging Improve Aggregation in DiLoCo?.* [`arXiv:2607.03011`](https://arxiv.org/abs/2607.03011) — Université de Montréal / Mila / Concordia; code `shoroi/isoloco` (IsoLoCo). HiveMind use: Iso-C / Iso-CTS aggregation (`SI-07`).
+26. **He, Pengyu, Zhang, Yan, Li, Ruien, Yang, Guangwen (2026).** *AutoLoCo: Communication Efficient Distributed LLM Training via Adaptive Synchronization.* [`arXiv:2609.36662`](https://arxiv.org/abs/2609.36662) — Caltech / Tsinghua / UW-Madison. HiveMind use: Adaptive interval with outer LR/momentum correction (`SI-08B`).
+27. **Palanciyan, Zarè, van Osch, Thomas, van der Wal, Douwe, Kotevska, Olivera, Kok, Tim (2026).** *Cross-Facility LLM Pre-training on HPC: Elastic Aggregation, Data Leasing, and Queue-Aware Placement.* [`arXiv:2610.03457`](https://arxiv.org/abs/2610.03457) — SURF / Oak Ridge National Laboratory. HiveMind use: Elastic token-weighted Nesterov step, DARL data leasing (Season 9 `HM-S9-06`).
+28. **Huang, Benhao, Shi, Chufan, Chen, Junlin, Wen, Shicheng, Liu, Zhengzhong, Xing, Eric, Ma, Xuezhe (2026).** *Towards Looped Models Done Right, Part II: Rethinking at Fixed Points.* [`arXiv:2610.06833`](https://arxiv.org/abs/2610.06833) — Institute of Foundation Models / USC / CMU. HiveMind use: Terminal-KV sharing, truncated BPTT, learned depth prior (`LoopedExpertBackbone`).
+29. **Belilovsky, Eugene, Horoi, Stefan, Oyallon, Edouard, Thérien, Benjamin (2026).** *How Inner Optimizers Shape Replica Scaling.* [`arXiv:2610.19064`](https://arxiv.org/abs/2610.19064) — Mila / Concordia / Université de Montréal / CNRS. HiveMind use: Whitening inner optimizers restore replica scaling (`SI-11`).
+30. **Huang, Benhao, Shi, Chufan, Chen, Junlin, Wen, Shicheng, Liu, Zhengzhong, Xing, Eric, Ma, Xuezhe (2026).** *Towards Looped Models Done Right, Part I: Topology, Input Injection, Recurrent-State Design.* [`arXiv:2610.23036`](https://arxiv.org/abs/2610.23036) — Institute of Foundation Models / USC / CMU; code `ifm-ai/xllm-loop`. HiveMind use: Prelude / recurrent core / coda topology (`LoopedExpertBackbone`).
+
+Software without an arXiv paper: [`pmerolla/fomoe`](https://github.com/pmerolla/fomoe) (Paul Merolla, MIT; multi-tier expert cache and cache-aware routing; it is **not** the FoMoE paper above), [`learning-at-home/hivemind`](https://github.com/learning-at-home/hivemind) (MIT), [`PrimeIntellect-ai/prime-diloco`](https://github.com/PrimeIntellect-ai/prime-diloco) (Apache-2.0), Muon (Keller Jordan et al., 2024, blog post).
 
 ---
 
@@ -76,94 +97,220 @@ All 8 upstream reference repositories are archived locally in `/home/xavkal/xdev
 ## 4. BibTeX Citation Block
 
 ```bibtex
+@article{ryabinin2020hivemind,
+  title={Towards Crowdsourced Training of Large Neural Networks using Decentralized Mixture-of-Experts},
+  author={Ryabinin, Max and Gusev, Anton},
+  journal={arXiv preprint arXiv:2002.04013},
+  year={2020},
+  note={NeurIPS 2020; code `learning-at-home/hivemind`}
+}
+@article{richtarik2021ef21,
+  title={EF21: A New, Simpler, Theoretically Better, and Practically Faster Error Feedback},
+  author={Richtárik, Peter and Sokolov, Igor and Fatkhullin, Ilyas},
+  journal={arXiv preprint arXiv:2106.05203},
+  year={2021},
+  note={NeurIPS 2021}
+}
 @article{douillard2023diloco,
   title={DiLoCo: Distributed Low-Communication Training of Language Models},
-  author={Douillard, Arthur and Feng, Qixuan and Rusu, Andrei A and Chhaparia, Rachita and Donchev, Yani and Kuncoro, Adhiguna and Ranzato, Marc'Aurelio and Szlam, Arthur and Shen, Jiajun},
+  author={Douillard, Arthur and Feng, Qixuan and Rusu, Andrei A. and Chhaparia, Rachita and Donchev, Yani and Kuncoro, Adhiguna and Ranzato, Marc'Aurelio and Szlam, Arthur and Shen, Jiajun},
   journal={arXiv preprint arXiv:2311.08105},
-  year={2023}
+  year={2023},
+  note={Google DeepMind}
 }
-
+@article{liu2024asynclocalsgd,
+  title={Asynchronous Local-SGD Training for Language Modeling},
+  author={Liu, Bo and Chhaparia, Rachita and Douillard, Arthur and Kale, Satyen and Rusu, Andrei A. and Shen, Jiajun and Szlam, Arthur and Ranzato, Marc'Aurelio},
+  journal={arXiv preprint arXiv:2401.09135},
+  year={2024},
+  note={Google DeepMind; code `google-deepmind/asyncdiloco`}
+}
+@article{sukhbaatar2024btm,
+  title={Branch-Train-MiX: Mixing Expert LLMs into a Mixture-of-Experts LLM},
+  author={Sukhbaatar, Sainbayar and Golovneva, Olga and Sharma, Vasu and Xu, Hu and Lin, Xi Victoria and Rozière, Baptiste and Kahn, Jacob and Li, Daniel and Yih, Wen-tau and Weston, Jason and Li, Xian},
+  journal={arXiv preprint arXiv:2403.07816},
+  year={2024},
+  note={FAIR at Meta}
+}
 @article{jaghouar2024opendiloco,
   title={OpenDiLoCo: An Open-Source Framework for Globally Distributed Low-Communication Training},
   author={Jaghouar, Sami and Ong, Jack Min and Hagemann, Johannes},
   journal={arXiv preprint arXiv:2407.07852},
-  year={2024}
+  year={2024},
+  note={Prime Intellect; code `PrimeIntellect-ai/OpenDiLoCo`, `prime-diloco`}
 }
-
 @article{peng2024demo,
   title={DeMo: Decoupled Momentum Optimization},
-  author={Peng, Bowen and Quesnelle, Jeffrey and Kingma, Diederik P},
+  author={Peng, Bowen and Quesnelle, Jeffrey and Kingma, Diederik P.},
   journal={arXiv preprint arXiv:2411.19870},
-  year={2024}
+  year={2024},
+  note={Nous Research; code `bloc97/DeMo`}
 }
-
+@article{gargiulo2024tsv,
+  title={Task Singular Vectors: Reducing Task Interference in Model Merging},
+  author={Gargiulo, Antonio Andrea and Crisostomi, Donato and Bucarelli, Maria Sofia and Scardapane, Simone and Silvestri, Fabrizio and Rodolà, Emanuele},
+  journal={arXiv preprint arXiv:2412.00081},
+  year={2024},
+  note={CVPR 2025}
+}
+@article{douillard2025streamingdiloco,
+  title={Streaming DiLoCo with Overlapping Communication: Towards a Distributed Free Lunch},
+  author={Douillard, Arthur and Donchev, Yani and Rush, J. Keith and Kale, Satyen and Charles, Zachary and Teston, Gabriel and Garrett, Zachary and Shen, Jiajun and McIlroy, Ross and Lacey, David and Ramé, Alexandre and Szlam, Arthur and Ranzato, Marc'Aurelio and Barham, Paul R.},
+  journal={arXiv preprint arXiv:2501.18512},
+  year={2025},
+  note={COLM 2025; Google DeepMind}
+}
+@article{marczak2025iso,
+  title={No Task Left Behind: Isotropic Model Merging with Common and Task-Specific Subspaces},
+  author={Marczak, Daniel and Magistri, Simone and Cygert, Sebastian and Twardowski, Bartłomiej and Bagdanov, Andrew D. and van de Weijer, Joost},
+  journal={arXiv preprint arXiv:2502.04959},
+  year={2025},
+  note={ICML 2025}
+}
+@article{charles2025scalingdiloco,
+  title={Communication-Efficient Language Model Training Scales Reliably and Robustly: Scaling Laws for DiLoCo},
+  author={Charles, Zachary and Teston, Gabriel and Dery, Lucio and Rush, Keith and Fallen, Nova and Garrett, Zachary and Szlam, Arthur and Douillard, Arthur},
+  journal={arXiv preprint arXiv:2503.09799},
+  year={2025},
+  note={Google DeepMind / Google Research}
+}
+@article{therien2025muloco,
+  title={MuLoCo: Muon is a Practical Inner Optimizer for DiLoCo},
+  author={Thérien, Benjamin and Huang, Xiaolong and Defazio, Aaron and Rish, Irina and Belilovsky, Eugene},
+  journal={arXiv preprint arXiv:2505.23725},
+  year={2025},
+  note={FAIR at Meta / Mila / Concordia}
+}
 @article{sarfi2025sparseloco,
-  title={SparseLoCo: Communication-Efficient Distributed Training with Sparse Low-Bit Pseudo-Gradients},
-  author={Sarfi, Amir and Th{\'e}rien, Benjamin and Horoi, Stefan and Belilovsky, Eugene},
+  title={Communication Efficient LLM Pre-training with SparseLoCo},
+  author={Sarfi, Amir and Thérien, Benjamin and Lidin, Joel and Belilovsky, Eugene},
   journal={arXiv preprint arXiv:2508.15706},
-  year={2025}
+  year={2025},
+  note={Covenant AI / Mila / Concordia; code `one-covenant/SparseLoCo`}
 }
-
-@article{miahi2026pulseloco,
-  title={Skip the Invisible Updates: Checkpointing Pseudo-Gradient Sparsification for DiLoCo},
+@article{miahi2026pulse,
+  title={Understanding and Exploiting Weight Update Sparsity for Communication-Efficient Distributed RL},
   author={Miahi, Erfan and Belilovsky, Eugene},
   journal={arXiv preprint arXiv:2602.03839},
-  year={2026}
+  year={2026},
+  note={Covenant AI / Mila / Concordia (PULSE)}
 }
-
-@article{sani2026decoupleddiloco,
-  title={Decoupled DiLoCo: Asynchronous Distributed Training Without Global Barriers},
-  author={Sani, Lorenzo and Iacob, Alex and Cao, Zeyu and Qiu, Xinchi and Lane, Nicholas D},
+@article{kim2026magnet,
+  title={MAGNET: Autonomous Expert Model Generation via Decentralized Autoresearch and BitNet Training},
+  author={Kim, Yongwan and Park, Sungchul},
+  journal={arXiv preprint arXiv:2603.25813},
+  year={2026},
+  note={Holo Studio}
+}
+@article{agarwala2026twophase,
+  title={High dimensional theory of two-phase optimizers},
+  author={Agarwala, Atish},
+  journal={arXiv preprint arXiv:2603.26954},
+  year={2026},
+  note={Google DeepMind}
+}
+@article{douillard2026decoupled,
+  title={Decoupled DiLoCo for Resilient Distributed Pre-training},
+  author={Decoupled DiLoCo Team (Google DeepMind & Google Research; incl. Douillard, Arthur; Rush, Keith; Donchev, Yani; Charles, Zachary; Dubey, Ayush; Woodworth, Blake)},
   journal={arXiv preprint arXiv:2604.21428},
-  year={2026}
+  year={2026},
+  note={Google DeepMind & Google Research}
 }
-
 @article{shah2026cgad,
-  title={Cosine-Gated Adam-Decay (CGAD): Staleness-Aware Outer Optimization for Asynchronous DiLoCo},
-  author={Shah, Neil and Sun, Ming},
+  title={Cosine-Gated Adam-Decay: Drop-In Staleness-Aware Outer Optimization for Decoupled DiLoCo},
+  author={Shah, Vatsal and Sun, Jiahao},
   journal={arXiv preprint arXiv:2605.09126},
-  year={2026}
+  year={2026},
+  note={FLock.io}
 }
-
-@article{asif2026heloco,
-  title={HeLoCo: Direction-Aware Outer Optimization for Heterogeneous Non-IID DiLoCo},
-  author={Asif, Muhammad and Belilovsky, Eugene},
+@article{topollai2026restart,
+  title={Outer-Momentum Restarting in High-Dimensional Two-Phase Optimization},
+  author={Topollai, Kristi and Ma, Allan and Dimlioglu, Tolga and Tay, Sui Jiet and Choromanska, Anna},
+  journal={arXiv preprint arXiv:2605.28585},
+  year={2026},
+  note={HiLD 2026 workshop; NYU}
+}
+@article{alasif2026heloco,
+  title={HeLoCo: Efficient asynchronous low-communication training under data and device heterogeneity},
+  author={Al Asif, Abdullah and Diem, Patrick and Muñoz, Juan Pablo and Wolf, Felix and Jannesari, Ali and Mazaheri, Arya},
   journal={arXiv preprint arXiv:2606.00271},
-  year={2026}
+  year={2026},
+  note={Iowa State / TU Darmstadt / Maro Systems / PanocularAI}
 }
-
+@article{cagnasso2026gasloc,
+  title={Unifying Local Communications and Local Updates for LLM Pretraining},
+  author={Cagnasso, Pietro and Belilovsky, Eugene and Oyallon, Edouard},
+  journal={arXiv preprint arXiv:2606.11081},
+  year={2026},
+  note={Concordia / Mila / CNRS, Sorbonne}
+}
 @article{sani2026fomoe,
-  title={FoMoE: Federated Mixture-of-Experts with Partial Expert Replication and Skip-Token},
-  author={Sani, Lorenzo and Iacob, Alex and Lane, Nicholas D},
+  title={FoMoE: Breaking the Full-Replica Barrier with a Federation of MoEs},
+  author={Sani, Lorenzo and Cao, Zeyu and Kurmanji, Meghdad and Iacob, Alex and Jovanović, Andrej and Gao, Yan and Zhao, Wanru and Lane, Nicholas D.},
   journal={arXiv preprint arXiv:2606.19025},
-  year={2026}
+  year={2026},
+  note={CaMLSys, University of Cambridge / Flower Labs}
 }
-
+@article{koneputugodage2026factoredgossip,
+  title={Factored Gossip DiLoCo: Reducing Blocking Communication in DiLoCo},
+  author={Koneputugodage, Chamin Hewa and Ajanthan, Thalaiyasingam and Ramasinghe, Sameera and Dolatabadi, Hadi Mohaghegh and Siriwardhana, Shamane and Avraham, Gil and Shevchenko, Violetta and Pajak, Karol and Snewin, James and Long, Alexander},
+  journal={arXiv preprint arXiv:2606.22768},
+  year={2026},
+  note={Pluralis Research}
+}
+@article{twelftree2026wadiloco,
+  title={Not Every Sync Is Safe: Calibrated DiLoCo Scheduling for Shared AI Infrastructure},
+  author={Twelftree, Maxwell and Lemphers, David and He, An-chi and Yang, Yue},
+  journal={arXiv preprint arXiv:2607.02544},
+  year={2026},
+  note={Maincode}
+}
 @article{horoi2026isoloco,
-  title={IsoLoCo: Isotropic Subspace Merging for Scalable Low-Communication Training},
-  author={Horoi, Stefan and Sarfi, Amir and Belilovsky, Eugene},
+  title={Can Model Merging Improve Aggregation in DiLoCo?},
+  author={Horoi, Stefan and Thérien, Benjamin and Wolf, Guy and Belilovsky, Eugene},
   journal={arXiv preprint arXiv:2607.03011},
-  year={2026}
+  year={2026},
+  note={Université de Montréal / Mila / Concordia; code `shoroi/isoloco` (IsoLoCo)}
 }
-
 @article{he2026autoloco,
-  title={AutoLoCo: Adaptive Synchronization Intervals and Outer Optimizer Correction for DiLoCo},
-  author={He, Zexi and Tao, Lin},
+  title={AutoLoCo: Communication Efficient Distributed LLM Training via Adaptive Synchronization},
+  author={He, Pengyu and Zhang, Yan and Li, Ruien and Yang, Guangwen},
   journal={arXiv preprint arXiv:2609.36662},
-  year={2026}
+  year={2026},
+  note={Caltech / Tsinghua / UW-Madison}
 }
-
-@article{morales2026inner,
-  title={How Inner Optimizers Shape Replica Scaling in Distributed Low-Communication Training},
-  author={Morales, Lucas},
+@article{palanciyan2026crossfacility,
+  title={Cross-Facility LLM Pre-training on HPC: Elastic Aggregation, Data Leasing, and Queue-Aware Placement},
+  author={Palanciyan, Zarè and van Osch, Thomas and van der Wal, Douwe and Kotevska, Olivera and Kok, Tim},
+  journal={arXiv preprint arXiv:2610.03457},
+  year={2026},
+  note={SURF / Oak Ridge National Laboratory}
+}
+@article{huang2026loopedpart2,
+  title={Towards Looped Models Done Right, Part II: Rethinking at Fixed Points},
+  author={Huang, Benhao and Shi, Chufan and Chen, Junlin and Wen, Shicheng and Liu, Zhengzhong and Xing, Eric and Ma, Xuezhe},
+  journal={arXiv preprint arXiv:2610.06833},
+  year={2026},
+  note={Institute of Foundation Models / USC / CMU}
+}
+@article{belilovsky2026inner,
+  title={How Inner Optimizers Shape Replica Scaling},
+  author={Belilovsky, Eugene and Horoi, Stefan and Oyallon, Edouard and Thérien, Benjamin},
   journal={arXiv preprint arXiv:2610.19064},
-  year={2026}
+  year={2026},
+  note={Mila / Concordia / Université de Montréal / CNRS}
 }
-
-@software{merolla2026fomoe,
-  title={fomoe: Fast Opportunistic Mixture of Experts with Skip-Attention Speculative Routing and Cache-Aware Routing},
+@article{huang2026loopedpart1,
+  title={Towards Looped Models Done Right, Part I: Topology, Input Injection, Recurrent-State Design},
+  author={Huang, Benhao and Shi, Chufan and Chen, Junlin and Wen, Shicheng and Liu, Zhengzhong and Xing, Eric and Ma, Xuezhe},
+  journal={arXiv preprint arXiv:2610.23036},
+  year={2026},
+  note={Institute of Foundation Models / USC / CMU; code `ifm-ai/xllm-loop`}
+}
+@software{merolla_fomoe,
+  title={fomoe: Fast Opportunistic Mixture-Of-Experts},
   author={Merolla, Paul},
   url={https://github.com/pmerolla/fomoe},
-  year={2026}
+  license={MIT}
 }
 ```

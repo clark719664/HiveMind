@@ -121,7 +121,7 @@ flowchart TD
 
 ### 🔹 Track 5 (`HM-S8-09`): Inner-Loop `Muon` Newton-Schulz Orthogonalized LoRA Preconditioner (`MuLoCo`)
 - **Literature & Reference**:
-  - Morales (2026) (`arXiv:2610.19064`) & Therien et al. (`MuLoCo`, `arXiv:2607.12925`)
+  - Belilovsky, Horoi, Oyallon & Thérien (2026) (`arXiv:2610.19064`) & Thérien et al. (`MuLoCo`, `arXiv:2505.23725`)
 - **What Already Exists**:
   - [`MuonNewtonSchulzLoRAPreconditioner`](../src/hivemind/swarm/diloco_nextgen.py) in `src/hivemind/swarm/diloco_nextgen.py`.
 - **What to Implement Next**:

@@ -1,7 +1,7 @@
 {
   "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-  "version": "3.1.0",
-  "lead_peer_review_model": "claude-opus-5-5",
+  "version": "3.2.0",
+  "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "workspace_root": ".",
   "artifacts_and_entrypoints": {
     "lean4_specification": "lean4/HiveMindSpec.lean",
@@ -21,7 +21,7 @@
     "step_1_mutate": "Select an open task from `HM-M1-01` .. `HM-M5-02` in `docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md`.",
     "step_2_formal_gate": "Extend `lean4/HiveMindSpec.lean` with the new invariant and verify `cd lean4 && lake build` exits 0 with 0 `sorry` and 0 `axiom`.",
     "step_3_empirical_gate": "Run `PYTHONPATH=src pytest tests/ -v` and verify 8 GB RTX 2070 VRAM ceiling (<= 6,500 MiB) and deterministic spot-check drift (<= 1e-4).",
-    "step_4_peer_review_and_pdf": "Run `PYTHONPATH=src python paper/autoevolve_peer_review_pipeline.py` and `pdflatex paper/hivemind_foundation_article.tex` to verify all 5 Elenchus + Opus 5.5 rounds."
+    "step_4_peer_review_and_pdf": "Run `PYTHONPATH=src python paper/autoevolve_peer_review_pipeline.py` and `pdflatex paper/hivemind_foundation_article.tex` to run the 5 scripted audit rounds (no language model is called)."
   },
   "next_session_quickstart_commands": [
     "cd lean4 && lake build",

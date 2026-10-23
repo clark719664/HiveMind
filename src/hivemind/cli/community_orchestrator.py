@@ -296,7 +296,7 @@ SEASON7_TASK_CATALOG: dict[str, dict[str, str]] = {
     "HM-S8-09": {
         "branch": "feat/s8-muon-newton-schulz-inner-lora",
         "target": "src/hivemind/core/diloco_inner.py (Track 5 / Issue #97)",
-        "title": "Inner-Loop Newton-Schulz Orthogonalized LoRA Preconditioner (SI-11, MuLoCo arXiv:2607.12925 & Morales arXiv:2610.19064) (Issue #97)",
+        "title": "Inner-Loop Newton-Schulz Orthogonalized LoRA Preconditioner (SI-11, MuLoCo arXiv:2505.23725 & Belilovsky et al. arXiv:2610.19064) (Issue #97)",
         "verify": "uv run pytest tests/test_muon_diloco_inner.py -v",
         "points": "3,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
@@ -308,60 +308,67 @@ SEASON7_TASK_CATALOG: dict[str, dict[str, str]] = {
         "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
     "HM-S9-01": {
-        "branch": "feat/s9-multi-host-wan-benchmark",
-        "target": "src/hivemind/swarm/wan_fault_benchmark.py",
-        "title": "Multi-Host Residential WAN Benchmark (aioquic 0-RTT + RFC 5766 TURN + DeMo 2-Bit DCT + PA-CGAD across physical nodes)",
-        "verify": "uv run pytest tests/test_wan_quic_turn_fault_benchmark.py -v",
-        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+        "branch": "feat/s9-decoupled-syncer-campaign-wiring",
+        "target": "src/hivemind/swarm/decoupled_diloco.py & src/hivemind/cli/multi_moe_hf_campaign.py",
+        "title": "Wire DecoupledDiLoCoQuorumSyncer (SI-12, arXiv:2604.21428) into multi_moe_hf_campaign.py & DiLoCoOuterOptimizer (RDA vs direct ablation E5)",
+        "verify": "uv run pytest tests/test_decoupled_diloco_quorum.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
     "HM-S9-02": {
-        "branch": "feat/s9-gsm8k-humaneval-moe-eval",
-        "target": "src/hivemind/cli/multi_moe_hf_campaign.py",
-        "title": "Standard LLM Benchmark Suite (GSM8K, HumanEval pass@1, PubMedQA) on Upcycled Qwen2.5-0.5B Sparse MoE Checkpoints",
-        "verify": "uv run pytest tests/test_multi_moe_hf_campaign.py -v",
-        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+        "branch": "feat/s9-sigma-moe-peri-ln-block",
+        "target": "src/hivemind/core/fomoe_sigma_routing.py & src/hivemind/core/btm_moe.py",
+        "title": "FoMoE sigma-MoE Sigmoid Independent Top-k Routing + Peri-LN & Measured Ghost-Expert Skip Fraction (arXiv:2606.19025)",
+        "verify": "uv run pytest tests/test_fomoe_sigma_routing.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
     "HM-S9-03": {
-        "branch": "feat/s9-skip-attention-real-qwen-routing",
-        "target": "src/hivemind/swarm/diloco_nextgen.py & src/hivemind/swarm/swarm_fabric.py",
-        "title": "Real-Activation Skip-Attention Speculative Routing & Cache-Aware Routing (CAR) Benchmark on Qwen2.5 Transformer Layers",
-        "verify": "uv run pytest tests/test_diloco_nextgen.py -v",
+        "branch": "feat/s9-looped-learned-depth-prior-orthoinj",
+        "target": "src/hivemind/core/btm_upcycle.py",
+        "title": "Learned Entropy-Regularised Depth Prior & Orthogonal Input Injection in LoopedExpertBackbone (arXiv:2610.23036 & arXiv:2610.06833)",
+        "verify": "uv run pytest tests/test_btm_moe_upcycle.py -v",
         "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
     "HM-S9-04": {
-        "branch": "feat/s9-alie-byzantine-redteam-suite",
-        "target": "src/hivemind/security/byzantine_defense.py",
-        "title": "Adaptive Byzantine Red-Team Suite (ALIE Inner-Product Manipulation & Non-IID Sybil Coalitions vs. Multi-Krum + 2-Sigma Cosine Filter)",
-        "verify": "uv run pytest tests/test_architecture_hypotheses.py -v",
-        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
-    },
-    "HM-S9-05": {
-        "branch": "feat/s9-cross-gpu-muloco-determinism",
-        "target": "src/hivemind/core/diloco_inner.py & src/hivemind/cli/community_gpu_benchmark.py",
-        "title": "Cross-GPU Determinism & Bitwise Replay Verification (NVIDIA Turing/Ampere/Ada, AMD ROCm, Apple MPS) under MuLoCo 5-Step Newton-Schulz",
-        "verify": "uv run pytest tests/test_muon_diloco_inner.py tests/test_community_gpu_benchmark.py -v",
-        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
-    },
-    "HM-S9-06": {
-        "branch": "feat/s9-128-expert-fomoe-training-campaign",
-        "target": "src/hivemind/core/btm_upcycle.py & src/hivemind/cli/run_paper_v3_experiments.py",
-        "title": "128-Expert 3-Tier Hierarchical MoE End-to-End Upcycling & FoMoE Partial Replica (O_e = 4) Multi-Domain Training Campaign",
-        "verify": "uv run pytest tests/test_fomoe_and_iso_cts_upcycle.py -v",
-        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
-    },
-    "HM-S9-07": {
-        "branch": "feat/s9-hud-experiment-telemetry-explorer",
-        "target": "src/hivemind/game/steam_edition.py",
-        "title": "Interactive Experimentation & Telemetry Explorer in Web HUD (:8090, serving live E1-E4 curves and H1-H10 diagnostics)",
+        "branch": "feat/s9-factored-gossip-mix1-mix2",
+        "target": "src/hivemind/swarm/diloco_nextgen.py",
+        "title": "Factored Gossip DiLoCo (Mix1 Parameter / Mix2 Outer-Gradient Split, arXiv:2606.22768) & GASLoC JS-Disagreement Gating (arXiv:2606.11081)",
         "verify": "uv run pytest tests/test_diloco_nextgen.py -v",
         "points": "3,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
+    "HM-S9-05": {
+        "branch": "feat/s9-outer-momentum-restart",
+        "target": "src/hivemind/core/diloco_outer.py",
+        "title": "Periodic Outer-Momentum Restarting (K_restart, arXiv:2605.28585) in DiLoCoOuterOptimizer & CPUOffloadedFlatBucketOuterState",
+        "verify": "uv run pytest tests/test_diloco_outer_nextgen.py -v",
+        "points": "2,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-06": {
+        "branch": "feat/s9-darl-data-leasing",
+        "target": "src/hivemind/swarm/dht_storage.py",
+        "title": "Heartbeat-Backed CAS Data Leases (TTL alpha*t_step + RTT, arXiv:2610.03457) for Zero-Duplication Churn Recovery",
+        "verify": "uv run pytest tests/test_seti_swarm_v2.py -v",
+        "points": "3,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-07": {
+        "branch": "feat/s9-multi-host-wan-gameday-real",
+        "target": "src/hivemind/swarm/wan_fault_benchmark.py",
+        "title": "Multi-Host Residential WAN GameDay (3-8 Real Machines, K < M Quorum, RDA On, p50/p95/p99 Outer-Round Latency & Held-Out Loss)",
+        "verify": "uv run pytest tests/test_wan_quic_turn_fault_benchmark.py -v",
+        "points": "3,500 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
     "HM-S9-08": {
-        "branch": "formal/s9-season14-alie-and-fomoe-liveness",
+        "branch": "formal/s9-rda-norm-and-quorum-liveness",
         "target": "lean4/HiveMindSpec.lean",
-        "title": "Formal Lean 4 Proofs (Season 14, Theorems 117-128) for Exact-Q Contraction Bounds, ALIE Quorum Resilience & Multi-Wave FoMoE Liveness",
+        "title": "Formal Lean 4 Proofs (Theorems 121-128) for Exact-Q RDA Common-Norm Identity, Quorum Liveness & Token Conservation",
         "verify": "cd lean4 && lake build",
-        "points": "4,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+        "points": "3,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
+    },
+    "HM-S9-09": {
+        "branch": "governance/s9-real-external-review",
+        "target": "paper/autoevolve_peer_review_pipeline.py",
+        "title": "Logged External Model/Human Peer Review via APIExtractor with Verbatim Transcripts (Zero Scripted Scores)",
+        "verify": "uv run python paper/autoevolve_peer_review_pipeline.py",
+        "points": "2,000 PTS / $HIVE (Reciprocal Compute Benefits Only)",
     },
 }
 
@@ -637,10 +644,11 @@ def _fetch_discussions_via_gh(owner: str, name: str) -> list[dict[str, Any]]:
 
 
 def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> dict[str, Any]:
-    """Audit Lean 4 formal proofs, H1-H10 hypotheses, E1-E4 experiments, and Paper v3.1.0 provenance."""
+    """Audit Lean 4 formal proofs, H1-H11 hypotheses, E1-E4 experiments, and Paper v3.2.0 provenance."""
     root = repo_root or REPO_ROOT
     lean_path = root / "lean4" / "HiveMindSpec.lean"
     hyp_path = root / "artifacts" / "architecture_hypothesis_verification_report.json"
+    h11_path = root / "artifacts" / "decoupled_diloco_quorum_check.json"
     exp_path = root / "artifacts" / "paper_v3_experiments_report.json"
     peer_path = root / "paper" / "PEER_REVIEW_REPORT.json"
 
@@ -665,6 +673,14 @@ def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> di
         except Exception:
             pass
 
+    h11_passed = False
+    if h11_path.exists():
+        try:
+            h11_data = json.loads(h11_path.read_text(encoding="utf-8"))
+            h11_passed = bool(h11_data.get("all_passed", False))
+        except Exception:
+            pass
+
     exp_sha = ""
     exp_suites_present = 0
     if exp_path.exists():
@@ -675,15 +691,15 @@ def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> di
         except Exception:
             pass
 
-    peer_score = 0.0
+    technical_gate_pass_rate = 0.0
     peer_provenance_passed = 0
     peer_sha = ""
     if peer_path.exists():
         try:
             peer_src = peer_path.read_text(encoding="utf-8")
             peer_data = json.loads(peer_src)
-            peer_score = float(
-                ((peer_data.get("meta_review") or {}).get("aggregate_score", peer_data.get("overall_score", 0.0)))
+            technical_gate_pass_rate = float(
+                ((peer_data.get("meta_review") or {}).get("technical_gate_pass_rate", 0.0))
             )
             peer_provenance_passed = len(re.findall(r'"check_id":\s*"PROV-\d+"', peer_src))
             peer_sha = hashlib.sha256(peer_src.encode("utf-8")).hexdigest()
@@ -691,21 +707,24 @@ def run_hourly_quality_and_experiment_audit(repo_root: Path | None = None) -> di
             pass
 
     all_healthy = bool(
-        lean_theorems >= 116
+        lean_theorems >= 120
         and lean_sorry == 0
         and hyp_passed == 10
+        and h11_passed
         and exp_suites_present == 4
-        and peer_score >= 9.0
+        and technical_gate_pass_rate >= 1.0
+        and peer_provenance_passed >= 16
     )
     return {
         "all_quality_gates_healthy": all_healthy,
         "lean4_theorems_verified": lean_theorems,
         "lean4_sorry_count": lean_sorry,
         "hypotheses_passed": f"{hyp_passed}/{hyp_total}",
+        "decoupled_diloco_h11_passed": h11_passed,
         "hypothesis_report_sha256": hyp_sha,
         "experimental_suites_verified": f"{exp_suites_present}/4",
         "experiments_report_sha256": exp_sha,
-        "paper_peer_review_score": peer_score,
+        "paper_technical_gate_pass_rate": technical_gate_pass_rate,
         "paper_provenance_checks_passed": peer_provenance_passed,
         "peer_review_report_sha256": peer_sha,
         "open_season9_tasks_count": sum(1 for k in SEASON7_TASK_CATALOG if k.startswith("HM-S9-")),

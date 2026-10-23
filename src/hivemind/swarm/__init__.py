@@ -1,5 +1,17 @@
 """Phase 2 & 3: SETI-Swarm Content-Addressed DHT Vault, PoUW `$HIVE` Ledger, Speculative Decoding & Swarm Fabric."""
 
+from hivemind.swarm.decoupled_diloco import (
+    DECOUPLED_DILOCO_REFERENCE,
+    AdaptiveGraceWindowController,
+    DecoupledDiLoCoQuorumSyncer,
+    LearnerArrival,
+    QuorumSelection,
+    SyncerRoundTelemetry,
+    direct_weighted_average,
+    radial_directional_average,
+    select_quorum,
+    token_weighted_quality_weight,
+)
 from hivemind.swarm.dht_storage import ContentAddressedSwarmStore
 from hivemind.swarm.diloco_nextgen import (
     AutoLoCoIntervalCorrector,
@@ -47,6 +59,16 @@ from hivemind.swarm.wan_fault_benchmark import (
 )
 
 __all__ = [
+    "DECOUPLED_DILOCO_REFERENCE",
+    "AdaptiveGraceWindowController",
+    "DecoupledDiLoCoQuorumSyncer",
+    "LearnerArrival",
+    "QuorumSelection",
+    "SyncerRoundTelemetry",
+    "direct_weighted_average",
+    "radial_directional_average",
+    "select_quorum",
+    "token_weighted_quality_weight",
     "AsyncQUICGeoRingTransport",
     "AutoLoCoIntervalCorrector",
     "CGADStepTelemetry",

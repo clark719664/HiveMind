@@ -584,8 +584,13 @@ def test_lean4_specification_and_foundation_article_autoevolve_pipeline() -> Non
     assert PDF_PATH.exists() and PDF_PATH.stat().st_size > 100_000
 
     review_report = run_autoevolve_peer_review()
-    assert review_report["meta_review"]["decision"] == "ACCEPT_AS_FOUNDATION_ARTICLE"
-    assert review_report["meta_review"]["aggregate_score"] >= 9.0
+    # The pipeline is a scripted static audit, not a peer review: it must say so and must not emit scores.
+    assert review_report["meta_review"]["decision"] == "SCRIPTED_GATES_PASSED_NOT_A_PEER_REVIEW"
+    assert review_report["is_peer_review"] is False
+    assert "aggregate_score" not in review_report["meta_review"]
+    assert "calibrated_epistemic_confidence" not in review_report["meta_review"]
+    assert all("score_out_of_10" not in ref for ref in review_report["referee_reviews"])
+    assert review_report["manuscript_provenance_audit"]["all_passed"] is True
     assert PEER_REVIEW_JSON.exists()
     assert AUTOEVOLVE_MANIFEST_JSON.exists()
 

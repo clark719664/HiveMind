@@ -47,7 +47,7 @@ and open-source reference repositories cloned in `sub_projects/hivemind/referenc
    attention compute, paired with Cache-Aware Routing (`CAR`) fallback when an uncached
    expert's logit margin is within `car_threshold`.
 
-6. `SI-11` — `MuonNewtonSchulzLoRAPreconditioner` (synthesized from Morales, `arXiv:2610.19064`,
+6. `SI-11` — `MuonNewtonSchulzLoRAPreconditioner` (synthesized from Belilovsky, Horoi, Oyallon & Thérien, `arXiv:2610.19064`,
    *How Inner Optimizers Shape Replica Scaling in Distributed Low-Communication Training*):
    Applies 5-step quintic Newton-Schulz orthogonalization to inner LoRA momentum matrices
    before outer pseudo-gradient accumulation so replica scaling stays constructive across
@@ -124,7 +124,7 @@ LEVERAGED_GITHUB_REPOSITORIES: Tuple[Dict[str, str], ...] = (
         "name": "hivemind",
         "repo_url": "https://github.com/learning-at-home/hivemind",
         "authors": "Learning@Home / Max Ryabinin, Anton Diskin, Denis Mazur et al.",
-        "arxiv_url": "https://arxiv.org/abs/2006.16668",
+        "arxiv_url": "https://arxiv.org/abs/2002.04013",
         "license": "MIT",
         "integrated_components": "Decentralized DHT averaging & Mixture-of-Experts peer ring inspirations",
     },
@@ -1107,7 +1107,7 @@ class SkipAttentionSpeculativeRouter:
 class MuonNewtonSchulzLoRAPreconditioner:
     """SI-11: Inner-Loop Newton-Schulz Orthogonalized LoRA Momentum Preconditioner.
 
-    Synthesized from Morales (2026), *How Inner Optimizers Shape Replica Scaling in
+    Synthesized from Belilovsky, Horoi, Oyallon & Thérien (2026), *How Inner Optimizers Shape Replica Scaling in
     Distributed Low-Communication Training* (`arXiv:2610.19064`).
     Applies 5-step quintic Newton-Schulz iterations (`a=3.4445, b=-4.7750, c=2.0315`)
     to orthogonalize 2D inner LoRA momentum matrices before outer pseudo-gradient
