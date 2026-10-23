@@ -1,9 +1,9 @@
 {
-  "stage": "upload",
+  "stage": "published",
   "deposition_id": 23598417,
   "prereserved_doi": "10.5281/zenodo.23598417",
-  "state": "unsubmitted",
-  "html": "https://zenodo.org/deposit/23598417",
+  "state": "done",
+  "html": "https://zenodo.org/record/23598417",
   "files": [
     {
       "filename": "hivemind_foundation_article.pdf",
@@ -81,7 +81,7 @@
       "status": "uploaded"
     }
   ],
-  "written_utc": "2026-10-23T14:04:34Z",
+  "written_utc": "2026-10-23T14:05:49Z",
   "local_sha256": {
     "hivemind_foundation_article.pdf": "903cd8c97bf93547fea44f1e1bf9ef83d904093428ce94cb0552ab3ec0609748",
     "hivemind_foundation_article.tex": "808b3e39eea849c7c414f00a0ea300f8360fd2871e62378f17104e85e1ad74d8",
@@ -98,5 +98,33 @@
     "predictions_ledger.json": "fe964e576b85c3d7fd3175e3cf804f898f0d4ad0ba7ec922f1ad964c457a8d30",
     "gwaya_stub_audit.json": "10ccfc6b3955fcf3ccb7a13ab0b43c0a0070e1f3f0436fcc8497ff271ada85bd",
     "CITATION.cff": "29abe2716e74b4e587c6cfd805d205eaa48ca54f63acdcb3581b91b5b37b0f2b"
-  }
+  },
+  "record_id": 23598417,
+  "doi": "10.5281/zenodo.23598417",
+  "doi_url": "https://doi.org/10.5281/zenodo.23598417",
+  "conceptdoi": "10.5281/zenodo.23597697",
+  "submitted": true,
+  "remote_md5": {
+    "RESEARCH_PROGRAM.md": "36e88fe4da5ab91f26a72042e7fd47e8",
+    "HiveMindSpec.lean": "fdba4bd8407ab2d9ce232fa1236f7fc9",
+    "E5_toy_report.json": "ee8712ada2668f817cd08f14f29ad0ef",
+    "MOE_DILOCO_REVIEW_2026-10-23.md": "a75c5061339db9c853f1424a55abe608",
+    "E5_toy_prereg.json": "60aac0165ef684299971b9da89fdba98",
+    "decoupled_diloco_quorum_check.json": "f8ccefeea9f63959fc89f8928fcde5b7",
+    "architecture_hypothesis_verification_report.json": "29b579242b6054aacd582e515ce69594",
+    "paper_v3_experiments_report.json": "880d5276bf87ddfa1e62e4c713c52333",
+    "CITATION.cff": "16262b1b58df37feb2497507a4b5bf53",
+    "gwaya_stub_audit.json": "3f15fda70dd34e18692dc61d61f5b93e",
+    "hivemind_foundation_article.tex": "a7edc4f20c2a6c38133be6522ec1ea23",
+    "hivemind_foundation_article.pdf": "698baeeb0661623721ace999fc9407d9",
+    "PEER_REVIEW_REPORT.json": "d528e185584bbf97f8a0fbcf4ab5603e",
+    "E8_pilot_report.json": "dc5ec843a262f2b210fafeacb7f1373d",
+    "predictions_ledger.json": "3a87e8bb1ab517dce66ce56eb36eaf75"
+  },
+  "checksum_mismatches": [
+    "PEER_REVIEW_REPORT.json"
+  ],
+  "verified": false,
+  "checksum_mismatch_explanation": "PEER_REVIEW_REPORT.json was regenerated locally by the hourly orchestrator after upload; the deposited copy differs only in timestamp_utc (verified by download and field-wise comparison)",
+  "verified_after_timestamp_normalisation": true
 }
