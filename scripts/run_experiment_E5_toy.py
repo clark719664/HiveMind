@@ -22,7 +22,7 @@ from pathlib import Path
 import statistics
 import sys
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import torch
 
@@ -55,10 +55,10 @@ T_CRIT_DF2 = 4.302652729911275  # two-sided 95% t critical value, df = 2 (three 
 def mean_ci(values: Sequence[float]) -> Tuple[float, float]:
     """Mean and 95% t half-width for n = 3 (df = 2); half-width is 0 for n < 2."""
     vals = [float(v) for v in values]
-    m = statistics.fmean(vals)
+    m = sum(vals) / len(vals)
     if len(vals) < 2:
         return m, 0.0
-    sd = statistics.stdev(vals)
+    sd = math.sqrt(sum((v - m) ** 2 for v in vals) / (len(vals) - 1))  # explicit: statistics.stdev raised on some float inputs under Python 3.12
     return m, T_CRIT_DF2 * sd / math.sqrt(len(vals))
 
 
@@ -157,9 +157,7 @@ class ToyRun:
         self.inner_lr = float(fixed["inner_lr"])
         self.mu = float(fixed["outer_momentum"])
         self.sync = float(fixed["sync_duration_units"])
-        self.shards, (self.val_x, self.val_y) = _build_synthetic_sequence_dataset(
-            vocab_size=64, n_train_per_worker=64, n_workers=num_learners, n_val=128, seed=2026 + seed
-        )
+        self.shards, (self.val_x, self.val_y) = self._build_data(num_learners, seed)
         self.init_model = SyntheticLoRACausalLM(vocab_size=64, d_model=64, rank_r=8, seed=2026 + seed)
         self._work_model = copy.deepcopy(self.init_model)
         self.init_state = {k: v.detach().clone() for k, v in self.init_model.named_parameters()}
@@ -172,6 +170,10 @@ class ToyRun:
             m_idx: flat(inner_train(self._work_model, self.init_state, self.shards[m_idx], 0, self.h, self.batch, self.inner_lr))
             for m_idx in range(self.m)
         }
+
+    def _build_data(self, num_learners: int, seed: int) -> Tuple[List[Tuple[torch.Tensor, torch.Tensor]], Tuple[torch.Tensor, torch.Tensor]]:
+        """IID shards from one teacher (E5-toy); E5-het overrides this with per-learner teachers."""
+        return _build_synthetic_sequence_dataset(vocab_size=64, n_train_per_worker=64, n_workers=num_learners, n_val=128, seed=2026 + seed)
 
     def eval_loss(self, params: Dict[str, torch.Tensor]) -> float:
         m = self._work_model
@@ -189,7 +191,9 @@ class ToyRun:
         outer_lr: float,
         stale_burst: bool = False,
         identical_shards: bool = False,
+        delta_transform: Optional[Callable[[int, torch.Tensor], torch.Tensor]] = None,
     ) -> Dict[str, Any]:
+        """``delta_transform(learner_idx, delta)`` (E10) replaces each fresh learner delta before merging; None = identity."""
         global_params = {k: v.clone() for k, v in self.init_state.items()}
         velocity = torch.zeros(flat(global_params).numel())
         round0_params = {k: v.clone() for k, v in global_params.items()}
@@ -199,6 +203,7 @@ class ToyRun:
         admitted_tokens = 0
         total_tokens = 0
         cosines: List[float] = []
+        norm_ratios: List[float] = []  # ||RDA(v)|| / ||direct(v)|| per round, whatever merge is applied
         tokens_per_round = self.h * self.batch
 
         for r in range(self.rounds):
@@ -217,6 +222,8 @@ class ToyRun:
                     deltas[m_idx] = self._round0_deltas[m_idx].clone()
                 else:
                     deltas[m_idx] = flat(inner_train(self._work_model, start, shard, r, self.h, self.batch, self.inner_lr))
+                if delta_transform is not None:
+                    deltas[m_idx] = delta_transform(m_idx, deltas[m_idx])
                 staleness[m_idx] = 40.0 if (stale_burst and r in (4, 8)) else 0.0
                 fresh_ids.append(m_idx)
                 total_tokens += tokens_per_round
@@ -242,7 +249,12 @@ class ToyRun:
                     _, sigma = self.gate.compute_gate(staleness[i])
                     v = v * sigma
                 vecs.append(v)
-            merged = radial_directional_average(vecs) if merge == "rda" else direct_weighted_average(vecs)
+            direct_vec = direct_weighted_average(vecs)
+            rda_vec = radial_directional_average(vecs)
+            d_norm = float(direct_vec.norm())
+            if d_norm > 0.0:
+                norm_ratios.append(float(rda_vec.norm()) / d_norm)
+            merged = rda_vec if merge == "rda" else direct_vec
             velocity = self.mu * velocity + merged
             step = self.mu * velocity + merged
             g_flat = flat(global_params) - outer_lr * step
@@ -257,6 +269,7 @@ class ToyRun:
             "total_wall": wall[-1],
             "admitted_token_fraction": admitted_tokens / max(1, total_tokens),
             "mean_pairwise_cosine": statistics.fmean(cosines),
+            "mean_rda_over_direct_norm_ratio": statistics.fmean(norm_ratios) if norm_ratios else float("nan"),
         }
 
 

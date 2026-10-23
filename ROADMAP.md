@@ -1,4 +1,4 @@
-# 🗺️ Project HiveMind — Master Roadmap, 1-Hour Orchestrator, Experimental Suite & Season 9 (`Wave 8 — Operation Decoupled-Quorum`) Tasks (`v2.0.0` / Paper `v3.2.0`)
+# 🗺️ Project HiveMind — Master Roadmap, 1-Hour Orchestrator, Experimental Suite & Season 9 (`Wave 8 — Operation Decoupled-Quorum`) Tasks (`v2.3.0` / Paper `v3.5.0`)
 
 <div align="center">
 <img src="docs/assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v2.0.0 — 63/63 Merged PRs, 120 Lean 4 Theorems, E1-E4 + H1-H11 Checks & Season 9 Roadmap" width="100%"/>
@@ -9,7 +9,7 @@
 > **Project HiveMind is a 100% voluntary, non-commercial, open-source scientific research project. There is NO financial payment, money, fiat currency, cryptocurrency, wage, or monetary reward of any kind (`0.00 EUR / 0.00 USD`) now or ever.**
 > All references to **"Points" (`PTS`)**, **`$HIVE`**, **"Bounties"**, or **"PoUW Credits"** are **strictly non-monetary, symbolic compute-reciprocity accounting units** (like SETI@home or BOINC credits). They provide **only computing processing benefits**—priority Sparse MoE inference tokens, speculative decoding throughput, and distributed QLoRA fine-tuning quota—**when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.
 >
-> **⏱️ 1-Hour Autonomous Human & Agent Orchestrator (`0 * * * *`):** Due to the rapid increase in community attention and contributor velocity (`63/63` merged PRs across Waves 1–7), [`community_orchestrator.py`](src/hivemind/cli/community_orchestrator.py) now runs **every 1 hour (`0 * * * *`)** to audit open Pull Requests with the 5-Layer `PRSecurityScanner`, coordinate branch claims in GitHub Discussions, and verify all `116` Lean 4 proofs (`0 sorry`), `10/10` architectural hypotheses (`H1`–`H10`), and `4/4` experimental suites (`E1`–`E4`).
+> **⏱️ 1-Hour Autonomous Human & Agent Orchestrator (`0 * * * *`):** Due to the rapid increase in community attention and contributor velocity (`63/63` merged PRs across Waves 1–7), [`community_orchestrator.py`](src/hivemind/cli/community_orchestrator.py) now runs **every 1 hour (`0 * * * *`)** to audit open Pull Requests with the 5-Layer `PRSecurityScanner`, coordinate branch claims in GitHub Discussions, and verify all `120` Lean 4 proofs (`0 sorry`), `10/10` architectural hypotheses (`H1`–`H10`), and `4/4` experimental suites (`E1`–`E4`).
 
 ---
 
@@ -32,6 +32,8 @@ The contract is [`docs/RESEARCH_PROGRAM.md`](docs/RESEARCH_PROGRAM.md) (thesis, 
 | **G4** external review | credibility | human or logged-model review transcripts in `paper/review/` (`HM-S9-09`) | submission |
 
 Decision rules for refuted predictions are in `RESEARCH_PROGRAM.md` §5; a refuted prediction is reported as refuted, never removed.
+
+**Gate status (2026-10-23 evening, scientific lead):** G1 partial — E5-toy, E5-het (2,652 runs) and E10-lattice (36 runs) decided P2 (refuted at toy scale, rule to be sharpened), P3 (inconclusive), P4 (refuted at every heterogeneity level), P9 (refuted at M = 8), P10a (supported), P10b (inconclusive), P10c (supported); E6/E7/E7b not started. G2 — E8 pilot on 2 real hosts only (K = 2 exact; K = 1 loop defect fixed in spec, not yet in code). G3 — not started. G4 — one logged 3B-model transcript (no score), no human review. Independent Lean gate added (120/120). Paper v3.5.0.
 
 ---
 
@@ -140,6 +142,31 @@ Season 9 follows a **review of the MoE / Google DeepMind / OpenDiLoCo roadmap an
 | *(new)* `HM-S9-10` | RQ6 (whitening inner optimizer flattens loss-vs-M) | E6 → `E6_report.json` | M ∈ {2,4,8,16} × {AdamW, Muon-NS5} × H ∈ {32,128}, 3 seeds, slope with CI | G1 |
 | *(new)* `HM-S9-11` | RQ8 (ALIE under non-IID) | E9 → `E9_report.json` | sign-flip / scaled / ALIE / label-flip at `f/n ∈ {0.1,0.2,0.3}` against filter, replay, both | G3 |
 | *(new)* `HM-S9-12` | scaling-law prior for RQ1 | single-host M ∈ {1,2,4,8,16} fits → `artifacts/experiments/scaling_prior.json` | fit of the Charles et al. form to HiveMind's own runs, R² and residual SE reported | G1 |
+| *(new)* `HM-S9-13` | RQ1 sub-question: when round trip ≫ compute (E8 8-step cell), does the 1-outer-step *eager* rule of `arXiv:2502.12996` keep the slow learner's work? | E8 variant cell (`eager` vs `deferred-with-token-weight` vs `drop`) → `E8_report.json` | learner loop that keeps training across rounds; deferred delta applied with its token weight (Decoupled DiLoCo Alg. 1) or eagerly (Kale et al.); localhost negative control | G2 |
+| *(new)* `HM-S9-14` | RQ2 / RQ2′ at scale: does the `Qwen2.5-0.5B` 8-domain campaign sit in the regime where RDA matters (delta cosine ≤ 0.3, `r_t` ≫ 1)? | `E5_report.json` with per-round cosine and `||RDA||/||direct||` (`r_t`) as in E5-het | the E5-het analysis (`scripts/run_experiment_E5_het.py`) rerun on the campaign deltas; P2 and P9 rules applied unchanged | G1 |
+
+---
+
+## 🔗 3.8 Season 10 (`Wave 9` — "Operation Lattice-Codec") — leveraging the owner's other projects (surveyed 2026-10-23)
+
+What each project contributes was checked on this machine or on GitHub before being written here; nothing below is a plan to "integrate" a README.
+
+| Project | What was actually reused or verified | HiveMind artifact / task |
+| :-- | :-- | :-- |
+| [`OptimalEnergyAI`](https://github.com/xaviercallens/OptimalEnergyAI) (private; textbook DOI [10.5281/zenodo.23295142](https://doi.org/10.5281/zenodo.23295142)) | Conway–Sloane nearest-point decoders for ℤⁿ, Dₙ, E₈ and the factorised-rate accounting (`oai_ml.core.quantise`, `oai_ml.core.rate`), ported with attribution to [`src/hivemind/compress/lattice_quantizer.py`](src/hivemind/compress/lattice_quantizer.py); the two-sided brute-force decoder check (lattice membership **and** distance) is the lesson of its `h0.md` | **E10-lattice** (`scripts/run_experiment_E10_lattice.py`, prereg `artifacts/experiments/E10_lattice_prereg.json`): E₈ vs ℤ⁸ vs 1-bit sign at matched measured rate, with/without EF21 error feedback → `HM-S10-01` (E₈ codec vs SparseLoCo 2-bit LUT at 0.5B scale) |
+| [`AutoevolveAI`](https://github.com/xaviercallens/AutoevolveAI) | `anse.formal.lean_runner.LeanKernelVerifier.verify_file` run independently on `lean4/HiveMindSpec.lean`: it found **13 theorems without a `#print axioms` line** (reported as unverified although they compile); the lines were added and the gate now reports 120/120, 0 `sorry`, 0 untrusted axioms ([`artifacts/lean_independent_runner_check.json`](artifacts/lean_independent_runner_check.json)); `APIExtractor` logged-model review (`HM-S9-09`) | `PROV-27`; the independent gate joins the orchestrator's Lean stage (`HM-S10-02`) |
+| [`GWAYA-GwenLayaOpenModel`](https://github.com/xaviercallens/GWAYA-GwenLayaOpenModel) | `gwaya.ast_audit.ZeroStubAudit` on every Python file (78 files, all clean) → [`artifacts/gwaya_stub_audit.json`](artifacts/gwaya_stub_audit.json); its sandboxed execution verdicts stay `BLOCKED` on this host (AppArmor user-namespace restriction) | already in the Definition of Done |
+| [`runux-ai-runtime`](https://github.com/xaviercallens/runux-ai-runtime) (private, commercial licence) | `runux/signsgd.py` (1-bit signSGD with error feedback and majority vote) motivates the 1-bit arm of E10; **no code was copied** (licence): the arm is re-implemented from Bernstein et al. `arXiv:1802.04434` | E10 `sign` arm (positive control) |
+| [`xavuntu-AIRustLinux`](https://github.com/xaviercallens/xavuntu-AIRustLinux) | `anse/training/tpu_trainer.py` (PyTorch-XLA / JAX LoRA on TPU v5e) is the candidate for a **TPU learner** on `gwenlaya-tpu-1`, so that E8 gets a numerically heterogeneous second host instead of CPU PyTorch | `HM-S10-03` (TPU learner in `run_experiment_E8_pilot.py`; exactness check vs CPU baseline must be re-run) |
+| [`Xbrain`](https://github.com/xaviercallens/Xbrain) (fork of *brain* by Swedish Embedded AB, pure-Rust training/inference, LoRA, INT8/INT4, multi-GPU) | surveyed only: a Rust learner would remove Python from the volunteer client; nothing has been built or measured | `HM-S10-04` (feasibility: can a `brain` LoRA step produce a HiveMind outer delta over HTTP?) |
+| [`scikit-runux-tribute`](https://github.com/xaviercallens/scikit-runux-tribute) | surveyed only (backprop-free DFA, LTN constraint checking, spin-glass solver); out of scope for the outer loop | — |
+
+| Task ID | Research question | Experiment / artifact | Coordinator deliverable | Gate |
+| :-- | :-- | :-- | :-- | :-- |
+| `HM-S10-01` | RQ9: does a lattice codec's distortion gain reach the loss at 0.5B scale? | E10b → `E10b_report.json` (E₈ vs SparseLoCo 2-bit LUT vs DeMo at matched measured rate, EF on) | `LatticeDeltaQuantizer` wired into `ComputeVisibleSparseLoCoCompressor` as a selectable codec; measured rate logged per fragment | G1 |
+| `HM-S10-02` | credibility | independent Lean gate in CI | `anse.formal.lean_runner` (or an equivalent one-axioms-line-per-theorem check) in the orchestrator's Lean stage | any |
+| `HM-S10-03` | RQ1 with heterogeneous numerics | E8 cell with a TPU learner | `tpu_trainer.py`-based learner mode; K=2 exactness vs CPU baseline reported | G2 |
+| `HM-S10-04` | volunteer client without Python | feasibility note + one measured LoRA delta | `brain` LoRA step → HiveMind delta over HTTP; delta cosine vs the PyTorch learner | G3 |
 
 ---
 

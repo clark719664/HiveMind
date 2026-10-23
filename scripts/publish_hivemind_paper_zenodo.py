@@ -46,6 +46,9 @@ BUNDLE: List[Path] = [
     PROJECT_ROOT / "artifacts" / "decoupled_diloco_quorum_check.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_prereg.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_toy_report.json",
+    PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_prereg.json",
+    PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_calibration.json",
+    PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_report.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E8_pilot_report.json",
     PROJECT_ROOT / "artifacts" / "predictions_ledger.json",
     PROJECT_ROOT / "artifacts" / "gwaya_stub_audit.json",
@@ -177,7 +180,7 @@ def main() -> int:
     ap.add_argument("--stage", choices=["draft", "upload", "publish"], required=True)
     ap.add_argument("--deposition-id", type=int, default=None)
     ap.add_argument("--new-version-of", type=int, default=None, help="existing record id to create a new version of")
-    ap.add_argument("--version", default="3.4.1")
+    ap.add_argument("--version", default="3.5.0")
     args = ap.parse_args()
     token = load_token()
 
