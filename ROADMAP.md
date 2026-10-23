@@ -1,4 +1,4 @@
-# 🗺️ Project HiveMind — Master Roadmap, 1-Hour Orchestrator, Experimental Suite & Season 9 (`Wave 8 — Operation Decoupled-Quorum`) Tasks (`v2.3.0` / Paper `v3.5.0`)
+# 🗺️ Project HiveMind — Master Roadmap, 1-Hour Orchestrator, Experimental Suite & Season 9 (`Wave 8 — Operation Decoupled-Quorum`) Tasks (`v2.4.0` / Paper `v3.6.0`)
 
 <div align="center">
 <img src="docs/assets/hivemind_strategy_improvement_engine.svg" alt="Project HiveMind v2.0.0 — 63/63 Merged PRs, 120 Lean 4 Theorems, E1-E4 + H1-H11 Checks & Season 9 Roadmap" width="100%"/>
@@ -33,7 +33,7 @@ The contract is [`docs/RESEARCH_PROGRAM.md`](docs/RESEARCH_PROGRAM.md) (thesis, 
 
 Decision rules for refuted predictions are in `RESEARCH_PROGRAM.md` §5; a refuted prediction is reported as refuted, never removed.
 
-**Gate status (2026-10-23 evening, scientific lead):** G1 partial — E5-toy, E5-het (2,652 runs) and E10-lattice (36 runs) decided P2 (refuted at toy scale, rule to be sharpened), P3 (inconclusive), P4 (refuted at every heterogeneity level), P9 (refuted at M = 8), P10a (supported), P10b (inconclusive), P10c (supported); E6/E7/E7b not started. G2 — E8 pilot on 2 real hosts only (K = 2 exact; K = 1 loop defect fixed in spec, not yet in code). G3 — not started. G4 — one logged 3B-model transcript (no score), no human review. Independent Lean gate added (120/120). Paper v3.5.0.
+**Gate status (2026-10-23 evening, scientific lead):** G1 partial — E5-toy, E5-het (2,652 runs) and E10-lattice (36 runs) decided P2 (refuted at toy scale, rule to be sharpened), P3 (inconclusive), P4 (refuted at every heterogeneity level), P9 (refuted at M = 8), P10a (supported), P10b (inconclusive), P10c (supported); E6/E7/E7b not started. G2 — E8 pilot on 2 real hosts only (K = 2 exact; K = 1 loop defect fixed in spec, not yet in code). G3 — not started. G4 — one logged 3B-model transcript (no score) and one external review of v3.5.0 of unstated provenance (recorded verbatim with a response in `paper/review/`, drove v3.6.0); no human review of record. Independent Lean gate added (120/120); RDA Proposition machine-checked over ℝ (3 Mathlib theorems). Paper v3.5.1.
 
 ---
 
@@ -122,7 +122,7 @@ Season 9 follows a **review of the MoE / Google DeepMind / OpenDiLoCo roadmap an
 | **`HM-S9-05`** | `feat/s9-outer-momentum-restart` | Outer-Momentum Restarting (`arXiv:2605.28585`), two-phase optimizer theory (`arXiv:2603.26954`) | Add a periodic outer-momentum reset (`K_restart`) to `DiLoCoOuterOptimizer` and `CPUOffloadedFlatBucketOuterState`; sweep `K_restart` against `mu_outer` on `E1` and report whether the stable outer-hyperparameter region widens. | `2,500 PTS / $HIVE` *(Compute Quota Only)* |
 | **`HM-S9-06`** | `feat/s9-darl-data-leasing` | Cross-facility DiLoCo on HPC (`arXiv:2610.03457`) | Heartbeat-backed data leases (TTL `alpha * t_step + RTT`) on the CAS shard store so that no sample is trained twice or lost under worker churn; the ledger must show `committed = granted - reclaimed` on a real churn run. | `3,000 PTS / $HIVE` *(Compute Quota Only)* |
 | **`HM-S9-07`** | `feat/s9-multi-host-wan-gameday-real` | — | The measurement everything else waits for: 3–8 real machines over residential WAN, real tokens, `K < M` quorum, RDA on; report p50/p95/p99 outer-round latency and held-out loss against a single-host run. Until this exists every Category III claim in the paper stays open. | `3,500 PTS / $HIVE` *(Compute Quota Only)* |
-| **`HM-S9-08`** | `formal/s9-rda-norm-and-quorum-liveness` | `lean4/HiveMindSpec.lean` (Theorems 121–128) | Formalise the RDA common-norm identity over ℚ for `M = 2` (exact arithmetic), quorum liveness (`K <= live learners` implies a merge within one grace window), and admitted + deferred token conservation; `0 sorry`, `0` user axioms. | `3,000 PTS / $HIVE` *(Compute Quota Only)* |
+| **`HM-S9-08`** | `formal/s9-rda-norm-and-quorum-liveness` | `lean4/HiveMindSpec.lean` (Theorems 121–128) | ~~RDA common-norm identity over ℚ~~ (delivered over ℝ with Mathlib in `lean4/mathlib/RDAMultiplier.lean`, 2026-10-23); remaining: quorum liveness (`K <= live learners` implies a merge within one grace window), and admitted + deferred token conservation; `0 sorry`, `0` user axioms. | `3,000 PTS / $HIVE` *(Compute Quota Only)* |
 | **`HM-S9-09`** | `governance/s9-real-external-review` | — | Replace the scripted "review" by a real one: human reviewers, or logged model reviews through `anse.core.api_extractor.APIExtractor` with transcripts committed next to the report. No numeric score may ever be emitted by a script again. | `2,000 PTS / $HIVE` *(Compute Quota Only)* |
 
 
@@ -137,7 +137,7 @@ Season 9 follows a **review of the MoE / Google DeepMind / OpenDiLoCo roadmap an
 | `HM-S9-06` | prerequisite of RQ1 (no sample trained twice under churn) | E8 ledger (`committed = granted − reclaimed`) | heartbeat leases on the CAS store | G2 |
 | `HM-S9-04` | RQ1 variant (does non-blocking Mix1 keep goodput without hurting loss?) | E8 variant cell | Mix1/Mix2 split with JS-disagreement logging | G3 |
 | `HM-S9-07` | RQ1 (volunteer tax) | E8 → `E8_report.json`, latency percentiles, localhost negative control | 3 then 8 real machines | G2/G3 |
-| `HM-S9-08` | formal support for §7.2 claims | `lean4/HiveMindSpec.lean` Theorems 121–128 | `0 sorry`, `0` user axioms | any |
+| `HM-S9-08` | formal support for §7.2 claims (RDA part done in `lean4/mathlib/RDAMultiplier.lean`) | `lean4/HiveMindSpec.lean` Theorems 121–128 (liveness, conservation) | `0 sorry`, `0` user axioms | any |
 | `HM-S9-09` | credibility of the whole paper | `paper/review/` transcripts | human or logged-model review, no scripted score | G4 |
 | *(new)* `HM-S9-10` | RQ6 (whitening inner optimizer flattens loss-vs-M) | E6 → `E6_report.json` | M ∈ {2,4,8,16} × {AdamW, Muon-NS5} × H ∈ {32,128}, 3 seeds, slope with CI | G1 |
 | *(new)* `HM-S9-11` | RQ8 (ALIE under non-IID) | E9 → `E9_report.json` | sign-flip / scaled / ALIE / label-flip at `f/n ∈ {0.1,0.2,0.3}` against filter, replay, both | G3 |
@@ -161,12 +161,30 @@ What each project contributes was checked on this machine or on GitHub before be
 | [`Xbrain`](https://github.com/xaviercallens/Xbrain) (fork of *brain* by Swedish Embedded AB, pure-Rust training/inference, LoRA, INT8/INT4, multi-GPU) | surveyed only: a Rust learner would remove Python from the volunteer client; nothing has been built or measured | `HM-S10-04` (feasibility: can a `brain` LoRA step produce a HiveMind outer delta over HTTP?) |
 | [`scikit-runux-tribute`](https://github.com/xaviercallens/scikit-runux-tribute) | surveyed only (backprop-free DFA, LTN constraint checking, spin-glass solver); out of scope for the outer loop | — |
 
+**Publications of the owner that the programme now uses (DOIs read from the Zenodo API on 2026-10-23):**
+
+| Publication | What it gives HiveMind | Where |
+| :-- | :-- | :-- |
+| *A laboratory method for AI-assisted science* ([10.5281/zenodo.22829767](https://doi.org/10.5281/zenodo.22829767)) | the protocol of `docs/RESEARCH_PROGRAM.md` §4 (pre-registration, controls, claim ledger, formal layer, provenance lock) | paper §Research Program, "Directions" |
+| *Karpathy-autoresearch screening and machine-checked Elenchus deep-dive* ([10.5281/zenodo.23467992](https://doi.org/10.5281/zenodo.23467992)) | the screening loop for the 0.5B-scale E5 LR/merge sweep (`HM-S9-14`) | RESEARCH_PROGRAM §4 |
+| *The Triangular Lattice and Universal Optimality* textbook ([10.5281/zenodo.23295142](https://doi.org/10.5281/zenodo.23295142)) + OptimalEnergyAI | E₈/ℤ⁸ decoders and measured rate (E10, done); A₂-per-RoPE-plane KV result (E11, `HM-S10-05`) | `src/hivemind/compress/` |
+| *RunuX: deterministic fixed-point attention and measured PolarQuant KV-cache compression* ([10.5281/zenodo.22879667](https://doi.org/10.5281/zenodo.22879667)) | the commodity-GPU KV-cache measurement E11 must beat or match; its runtime code is **not** reused (licence) | `HM-S10-05` |
+| *Gosset E₈ dicodon quantisation* (genetics edition, [10.5281/zenodo.23526783](https://doi.org/10.5281/zenodo.23526783)) | second user of the same decoder family → shared package (`HM-S10-07`) | — |
+| *Laya-LoRA Coding Companion* ([10.5281/zenodo.23095224](https://doi.org/10.5281/zenodo.23095224)) | a real LoRA workload with a published evaluation for the 8-domain campaign (`HM-S10-06`) | — |
+| *GWAYA v3.1 fail-closed gate* ([10.5281/zenodo.23120120](https://doi.org/10.5281/zenodo.23120120)) | zero-stub audit of every file (done); execution verdicts stay `BLOCKED` on this host | `artifacts/gwaya_stub_audit.json` |
+
+Formal side-note: the paper's RDA-multiplier Proposition is now machine-checked over ℝ in `lean4/mathlib/RDAMultiplier.lean` (3 theorems, standard axioms only, checked inside the AutoevolveAI Lean environment because `HiveMindSpec.lean` is Mathlib-free; receipt `artifacts/lean_rda_multiplier_check.json`). `HM-S9-08` therefore keeps only its quorum-liveness and token-conservation items.
+
 | Task ID | Research question | Experiment / artifact | Coordinator deliverable | Gate |
 | :-- | :-- | :-- | :-- | :-- |
 | `HM-S10-01` | RQ9: does a lattice codec's distortion gain reach the loss at 0.5B scale? | E10b → `E10b_report.json` (E₈ vs SparseLoCo 2-bit LUT vs DeMo at matched measured rate, EF on) | `LatticeDeltaQuantizer` wired into `ComputeVisibleSparseLoCoCompressor` as a selectable codec; measured rate logged per fragment | G1 |
 | `HM-S10-02` | credibility | independent Lean gate in CI | `anse.formal.lean_runner` (or an equivalent one-axioms-line-per-theorem check) in the orchestrator's Lean stage | any |
 | `HM-S10-03` | RQ1 with heterogeneous numerics | E8 cell with a TPU learner | `tpu_trainer.py`-based learner mode; K=2 exactness vs CPU baseline reported | G2 |
 | `HM-S10-04` | volunteer client without Python | feasibility note + one measured LoRA delta | `brain` LoRA step → HiveMind delta over HTTP; delta cosine vs the PyTorch learner | G3 |
+| `HM-S10-05` | RQ10: does a lattice KV-cache codec beat FP8 at equal bytes in the inference ring? | **E11** (prereg first) → `E11_report.json`: FP8 vs A₂-per-RoPE-plane vs E₈ (± per-head transform) on real `Qwen2.5-0.5B` KV tensors at matched measured bits; positive control 2-bit scalar, negative control 8-bit A₂ | `FP8PagedKVCache` gets a pluggable page codec; OptimalEnergyAI's `poc2_crystallized_attention/extract.py` (capture_kv, rope_planes) reused for extraction | G1 |
+| `HM-S10-06` | real workload for E5 at scale | feasibility: the Laya-LoRA 10-dataset coding curriculum ([10.5281/zenodo.23095224](https://doi.org/10.5281/zenodo.23095224)) as the 8-domain campaign data | loader + per-domain shard manifest; what E5 measures must not change | G1 |
+| `HM-S10-08` | RQ11 (from the external review of v3.5.0): does the ε = 1e-4 spot-check replay survive heterogeneous hardware? | **E12** (prereg first) → `E12_report.json`: replay the same 50-step segment on T4, RTX 2070, TPU-VM CPU and compare `‖Δθ‖∞`; cells: same class / cross class / fixed-point replay | architecture-matched validator assignment in `DeterministicSpotCheckValidator`; measured ε per class; fixed-point replay prototype | G3 |
+| `HM-S10-07` | engineering hygiene | one shared lattice package (decoders + factorised rate + two-sided check) used by HiveMind, OptimalEnergyAI and the genetics E₈ dicodon quantiser ([10.5281/zenodo.23526783](https://doi.org/10.5281/zenodo.23526783)) | extract `hivemind.compress.lattice_quantizer` + `oai_ml.core.quantise` into `xlattice`; HiveMind depends on it | any |
 
 ---
 

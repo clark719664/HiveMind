@@ -49,6 +49,14 @@ BUNDLE: List[Path] = [
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_prereg.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_calibration.json",
     PROJECT_ROOT / "artifacts" / "experiments" / "E5_het_report.json",
+    PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_prereg.json",
+    PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_report.json",
+    PROJECT_ROOT / "artifacts" / "lean_independent_runner_check.json",
+    PROJECT_ROOT / "artifacts" / "lean_rda_multiplier_check.json",
+    PROJECT_ROOT / "lean4" / "mathlib" / "RDAMultiplier.lean",
+    PROJECT_ROOT / "ROADMAP.md",
+    PROJECT_ROOT / "paper" / "review" / "external_review_v3.5.0_2026-10-23.md",
+    PROJECT_ROOT / "paper" / "review" / "response_to_external_review_v3.5.0.md",
     PROJECT_ROOT / "artifacts" / "experiments" / "E8_pilot_report.json",
     PROJECT_ROOT / "artifacts" / "predictions_ledger.json",
     PROJECT_ROOT / "artifacts" / "gwaya_stub_audit.json",
@@ -180,7 +188,7 @@ def main() -> int:
     ap.add_argument("--stage", choices=["draft", "upload", "publish"], required=True)
     ap.add_argument("--deposition-id", type=int, default=None)
     ap.add_argument("--new-version-of", type=int, default=None, help="existing record id to create a new version of")
-    ap.add_argument("--version", default="3.5.0")
+    ap.add_argument("--version", default="3.6.0")
     args = ap.parse_args()
     token = load_token()
 

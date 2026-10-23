@@ -1,0 +1,53 @@
+{
+  "schema_version": "hivemind-lean-rda-multiplier-check/v1.0",
+  "file": "lean4/mathlib/RDAMultiplier.lean",
+  "file_sha256": "e1d241cf884de0273e458f6fd8b0ab2043da0c534894c493eed328025dd9dffd",
+  "verifier": "AutoevolveAI anse.formal.lean_runner.LeanKernelVerifier.verify_file, compiled with 'lake env lean' in the AutoevolveAI formal/ environment (partial Mathlib build, Lean v4.34.0-rc2 toolchain of that environment); whitelist propext, Classical.choice, Quot.sound",
+  "statements": {
+    "rda_radius_ge_direct_norm": "sum w_i ||D_i|| >= ||sum w_i D_i|| for w_i >= 0 (so r >= 1)",
+    "direct_norm_sq_eq_weighted_inner": "||sum w_i D_i||^2 = sum_ij w_i w_j <D_i, D_j>",
+    "orthogonal_equal_norm_direct_norm_sq": "pairwise-orthogonal common-norm R, equal weights 1/M: ||mean||^2 = R^2 / M"
+  },
+  "paper_reference": "Proposition prop:rda_multiplier (v3.5.1)",
+  "run_utc": "2026-10-23T18:27:56Z",
+  "theorems": 3,
+  "compiled": 3,
+  "has_sorry": 0,
+  "untrusted_axioms": 0,
+  "results": [
+    {
+      "theorem": "rda_radius_ge_direct_norm",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "direct_norm_sq_eq_weighted_inner",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    },
+    {
+      "theorem": "orthogonal_equal_norm_direct_norm_sq",
+      "compiled": true,
+      "axioms": [
+        "propext",
+        "Classical.choice",
+        "Quot.sound"
+      ],
+      "has_sorry": false,
+      "untrusted": []
+    }
+  ],
+  "passed": true
+}
