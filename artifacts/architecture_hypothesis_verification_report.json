@@ -103,6 +103,7 @@
       "title": "Google DeepMind Streaming DiLoCo Fragment Cadence & PA-CGAD Staleness Bias Bound",
       "category": "Streaming_Async_DiLoCo",
       "arxiv_references": [
+        "arXiv:2501.18512",
         "arXiv:2401.09135",
         "arXiv:2605.09126",
         "arXiv:2311.08105"
@@ -188,8 +189,10 @@
         "looped_weight_bytes": 483616,
         "unrolled_weight_bytes": 1153504,
         "saved_weight_bytes": 669888,
-        "mean_effective_steps": 1.0,
-        "early_exit_fraction": 1.0
+        "fixed_point_tol": 0.65,
+        "mean_effective_steps": 3.05,
+        "early_exit_fraction": 0.8,
+        "mean_fixed_point_residual": 0.5215
       }
     },
     {
@@ -214,7 +217,7 @@
         "car_substitutions": 0,
         "synchronous_dma_misses": 0,
         "effective_vram_cache_hit_rate": 1.0,
-        "total_raw_dma_ms": 0.06,
+        "total_raw_dma_ms": 0.039,
         "exposed_swap_latency_ms_simulated": 0.0
       }
     },
@@ -224,6 +227,7 @@
       "category": "OpenDiLoCo_Subspace_Merging",
       "arxiv_references": [
         "arXiv:2607.03011",
+        "arXiv:2502.04959",
         "arXiv:2412.00081"
       ],
       "github_references": [
@@ -267,7 +271,9 @@
         "dct_sparse_2bit_package_uncompressed_bytes": 32768,
         "dct_sparse_2bit_package_compressed_bytes": 820,
         "dct_sparse_2bit_package_compression_ratio_x": 39.96,
+        "dct_sparse_2bit_relative_l2_error": 0.931347,
         "pulse_sparseloco_bf16_compression_ratio_x": 27.22,
+        "pulse_sparseloco_relative_l2_error": 0.89657,
         "compute_invisible_fraction_gated": 0.058594,
         "bitwise_deterministic_reconstruction": true
       }
@@ -304,7 +310,7 @@
       "title": "MuLoCo 5-Step Quintic Newton-Schulz Inner LoRA Preconditioning & Spot-Check Determinism",
       "category": "Inner_Outer_Optimizer_Synergy",
       "arxiv_references": [
-        "arXiv:2607.12925",
+        "arXiv:2505.23725",
         "arXiv:2610.19064"
       ],
       "github_references": [
@@ -328,6 +334,7 @@
       "title": "EF21-DiLoCo Telescoping Error-Feedback Conservation & FP8 Paged KV-Cache Compression",
       "category": "Memory_And_Communication_Conservation",
       "arxiv_references": [
+        "arXiv:2106.05203",
         "arXiv:2508.15706",
         "arXiv:2602.03839"
       ],
@@ -350,7 +357,7 @@
       }
     }
   ],
-  "elapsed_seconds": 1.1958,
+  "elapsed_seconds": 1.163,
   "non_monetary_charter": "0.00 EUR / 0.00 USD \u2014 reciprocal compute processing benefits only",
-  "receipt_sha256": "5c1dd6f792d0db4c8a0321f0478bc364c2ec4e2a7f267d99369988349c0d09cc"
+  "receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1"
 }

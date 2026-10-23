@@ -6,7 +6,7 @@ and `OpenDiLoCo` / Google DeepMind `DiLoCo` outer-loop stack:
 
 - `H1`: `OpenDiLoCo` / `prime-diloco` (`arXiv:2407.07852`) Contiguous 1D CPU Flat-Bucket
   Outer Optimizer (`0 B` extra GPU VRAM + exact Nesterov equivalence).
-- `H2`: Google DeepMind `Streaming DiLoCo` (`arXiv:2401.09135`) Fragment Scheduling &
+- `H2`: Google DeepMind `Streaming DiLoCo` (`arXiv:2501.18512`, `arXiv:2401.09135`) Fragment Scheduling &
   `PA-CGAD` (`arXiv:2605.09126`) Staleness Bias Bound (`max_{tau>=0} tau*sigma(tau) <= 1/(e*alpha)`)
   and Hard Cosine Cutoff (`tau >= tau_cut => sigma(tau) = 0`, zero `v_f` variance pollution).
 - `H3`: `128-Expert 3-Tier Hierarchical MoE Router` (`arXiv:2503.09799`) `8.0x` Gating
@@ -19,7 +19,7 @@ and `OpenDiLoCo` / Google DeepMind `DiLoCo` outer-loop stack:
 - `H5`: `Skip-Attention Speculative Expert Prefetch` + `Cache-Aware Routing (CAR)`
   (`pmerolla/fomoe`) & 3-Tier Pinned RAM -> CUDA VRAM Asynchronous DMA Overlap (`0.0 ms`
   exposed PCIe stall when `t_DMA <= t_Attn`).
-- `H6`: `Iso-CTS` (`shoroi/isoloco`, `arXiv:2607.03011`) & `TSVLoCo` (`arXiv:2412.00081`)
+- `H6`: `Iso-CTS` (`shoroi/isoloco`, `arXiv:2607.03011`, `arXiv:2502.04959`) & `TSVLoCo` (`arXiv:2412.00081`)
   Subspace Attention & Expert Merging (`condition_number -> 1.0000`, orthogonal subspace
   projection `||U^T U - I||_F < 1e-5`).
 - `H7`: `DeMo` (`bloc97/DeMo`, `arXiv:2411.19870`) Orthonormal 2D Chunked DCT Parseval
@@ -28,9 +28,9 @@ and `OpenDiLoCo` / Google DeepMind `DiLoCo` outer-loop stack:
   compression, bitwise deterministic `index_copy_`).
 - `H8`: `AutoLoCo` (`arXiv:2609.36662`) Dynamic Inner-Interval Outer LR/Momentum Scaling &
   `HeLoCo` (`arXiv:2606.00271`) Half-Space Conflicting Drift Projection.
-- `H9`: `MuLoCo` / Morales (`arXiv:2607.12925`, `arXiv:2610.19064`) 5-Step Quintic
+- `H9`: `MuLoCo` (`arXiv:2505.23725`) / Belilovsky et al. (`arXiv:2610.19064`) 5-Step Quintic
   Newton-Schulz Inner LoRA Preconditioning & Deterministic Spot-Check Replay Equivalence.
-- `H10`: `EF21-DiLoCo` Exact Error-Feedback Additive Conservation (`||c_t + r_t - (g_t + gamma r_{t-1})||_2 = 0`)
+- `H10`: `EF21-DiLoCo` (`arXiv:2106.05203`) Exact Error-Feedback Additive Conservation (`||c_t + r_t - (g_t + gamma r_{t-1})||_2 = 0`)
   & `FP8PagedKVCache` `2.0x` KV-Cache Compression within the 8 GB Consumer GPU Envelope.
 """
 
@@ -323,7 +323,7 @@ class ArchitectureHypothesisVerifier:
             hypothesis_id="H2",
             title="Google DeepMind Streaming DiLoCo Fragment Cadence & PA-CGAD Staleness Bias Bound",
             category="Streaming_Async_DiLoCo",
-            arxiv_references=["arXiv:2401.09135", "arXiv:2605.09126", "arXiv:2311.08105"],
+            arxiv_references=["arXiv:2501.18512", "arXiv:2401.09135", "arXiv:2605.09126", "arXiv:2311.08105"],
             github_references=["https://github.com/google-deepmind/asyncdiloco"],
             lean4_theorems=[
                 "Season10_OuterLoopDiLoCoEcosystem.cgad_cosine_cutoff_zeroes_stale_variance_pollution",
@@ -436,7 +436,7 @@ class ArchitectureHypothesisVerifier:
             num_coda_layers=1,
             loop_steps=4,
             per_step_lora_rank=4,
-            fixed_point_tol=10.0,  # Trigger early fixed-point halting after pass 1
+            fixed_point_tol=0.65,  # Non-trivial fixed-point convergence tolerance (1 < mean_steps < 4)
             truncated_bptt_steps=2,
         )
         input_ids = torch.randint(0, 200, (2, 10))
@@ -454,7 +454,7 @@ class ArchitectureHypothesisVerifier:
             and rep.extra_weight_bytes == rep.loop_adapter_bytes
             and rep.saved_weight_bytes > 0
             and rep.last_mean_effective_steps is not None
-            and rep.last_mean_effective_steps < float(rep.loop_steps)
+            and 1.0 < rep.last_mean_effective_steps < float(rep.loop_steps)
             and rep.last_early_exit_fraction is not None
             and rep.last_early_exit_fraction > 0.0
             and bool(torch.isfinite(out.loss).item())
@@ -481,8 +481,10 @@ class ArchitectureHypothesisVerifier:
                 "looped_weight_bytes": rep.looped_weight_bytes,
                 "unrolled_weight_bytes": rep.unrolled_weight_bytes,
                 "saved_weight_bytes": rep.saved_weight_bytes,
+                "fixed_point_tol": 0.65,
                 "mean_effective_steps": round(float(rep.last_mean_effective_steps or 0.0), 4),
                 "early_exit_fraction": round(float(rep.last_early_exit_fraction or 0.0), 4),
+                "mean_fixed_point_residual": round(float(rep.last_fixed_point_residual or 0.0), 4),
             },
         )
 
@@ -600,7 +602,7 @@ class ArchitectureHypothesisVerifier:
             hypothesis_id="H6",
             title="IsoLoCo (ISO-CTS) Isotropic Spectral Flattening & TSV Subspace Decorrelation",
             category="OpenDiLoCo_Subspace_Merging",
-            arxiv_references=["arXiv:2607.03011", "arXiv:2412.00081"],
+            arxiv_references=["arXiv:2607.03011", "arXiv:2502.04959", "arXiv:2412.00081"],
             github_references=["https://github.com/shoroi/isoloco"],
             lean4_theorems=[
                 "Season10_OuterLoopDiLoCoEcosystem.isoloco_isotropic_singular_spectrum_unit_condition",
@@ -647,8 +649,17 @@ class ArchitectureHypothesisVerifier:
 
         pulse_comp = ComputeVisibleSparseLoCoCompressor(topk_ratio=0.03, n_bins=4)
         ref_param = torch.ones((256, 16), dtype=torch.float32)
-        _, pulse_stats = pulse_comp.compress_and_reconstruct(
+        pulse_recon, pulse_stats = pulse_comp.compress_and_reconstruct(
             delta_dict["layers.0.mlp.gate_proj.lora_B"], reference_param=ref_param
+        )
+        raw_t0 = delta_dict["layers.0.mlp.gate_proj.lora_B"]
+        dct_rel_l2 = float(
+            torch.linalg.norm(recon_dict["layers.0.mlp.gate_proj.lora_B"] - raw_t0).item()
+            / max(torch.linalg.norm(raw_t0).item(), 1e-8)
+        )
+        pulse_rel_l2 = float(
+            torch.linalg.norm(pulse_recon - raw_t0).item()
+            / max(torch.linalg.norm(raw_t0).item(), 1e-8)
         )
 
         passed = (
@@ -680,7 +691,9 @@ class ArchitectureHypothesisVerifier:
                 "dct_sparse_2bit_package_uncompressed_bytes": pkg.uncompressed_bytes,
                 "dct_sparse_2bit_package_compressed_bytes": pkg.compressed_bytes,
                 "dct_sparse_2bit_package_compression_ratio_x": pkg.compression_ratio,
+                "dct_sparse_2bit_relative_l2_error": round(dct_rel_l2, 6),
                 "pulse_sparseloco_bf16_compression_ratio_x": pulse_stats["wire_compression_ratio_x"],
+                "pulse_sparseloco_relative_l2_error": round(pulse_rel_l2, 6),
                 "compute_invisible_fraction_gated": pulse_stats["compute_invisible_fraction"],
                 "bitwise_deterministic_reconstruction": bitwise_deterministic,
             },
@@ -796,7 +809,7 @@ class ArchitectureHypothesisVerifier:
             hypothesis_id="H9",
             title="MuLoCo 5-Step Quintic Newton-Schulz Inner LoRA Preconditioning & Spot-Check Determinism",
             category="Inner_Outer_Optimizer_Synergy",
-            arxiv_references=["arXiv:2607.12925", "arXiv:2610.19064"],
+            arxiv_references=["arXiv:2505.23725", "arXiv:2610.19064"],
             github_references=["https://github.com/xaviercallens/HiveMind"],
             lean4_theorems=[
                 "Season10_OuterLoopDiLoCoEcosystem.muon_newton_schulz_replica_scaling_throughput_bound",
@@ -860,7 +873,7 @@ class ArchitectureHypothesisVerifier:
             hypothesis_id="H10",
             title="EF21-DiLoCo Telescoping Error-Feedback Conservation & FP8 Paged KV-Cache Compression",
             category="Memory_And_Communication_Conservation",
-            arxiv_references=["arXiv:2508.15706", "arXiv:2602.03839"],
+            arxiv_references=["arXiv:2106.05203", "arXiv:2508.15706", "arXiv:2602.03839"],
             github_references=["https://github.com/one-covenant/SparseLoCo"],
             lean4_theorems=[
                 "Season6_ErrorFeedbackModel.ef_conservation_any_compressor",

@@ -1510,7 +1510,7 @@ theorem opendiloco_flat_bucket_partition_conserves_numel
   omega
 
 /-- Theorem 102 (Google DeepMind Streaming DiLoCo Fragment Bandwidth Reduction,
-    `arXiv:2401.09135`, `google-deepmind/asyncdiloco`):
+    `arXiv:2501.18512`, `arXiv:2401.09135`, `google-deepmind/asyncdiloco`):
     Partitioning an outer payload of `num_fragments * fragment_bytes` across
     `num_fragments >= 2` staggered synchronization rounds strictly reduces per-round
     peak WAN serialization bytes from `num_fragments * fragment_bytes` to `fragment_bytes`. -/
@@ -1524,12 +1524,17 @@ theorem streaming_diloco_fragment_bandwidth_reduction
   omega
 
 /-- Theorem 103 (PA-CGAD Staleness Cutoff Preserves Outer Second Moment, `arXiv:2605.09126`):
-    When effective fragment staleness exceeds the cosine cutoff (`tau_cut <= tau_eff`),
-    the gated update is identically zero and Adam's second moment `v_prev` is unpolluted. -/
+    When effective fragment staleness reaches or exceeds the cosine cutoff (`tau_cut <= tau_eff`),
+    the piecewise gated second-moment update `if tau_eff < tau_cut then v_prev + g_sq else v_prev`
+    equals `v_prev`, strictly below the un-gated polluted value `v_prev + g_sq` (`0 < g_sq`). -/
 theorem pacgad_staleness_cutoff_preserves_second_moment
-    (v_prev tau_eff tau_cut : Nat)
-    (_h_cutoff : tau_cut ≤ tau_eff) :
-    v_prev + 0 = v_prev := by
+    (v_prev g_sq tau_eff tau_cut : Nat)
+    (h_cutoff : tau_cut ≤ tau_eff)
+    (h_gsq : 0 < g_sq) :
+    (if tau_eff < tau_cut then v_prev + g_sq else v_prev) = v_prev ∧
+      v_prev < v_prev + g_sq := by
+  have h_not_lt : ¬ (tau_eff < tau_cut) := Nat.not_lt.mpr h_cutoff
+  simp [h_not_lt]
   omega
 
 /-- Theorem 104 (Google DeepMind Scaling Laws for DiLoCo & Sparse MoE Dual Efficiency,
@@ -1549,27 +1554,29 @@ theorem deepmind_moe_diloco_active_flop_and_comm_bound
 
 /-- Theorem 105 (DeMo Chunked-DCT + SparseLoCo 2-Bit Package Exceeds 16x Compression Gate,
     `arXiv:2411.19870`, `arXiv:2508.15706`, `bloc97/DeMo`, `one-covenant/SparseLoCo`):
-    A 4-tensor `[256, 16]` FP32 LoRA delta package (`65536` raw bytes) compressed at `2%`
-    DCT density (`k = 82` coefficients/tensor -> `21` packed 2-bit bytes + `164` uint16
-    index bytes + `8` LUT bytes + `12` header bytes = `205` bytes/tensor, `820` bytes total)
-    strictly clears the `16x` compression gate (`16 * 820 <= 65536`). -/
+    A 4-tensor `[256, 16]` 16-bit LoRA delta package (`32768` bytes, or `65536` FP32 bytes)
+    compressed at `2%` DCT density (`k = 82` coefficients/tensor -> `21` packed 2-bit bytes +
+    `164` uint16 index bytes + `8` LUT bytes + `12` header bytes = `205` bytes/tensor, `820`
+    bytes total) strictly clears the `16x` compression gate against both 16-bit and FP32 storage. -/
 theorem demo_sparseloco_2bit_package_exceeds_16x_compression :
-    16 * (4 * (21 + 82 * 2 + 8 + 12)) ≤ 4 * 4096 * 4 := by
+    16 * (4 * (21 + 82 * 2 + 8 + 12)) ≤ 4 * 4096 * 2 ∧
+      32 * (4 * (21 + 82 * 2 + 8 + 12)) ≤ 4 * 4096 * 4 := by
   decide
 
 /-- Theorem 106 (MuLoCo Quintic Newton-Schulz Singular Spread Contraction,
-    `arXiv:2607.12925`, `arXiv:2610.19064`):
-    Orthogonalizing an anisotropic singular value spectrum (`s_min < s_max`) toward a
-    clustered post-Newton-Schulz interval `[s_ns_min, s_ns_max]` with smaller spread
-    strictly contracts spectral anisotropy. -/
+    `arXiv:2505.23725`, `arXiv:2610.19064`):
+    When quintic Newton-Schulz orthogonalization pulls the extremal singular values inward by
+    `0 < delta` (`s_min + delta <= s_max - delta`), the post-preconditioning singular spread
+    `(s_max - delta) - (s_min + delta)` is strictly smaller than the initial spread `s_max - s_min`. -/
 theorem muloco_newton_schulz_condition_contraction
-    (s_max s_min s_ns_max s_ns_min : Nat)
-    (h_clustered : s_ns_max - s_ns_min < s_max - s_min) :
-    s_ns_max - s_ns_min < s_max - s_min := by
-  exact h_clustered
+    (s_max s_min delta : Nat)
+    (h_delta : 0 < delta)
+    (h_order : s_min + delta ≤ s_max - delta) :
+    (s_max - delta) - (s_min + delta) < s_max - s_min := by
+  omega
 
 /-- Theorem 107 (EF21-DiLoCo Multi-Step Telescoping Sum Conservation,
-    `arXiv:2508.15706`, Seide et al. / Richtarik et al.):
+    `arXiv:2106.05203`, `arXiv:2508.15706`, Richtarik et al.):
     Across consecutive outer steps where `c1 + r1 = g1` and `c2 + r2 = g2 + r1` (with unit
     decay `gamma = 1`), the sum of transmitted updates `c1 + c2` plus the terminal residual
     `r2` equals the exact sum of raw pseudo-gradients `g1 + g2`. -/
@@ -1591,16 +1598,19 @@ theorem looped_moe_tbptt_gradient_memory_bound
     k_bptt * act_bytes < loop_steps * act_bytes := by
   exact Nat.mul_lt_mul_of_pos_right h_window h_act
 
-/-- Theorem 109 (FoMoE Ghost-Expert Skip-Token Zero Remote RPC Invariant,
-    `arXiv:2606.19025`, `pmerolla/fomoe`):
-    When a partial-replica worker holds `local_experts < total_experts` in VRAM and drops
-    all `total_experts - local_experts` Ghost-Expert routing assignments locally via
-    `Skip-Token`, synchronous remote FFN RPC count (`0`) is strictly below the ghost count. -/
+/-- Theorem 109 (FoMoE Ghost-Expert Skip-Token Local Compute & RPC Reduction,
+    `arXiv:2606.19025`):
+    When `total_assignments = local_assignments + ghost_assignments` with `0 < ghost_assignments`
+    and `0 < flop_per_assignment`, dropping Ghost-Expert slots locally via `Skip-Token` strictly
+    reduces executed expert FFN FLOPs (`local_assignments * flop < total_assignments * flop`). -/
 theorem fomoe_ghost_skip_token_zero_remote_rpc
-    (local_experts total_experts : Nat)
-    (h_partial : local_experts < total_experts) :
-    0 < total_experts - local_experts := by
-  omega
+    (local_assignments ghost_assignments total_assignments flop_per_assignment : Nat)
+    (h_part : local_assignments + ghost_assignments = total_assignments)
+    (h_ghost : 0 < ghost_assignments)
+    (h_flop : 0 < flop_per_assignment) :
+    local_assignments * flop_per_assignment < total_assignments * flop_per_assignment := by
+  have h_lt : local_assignments < total_assignments := by omega
+  exact Nat.mul_lt_mul_of_pos_right h_lt h_flop
 
 /-- Theorem 110 (TSVLoCo Orthogonal Procrustes Subspace Rank Bound,
     `arXiv:2607.03011`, `arXiv:2412.00081`, `shoroi/isoloco`):
@@ -1613,7 +1623,7 @@ theorem tsv_procrustes_subspace_rank_bound
   exact Nat.mul_div_le min_dim num_workers
 
 /-- Theorem 111 (Skip-Attention Speculative Prefetch + Async DMA Zero Exposed Stall,
-    `pmerolla/fomoe`, `learning-at-home/hivemind`):
+    `pmerolla/fomoe`, `learning-at-home/hivemind`, `arXiv:2002.04013`):
     When pre-attention router prediction latency `t_pred` plus PCIe DMA transfer time
     `t_dma` fits inside self-attention compute `t_attn` (`t_pred + t_dma <= t_attn`),
     exposed expert swap stall is identically zero. -/
@@ -1624,15 +1634,17 @@ theorem skip_attention_dma_overlap_zero_stall_budget
   omega
 
 /-- Theorem 112 (Non-Monetary Compute-Reciprocity Charter & Monotonic Priority Credits):
-    Fiat/crypto financial payout is identically `0`, while reciprocal swarm compute
-    allocation credits scale strictly monotonically with verified useful-work units. -/
+    Under `fiat_payout_per_unit = 0` and `0 < credit_rate`, any work volume `units_high`
+    yields `0` fiat payout (`units_high * fiat_payout_per_unit = 0`), while reciprocal
+    compute credits scale strictly monotonically (`units_low * credit_rate < units_high * credit_rate`). -/
 theorem non_monetary_compute_reciprocity_zero_fiat_invariant
-    (units_low units_high credit_rate : Nat)
+    (units_low units_high fiat_payout_per_unit credit_rate : Nat)
+    (h_zero_fiat : fiat_payout_per_unit = 0)
     (h_work : units_low < units_high)
     (h_rate : 0 < credit_rate) :
-    0 = 0 ∧ units_low * credit_rate < units_high * credit_rate := by
+    units_high * fiat_payout_per_unit = 0 ∧ units_low * credit_rate < units_high * credit_rate := by
   constructor
-  · rfl
+  · simp [h_zero_fiat]
   · exact Nat.mul_lt_mul_of_pos_right h_work h_rate
 
 end Season12_OpenDiLoCoAndMissingMoEArchitectureHypotheses
