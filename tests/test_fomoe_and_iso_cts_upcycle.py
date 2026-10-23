@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 
 from hivemind.core.btm_upcycle import (
+    LoopedExpertBackbone,
     SparseMoEMLPBlock,
     UpcycledSwiGLUExpert,
     initialize_domain_branches,
@@ -268,3 +269,58 @@ def test_fomoe_local_expert_subset_validation() -> None:
         block.set_local_expert_subset([-1])
     with pytest.raises(ValueError, match="sequence of integers"):
         block.set_local_expert_subset(["bad"])  # type: ignore[list-item]
+
+
+@pytest.mark.parametrize("attention_merge_mode", ["iso_cts", "tsv"])
+@pytest.mark.parametrize("fixed_point_tol,executed", [(0.0, 4), (1e9, 1)])
+def test_looped_fomoe_replay_preserves_logical_ghost_counts(
+    attention_merge_mode: str, fixed_point_tol: float, executed: int,
+) -> None:
+    base_model, branch_states = _build_tiny_branches()
+    moe, _ = upcycle_branches_to_sparse_moe(
+        peft_or_base_model=base_model,
+        branch_lora_states=branch_states,
+        lora_rank_r=4,
+        lora_alpha=8,
+        top_k=2,
+        target_device=torch.device("cpu"),
+        target_dtype=torch.float32,
+        attention_merge_mode=attention_merge_mode,
+        branch_reputations={"Code": 1.0, "Math": 3.0},
+    )
+    moe.eval()
+    moe.set_local_expert_subset([0])
+    looped = LoopedExpertBackbone(
+        moe, num_prelude_layers=0, num_coda_layers=0, loop_steps=4,
+        per_step_lora_rank=2, fixed_point_tol=fixed_point_tol, truncated_bptt_steps=2,
+    )
+    ids = torch.tensor([[1, 2, 3, 4, 5]])
+    with torch.no_grad():
+        expected = looped(ids, labels=ids)
+    expected_aux = looped.last_aux_loss.detach().clone()
+    blocks = looped.get_moe_blocks()
+    expected_counts = [block.expert_token_counts.clone() for block in blocks]
+    # Each of two layers routes five tokens to both experts, one of them a ghost.
+    assert moe.ghost_skipped_assignments == 10 * executed
+    assert looped.last_mean_effective_steps == executed
+    looped.reset_routing_telemetry()
+    assert moe.ghost_skipped_assignments == 0
+
+    actual = looped(ids, labels=ids)
+    torch.testing.assert_close(actual.logits, expected.logits, rtol=0, atol=0)
+    torch.testing.assert_close(actual.loss, expected.loss, rtol=0, atol=0)
+    torch.testing.assert_close(looped.last_aux_loss, expected_aux, rtol=0, atol=0)
+    assert looped.last_mean_effective_steps == executed
+    assert [block.ghost_skipped_assignments for block in blocks] == [5 * executed] * 2
+    assert moe.ghost_skipped_assignments == 10 * executed
+    for block, counts in zip(blocks, expected_counts):
+        torch.testing.assert_close(block.expert_token_counts, counts, rtol=0, atol=0)
+    actual.loss.backward()
+    gradients = [adapter.up.weight.grad for adapter in looped.step_adapters]
+    assert any(g is not None and torch.isfinite(g).all() and g.abs().sum() > 0 for g in gradients)
+
+    looped(ids, labels=ids)
+    assert [block.ghost_skipped_assignments for block in blocks] == [10 * executed] * 2
+    assert moe.ghost_skipped_assignments == 20 * executed
+    looped.reset_routing_telemetry()
+    assert moe.ghost_skipped_assignments == 0
