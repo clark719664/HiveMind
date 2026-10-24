@@ -1,0 +1,47 @@
+{
+  "experiment_id": "E17-router-7b-rft",
+  "registered_utc": "2026-10-24T16:32:39Z",
+  "registered_before_run": true,
+  "title": "Gate-checked rejection-sampling fine-tuning (QLoRA) of the 7B coder tier served by the HiveMind OpenRouter on one Tesla T4",
+  "requested_by": "the user, 2026-10-24: after verified mode (option 1), retrain the served model to improve quality (option 2), using the VM's second data disk, a smaller model if needed",
+  "background": "On 257 held-out MBPP-sanitized tasks the served 7B scored 196/257 (76.3%) on the first attempt and 213/257 (82.9%) with the verify-and-repair loop (router run, 2026-10-24, sampling uncontrolled). E15 on a 1.5B model found one round of RFT worth +0.8 points (p=0.85, inconclusive) against +7.0 (p=4e-5) for the loop.",
+  "model": {
+    "base": "Qwen/Qwen2.5-Coder-7B-Instruct, loaded 4-bit nf4 for training (bitsandbytes), LoRA rank 16 alpha 32 on q,k,v,o,gate,up,down, fp16 compute",
+    "served_as": "the adapter converted to GGUF and attached to the Ollama base qwen2.5-coder:7b-instruct (Q4). Known mismatch: trained on an nf4 base, served on a Q4_K_M base. If the adapter cannot be loaded by Ollama the run reports BLOCKED at the serve stage and no quality claim is made.",
+    "smaller_model_fallback": "Qwen2.5-Coder-3B-Instruct (the coder-lite tier) if the 7B cannot be trained within the T4 memory or the data-disk space (41 GB free on /mnt/disks/disk-socrateai-local-1 at registration); the choice is recorded in the report, never silent"
+  },
+  "data": {
+    "train": "MBPP full train + validation, task_ids 511-974 (464 problems), used only for rejection sampling and fine-tuning",
+    "eval": "MBPP sanitized test (257 problems, task_ids disjoint from train, asserted by scripts/e15_data.assert_no_leakage). The same 257 as the baseline above. No HumanEval run.",
+    "judging": "scripts/e15_gate.py (stub audit + sandboxed tests) with ALL tests for every training-set acceptance and every final judgement"
+  },
+  "procedure": {
+    "B0": "served base, first attempt, Ollama native API, temperature 0, fixed seed (deterministic path; replaces the uncontrolled /v1 path of the router baseline)",
+    "B1": "B0 plus the verified-mode loop (scripts/hivemind_verified.py policy: visible-test gate, up to 3 repairs)",
+    "sampling": "8 samples per train problem from the served base, temperature 0.8, top_p 0.95; keep at most 2 distinct accepted solutions per problem",
+    "train": "3 epochs, learning rate 1e-4 cosine, warmup 10 steps, effective batch 16, max sequence 768, assistant-token loss, one seed",
+    "T0": "tuned model, first attempt, same deterministic path as B0",
+    "T1": "tuned model plus the same loop as B1"
+  },
+  "hypotheses": {
+    "H17a": "tuning improves the first attempt: T0 - B0 >= +3.0 points with exact two-sided McNemar p < 0.05 -> supported; T0 - B0 < 0 with p < 0.05 -> refuted (fine-tuning hurts); otherwise inconclusive",
+    "H17b": "tuning improves the verified pipeline: T1 - B1 >= +2.0 points with exact McNemar p < 0.05 -> supported; same refuted/inconclusive rule",
+    "H17c": "the verified loop still helps the tuned model: T1 - T0 > 0 with p < 0.05 (descriptive, no consequence)"
+  },
+  "serving_rule": "the tuned model replaces the served coder tier only if H17a is supported AND scripts/verified_update_gate.decide (PR #152) returns ACCEPT on T versus B with no regression; otherwise the base stays served and the result is reported as is",
+  "controls": {
+    "gate_accepts_references": ">= 95% of the MBPP reference solutions of 100 train problems are ACCEPTED by the gate",
+    "stubs_rejected": "a planted stub is rejected by the gate",
+    "no_leakage": "assert_no_leakage passes on the 464/257 split",
+    "adapter_is_applied": "the tuned model's greedy output differs from the base's on at least 20 of 257 eval prompts; otherwise the adapter was not applied and the stage is reported FORCED/BLOCKED, not as a null result",
+    "determinism": "B0 run twice on the first 30 eval problems gives identical outputs; otherwise the comparison is declared noisy and only paired counts are reported",
+    "base_digest": "the Ollama digest of the base is recorded before sampling and before evaluation and must match"
+  },
+  "fail_fast": "stop (exit 3) if fewer than 150 of the 464 train problems yield one accepted sample; stop if the training stage would exceed 4 hours projected",
+  "operations": {
+    "gpu": "the live router producer is paused (heartbeat agent stopped) ONLY during the training stage and restarted afterwards; sampling and evaluation run alongside it on localhost Ollama. Nothing on the VM's data disk outside a new directory hivemind-train/ is created, changed or deleted; LeanMaster's and GWAYA's files are not touched."
+  },
+  "decision_consequences": "H17a supported and the serving rule met: tuned adapter is deployed behind the coder tier with the base kept as rollback. Not supported: the base stays; verified mode remains the recommended quality path; no further training rounds are justified by this run alone.",
+  "scope": "one model, one seed, one fine-tuning run, one benchmark (n=257), a sandbox that is not GWAYA's own bubblewrap oracle; differences are paired by problem and exclude training-seed variance; no claim beyond Python function synthesis on MBPP",
+  "non_monetary": "no PTS, HMT or $HIVE reward is attached to any part of this experiment"
+}

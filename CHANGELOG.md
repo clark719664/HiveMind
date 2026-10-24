@@ -5,6 +5,20 @@
 - `src/hivemind/core/btm_moe.py`: new `keyword_route` (whole-word keyword matching, abstain with `([], {})` when no keyword hits, ties by domain name, optional `min_weight` default 0.0), used by `Season3DomainExpertRegistry.route_domain_query` and `route_with_serving_experts`. Before: with no hit every domain scored 1.0 and the dict order decided, so five of seven probe prompts (python, cardiology, geography, a proof, a pandas traceback) went to Rust + Solidity; keywords matched inside longer words ("arc", "nat", "pub", "by").
 - **Contract change:** a prompt with no keyword hit returns `([], {})`; callers must use the base model. The existing property test now allows the empty result. No code in `src/` calls these functions outside the two modules.
 - Not fixed here: some registry keywords are ordinary English whole words (`by`, `require`, `contract`, `trial`, `proof`), so they can still fire; the labelled routing set must carry them as hard negatives. Patch written by the GWAYA session, read in full and applied; full suite 100% with no failures.
+## Unreleased — GWAYA Level B: sandbox-gated acceptance of LoRA / DiLoCo updates
+
+- `src/hivemind/swarm/verified_update_gate.py`: `decide` (exact paired McNemar gate on held-out sandbox outcomes: same tasks, minimum n, UNVERIFIED never a pass and too much of it blocks, net-loss and significant-regression rejection, optional required improvement, sealed receipt), `evaluate_tasks` (generator plus injected sandbox gate such as `e15_gate.gate`) and `gate_update`.
+- `docs/community/GWAYA_LEVEL_B_UPDATE_GATE.md`: rules, limits and use.
+- **No LoRA was trained or evaluated and no pass-rate number is claimed.** The gate is not yet wired into the DiLoCo merge or the E14 admission policies.
+- `tests/test_verified_update_gate.py`: 17 tests (exact-p closed forms, better/regressed/identical controls, UNVERIFIED-heavy refusal, Hypothesis properties, evaluator with a mocked sandbox, and one real `e15_gate` sandbox run when the host allows it). Mutation checks: scoring an unverified baseline as a fail, an unverified candidate as a pass, or switching off the net-loss rule each fail a test.
+## Unreleased — Improvements recorded from the live T4 runs
+
+- `scripts/hivemind_connect.py`: the OpenCode snippet now carries a model output limit (`limit.output` = the chosen max tokens) and a context hint, and explains how to turn tools off when a 7B model writes tool calls as text. The docs already claimed snippets set 2,048; the OpenCode one did not.
+- `docs/HIVEMIND_OPENROUTER.md`: new section "Lessons from the first live runs" (producer slots, reserve, tool calls, context, measured quality, determinism, adapters, disk, sandbox boundary).
+- `ROADMAP.md`: HM-S13-16 to HM-S13-20 (isolated verifier service, busy-producer handling, reserve sizing, routing defects reported by the GWAYA session, llama.cpp adapter serving).
+- New `docs/HIVEMIND_CONNECT_IDE.md`: base URL, key, model ids, per-editor settings (OpenCode, VS Code Continue/Cline, JetBrains, Zed, Aider, env), a table of what was tested live versus format-checked only, verified mode, and a troubleshooting table. Linked from the README, the OpenRouter doc and a new wiki page.
+- Portal (`/`): snippet tabs for OpenCode, Zed, JetBrains and env variables; Continue shows the current YAML format; OpenCode carries the output limit; no tab points at a tier that has no producer. A test checks every button has a snippet and the limit is present.
+- Nothing here changes the gateway's behaviour.
 
 ## Unreleased — Verified mode for coding requests (client side)
 
