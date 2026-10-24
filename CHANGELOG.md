@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — General OpenID Connect sign-in (after Google)
+
+- `src/hivemind/router/oidc_auth.py`: provider-agnostic ID-token verifier (`OidcProvider`, `OidcIdTokenVerifier`, `providers_from_json`); `google_auth.py` is now this engine with Google's settings (all 43 Google tests unchanged and passing).
+- `POST /v1/hivemind/register/oidc/{provider}` and public `GET /v1/hivemind/signin/providers`; `RouterStore.allow_identity_provider` reserves each provider's handle prefix (refused if a handle already uses it); `HIVEMIND_OIDC_PROVIDERS` in the Cloud Run server.
+- `tests/test_router_oidc.py` (13 tests). Mutation checks: turning off the issuer check, the verified-email rule, the per-store prefix reservation, or the provider lookup each makes a test fail.
+- Not done: Google itself still needs the owner's OAuth client id; `deploy.sh` does not forward `HIVEMIND_OIDC_PROVIDERS`; no live provider was exercised.
 ## Unreleased — moe-general (gpt-oss 20B) measured on a T4
 
 - `catalog.py`: `moe-general` minimum memory 16 GB to 15 GB, from a measurement (12,331 MiB resident on a T4, card otherwise empty); the catalog test now covers 14.9, 15.0 and 15.36 GB.

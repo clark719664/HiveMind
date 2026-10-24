@@ -17,6 +17,7 @@ import hashlib
 import hmac
 import json
 import math
+import re
 import secrets
 import sqlite3
 import threading
@@ -112,8 +113,9 @@ class DuplicateRequest(ValueError):
 
 # Handles of the form ``<provider>.<keyed hash>`` belong to identity-provider sign-ins; nobody can register one by hand,
 # so a Google account cannot be squatted by typing its handle into the open registration form.
-IDENTITY_PROVIDERS: tuple[str, ...] = ("google",)
+IDENTITY_PROVIDERS: tuple[str, ...] = ("google",)  # always reserved; a store can enable more with ``allow_identity_provider``
 RESERVED_HANDLE_PREFIXES: tuple[str, ...] = tuple(f"{provider}." for provider in IDENTITY_PROVIDERS)
+IDENTITY_PROVIDER_NAME_RE = re.compile(r"^[a-z][a-z0-9]{1,15}$")
 
 
 class ReservedHandle(ValueError):
@@ -204,6 +206,7 @@ class RouterStore:
         if not isinstance(secret, (bytes, bytearray)) or len(secret) < MIN_SECRET_BYTES:
             raise ValueError(f"secret must be at least {MIN_SECRET_BYTES} bytes")
         self._secret = bytes(secret)
+        self._identity_providers: set[str] = set(IDENTITY_PROVIDERS)
         self._lock = threading.Lock()
         target = ":memory:" if str(path) == ":memory:" else str(path)
         self._conn = sqlite3.connect(target, check_same_thread=False, isolation_level=None)
@@ -284,9 +287,23 @@ class RouterStore:
         if role not in ROLES:
             raise ValueError(f"role must be one of {ROLES}")
         normalised = normalise_identity(handle)
-        if normalised.startswith(RESERVED_HANDLE_PREFIXES):
+        if normalised.startswith(tuple(f"{provider}." for provider in sorted(self._identity_providers))):
             raise ReservedHandle(f"handle prefix is reserved: {normalised}")
         return self._create_account(normalised, role)
+
+    def allow_identity_provider(self, name: str) -> None:
+        """Enable sign-in through another OpenID Connect provider and reserve its handle prefix (``<name>.``) at once.
+
+        Call it before any handle can be registered under that prefix: an existing account already named ``<name>.x``
+        would be indistinguishable from a sign-in account.
+        """
+        if not IDENTITY_PROVIDER_NAME_RE.match(name):
+            raise ValueError("provider name must be 2-16 lowercase letters or digits, starting with a letter")
+        with self._tx() as conn:
+            clash = conn.execute("SELECT 1 FROM accounts WHERE handle LIKE ? LIMIT 1", (f"{name}.%",)).fetchone()
+        if clash is not None and name not in self._identity_providers:
+            raise ReservedHandle(f"an account already uses the handle prefix {name}.")
+        self._identity_providers.add(name)
 
     def sign_in_with_identity(self, provider: str, subject: str, role: str = "prosumer") -> tuple[str, str, bool]:
         """Create or log in the account that belongs to an identity-provider subject.
@@ -295,7 +312,7 @@ class RouterStore:
         opaque id is not stored in clear and cannot be guessed. A returning user keeps their account, balance and role;
         each sign-in issues a NEW key and the previous one stops working, which doubles as lost-key recovery.
         """
-        if provider not in IDENTITY_PROVIDERS:
+        if provider not in self._identity_providers:
             raise ValueError(f"unknown identity provider {provider!r}")
         if not isinstance(subject, str) or not subject or len(subject) > 255:
             raise ValueError("subject must be a non-empty string of at most 255 characters")
