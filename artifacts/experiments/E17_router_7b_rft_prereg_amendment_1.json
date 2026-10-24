@@ -17,5 +17,9 @@
     "serving rule (needs Level B ACCEPT)",
     "other controls"
   ],
-  "evidence": "adapter_is_applied mechanism verified beforehand on a 1.5B stand-in with a random LoRA: llama-server output changed with --lora and not without it (no quality claim from that probe)"
+  "evidence": "adapter_is_applied mechanism verified beforehand on a 1.5B stand-in with a random LoRA: llama-server output changed with --lora and not without it (no quality claim from that probe)",
+  "addendum_prompt_cache": {
+    "finding": "llama-server with cache_prompt on (its default) gave 5 of 30 non-identical repeated requests at temperature 0, seed 7, one slot; with cache_prompt false it gave 0 of 12 (a different, smaller sample, so this is evidence not proof).",
+    "rule": "all B and T evaluation requests set cache_prompt=false; the full determinism check (30 problems twice) is re-run and reported with the result; the earlier partial run (cache on, 18 problems) is discarded and not used."
+  }
 }

@@ -56,7 +56,7 @@ def main() -> int:
     def ask_for(model: str):
         def ask(messages):
             if args.backend == "llamacpp":
-                body = {"model": model, "messages": messages, "temperature": 0, "seed": 7, "max_tokens": 700}
+                body = {"model": model, "messages": messages, "temperature": 0, "seed": 7, "max_tokens": 700, "cache_prompt": False}  # a cached prefix changes the numerics of the next identical request
                 r = client.post(f"{args.ollama}/v1/chat/completions", json=body, timeout=600)
                 r.raise_for_status()
                 return r.json()["choices"][0]["message"]["content"]
