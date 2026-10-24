@@ -98,6 +98,10 @@ DATASET_POISON_TRIGGER_REGEX = re.compile(
 )
 
 
+# SwarmSecurityViolationError lives in hivemind.security._exceptions (torch-free) and is re-exported here.
+__all_exceptions__ = ("SwarmSecurityViolationError",)
+
+
 @dataclass
 class SwarmHardeningVerdict:
     """Structured audit result from a runtime GPU training or CAS data store security check."""

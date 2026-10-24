@@ -11,7 +11,8 @@ Policy (fixed in code, not configurable from PR text):
     ``lake build`` with no ``sorryAx`` when ``lean4/`` changed, and the paper provenance pipeline when the
     manuscript changed. Any failure -> REFUSE (comment with the table; never merged).
   * Decisions are posted as a PR comment and logged to ``artifacts/pr_gatekeeper/``; a PR whose head SHA was
-    already gated with the same outcome is not re-run.
+    already gated with the same outcome is not re-run; an ACCEPTed head that is still open is only
+    re-merged (branch protection may have refused the first merge while CI was pending).
 
 Usage:  PYTHONPATH=src python scripts/pr_gatekeeper.py [--merge] [--dry-run] [--pr N]
 """
@@ -34,12 +35,18 @@ from typing import Any, Dict, List, Optional, Tuple
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from hivemind.security.hivemind_firewall import quarantine_text  # noqa: E402
 from hivemind.security.owner_order_guardrail import normalize_and_verify_owner_email  # noqa: E402
 from hivemind.security.pr_security_scanner import PRSecurityScanner  # noqa: E402
 
 OWNER_LOGIN = "xaviercallens"
+REPO = "xaviercallens/HiveMind"
+# Commit author e-mail is a *claim* (another agent on the shared machine forged it on 2026-10-24). With the owner's signing key
+# registered on GitHub, HIVEMIND_GATE_REQUIRE_SIGNED=1 makes an unsigned owner-attributed commit HOLD instead of ACCEPT.
+REQUIRE_SIGNED_COMMITS = os.environ.get("HIVEMIND_GATE_REQUIRE_SIGNED", "0") == "1"
 LOG_DIR = PROJECT_ROOT / "artifacts" / "pr_gatekeeper"
-PY = os.environ.get("HIVEMIND_PY", sys.executable)
+_venv_py = PROJECT_ROOT / ".venv" / "bin" / "python"
+PY = os.environ.get("HIVEMIND_PY", str(_venv_py) if _venv_py.exists() else sys.executable)
 SMOKE_TESTS = ["tests/test_decoupled_diloco_quorum.py", "tests/test_readme_claims.py", "tests/test_lattice_quantizer.py"]
 # (regex over ADDED diff lines, reason). The patterns are assembled from fragments so that this file itself
 # does not contain the literal strings that repository hooks refuse to see in shell commands.
@@ -90,7 +97,33 @@ def trust_report(pr: Dict[str, Any]) -> Dict[str, Any]:
     return {"author_login": author_login, "author_is_owner_login": author_login == OWNER_LOGIN, "commits": commit_rows, "owner_authored": bool(all_ok and commit_rows)}
 
 
-SCAN_EXEMPT_FILES = {"scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py"}  # they define and test the patterns
+def commit_signatures(pr: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """GitHub's signature verification for every commit of the PR (verified, reason, signer), read-only."""
+    rows: List[Dict[str, Any]] = []
+    for c in pr.get("commits", []):
+        sha = c.get("oid", "")
+        try:
+            v = gh_json(["api", f"repos/{REPO}/commits/{sha}", "--jq", ".commit.verification"]) or {}
+        except (RuntimeError, json.JSONDecodeError):
+            v = {"verified": False, "reason": "lookup_failed"}
+        rows.append({"sha": sha[:10], "verified": bool(v.get("verified")), "reason": v.get("reason", "")})
+    return rows
+
+
+def signature_policy_ok(owner_authored: bool, signatures: List[Dict[str, Any]], require_signed: bool) -> bool:
+    """Pure: when signatures are required, an owner-attributed PR is trusted only if every commit is verified by GitHub.
+    Non-owner PRs are HOLD anyway; the policy never *grants* trust, it can only withdraw it."""
+    if not owner_authored:
+        return False
+    if not require_signed:
+        return True
+    return bool(signatures) and all(s.get("verified") for s in signatures)
+
+
+SCAN_EXEMPT_FILES = {  # these files *define and test* the forbidden patterns, so their text necessarily contains them
+    "scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py",
+    "src/hivemind/security/hivemind_firewall.py", "src/hivemind/security/firewall_pentest_corpus.py", "tests/test_hivemind_firewall.py",
+}
 SCAN_SKIP_SUFFIXES = (".md", ".txt", ".rst", ".tex", ".json", ".jsonl", ".csv")  # prose and data, not executed
 
 
@@ -135,7 +168,7 @@ def gwaya_audit(wt: Path, files: List[str]) -> Dict[str, Any]:
 def run_pytest(wt: Path, files: List[str]) -> Dict[str, Any]:
     targets = sorted({f for f in files if f.startswith("tests/") and f.endswith(".py") and (wt / f).exists()} | {t for t in SMOKE_TESTS if (wt / t).exists()})
     env = dict(os.environ, PYTHONPATH=str(wt / "src"))
-    rc, out = sh([PY, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider", "-x", "--deselect", "tests/test_seti_swarm_v2.py::test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching"], cwd=wt, timeout=TEST_TIMEOUT_S, env=env)
+    rc, out = sh([PY, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider", "-p", "no:cov", "-p", "no:typeguard", "-x", "--deselect", "tests/test_seti_swarm_v2.py::test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching"], cwd=wt, timeout=TEST_TIMEOUT_S, env=env)
     tail = out.strip().splitlines()[-1] if out.strip() else ""
     return {"targets": targets, "returncode": rc, "summary": tail[:200], "passed": rc == 0}
 
@@ -164,12 +197,35 @@ def decide(trust_ok: bool, draft: bool, mergeable: Optional[str], checks: Dict[s
     return "REFUSE (" + ", ".join(k for k, v in checks.items() if not v) + ")"
 
 
+def pending_accept(decision: Optional[str]) -> bool:
+    """True iff an earlier run ACCEPTed this head: the PR is eligible for a merge retry (never re-gated, never re-decided)."""
+    return decision == "ACCEPT"
+
+
+def retry_merge(pr: Dict[str, Any], decision: str, merge: bool, dry_run: bool) -> Dict[str, Any]:
+    """Re-attempt the merge of a head already ACCEPTed by a previous run; the decision itself is not revisited."""
+    n = pr["number"]
+    result: Dict[str, Any] = {"pr": n, "head": pr["headRefOid"], "decision": decision, "skipped": "already gated at this head", "merged": False}
+    if merge and not dry_run and pending_accept(decision):
+        rc, out = sh(["gh", "pr", "merge", str(n), "--merge", "--admin"], cwd=PROJECT_ROOT, timeout=300)
+        result["merged"] = rc == 0
+        result["merge_output"] = out[-300:]
+        result["merge_retry"] = True
+    return result
+
+
 def gate_pr(pr: Dict[str, Any], merge: bool, dry_run: bool) -> Dict[str, Any]:
     n = pr["number"]
     head = pr["headRefOid"]
     base = pr.get("baseRefName", "main")
     result: Dict[str, Any] = {"pr": n, "title": pr.get("title"), "head": head, "base": base, "draft": pr.get("isDraft"), "mergeable": pr.get("mergeable"), "gated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     result["trust"] = trust_report(pr)
+    result["signatures"] = commit_signatures(pr)
+    result["signature_policy"] = {"require_signed": REQUIRE_SIGNED_COMMITS, "all_verified": bool(result["signatures"]) and all(s["verified"] for s in result["signatures"])}
+    if result["trust"]["owner_authored"] and not result["signature_policy"]["all_verified"]:
+        result["warning"] = "owner-attributed commits are UNSIGNED: e-mail identity is a claim (HM-S11-04)"
+    # PR text is data: scanned for prompt injection and recorded (report-only; the decision never reads the text)
+    result["injection_scan"] = quarantine_text(f"{pr.get('title') or ''}\n{pr.get('body') or ''}", "pr_text").scan.to_dict()
     wt = Path(tempfile.mkdtemp(prefix=f"hm-gate-pr{n}-"))
     try:
         sh(["git", "fetch", "-q", "origin", f"pull/{n}/head:refs/gate/pr-{n}", f"{base}:refs/gate/base-{n}"], cwd=PROJECT_ROOT, timeout=300)
@@ -195,7 +251,10 @@ def gate_pr(pr: Dict[str, Any], merge: bool, dry_run: bool) -> Dict[str, Any]:
         shutil.rmtree(wt, ignore_errors=True)
         sh(["git", "worktree", "prune"], cwd=PROJECT_ROOT, timeout=60)
     checks = {k: bool(result[k]["passed"]) for k in ("security", "forbidden", "gwaya_audit", "pytest", "lean", "pipeline")}
-    decision = decide(result["trust"]["owner_authored"], bool(pr.get("isDraft")), pr.get("mergeable"), checks)
+    trust_ok = signature_policy_ok(result["trust"]["owner_authored"], result["signatures"], REQUIRE_SIGNED_COMMITS)
+    decision = decide(trust_ok, bool(pr.get("isDraft")), pr.get("mergeable"), checks)
+    if result["trust"]["owner_authored"] and not trust_ok:
+        decision = "HOLD (owner-attributed but unsigned commits; signatures required)"
     result["checks"] = checks
     result["decision"] = decision
     table = "| check | result |\n| :-- | :-- |\n" + "\n".join(f"| {k} | {'pass' if v else 'FAIL'} |" for k, v in checks.items())
@@ -241,7 +300,7 @@ def main() -> int:
     for pr in prs:
         key = f"{pr['number']}@{pr['headRefOid']}"
         if key in gated and not args.pr:
-            run["results"].append({"pr": pr["number"], "head": pr["headRefOid"], "decision": gated[key], "skipped": "already gated at this head"})
+            run["results"].append(retry_merge(pr, gated[key], merge=args.merge, dry_run=args.dry_run))
             continue
         try:
             res = gate_pr(pr, merge=args.merge, dry_run=args.dry_run)

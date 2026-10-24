@@ -1,4 +1,8 @@
-"""Shared security exceptions without optional GPU runtime dependencies."""
+"""Security exceptions shared by the owner-order guardrail and the GPU runtime hardening.
+
+Kept free of torch so that the PR security scanner (and the lightweight CI that runs it) can import the
+owner-order checks without the GPU runtime. Found by PR #118 (clark719664), 2026-10-24.
+"""
 
 from __future__ import annotations
 
