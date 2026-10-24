@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — moe-general (gpt-oss 20B) measured on a T4
+
+- `catalog.py`: `moe-general` minimum memory 16 GB to 15 GB, from a measurement (12,331 MiB resident on a T4, card otherwise empty); the catalog test now covers 14.9, 15.0 and 15.36 GB.
+- `gateway.py`: `reasoning_effort` is forwarded when it is exactly `low`, `medium` or `high` (any other value is dropped), so consumers can limit a reasoning model's thinking. A test caught an unhashable-value crash in the first version; fixed and covered.
+- `docs/HIVEMIND_OPENROUTER.md`: how to serve the tier on a 15 GB card, with the measured memory, speed and the six-task result (n = 6). Not yet served live: it needs the T4, which is being used for E17 training.
+
 ## Unreleased — GWAYA Level B: sandbox-gated acceptance of LoRA / DiLoCo updates
 
 - `src/hivemind/swarm/verified_update_gate.py`: `decide` (exact paired McNemar gate on held-out sandbox outcomes: same tasks, minimum n, UNVERIFIED never a pass and too much of it blocks, net-loss and significant-regression rejection, optional required improvement, sealed receipt), `evaluate_tasks` (generator plus injected sandbox gate such as `e15_gate.gate`) and `gate_update`.
