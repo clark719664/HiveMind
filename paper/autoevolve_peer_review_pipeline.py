@@ -258,6 +258,598 @@ AUDIT_DISCLOSURE = (
 )
 
 
+# ---------------------------------------------------------------------------------------------
+# v3.7.0 second batch: E13, E14, E15, E16 and the GWAYA-Lite deployment (PROV-49 onward).
+# Every token is built from a receipt; a missing receipt appends a failed check (never a silent pass).
+# Values the receipts do not store (E13c retention, E14 and E15 hypothesis statuses) are computed here
+# by the registered rule and the check asserts the status word that the text prints.
+# ---------------------------------------------------------------------------------------------
+_T_DF2 = 4.302652729911275
+
+
+def _mean_hw(xs: List[float]) -> tuple[float, float]:
+    import statistics as _st
+
+    m = sum(xs) / len(xs)
+    return m, _T_DF2 * _st.stdev(xs) / len(xs) ** 0.5
+
+
+def _status_pos(mean: float, hw: float) -> str:
+    """Registered H14 rule: supported if the df=2 interval is above 0, refuted if below, else inconclusive."""
+    if mean - hw > 0:
+        return "supported"
+    if mean + hw < 0:
+        return "refuted"
+    return "inconclusive"
+
+
+def _pm(m: float, h: float, d: int = 3, sign: bool = True) -> str:
+    return f"${m:+.{d}f} \\pm {h:.{d}f}$" if sign else f"${m:.{d}f} \\pm {h:.{d}f}$"
+
+
+def _n(x: int) -> str:
+    """Integer with LaTeX thousands separators, as printed in the text: 329{,}948."""
+    return f"{x:,}".replace(",", "{,}")
+
+
+def _pval(p: float) -> str:
+    """p-value as printed in the E15/E16 tables: '$p=4.0$e$-05$' style below 0.01, else two decimals."""
+    if p >= 0.01:
+        return "1.0" if p == 1.0 else f"{p:.2f}"
+    mant, exp = f"{p:.1e}".split("e")
+    return f"{mant}e{exp}"
+
+
+def _provenance_e13_e16(tex_text: str, checks: List[Dict[str, Any]]) -> None:
+    exp_dir = PROJECT_ROOT / "artifacts" / "experiments"
+    missing: List[str] = []
+
+    def _jl(rel: str, base: Path = exp_dir) -> Dict[str, Any]:
+        p = base / rel
+        if not p.exists():
+            missing.append(str(p.relative_to(PROJECT_ROOT)))
+            return {}
+        return json.loads(p.read_text(encoding="utf-8"))
+
+    def _all(check_id: str, name: str, tokens: List[str], src: str) -> None:
+        checks.append(
+            {
+                "check_id": check_id,
+                "metric_name": name,
+                "expected_tokens": tokens,
+                "source_artifact": src,
+                "match_rule": "all tokens must occur",
+                "passed": bool(tokens) and all(t in tex_text for t in tokens),
+            }
+        )
+
+    def _flag(cond: bool, label: str) -> List[str]:
+        """No token when the receipt agrees with what the text prints; an unmatchable token when it does not."""
+        return [] if cond else [f"RECEIPT-DISAGREES:{label}"]
+
+    r13 = _jl("E13_swarm_local_report.json")
+    p13 = _jl("E13_swarm_local_predictions.json")
+    rot = _jl("E13_swarm_local_report_rotstraggle.json")
+    m2 = _jl("E13_swarm_local_report_m2proc.json")
+    r6 = _jl("E13_swarm_local_report_m6.json")
+    p6 = _jl("E13_swarm_local_predictions_m6.json")
+    bench = _jl("E13_granite_step_bench.json")
+    am = {i: _jl(f"E13_swarm_local_prereg_amendment_{i}.json") for i in range(1, 7)}
+    raw_g1 = _jl("E13_swarm_local_raw_granite1b.json")
+    raw_g3 = _jl("E13_swarm_local_raw_granite3b.json")
+    e14q = _jl("E14_report_qwen0.5b.json")
+    e14g = _jl("E14_report_granite1b.json")
+    e15 = _jl("E15_gwaya_rft_report.json")
+    h14 = _jl("E14_hypotheses.json")
+    h15 = _jl("E15_hypotheses.json")
+    e16 = _jl("E16_gwaya_lite_t4_report.json")
+    e16pre = _jl("E16_gwaya_lite_t4_prereg.json")
+    live = _jl("gwaya_lite_live_check.json", PROJECT_ROOT / "artifacts")
+    prov_md_p = PROJECT_ROOT / "third_party" / "gwaya" / "PROVENANCE.md"
+    prov_md = prov_md_p.read_text(encoding="utf-8") if prov_md_p.exists() else ""
+    if not prov_md:
+        missing.append("third_party/gwaya/PROVENANCE.md")
+
+    if missing:
+        checks.append(
+            {
+                "check_id": "PROV-49",
+                "metric_name": "E13-E16 receipts present (a missing receipt fails the lock)",
+                "expected_tokens": sorted(set(missing)),
+                "source_artifact": "artifacts/experiments/",
+                "passed": False,
+            }
+        )
+        return
+
+    s13 = "artifacts/experiments/E13_swarm_local_report.json + E13_swarm_local_predictions.json"
+    pm = p13["models"]
+    cq, cg1, cg3 = r13["models"]["qwen0.5b"], r13["models"]["granite1b"], r13["models"]["granite3b"]
+    q_p13b, g_p13b, g3_p13b = pm["qwen0.5b"]["P13b"], pm["granite1b"]["P13b"], pm["granite3b"]["P13b"]
+
+    def _rho(m: float, h: float) -> str:
+        return f"${m:.2f} \\pm {h:.2f}$"
+
+    def _seeds(d: Dict[str, float]) -> str:
+        return ", ".join(f"${v:+.2f}$" if v >= 0 else f"${v:.2f}$" for v in d.values())
+
+    # PROV-49: registered P13b (qwen0.5b, granite1b, granite3b point)
+    _all(
+        "PROV-49",
+        "E13 P13b: retention rho mean +- half-width and per seed (qwen0.5b, granite1b), granite1b upper bound, granite3b n=1; statuses refuted/refuted/descriptive",
+        [
+            f"$\\rho = {q_p13b['mean']:.2f} \\pm {q_p13b['half_width']:.2f}$ (per seed {_seeds(q_p13b['per_seed'])})",
+            f"$\\rho = {g_p13b['mean']:.2f} \\pm {g_p13b['half_width']:.2f}$ (per seed {_seeds(g_p13b['per_seed'])}; the upper bound of the interval, ${g_p13b['interval'][1]:+.3f}$,",
+            f"${g3_p13b['per_seed']['1']:.2f}$ (n=1)",
+            f"{_rho(q_p13b['mean'], q_p13b['half_width'])} & \\textbf{{refuted}}",
+            f"{_rho(g_p13b['mean'], g_p13b['half_width'])} & \\textbf{{refuted}}",
+        ]
+        + _flag(q_p13b["status"] == "refuted" and g_p13b["status"] == "refuted" and g3_p13b["status"].startswith("descriptive"), "P13b status words")
+        + _flag(g_p13b["interval"][1] < 0.5 and q_p13b["interval"][1] < 0.5 and q_p13b["bar"] == 0.5, "P13b refuted by the 0.5 bar"),
+        s13,
+    )
+
+    # PROV-50: all-on swarm ends above its starting loss in 5 of 6 seed runs; per-domain GSM8K starvation
+    above = sum(
+        1
+        for c in (cq, cg1)
+        for f, i in zip(c["cells"]["S2"]["final_loss_per_seed"], c["cells"]["S2"]["initial_loss_per_seed"])
+        if f > i
+    )
+    gq = cq["cells"]["S2"]["per_domain_final_mean"]["gsm8k"]
+    g0 = cq["cells"]["S0"]["per_domain_final_mean"]["gsm8k"]
+    _all(
+        "PROV-50",
+        "E13 all-on swarm above its starting loss in 5 of 6 seed runs (computed from final/initial losses); GSM8K domain 1.60 vs 1.23 (S2 vs S0)",
+        [f"in {above} of the 6 seed runs", f"its held-out loss ending at ${gq:.2f}$ against ${g0:.2f}$ for S0"],
+        "artifacts/experiments/E13_swarm_local_report.json",
+    )
+
+    # PROV-51: P13c wire cost
+    rat = [pm[k]["P13c"]["upload_ratio_actual"] for k in ("qwen0.5b", "granite1b", "granite3b")] + [p6["models"]["qwen0.5b"]["P13c"]["upload_ratio_actual"]]
+    ide = [pm[k]["P13c"]["upload_ratio_ideal"] for k in ("qwen0.5b", "granite1b", "granite3b")]
+    s2c = [r13["models"][k]["cells"]["S2"] for k in ("qwen0.5b", "granite1b", "granite3b")]
+    rates = [c["mean_measured_rate_bits_per_dim"] for c in s2c]
+    comp = [c["wire"]["compression_ratio_actual"] for c in s2c]
+    _all(
+        "PROV-51",
+        "E13 P13c: upload 9.1% of raw (all models and the six-domain run), ideal 6.2%, bar 30%, 11.0x measured reduction, codec rate 1.99-2.00, no int16",
+        [f"are ${100 * rat[0]:.1f}\\,\\%$ of the raw fp32 deltas", f"ideal entropy-coded ratio of ${100 * ide[0]:.1f}\\,\\%$", f"a measured ${comp[0]:.1f}\\times$ reduction"]
+        + [f"${r:.3f}$" for r in rat]
+        + [f"${min(rates):.2f}$ to ${max(rates):.2f}$ bit/dim"]
+        + _flag(all(pm[k]["P13c"]["status"] == "supported" and pm[k]["P13c"]["int16_posts_total"] == 0 for k in pm) and pm["qwen0.5b"]["P13c"]["bar"] == 0.3, "P13c supported, bar 0.30, no int16")
+        + _flag(len({f"{100 * x:.1f}" for x in rat}) == 1 and len({f"{100 * x:.1f}" for x in ide}) == 1, "ratios round to one value"),
+        s13,
+    )
+
+    # PROV-52: P13a identity and learning control
+    ident = [pm[k]["P13a"] for k in pm] + [p6["models"]["qwen0.5b"]["P13a"]]
+    m2c = m2["models"]["qwen0.5b"]["controls"]["s1_equals_s0"]["rows"][0]
+    s0f = cq["cells"]["S0"]["final_loss_per_seed"]
+    _all(
+        "PROV-52",
+        "E13 P13a: S1 == S0 with max|diff| 0.0 (tolerance 1e-6) in every model and in the six-domain and M=2 runs; S0 learns 2.365 -> 2.231..2.233",
+        [f"from ${cq['cells']['S0']['initial_loss_per_seed'][0]:.3f}$ to between ${min(s0f):.3f}$ and ${max(s0f):.3f}$", "$\\max|\\Delta| = 0.0$", "$\\max|\\Delta|=0.0$"]
+        + _flag(
+            all(x["status"] == "supported" and all(r["max_abs_diff"] == 0.0 and r["bit_identical"] and r["tolerance"] == 1e-06 for r in x["rows"]) for x in ident)
+            and all(x["rows"][0]["identity_noise_floor"]["max_abs_diff"] == 0.0 for x in ident)
+            and m2c["max_abs_diff"] == 0.0 and m2c["bit_identical"],
+            "identity control",
+        )
+        + _flag(len(pm["qwen0.5b"]["P13a"]["rows"]) == 3 and len(pm["granite1b"]["P13a"]["rows"]) == 3 and len(pm["granite3b"]["P13a"]["rows"]) == 1, "3/3/1 identity seeds")
+        + _flag(r13["models"]["qwen0.5b"]["controls_all_passed"] and r13["models"]["granite1b"]["controls_all_passed"] and r13["models"]["granite3b"]["controls_all_passed"], "registered controls pass"),
+        s13 + "; E13_swarm_local_report_m2proc.json; E13_swarm_local_predictions_m6.json",
+    )
+
+    # PROV-53: Table tab:e13 rows
+    def _gain(p: Dict[str, Any]) -> str:
+        v = list(p["S0_improvement_per_seed"].values())
+        return f"${min(v):.3f}$--${max(v):.3f}$"
+
+    pv_q, pv_g, pv_m6 = cq["paired_vs_S0"]["S2"], cg1["paired_vs_S0"]["S2"], r6["models"]["qwen0.5b"]["paired_vs_S0"]["S2"]
+    g3d = cg3["cells"]["S2"]["final_loss_per_seed"][0] - cg3["cells"]["S0"]["final_loss_per_seed"][0]
+    rq = rot["models"]["qwen0.5b"]["cells"]
+    rot_ret = [(a - b) / (a - c) for a, b, c in zip(rq["S0"]["initial_loss_per_seed"], rq["S2"]["final_loss_per_seed"], rq["S0"]["final_loss_per_seed"])]
+    rot_m, rot_h = _mean_hw(rot_ret)
+    rot_s2s0 = rot["models"]["qwen0.5b"]["paired_vs_S0"]["S2"]
+    p6q = p6["models"]["qwen0.5b"]
+    _all(
+        "PROV-53",
+        "E13 Table tab:e13 rows: S0 gain range, S2-S0 final loss, retention, status, upload ratio for the five runs",
+        [
+            f"{_gain(pm['qwen0.5b'])} & {_pm(pv_q['mean'], pv_q['ci95'])} & {_rho(q_p13b['mean'], q_p13b['half_width'])} & \\textbf{{refuted}} & ${rat[0]:.3f}$",
+            f"{_gain(pm['granite1b'])} & {_pm(pv_g['mean'], pv_g['ci95'])} & {_rho(g_p13b['mean'], g_p13b['half_width'])} & \\textbf{{refuted}} & ${rat[1]:.3f}$",
+            f"${list(pm['granite3b']['S0_improvement_per_seed'].values())[0]:.3f}$ & ${g3d:+.3f}$ (n=1) & ${g3_p13b['per_seed']['1']:.2f}$ (n=1) & descriptive & ${rat[2]:.3f}$",
+            f"{_gain(pm['qwen0.5b'])} & {_pm(rot_s2s0['mean'], rot_s2s0['ci95'])} & {_rho(rot_m, rot_h)} & exploratory",
+            f"{_gain(p6q)} & {_pm(pv_m6['mean'], pv_m6['ci95'])} & {_rho(p6q['P13b']['mean'], p6q['P13b']['half_width'])} & inconclusive & ${rat[3]:.3f}$",
+        ]
+        + _flag(p6q["P13b"]["status"] == "inconclusive" and g3_p13b["status"].startswith("descriptive"), "E13d inconclusive / 3B descriptive"),
+        s13 + "; E13_swarm_local_report_rotstraggle.json; E13_swarm_local_report_m6.json; E13_swarm_local_predictions_m6.json",
+    )
+
+    # PROV-54: P13d mechanism table
+    d = pm["qwen0.5b"]["P13d"]
+    pq = cq["paired_vs_S0"]
+    s2f = cq["cells"]["S2"]["final_loss_per_seed"]
+    s0q = cq["cells"]["S0"]["final_loss_per_seed"]
+    i0q = cq["cells"]["S0"]["initial_loss_per_seed"]
+
+    def _ret(cell: str) -> List[float]:
+        f = cq["cells"][cell]["final_loss_per_seed"]
+        return [(i0q[i] - f[i]) / (i0q[i] - s0q[i]) for i in range(3)]
+
+    def _paired(cell: str) -> tuple[float, float]:
+        f = cq["cells"][cell]["final_loss_per_seed"]
+        return _mean_hw([s2f[i] - f[i] for i in range(3)])
+
+    rows54 = []
+    for key, cell in (("S3", "S3"), ("S4", "S4"), ("S5", "S5")):
+        pdm, pdh = _paired(cell)
+        rows54.append(
+            f"${d[key]['mean_retention']:.2f}$ & {_pm(pq[cell]['mean'], pq[cell]['ci95'])} & {_pm(pdm, pdh)} & ${d[key]['admitted_fraction_mean']:.2f}$ & ${d[key]['late_discards_total']}$"
+        )
+    _all(
+        "PROV-54",
+        "E13 P13d table: retention, final-loss minus S0, paired S2 minus cell (computed from per-seed losses), admitted fraction, late discards for S3/S4/S5; S2 admitted 0.50 and 27 late",
+        rows54
+        + [f"${pm['qwen0.5b']['P13b']['mean']:.2f}$ & {_pm(pq['S2']['mean'], pq['S2']['ci95'])} & -- & ${cq['cells']['S2']['admitted_fraction_mean']:.2f}$ & ${cq['cells']['S2']['late_discards_total']}$"]
+        + [f"keeps ${d['S5']['mean_retention']:.2f}$ of the synchronous improvement", f"({_pm(_paired('S4')[0], _paired('S4')[1])}, an interval that only just excludes zero)"]
+        + _flag(_paired("S4")[0] - _paired("S4")[1] > 0 and _paired("S3")[0] - _paired("S3")[1] < 0, "S4 interval excludes 0, S3 includes 0")
+        + _flag(abs(sum(_ret("S5")) / 3 - d["S5"]["mean_retention"]) < 1e-9, "S5 retention recomputed"),
+        s13,
+    )
+
+    # PROV-55: E13c rotating straggler
+    _all(
+        "PROV-55",
+        "E13c rotating straggler: retention computed by the registered formula (0.40 +- 0.30; per seed 0.53, 0.29, 0.38); S2-S0 +0.080 +- 0.042 vs +0.140 +- 0.044",
+        [
+            f"is ${rot_m:.2f} \\pm {rot_h:.2f}$ (per seed {', '.join(f'${v:.2f}$' for v in rot_ret)})",
+            f"with the final loss {_pm(rot_s2s0['mean'], rot_s2s0['ci95'])} above S0 instead of {_pm(pv_q['mean'], pv_q['ci95'])}",
+        ]
+        + _flag(am[3]["status"].startswith("exploratory diagnostic") and am[3]["design"]["straggle"].startswith("3:1:2.0;2:3:2.0;1:5:2.0"), "amendment 3 design (rotation 3,2,1 in rounds 1,3,5)")
+        + _flag(rot["models"]["qwen0.5b"]["controls"]["codec_rate_on_target"]["passed"] and rot["controls_all_passed"] is False and rot["models"]["qwen0.5b"]["controls"]["s1_equals_s0"]["passed"] is None, "E13c control flag is null-induced"),
+        "artifacts/experiments/E13_swarm_local_report_rotstraggle.json; E13_swarm_local_prereg_amendment_3.json",
+    )
+
+    # PROV-56: E13d six domains
+    pr6 = p6q["P13b"]
+    s5r = p6q["P13d"]["S5"]
+    pv6_s5 = r6["models"]["qwen0.5b"]["paired_vs_S0"]["S5"]
+    s5ret = _mean_hw([(a - b) / (a - c) for a, b, c in zip(r6["models"]["qwen0.5b"]["cells"]["S0"]["initial_loss_per_seed"], r6["models"]["qwen0.5b"]["cells"]["S5"]["final_loss_per_seed"], r6["models"]["qwen0.5b"]["cells"]["S0"]["final_loss_per_seed"])])
+    _all(
+        "PROV-56",
+        "E13d six domains: P13b inconclusive 0.29 +- 0.39 (per seed, interval), no-quorum retention 0.94 +- 0.07 and +0.007 +- 0.008 from S0; M=6, K=3",
+        [
+            f"$\\rho = {pr6['mean']:.2f} \\pm {pr6['half_width']:.2f}$ (per seed {', '.join(f'${v:.2f}$' for v in pr6['per_seed'].values())}; interval $[{pr6['interval'][0]:.2f}, {pr6['interval'][1]:+.2f}]$",
+            f"($\\rho = {s5ret[0]:.2f} \\pm {s5ret[1]:.2f}$)",
+            f"{_pm(pv6_s5['mean'], pv6_s5['ci95'])} nats from S0",
+        ]
+        + _flag(pr6["status"] == "inconclusive" and pr6["interval"][0] < 0.5 < pr6["interval"][1], "E13d interval straddles 0.5")
+        + _flag(pv6_s5["ci_excludes_0"] is False and abs(s5r["mean_retention"] - s5ret[0]) < 1e-9, "E13d S5 interval includes zero")
+        + _flag(am[6]["design"]["workers"] == 6 and "ceil(6/2)=3" in am[6]["design"]["K"], "amendment 6 design M=6, K=3"),
+        "artifacts/experiments/E13_swarm_local_report_m6.json; E13_swarm_local_predictions_m6.json; E13_swarm_local_prereg_amendment_6.json",
+    )
+
+    # PROV-57: amendments 2, 4, 5 numbers and hosting preflight
+    pf = cq["hosting_fallback_cells"][0]["preflight"]
+    need_gib = pf["need_process_bytes"] / 2 ** 30
+    free_gib = pf["free_bytes"] / 2 ** 30
+    bm = {(b["model"], b["experts_impl"], b["grad_ckpt"]): b for b in bench["results"]}
+    gm = bm[("granite1b", "grouped_mm", False)]["sec_per_step_median"]
+    ge = bm[("granite1b", "eager", False)]["sec_per_step_median"]
+    gc = bm[("granite1b", "eager", True)]["sec_per_step_median"]
+    peak_gm = bm[("granite1b", "grouped_mm", False)]["peak_reserved_gib"]
+    a4, a5, a2 = am[4]["measured"], am[5]["waiver"], am[2]["observed"]
+    _all(
+        "PROV-57",
+        "E13 amendments: 20.03 vs 13.76 GiB preflight (receipt + amendment 2), Granite-1B abort 2.686 s/step / 3.09 h (amendment 4), step bench 0.78/1.45/2.54 s and 5.76 GiB, M=2 gate 0.0253 (amendment 5)",
+        [f"${need_gib:.2f}$\\,GiB against ${free_gib:.2f}$\\,GiB free", f"${gm:.2f}$\\,s per step against ${ge:.2f}$\\,s for \\texttt{{eager}} and ${gc:.2f}$\\,s", f"${peak_gm:.2f}$\\,GiB peak", "$2.686$\\,s per inner step", "projected $3.09$\\,h", "$0.0253$ nats"]
+        + _flag(f"{need_gib:.2f}" in a2 and f"{free_gib:.2f}" in a2, "amendment 2 states the same GiB values")
+        + _flag("2.686" in a4["measured"] if isinstance(a4, dict) and "measured" in a4 else "2.686 s per inner step" in am[4]["when"], "amendment 4 abort step time")
+        + _flag("3.09 h" in am[4]["when"], "amendment 4 projected 3.09 h")
+        + _flag("0.0253" in am[5]["when"] and "0.05" in am[5]["when"] and "0.0 nats" in a5, "amendment 5 gate 0.0253 < 0.05, relaxed to 0.0"),
+        "artifacts/experiments/E13_granite_step_bench.json; E13_swarm_local_prereg_amendment_2/4/5.json; E13_swarm_local_report.json (preflight)",
+    )
+
+    # PROV-58: MoE routing (descriptive), final global model of S0 seed 1
+    def _routing(raw: Dict[str, Any]) -> Dict[str, Any]:
+        run0 = raw["runs"][0]
+        assert run0["cell"] == "S0" and run0["seed"] == 1
+        return run0["routing"]["per_domain"]
+
+    rg1, rg3 = _routing(raw_g1), _routing(raw_g3)
+    _all(
+        "PROV-58",
+        "E13 MoE routing statistics of the final global model of S0 seed 1: normalised entropy and top-quartile share per domain (Granite-1B and 3B)",
+        [f"${rg1['code']['mean_norm_entropy']:.3f}$ (code), ${rg1['wiki-fr']['mean_norm_entropy']:.3f}$ (French Wikipedia), ${rg1['pubmed']['mean_norm_entropy']:.3f}$ (PubMed)"]
+        + [f"${rg1['code']['mean_top25pct_expert_share']:.3f}$, ${rg1['wiki-fr']['mean_top25pct_expert_share']:.3f}$, ${rg1['pubmed']['mean_top25pct_expert_share']:.3f}$"]
+        + [f"${rg3['code']['mean_norm_entropy']:.3f}$ (code), ${rg3['wiki-fr']['mean_norm_entropy']:.3f}$ (French Wikipedia), ${rg3['pubmed']['mean_norm_entropy']:.3f}$ (PubMed), ${rg3['gsm8k']['mean_norm_entropy']:.3f}$ (GSM8K)"]
+        + [f"${rg3['code']['mean_top25pct_expert_share']:.3f}$, ${rg3['wiki-fr']['mean_top25pct_expert_share']:.3f}$, ${rg3['pubmed']['mean_top25pct_expert_share']:.3f}$, ${rg3['gsm8k']['mean_top25pct_expert_share']:.3f}$"]
+        + _flag(round(min(v["mean_norm_entropy"] for r in (rg1, rg3) for v in r.values()), 2) >= 0.89 and round(max(v["mean_norm_entropy"] for r in (rg1, rg3) for v in r.values()), 2) <= 0.95, "entropies between 0.89 and 0.95"),
+        "artifacts/experiments/E13_swarm_local_raw_granite1b.json; E13_swarm_local_raw_granite3b.json",
+    )
+
+    # ---- E14 ----
+    mq, mg = e14q["models"]["qwen0.5b"], e14g["models"]["granite1b"]
+    s14 = "artifacts/experiments/E14_report_qwen0.5b.json + E14_report_granite1b.json"
+
+    def _e14_rows(m: Dict[str, Any], hosted: str) -> List[str]:
+        rr = m["e14"]["retention_vs_S0"]
+        pv = m["paired_vs_S0"]
+        pp = m["e14"]["paired_vs_S2"]
+        lat = {k: m["cells"][k]["round_latency_s"]["p50"] for k in ("S2", "S6", "S7")}
+        stat = {k: _status_pos(pp[k]["mean"], pp[k]["ci95"]) for k in ("S6", "S7")}
+        return [
+            f"{_rho(rr['S2']['mean'], rr['S2']['ci95'])} & {_pm(pv['S2']['mean'], pv['S2']['ci95'])} & -- & -- & ${lat['S2']:.1f}$",
+            f"{_rho(rr['S6']['mean'], rr['S6']['ci95'])} & {_pm(pv['S6']['mean'], pv['S6']['ci95'])} & {_pm(pp['S6']['mean'], pp['S6']['ci95'])} & H14a {stat['S6']} & ${lat['S6']:.1f}$",
+            f"{_rho(rr['S7']['mean'], rr['S7']['ci95'])} & {_pm(pv['S7']['mean'], pv['S7']['ci95'])} & {_pm(pp['S7']['mean'], pp['S7']['ci95'])} & H14b {stat['S7']} & ${lat['S7']:.1f}$",
+        ]
+
+    _all(
+        "PROV-59",
+        "E14 Table tab:e14 (both models): retention, final loss minus S0, S2 minus cell, H14a/H14b statuses computed by the registered interval rule, round p50 latency",
+        _e14_rows(mq, "qwen") + _e14_rows(mg, "granite")
+        + _flag(_status_pos(mq["e14"]["paired_vs_S2"]["S6"]["mean"], mq["e14"]["paired_vs_S2"]["S6"]["ci95"]) == "supported", "H14a qwen supported")
+        + _flag(
+            all(h14["models"][k][h]["status"] == _status_pos(m_["e14"]["paired_vs_S2"][c]["mean"], m_["e14"]["paired_vs_S2"][c]["ci95"])
+                for k, m_ in (("qwen0.5b", mq), ("granite1b", mg)) for h, c in (("H14a", "S6"), ("H14b", "S7"))),
+            "E14_hypotheses.json statuses equal the statuses computed here",
+        ),
+        s14,
+    )
+
+    lq = mq["cells"]
+    fair = lq["S6"]["e14"]["fair"]
+    carry = lq["S7"]["e14"]["carry"]
+    lat_up = lq["S6"]["round_latency_s"]["p50"] / lq["S2"]["round_latency_s"]["p50"] - 1
+    _all(
+        "PROV-60",
+        "E14 qwen mechanism counts: S6 latency +27.5% (p50 vs S2), extra wait 79.2 s in 10 of 18 rounds, 13 forced admissions, admitted 0.50 -> 0.68, late discards 27/20/6; S7 18 carried (staleness 1: 16, 2: 2), none stale or unmerged",
+        [
+            f"(\\textbf{{${lat_up * 100:+.1f}\\,\\%$}}",
+            f"through ${fair['extra_wait_s_total']:.1f}$\\,s of extra waiting in total (in {fair['rounds_with_extra_wait']} of the 18 rounds) and ${fair['forced_admissions_total']}$ forced admissions",
+            f"from ${lq['S2']['admitted_fraction_mean']:.2f}$ to ${lq['S6']['admitted_fraction_mean']:.2f}$ and the late discards fall from ${lq['S2']['late_discards_total']}$ to ${lq['S6']['late_discards_total']}$",
+            f"carries ${carry['carried_count_total']}$ late deltas (staleness 1 in ${carry['staleness_hist']['1']}$ cases and staleness 2 in ${carry['staleness_hist']['2']}$",
+            f"from ${lq['S2']['late_discards_total']}$ to ${lq['S7']['late_discards_total']}$",
+        ]
+        + _flag(fair["fair_wait_timeouts_total"] == 0 and carry["too_stale_discarded_total"] == 0 and carry["queued_unmerged_at_end_total"] == 0 and carry["max_staleness"] == 2 and fair["max_exclusion"] == 1, "no timeouts, no stale, MAX constants 1 and 2")
+        + _flag(lq["S2"]["round_latency_s"]["n"] == 18, "18 rounds per cell"),
+        "artifacts/experiments/E14_report_qwen0.5b.json",
+    )
+
+    s2_e13 = cq["cells"]["S2"]["final_loss_per_seed"]
+    s2_e14q = lq["S2"]["final_loss_per_seed"]
+    s2_g13 = cg1["cells"]["S2"]["final_loss_per_seed"]
+    s2_g14 = mg["cells"]["S2"]["final_loss_per_seed"]
+    g0 = list(pm["granite1b"]["S0_improvement_per_seed"].values())
+    _all(
+        "PROV-61",
+        "E14 granite caveats: baseline improves 0.051-0.057 nats; S2 re-run -0.37 vs E13 -0.66 (seed 1 identical, seeds 2 and 3 differ); qwen S2 re-run identical to E13 for all three seeds",
+        [f"by only ${min(g0):.3f}$ to ${max(g0):.3f}$ nats per seed", f"retention ${mg['e14']['retention_vs_S0']['S2']['mean']:.2f}$ in this invocation against ${g_p13b['mean']:.2f}$ in E13"]
+        + _flag(s2_e14q == s2_e13, "qwen S2 re-run identical to E13")
+        + _flag(s2_g14[0] == s2_g13[0] and s2_g14[1] != s2_g13[1] and s2_g14[2] != s2_g13[2], "granite S2 seed 1 identical, seeds 2 and 3 differ")
+        + _flag(mg["controls"]["s0_learns"]["passed"] and mg["controls"]["codec_rate_on_target"]["passed"] and mg["controls"]["no_failed_cells"]["passed"] and mg["controls"]["s1_equals_s0"]["passed"] is None and mq["controls"]["s1_equals_s0"]["passed"] is None and mq["controls_all_passed"] is False, "E14 controls flag is null-induced")
+        + _flag(mq["controls"]["s0_learns"]["passed"] and mq["controls"]["codec_rate_on_target"]["passed"] and mq["controls"]["no_failed_cells"]["passed"], "E14 qwen controls"),
+        s14,
+    )
+
+    # ---- E15 ----
+    s15 = "artifacts/experiments/E15_gwaya_rft_report.json"
+    cond, pc = e15["conditions"], e15["paired_comparisons"]
+
+    def _crow(k: str) -> str:
+        c = cond[k]
+        return f"${c['passes']}/{c['n']}$ & ${100 * c['pass_at_1']:.1f}$ $[{100 * c['wilson95'][0]:.1f}, {100 * c['wilson95'][1]:.1f}]$"
+
+    def _ptex(k: str) -> str:
+        c = pc[k]
+        pv = _pval(c["mcnemar_p"])
+        pts = f"${100 * c['diff']:+.1f}$ pts"
+        if "e" in pv:
+            mant, exp = pv.split("e")
+            return f"{pts} & ${c['b_only']}/{c['a_only']}$, $p={mant}$e${exp}$"
+        return f"{pts} & ${c['b_only']}/{c['a_only']}$, $p={pv}$"
+
+    gps = {k: cond[k]["gen_gpu_seconds"] for k in cond}
+    _all(
+        "PROV-62",
+        "E15 Table tab:e15: passes/n, pass@1 with Wilson 95%, paired contrasts (gained/lost, exact McNemar p), generation GPU seconds for C0, C1, C2, C3 (MBPP) and C0h, C2h (HumanEval)",
+        [
+            f"{_crow('C0')} & -- & -- & ${gps['C0']:.1f}$",
+            f"{_crow('C1')} & C1$-$C0 {_ptex('C1-C0')} & ${gps['C1']:.1f}$",
+            f"{_crow('C2')} & C2$-$C0 {_ptex('C2-C0')} & ${gps['C2']:.1f}$",
+            f"{_crow('C3')} & C3$-$C1 {_ptex('C3-C1')} & ${gps['C3']:.1f}$",
+            f"C3$-$C0 {_ptex('C3-C0')} &",
+            f"{_crow('C0h')} & -- & -- & ${gps['C0h']:.1f}$",
+            f"{_crow('C2h')} & C2$-$C0 {_ptex('C2h-C0h (HumanEval)')} & ${gps['C2h']:.1f}$",
+        ]
+        + _flag(all(cond[k]["stub_flagged_among_passing"] == 0 and cond[k]["unverified_judgements"] == 0 for k in cond), "no stub-flagged passes, no unverified judgements"),
+        s15,
+    )
+
+    # PROV-63: E15 decisions computed from the registered thresholds
+    c1c0, c2c0 = pc["C1-C0"], pc["C2-C0"]
+    h15a = "supported" if (c2c0["diff"] >= 0.03 and c2c0["mcnemar_p"] < 0.05) else "refuted" if (c2c0["diff"] < 0 and c2c0["mcnemar_p"] < 0.05) else "inconclusive"
+    h15b = "supported" if (c1c0["diff"] >= 0.05 and c1c0["mcnemar_p"] < 0.05) else "refuted" if c1c0["diff"] <= 0 else "inconclusive"
+    peaks = [v for v in e15["controls"]["vi_peak_reserved_le_8gib"]["peak_reserved_gib_per_stage"].values() if v is not None]
+    h15d = "supported" if max(peaks) <= 8.0 else "refuted"
+    st = e15["stages"]
+    _all(
+        "PROV-63",
+        "E15 decisions computed by the pre-registered thresholds: H15a inconclusive (+0.8, p=0.85), H15b supported (+7.0, p=4.0e-5), H15d supported (max peak 4.47 GiB), H15c/H15e descriptive; RFT yield 359/462, 673 pairs, 329,948 tokens, 129 steps, CE 0.156/0.096/0.061, 18,464,768 LoRA parameters",
+        [
+            f"\\textbf{{H15a}} (RFT lifts greedy pass@1 by at least $+3.0$ points with $p<0.05$) is \\textbf{{{h15a}}}: ${100 * c2c0['diff']:+.1f}$ points, $p={_pval(c2c0['mcnemar_p'])}$",
+            f"\\textbf{{H15b}} (the loop lifts the base by at least $+5.0$ points) is \\textbf{{{h15b}}}: ${100 * c1c0['diff']:+.1f}$ points, ${c1c0['b_only']}$ gained and ${c1c0['a_only']}$ lost, $p={_pval(c1c0['mcnemar_p']).split('e')[0]}\\cdot10^{{-{int(_pval(c1c0['mcnemar_p']).split('e')[1][1:])}}}$",
+            f"C3 against C1 is ${100 * pc['C3-C1']['diff']:+.1f}$ points ($p={_pval(pc['C3-C1']['mcnemar_p'])}$) and C3 against C0 ${100 * pc['C3-C0']['diff']:+.1f}$ points ($p={_pval(pc['C3-C0']['mcnemar_p']).split('e')[0]}\\cdot10^{{-{int(_pval(pc['C3-C0']['mcnemar_p']).split('e')[1][1:])}}}$)",
+            f"${100 * pc['C2h-C0h (HumanEval)']['diff']:+.1f}$ points, $p={_pval(pc['C2h-C0h (HumanEval)']['mcnemar_p'])}$",
+            f"\\textbf{{H15d}} (every stage runs to completion under the $7.5$\\,GiB cap) is \\textbf{{{h15d}}}: the largest peak reserved memory of any stage is ${max(peaks):.2f}$\\,GiB",
+            f"${st['rft']['problems_with_accepted']}$ of ${st['rft']['problems']}$ train problems with at least one accepted solution (mean per-sample yield ${st['rft']['mean_yield']:.3f}$), ${st['rft']['kept_pairs']}$ kept pairs, ${_n(st['rft']['tokens'])}$ generated tokens",
+            f"ran ${st['train']['steps']}$ steps and the mean cross-entropy fell from ${st['train']['epoch_mean_ce'][0]:.3f}$ to ${st['train']['epoch_mean_ce'][1]:.3f}$ to ${st['train']['epoch_mean_ce'][2]:.3f}$",
+            f"${_n(st['train']['lora_params'])}$ trainable parameters",
+        ]
+        + _flag(h15a == "inconclusive" and h15b == "supported" and h15d == "supported", "E15 H15a/b/d statuses")
+        + _flag((h15["hypotheses"]["H15a"]["status"], h15["hypotheses"]["H15b"]["status"], h15["hypotheses"]["H15d"]["status"]) == (h15a, h15b, h15d), "E15_hypotheses.json statuses equal the statuses computed here")
+        + _flag(e15["leakage"]["train_after_decontamination"] == 462 and e15["leakage"]["train_raw"] == 464 and e15["leakage"]["removed_for_text_overlap"] == ["mbpp-569", "mbpp-928"] and e15["leakage"]["reference_solution_overlap"] == 2, "462 of 464 after two removals, two identical references remain"),
+        s15,
+    )
+
+    # PROV-64: honest reading and cost
+    c1, c3 = cond["C1"], cond["C3"]
+    rft_s, tr_s = st["rft"]["gen_gpu_seconds"], st["train"]["seconds"]
+    tok_ratio = c1["generated_tokens"] / cond["C0"]["generated_tokens"]
+    wh = e15["energy_wh_per_stage"]
+    _all(
+        "PROV-64",
+        "E15 selection reading: C1 gains 19 loses 1; repair solved 1 of 54 (53 fell back), 2 of 53 for C3; visible verification rate 79.4% vs 72.8% pass; sampling 3,957 s + training 368 s = 4,325 GPU s; loop 4.4x GPU s and 3.9x tokens; stage wall/peak/energy table",
+        [
+            f"repair rounds solved only ${c1['winner_source']['repair1']}$ of the ${c1['winner_source']['repair1'] + c1['winner_source']['fallback_first_greedy']}$ problems that entered them (${c1['winner_source']['fallback_first_greedy']}$ fell back to the greedy reply; ${c3['winner_source']['repair1']}$ of ${c3['winner_source']['repair1'] + c3['winner_source']['fallback_first_greedy']}$ for the tuned model)",
+            f"accepted ${100 * c1['verified_rate_visible']:.1f}\\,\\%$ of the problems with a verified candidate, while ${100 * c1['pass_at_1']:.1f}\\,\\%$ pass all tests",
+            f"at least ${pc['C1-C0']['b_only'] - c1['winner_source']['repair1']}$ of the ${pc['C1-C0']['b_only']}$ gains come from the samples",
+            f"${_n(round(rft_s))}$\\,s of sampling plus ${tr_s:.0f}$\\,s of training, ${_n(round(rft_s + tr_s))}$ GPU-seconds in all",
+            f"$4.4\\times$ the GPU seconds of greedy decoding (${c1['gen_gpu_seconds']:.1f}/{cond['C0']['gen_gpu_seconds']:.1f}$",
+            f"${tok_ratio:.1f}\\times$ the generated tokens (${_n(c1['generated_tokens'])}$ against ${_n(cond['C0']['generated_tokens'])}$)",
+        ]
+        + [
+            f"{k} & ${st[s]['meter']['wall_s']:.1f}$ & ${st[s]['meter']['peak_reserved_gib']:.2f}$ & ${wh[s]:.2f}$"
+            for k, s in (("Baseline (C0, C0h)", "baseline"), ("Base + loop (C1)", "loop_base"), ("RFT generation", "rft"), ("Training (LoRA)", "train"), ("Tuned (C2, C2h, C3)", "tuned"))
+        ]
+        + _flag(abs(c1["gen_gpu_seconds"] / cond["C0"]["gen_gpu_seconds"] - 4.4) < 0.05 and c1["winner_source"]["repair1"] == 1 and pc["C1-C0"]["a_only"] == 1, "4.4x and one repair rescue and one loss"),
+        s15,
+    )
+
+    # PROV-65: E15 controls and vendoring
+    ctl = e15["controls"]
+    vend = e15["gwaya_vendored"]
+    _all(
+        "PROV-65",
+        "E15 controls: 100/100 MBPP references, 164/164 HumanEval canonical, 12/12 planted stubs rejected, containment, leakage; vendored GWAYA commit 9c0001e8307d / sha256 af8f382c5a67 (PROVENANCE.md)",
+        [f"${ctl['i_mbpp_reference_accept']['accepted']}/{ctl['i_mbpp_reference_accept']['n']}$ MBPP reference solutions", f"${ctl['i_humaneval_canonical_accept']['accepted']}/{ctl['i_humaneval_canonical_accept']['n']}$ HumanEval canonical solutions", f"${ctl['ii_planted_stubs_rejected']['rejected_as_stub']}/{ctl['ii_planted_stubs_rejected']['n']}$ planted stubs", f"\\texttt{{{vend['commit'][:12]}}}", f"\\texttt{{{vend['ast_audit_sha256'][:12]}\\ldots}}"]
+        + _flag(ctl["all_passed"] and ctl["iii_containment_probes"]["all_contained"] and ctl["iv_no_leakage"]["pass"] and e15["controls_all_passed"], "E15 controls pass")
+        + _flag(vend["commit"] in prov_md and vend["ast_audit_sha256"] in prov_md, "PROVENANCE.md pins the same commit and sha256"),
+        s15 + "; third_party/gwaya/PROVENANCE.md",
+    )
+
+    # ---- E16 ----
+    s16 = "artifacts/experiments/E16_gwaya_lite_t4_report.json"
+    probes = {p["key"]: p for p in e16["probes"]}
+    rows16 = []
+    for t, lab in (("1.5b", "1.5B"), ("3b", "3B"), ("7b", "7B")):
+        for ctx in (4096, 8192):
+            p = probes[f"{t}:{ctx}"]
+            rows16.append(
+                f"{lab} & {ctx} & {p['measured_mib']} & {p['estimator_mib']} & {p['ratio_measured_over_estimate']:.2f} & {p['decode_tps_median']:.1f} & {p['prompt_eval_tps_median']:.0f} \\\\"
+            )
+    _all(
+        "PROV-66",
+        "E16 Table tab:e16_vram: measured VRAM, PR estimate, ratio, decode and prompt-eval tok/s for 3 tiers x 2 contexts (all 100% on GPU)",
+        rows16 + _flag(all(p["gpu_pct"] == 100.0 for p in e16["probes"]), "100% on GPU everywhere"),
+        s16,
+    )
+
+    an = e16["analysis"]
+    acc_rows = []
+    for t, lab in (("1.5b", "1.5B"), ("3b", "3B"), ("7b", "7B")):
+        a = an["tiers"][t]
+        R, L, pcal, pr = a["R4096"], a["L4096"], a["p2_gate_calibration"], a["paired_L_minus_R"]
+        pv = _pval(pr["mcnemar_p"]).replace("e-0", "e-0")
+        acc_rows.append(
+            f"{lab} & {100 * R['pass_at_1']:.1f} (${R['passes']}$) & {100 * L['pass_at_1']:.1f} (${L['passes']}$) & ${100 * pr['diff']:+.1f}$ & ${pr['b_only']}/{pr['a_only']}$ & {pv} & {100 * pcal['precision']:.1f} [{100 * pcal['precision_wilson95'][0]:.1f}, {100 * pcal['precision_wilson95'][1]:.1f}]"
+        )
+    lad = an["escalation_ladder"]
+    acc_rows.append(f"Ladder 1.5B$\\to$3B$\\to$7B & -- & {100 * lad['ladder_pass_at_1']:.1f} (${lad['ladder_passes']}$)")
+    _all(
+        "PROV-67",
+        "E16 Table tab:e16_acc: pass@1 raw vs loop, gained/lost, McNemar p, precision of VERIFIED with Wilson 95% per tier; ladder row",
+        acc_rows + _flag(all(an["tiers"][t]["paired_L_minus_R"]["a_only"] == 0 for t in an["tiers"]), "no problem lost to the loop"),
+        s16,
+    )
+
+    hy = an["H16"]
+    h16a4, h16a8 = hy["H16a"]["4096"], hy["H16a"]["8192"]
+    ratios = [r["ratio"] for r in hy["H16b"]["rows"]]
+    d7 = an["tiers"]["7b"]["paired_L_minus_R"]
+    pcal7 = [an["tiers"][t]["p2_gate_calibration"] for t in ("1.5b", "3b", "7b")]
+    _all(
+        "PROV-68",
+        "E16 registered statuses: H16a supported (5483 / 6387 MiB <= 6656, margin 269), H16b adequate (ratios 0.93-1.21), H16c supported x3, H16d supported/supported/inconclusive (7B +3.9, p=0.002), H16e supported (92.6/92.8/94.8), H16f met at 28.5 tok/s",
+        [
+            f"is \\textbf{{{h16a4['status']}}} at 4096 (${h16a4['measured_mib']}$\\,MiB) and at 8192 (${h16a8['measured_mib']}$\\,MiB, a margin of ${h16a8['threshold_mib'] - h16a8['measured_mib']}$\\,MiB)",
+            f"the ratios range from ${min(ratios):.2f}$ to ${max(ratios):.2f}$",
+            f"is \\textbf{{{hy['H16b']['status']}}}",
+            f"${100 * an['tiers']['1.5b']['paired_L_minus_R']['diff']:+.1f}$) and the 3B (${100 * an['tiers']['3b']['paired_L_minus_R']['diff']:+.1f}$)",
+            f"${100 * d7['diff']:+.1f}$ points with $p={d7['mcnemar_p']:.3f}$",
+            f"${100 * pcal7[0]['precision']:.1f}\\,\\%$, ${100 * pcal7[1]['precision']:.1f}\\,\\%$ and ${100 * pcal7[2]['precision']:.1f}\\,\\%$",
+            f"is met at ${hy['H16f_descriptive']['decode_tps_median']:.1f}$\\,tok/s",
+            f"the $6656$\\,MiB ceiling",
+        ]
+        + _flag(hy["H16a"]["4096"]["threshold_mib"] == 6656 and h16a4["status"] == "supported" and h16a8["status"] == "supported", "H16a")
+        + _flag(hy["H16c"] == {"1.5b": "supported", "3b": "supported", "7b": "supported"} and hy["H16d"] == {"1.5b": "supported", "3b": "supported", "7b": "inconclusive"} and hy["H16e"] == {"1.5b": "supported", "3b": "supported", "7b": "supported"}, "H16c/d/e statuses")
+        + _flag(hy["H16f_descriptive"]["status"] == "met" and hy["H16b"]["band"] == [0.8, 1.25] and d7["diff"] < 0.05 and d7["mcnemar_p"] < 0.05, "H16f met, band, 7B below +5 bar with p<0.05"),
+        s16,
+    )
+
+    ws1, ws7 = an["tiers"]["1.5b"]["L4096"]["winner_source"], an["tiers"]["7b"]["L4096"]["winner_source"]
+    pl = lad["paired_ladder_vs_7b_only"]
+    r8 = an["tiers"]["7b"]["R8192"]
+    pr8 = an["tiers"]["7b"]["paired_R8192_minus_R4096"]
+    raw15 = an["tiers"]["1.5b"]["R4096"]["pass_at_1"]
+    _all(
+        "PROV-69",
+        "E16 ladder (85.2 vs 85.6, 8/9, p=1.0, 21.0%/12.1% escalated, 1227 s vs 1566 s = 78%), context invariance (210 problems, 0 discordant), winner sources, comparison with E15 C0",
+        [
+            f"reaches ${100 * lad['ladder_pass_at_1']:.1f}\\,\\%$ (${lad['ladder_passes']}/257$) against ${100 * lad['seven_b_only_pass_at_1']:.1f}\\,\\%$ (${lad['seven_b_only_passes']}/257$) for the 7B loop alone (paired: ${pl['b_only']}$ gained, ${pl['a_only']}$ lost, $p={pl['mcnemar_p']:.1f}$)",
+            f"escalating ${100 * lad['escalation_rate_3b']:.1f}\\,\\%$ of the problems to the 3B and ${100 * lad['escalation_rate_7b']:.1f}\\,\\%$ to the 7B, at ${100 * lad['ladder_over_7b_only_time']:.0f}\\,\\%$ of the 7B-only model time (${lad['ladder_model_seconds']:.0f}$\\,s against ${lad['seven_b_only_model_seconds']:.0f}$\\,s)",
+            f"solves exactly the same ${r8['passes']}$ problems as at 4096 (${pr8['discordant']}$ discordant, $p={pr8['mcnemar_p']:.1f}$)",
+            f"the greedy reply wins for ${ws1['greedy']}$ problems, the first or second sample for ${ws1['sample1']}+{ws1['sample2']}$, and ${ws1['fallback_first_greedy']}$ problems fall back",
+            f"are ${ws7['greedy']}$, ${ws7['sample1']}+{ws7['sample2']}$ and ${ws7['fallback_first_greedy']}$",
+            f"${100 * raw15:.1f}\\,\\%$, and the fp16 base of E15, ${100 * cond['C0']['pass_at_1']:.1f}\\,\\%$",
+        ]
+        + _flag(lad["note"] == "descriptive, no status" and pr8["discordant"] == 0 and an["tiers"]["1.5b"]["L4096"]["repair_rounds_histogram"]["1"] == 0 and an["tiers"]["7b"]["L4096"]["repair_rounds_histogram"]["1"] == 0, "descriptive ladder, no repair success in 1.5B/7B"),
+        s16,
+    )
+
+    ctl16 = e16["controls"]
+    pre = e16["stages"]["preflight"]
+    unl = e16["stages"]["unload"]
+    dets = [an["tiers"][t]["determinism"] for t in an["tiers"]]
+    _all(
+        "PROV-70",
+        "E16 controls: idle GPU 0 MiB (bar 1500), gate 100/100, 100% GPU offload, unload back to 0 MiB (tolerance 300), clean probes, determinism 10/10 per tier; run valid; Ollama 0.34.1; file sizes 940/1841/4466 MiB vs PR 1070/1840/4466",
+        [
+            f"idle GPU at start (${ctl16['idle_gpu']['memory_used_mib']}$\\,MiB used, bar ${ctl16['idle_gpu']['threshold_mib']}$)",
+            f"the gate control (${ctl16['gate']['reference_control']['accepted']}/{ctl16['gate']['reference_control']['n']}$ references)",
+            f"the GPU back at ${unl['memory_used_mib']}$\\,MiB (tolerance ${unl['tolerance_mib']}$)",
+            f"${dets[0]['identical_repeats']}/{dets[0]['problems']}$ identical for each tier",
+            f"Ollama ${pre['ollama_version']}$",
+            "$940/1841/4466$\\,MiB against $1070/1840/4466$\\,MiB",
+        ]
+        + _flag(e16["run_valid"] and ctl16["idle_gpu"]["pass"] and ctl16["gate"]["pass"] and ctl16["unload"]["pass"] and ctl16["gpu_offload"]["pass"] and ctl16["probe_contamination"]["clean_all"], "E16 run valid, controls pass")
+        + _flag(all(d_["fraction_identical"] == 1.0 for d_ in dets) and unl["baseline_start_mib"] == 0, "determinism 1.0, baseline 0")
+        + _flag("940 / 1841 / 4466 MiB" in e16pre["what_is_measured"]["tiers"] and "1070 / 1840 / 4466 MiB" in e16pre["what_is_measured"]["tiers"] and "0.34.1" in e16pre["what_is_measured"]["tiers"], "prereg file sizes and Ollama version")
+        + _flag(e16["environment"]["gpu"]["name"] == "Tesla T4" and e16["gwaya_vendored"]["commit"] == vend["commit"], "T4 and the same vendored commit as E15"),
+        s16 + "; artifacts/experiments/E16_gwaya_lite_t4_prereg.json",
+    )
+
+    ts = live["tasks"]
+    _all(
+        "PROV-71",
+        "GWAYA-Lite live check on the deployed service: 3/3 tasks VERIFIED (1.5B, 1.5B, 3B; fizzbuzz 7 candidates and 3 repair rounds), untested request AUDITED, 13 SSE chunks + terminator, foreign Host/Origin 403, 1639 MiB resident after the requests with only the 1.5B model",
+        [
+            f"${sum(1 for t in ts if t['verdict'] == 'VERIFIED')}/{len(ts)}$ tasks \\texttt{{VERIFIED}}",
+            f"one, \\texttt{{{ts[2]['task']}}}, after the ladder escalated to the {ts[2]['tier'].upper()} tier through {ts[2]['candidates']} candidates and {ts[2]['repair_rounds']} repair rounds",
+            f"answered \\texttt{{{live['untested_request']['verdict']}}}",
+            f"an SSE stream of ${live['sse']['data_chunks']}$ data chunks",
+            f"answered {live['foreign_host_status']}",
+            f"${live['gpu_memory_used_mib_after']}$\\,MiB of GPU memory in use after the requests",
+            "\\texttt{127.0.0.1:8099}",
+        ]
+        + _flag([t["tier"] for t in ts] == ["1.5b", "1.5b", "3b"] and live["all_ok"] and live["sse"]["done_terminator"] and live["foreign_host_status"] == 403 == live["foreign_origin_status"] and live["untested_request"]["never_verified_without_tests"] and live["ollama_resident_after"][0][0] == "qwen2.5-coder:1.5b" and len(live["ollama_resident_after"]) == 1 and live["url"] == "http://127.0.0.1:8099", "live-check receipt")
+        + _flag(live["health"][0] == 200 and live["models"][0] == 200, "health and models answered"),
+        "artifacts/gwaya_lite_live_check.json",
+    )
+
+
 def verify_manuscript_data_consistency(
     tex_text: str,
     poc_data: Dict[str, Any],
@@ -498,6 +1090,9 @@ def verify_manuscript_data_consistency(
     else:
         checks.append({"check_id": "PROV-46", "metric_name": "E10b report missing", "expected_tokens": [], "source_artifact": src10b, "passed": False})
 
+    # ---- v3.7.0 second batch: E13, E14, E15, E16 and the GWAYA-Lite deployment (PROV-49 onward) ----
+    _provenance_e13_e16(tex_text, checks)
+
     failed = [c["check_id"] for c in checks if not c["passed"]]
     return {
         "total_checks": len(checks),
@@ -516,6 +1111,8 @@ def verify_latex_typography_and_figures(tex_text: str) -> Dict[str, Any]:
         "fig3_e3_looped_moe_and_subspace_spectra.pdf",
         "fig4_e4_rtx2070_vram_and_fomoe_scaling.pdf",
         "fig8_e11_kv_lattice.pdf",
+        "fig9_e13_e14_retention.pdf",
+        "fig10_e16_gwaya_lite_tiers.pdf",
     ]
     figures_dir = PAPER_DIR / "figures"
     missing_figures = [

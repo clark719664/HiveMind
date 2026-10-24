@@ -5,7 +5,7 @@
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-24T03:06:18Z",
+  "timestamp_utc": "2026-10-24T12:51:08Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -717,8 +717,8 @@
     "tier_a_machine_checked": true
   },
   "manuscript_provenance_audit": {
-    "total_checks": 48,
-    "passed_checks": 48,
+    "total_checks": 71,
+    "passed_checks": 71,
     "failed_check_ids": [],
     "all_passed": true,
     "checks": [
@@ -1244,11 +1244,343 @@
         "source_artifact": "artifacts/experiments/E10b_first_execution_partial.json; artifacts/experiments/E10b_lattice_05b_prereg_amendment_2.json",
         "match_rule": "all tokens must occur",
         "passed": true
+      },
+      {
+        "check_id": "PROV-49",
+        "metric_name": "E13 P13b: retention rho mean +- half-width and per seed (qwen0.5b, granite1b), granite1b upper bound, granite3b n=1; statuses refuted/refuted/descriptive",
+        "expected_tokens": [
+          "$\\rho = -0.05 \\pm 0.35$ (per seed $-0.15$, $-0.11$, $+0.11$)",
+          "$\\rho = -0.66 \\pm 0.66$ (per seed $-0.45$, $-0.56$, $-0.96$; the upper bound of the interval, $+0.006$,",
+          "$-0.70$ (n=1)",
+          "$-0.05 \\pm 0.35$ & \\textbf{refuted}",
+          "$-0.66 \\pm 0.66$ & \\textbf{refuted}"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report.json + E13_swarm_local_predictions.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-50",
+        "metric_name": "E13 all-on swarm above its starting loss in 5 of 6 seed runs (computed from final/initial losses); GSM8K domain 1.60 vs 1.23 (S2 vs S0)",
+        "expected_tokens": [
+          "in 5 of the 6 seed runs",
+          "its held-out loss ending at $1.60$ against $1.23$ for S0"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-51",
+        "metric_name": "E13 P13c: upload 9.1% of raw (all models and the six-domain run), ideal 6.2%, bar 30%, 11.0x measured reduction, codec rate 1.99-2.00, no int16",
+        "expected_tokens": [
+          "are $9.1\\,\\%$ of the raw fp32 deltas",
+          "ideal entropy-coded ratio of $6.2\\,\\%$",
+          "a measured $11.0\\times$ reduction",
+          "$0.091$",
+          "$0.091$",
+          "$0.091$",
+          "$0.091$",
+          "$1.99$ to $2.00$ bit/dim"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report.json + E13_swarm_local_predictions.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-52",
+        "metric_name": "E13 P13a: S1 == S0 with max|diff| 0.0 (tolerance 1e-6) in every model and in the six-domain and M=2 runs; S0 learns 2.365 -> 2.231..2.233",
+        "expected_tokens": [
+          "from $2.365$ to between $2.231$ and $2.233$",
+          "$\\max|\\Delta| = 0.0$",
+          "$\\max|\\Delta|=0.0$"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report.json + E13_swarm_local_predictions.json; E13_swarm_local_report_m2proc.json; E13_swarm_local_predictions_m6.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-53",
+        "metric_name": "E13 Table tab:e13 rows: S0 gain range, S2-S0 final loss, retention, status, upload ratio for the five runs",
+        "expected_tokens": [
+          "$0.132$--$0.135$ & $+0.140 \\pm 0.044$ & $-0.05 \\pm 0.35$ & \\textbf{refuted} & $0.091$",
+          "$0.051$--$0.057$ & $+0.090 \\pm 0.022$ & $-0.66 \\pm 0.66$ & \\textbf{refuted} & $0.091$",
+          "$0.103$ & $+0.175$ (n=1) & $-0.70$ (n=1) & descriptive & $0.091$",
+          "$0.132$--$0.135$ & $+0.080 \\pm 0.042$ & $0.40 \\pm 0.30$ & exploratory",
+          "$0.120$--$0.123$ & $+0.086 \\pm 0.046$ & $0.29 \\pm 0.39$ & inconclusive & $0.091$"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report.json + E13_swarm_local_predictions.json; E13_swarm_local_report_rotstraggle.json; E13_swarm_local_report_m6.json; E13_swarm_local_predictions_m6.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-54",
+        "metric_name": "E13 P13d table: retention, final-loss minus S0, paired S2 minus cell (computed from per-seed losses), admitted fraction, late discards for S3/S4/S5; S2 admitted 0.50 and 27 late",
+        "expected_tokens": [
+          "$0.11$ & $+0.118 \\pm 0.034$ & $+0.022 \\pm 0.078$ & $0.50$ & $25$",
+          "$0.26$ & $+0.098 \\pm 0.040$ & $+0.042 \\pm 0.040$ & $0.50$ & $26$",
+          "$0.94$ & $+0.008 \\pm 0.006$ & $+0.133 \\pm 0.041$ & $0.96$ & $0$",
+          "$-0.05$ & $+0.140 \\pm 0.044$ & -- & $0.50$ & $27$",
+          "keeps $0.94$ of the synchronous improvement",
+          "($+0.042 \\pm 0.040$, an interval that only just excludes zero)"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report.json + E13_swarm_local_predictions.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-55",
+        "metric_name": "E13c rotating straggler: retention computed by the registered formula (0.40 +- 0.30; per seed 0.53, 0.29, 0.38); S2-S0 +0.080 +- 0.042 vs +0.140 +- 0.044",
+        "expected_tokens": [
+          "is $0.40 \\pm 0.30$ (per seed $0.53$, $0.29$, $0.38$)",
+          "with the final loss $+0.080 \\pm 0.042$ above S0 instead of $+0.140 \\pm 0.044$"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report_rotstraggle.json; E13_swarm_local_prereg_amendment_3.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-56",
+        "metric_name": "E13d six domains: P13b inconclusive 0.29 +- 0.39 (per seed, interval), no-quorum retention 0.94 +- 0.07 and +0.007 +- 0.008 from S0; M=6, K=3",
+        "expected_tokens": [
+          "$\\rho = 0.29 \\pm 0.39$ (per seed $0.37$, $0.39$, $0.11$; interval $[-0.10, +0.68]$",
+          "($\\rho = 0.94 \\pm 0.07$)",
+          "$+0.007 \\pm 0.008$ nats from S0"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_report_m6.json; E13_swarm_local_predictions_m6.json; E13_swarm_local_prereg_amendment_6.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-57",
+        "metric_name": "E13 amendments: 20.03 vs 13.76 GiB preflight (receipt + amendment 2), Granite-1B abort 2.686 s/step / 3.09 h (amendment 4), step bench 0.78/1.45/2.54 s and 5.76 GiB, M=2 gate 0.0253 (amendment 5)",
+        "expected_tokens": [
+          "$20.03$\\,GiB against $13.76$\\,GiB free",
+          "$0.78$\\,s per step against $1.45$\\,s for \\texttt{eager} and $2.54$\\,s",
+          "$5.76$\\,GiB peak",
+          "$2.686$\\,s per inner step",
+          "projected $3.09$\\,h",
+          "$0.0253$ nats"
+        ],
+        "source_artifact": "artifacts/experiments/E13_granite_step_bench.json; E13_swarm_local_prereg_amendment_2/4/5.json; E13_swarm_local_report.json (preflight)",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-58",
+        "metric_name": "E13 MoE routing statistics of the final global model of S0 seed 1: normalised entropy and top-quartile share per domain (Granite-1B and 3B)",
+        "expected_tokens": [
+          "$0.913$ (code), $0.929$ (French Wikipedia), $0.946$ (PubMed)",
+          "$0.517$, $0.501$, $0.456$",
+          "$0.890$ (code), $0.916$ (French Wikipedia), $0.927$ (PubMed), $0.904$ (GSM8K)",
+          "$0.583$, $0.529$, $0.504$, $0.557$"
+        ],
+        "source_artifact": "artifacts/experiments/E13_swarm_local_raw_granite1b.json; E13_swarm_local_raw_granite3b.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-59",
+        "metric_name": "E14 Table tab:e14 (both models): retention, final loss minus S0, S2 minus cell, H14a/H14b statuses computed by the registered interval rule, round p50 latency",
+        "expected_tokens": [
+          "$-0.05 \\pm 0.35$ & $+0.140 \\pm 0.044$ & -- & -- & $16.5$",
+          "$0.88 \\pm 0.08$ & $+0.016 \\pm 0.011$ & $+0.124 \\pm 0.055$ & H14a supported & $21.0$",
+          "$0.53 \\pm 0.18$ & $+0.063 \\pm 0.025$ & $+0.077 \\pm 0.066$ & H14b supported & $16.3$",
+          "$-0.37 \\pm 0.36$ & $+0.075 \\pm 0.018$ & -- & -- & $42.7$",
+          "$-0.08 \\pm 0.17$ & $+0.059 \\pm 0.008$ & $+0.016 \\pm 0.025$ & H14a inconclusive & $50.4$",
+          "$-0.67 \\pm 0.57$ & $+0.091 \\pm 0.018$ & $-0.016 \\pm 0.034$ & H14b inconclusive & $43.3$"
+        ],
+        "source_artifact": "artifacts/experiments/E14_report_qwen0.5b.json + E14_report_granite1b.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-60",
+        "metric_name": "E14 qwen mechanism counts: S6 latency +27.5% (p50 vs S2), extra wait 79.2 s in 10 of 18 rounds, 13 forced admissions, admitted 0.50 -> 0.68, late discards 27/20/6; S7 18 carried (staleness 1: 16, 2: 2), none stale or unmerged",
+        "expected_tokens": [
+          "(\\textbf{$+27.5\\,\\%$}",
+          "through $79.2$\\,s of extra waiting in total (in 10 of the 18 rounds) and $13$ forced admissions",
+          "from $0.50$ to $0.68$ and the late discards fall from $27$ to $20$",
+          "carries $18$ late deltas (staleness 1 in $16$ cases and staleness 2 in $2$",
+          "from $27$ to $6$"
+        ],
+        "source_artifact": "artifacts/experiments/E14_report_qwen0.5b.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-61",
+        "metric_name": "E14 granite caveats: baseline improves 0.051-0.057 nats; S2 re-run -0.37 vs E13 -0.66 (seed 1 identical, seeds 2 and 3 differ); qwen S2 re-run identical to E13 for all three seeds",
+        "expected_tokens": [
+          "by only $0.051$ to $0.057$ nats per seed",
+          "retention $-0.37$ in this invocation against $-0.66$ in E13"
+        ],
+        "source_artifact": "artifacts/experiments/E14_report_qwen0.5b.json + E14_report_granite1b.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-62",
+        "metric_name": "E15 Table tab:e15: passes/n, pass@1 with Wilson 95%, paired contrasts (gained/lost, exact McNemar p), generation GPU seconds for C0, C1, C2, C3 (MBPP) and C0h, C2h (HumanEval)",
+        "expected_tokens": [
+          "$169/257$ & $65.8$ $[59.8, 71.3]$ & -- & -- & $228.2$",
+          "$187/257$ & $72.8$ $[67.0, 77.8]$ & C1$-$C0 $+7.0$ pts & $19/1$, $p=4.0$e$-05$ & $1001.2$",
+          "$171/257$ & $66.5$ $[60.6, 72.0]$ & C2$-$C0 $+0.8$ pts & $15/13$, $p=0.85$ & $198.3$",
+          "$190/257$ & $73.9$ $[68.2, 78.9]$ & C3$-$C1 $+1.2$ pts & $12/9$, $p=0.66$ & $688.6$",
+          "C3$-$C0 $+8.2$ pts & $26/5$, $p=1.9$e$-04$ &",
+          "$110/164$ & $67.1$ $[59.6, 73.8]$ & -- & -- & $253.6$",
+          "$111/164$ & $67.7$ $[60.2, 74.4]$ & C2$-$C0 $+0.6$ pts & $12/11$, $p=1.0$ & $186.1$"
+        ],
+        "source_artifact": "artifacts/experiments/E15_gwaya_rft_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-63",
+        "metric_name": "E15 decisions computed by the pre-registered thresholds: H15a inconclusive (+0.8, p=0.85), H15b supported (+7.0, p=4.0e-5), H15d supported (max peak 4.47 GiB), H15c/H15e descriptive; RFT yield 359/462, 673 pairs, 329,948 tokens, 129 steps, CE 0.156/0.096/0.061, 18,464,768 LoRA parameters",
+        "expected_tokens": [
+          "\\textbf{H15a} (RFT lifts greedy pass@1 by at least $+3.0$ points with $p<0.05$) is \\textbf{inconclusive}: $+0.8$ points, $p=0.85$",
+          "\\textbf{H15b} (the loop lifts the base by at least $+5.0$ points) is \\textbf{supported}: $+7.0$ points, $19$ gained and $1$ lost, $p=4.0\\cdot10^{-5}$",
+          "C3 against C1 is $+1.2$ points ($p=0.66$) and C3 against C0 $+8.2$ points ($p=1.9\\cdot10^{-4}$)",
+          "$+0.6$ points, $p=1.0$",
+          "\\textbf{H15d} (every stage runs to completion under the $7.5$\\,GiB cap) is \\textbf{supported}: the largest peak reserved memory of any stage is $4.47$\\,GiB",
+          "$359$ of $462$ train problems with at least one accepted solution (mean per-sample yield $0.542$), $673$ kept pairs, $329{,}948$ generated tokens",
+          "ran $129$ steps and the mean cross-entropy fell from $0.156$ to $0.096$ to $0.061$",
+          "$18{,}464{,}768$ trainable parameters"
+        ],
+        "source_artifact": "artifacts/experiments/E15_gwaya_rft_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-64",
+        "metric_name": "E15 selection reading: C1 gains 19 loses 1; repair solved 1 of 54 (53 fell back), 2 of 53 for C3; visible verification rate 79.4% vs 72.8% pass; sampling 3,957 s + training 368 s = 4,325 GPU s; loop 4.4x GPU s and 3.9x tokens; stage wall/peak/energy table",
+        "expected_tokens": [
+          "repair rounds solved only $1$ of the $54$ problems that entered them ($53$ fell back to the greedy reply; $2$ of $53$ for the tuned model)",
+          "accepted $79.4\\,\\%$ of the problems with a verified candidate, while $72.8\\,\\%$ pass all tests",
+          "at least $18$ of the $19$ gains come from the samples",
+          "$3{,}957$\\,s of sampling plus $368$\\,s of training, $4{,}325$ GPU-seconds in all",
+          "$4.4\\times$ the GPU seconds of greedy decoding ($1001.2/228.2$",
+          "$3.9\\times$ the generated tokens ($74{,}808$ against $19{,}285$)",
+          "Baseline (C0, C0h) & $495.5$ & $4.18$ & $9.10$",
+          "Base + loop (C1) & $800.8$ & $4.24$ & $14.66$",
+          "RFT generation & $4046.7$ & $4.47$ & $74.80$",
+          "Training (LoRA) & $368.1$ & $4.15$ & $6.72$",
+          "Tuned (C2, C2h, C3) & $903.9$ & $4.36$ & $16.57$"
+        ],
+        "source_artifact": "artifacts/experiments/E15_gwaya_rft_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-65",
+        "metric_name": "E15 controls: 100/100 MBPP references, 164/164 HumanEval canonical, 12/12 planted stubs rejected, containment, leakage; vendored GWAYA commit 9c0001e8307d / sha256 af8f382c5a67 (PROVENANCE.md)",
+        "expected_tokens": [
+          "$100/100$ MBPP reference solutions",
+          "$164/164$ HumanEval canonical solutions",
+          "$12/12$ planted stubs",
+          "\\texttt{9c0001e8307d}",
+          "\\texttt{af8f382c5a67\\ldots}"
+        ],
+        "source_artifact": "artifacts/experiments/E15_gwaya_rft_report.json; third_party/gwaya/PROVENANCE.md",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-66",
+        "metric_name": "E16 Table tab:e16_vram: measured VRAM, PR estimate, ratio, decode and prompt-eval tok/s for 3 tiers x 2 contexts (all 100% on GPU)",
+        "expected_tokens": [
+          "1.5B & 4096 & 1651 & 1782 & 0.93 & 130.5 & 2841 \\\\",
+          "1.5B & 8192 & 2107 & 1894 & 1.11 & 127.9 & 2769 \\\\",
+          "3B & 4096 & 2713 & 2584 & 1.05 & 68.3 & 1541 \\\\",
+          "3B & 8192 & 3297 & 2728 & 1.21 & 67.1 & 1580 \\\\",
+          "7B & 4096 & 5483 & 5290 & 1.04 & 28.5 & 812 \\\\",
+          "7B & 8192 & 6387 & 5514 & 1.16 & 28.2 & 827 \\\\"
+        ],
+        "source_artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-67",
+        "metric_name": "E16 Table tab:e16_acc: pass@1 raw vs loop, gained/lost, McNemar p, precision of VERIFIED with Wilson 95% per tier; ladder row",
+        "expected_tokens": [
+          "1.5B & 64.6 ($166$) & 73.2 ($188$) & $+8.6$ & $22/0$ & 4.8e-07 & 92.6 [88.2, 95.5]",
+          "3B & 72.8 ($187$) & 80.2 ($206$) & $+7.4$ & $19/0$ & 3.8e-06 & 92.8 [88.6, 95.5]",
+          "7B & 81.7 ($210$) & 85.6 ($220$) & $+3.9$ & $10/0$ & 2.0e-03 & 94.8 [91.2, 97.0]",
+          "Ladder 1.5B$\\to$3B$\\to$7B & -- & 85.2 ($219$)"
+        ],
+        "source_artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-68",
+        "metric_name": "E16 registered statuses: H16a supported (5483 / 6387 MiB <= 6656, margin 269), H16b adequate (ratios 0.93-1.21), H16c supported x3, H16d supported/supported/inconclusive (7B +3.9, p=0.002), H16e supported (92.6/92.8/94.8), H16f met at 28.5 tok/s",
+        "expected_tokens": [
+          "is \\textbf{supported} at 4096 ($5483$\\,MiB) and at 8192 ($6387$\\,MiB, a margin of $269$\\,MiB)",
+          "the ratios range from $0.93$ to $1.21$",
+          "is \\textbf{adequate}",
+          "$+8.6$) and the 3B ($+7.4$)",
+          "$+3.9$ points with $p=0.002$",
+          "$92.6\\,\\%$, $92.8\\,\\%$ and $94.8\\,\\%$",
+          "is met at $28.5$\\,tok/s",
+          "the $6656$\\,MiB ceiling"
+        ],
+        "source_artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-69",
+        "metric_name": "E16 ladder (85.2 vs 85.6, 8/9, p=1.0, 21.0%/12.1% escalated, 1227 s vs 1566 s = 78%), context invariance (210 problems, 0 discordant), winner sources, comparison with E15 C0",
+        "expected_tokens": [
+          "reaches $85.2\\,\\%$ ($219/257$) against $85.6\\,\\%$ ($220/257$) for the 7B loop alone (paired: $8$ gained, $9$ lost, $p=1.0$)",
+          "escalating $21.0\\,\\%$ of the problems to the 3B and $12.1\\,\\%$ to the 7B, at $78\\,\\%$ of the 7B-only model time ($1227$\\,s against $1566$\\,s)",
+          "solves exactly the same $210$ problems as at 4096 ($0$ discordant, $p=1.0$)",
+          "the greedy reply wins for $178$ problems, the first or second sample for $15+10$, and $54$ problems fall back",
+          "are $219$, $9+4$ and $25$",
+          "$64.6\\,\\%$, and the fp16 base of E15, $65.8\\,\\%$"
+        ],
+        "source_artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-70",
+        "metric_name": "E16 controls: idle GPU 0 MiB (bar 1500), gate 100/100, 100% GPU offload, unload back to 0 MiB (tolerance 300), clean probes, determinism 10/10 per tier; run valid; Ollama 0.34.1; file sizes 940/1841/4466 MiB vs PR 1070/1840/4466",
+        "expected_tokens": [
+          "idle GPU at start ($0$\\,MiB used, bar $1500$)",
+          "the gate control ($100/100$ references)",
+          "the GPU back at $0$\\,MiB (tolerance $300$)",
+          "$10/10$ identical for each tier",
+          "Ollama $0.34.1$",
+          "$940/1841/4466$\\,MiB against $1070/1840/4466$\\,MiB"
+        ],
+        "source_artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json; artifacts/experiments/E16_gwaya_lite_t4_prereg.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-71",
+        "metric_name": "GWAYA-Lite live check on the deployed service: 3/3 tasks VERIFIED (1.5B, 1.5B, 3B; fizzbuzz 7 candidates and 3 repair rounds), untested request AUDITED, 13 SSE chunks + terminator, foreign Host/Origin 403, 1639 MiB resident after the requests with only the 1.5B model",
+        "expected_tokens": [
+          "$3/3$ tasks \\texttt{VERIFIED}",
+          "one, \\texttt{fizzbuzz}, after the ladder escalated to the 3B tier through 7 candidates and 3 repair rounds",
+          "answered \\texttt{AUDITED}",
+          "an SSE stream of $13$ data chunks",
+          "answered 403",
+          "$1639$\\,MiB of GPU memory in use after the requests",
+          "\\texttt{127.0.0.1:8099}"
+        ],
+        "source_artifact": "artifacts/gwaya_lite_live_check.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
       }
     ]
   },
   "latex_typography_and_figures_audit": {
-    "figures_verified": 5,
+    "figures_verified": 7,
     "missing_figures": [],
     "bibliography_entries": 47,
     "uncited_bibitems": [],
@@ -1293,7 +1625,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Programmatically verified 48/48 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Programmatically verified 71/71 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
         "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
       ]
     },
@@ -1315,7 +1647,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Verified 5/4 vector PDF/PNG figure pairs and 47/47 cited bibliography entries (0 uncited, 0 undefined).",
+        "Verified 7/4 vector PDF/PNG figure pairs and 47/47 cited bibliography entries (0 uncited, 0 undefined).",
         "Eliminated Overfull \\hbox (80.7pt) and fancyhdr headheight warnings via \\path{} line breaking and 21pt header height (0 Overfull \\hbox > 5pt)."
       ]
     }
