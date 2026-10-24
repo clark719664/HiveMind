@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Quorum Quest</title>
+<meta name="description" content="Quorum Quest: an educational game where you coordinate a toy DiLoCo swarm and choose whom to wait for.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap">
+    <span class="brand">Quorum Quest</span>
+    <nav aria-label="Pages">
+      <ul>
+        <li><a href="index.html">Swarm Lab</a></li>
+        <li><a href="index.html#real">Real experiments</a></li>
+        <li><a href="index.html#contribute">Contribute</a></li>
+      </ul>
+    </nav>
+    <button type="button" id="theme-toggle" aria-pressed="false" aria-label="Toggle dark theme">Dark theme: off</button>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+
+  <div id="status-banner" class="banner" role="note" aria-label="Honest status">
+    <strong>Honest status.</strong>
+    Quorum Quest is an <strong>educational toy</strong> built on the Swarm Lab engine: an analogy of effects measured in the real E13/E14 experiments, not a reproduction of them.
+    Its numbers must never be quoted as results about real LLM training, and no peer review of record exists for the project.
+    The score is a <em>learning score</em>, a teaching number: it is not PTS or $HIVE and earns nothing. No network, no accounts, no multiplayer.
+  </div>
+
+  <section id="game-root" aria-labelledby="game-h">
+    <h1 id="game-h">Quorum Quest: you are the swarm coordinator</h1>
+    <p class="lead">Four workers train on their own data and send you their deltas each round. You decide how many to wait for (K), what to do with late deltas, how long to wait after the K-th arrival (grace) and how to merge. Your learning score is 100 &times; retention of the synchronous improvement (capped at 1), minus a time penalty on the time-budget level. Best total so far: <strong id="total-best">0</strong> (stored only in this browser).</p>
+
+    <nav aria-label="Levels"><ul class="levelnav" id="level-nav"></ul></nav>
+
+    <h2 id="level-title" tabindex="-1">Level 1</h2>
+    <p id="level-story"></p>
+    <p id="level-goal"></p>
+    <p class="hint">Seed <span id="seed-text">1</span> <button type="button" id="new-seed">New random seed</button></p>
+
+    <form id="strategy-form" aria-label="Your strategy" onsubmit="return false">
+      <fieldset>
+        <legend>Quorum K: how many arrivals to wait for</legend>
+        <div class="cards" id="cards-K" role="radiogroup" aria-label="Quorum K"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Late-delta policy: what happens to a delta that misses the round</legend>
+        <div class="cards" id="cards-policy" role="radiogroup" aria-label="Late-delta policy"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Grace: how long to keep the round open after the K-th arrival</legend>
+        <div class="cards" id="cards-grace" role="radiogroup" aria-label="Grace"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Merge mode</legend>
+        <div class="cards" id="cards-merge" role="radiogroup" aria-label="Merge mode"></div>
+      </fieldset>
+      <p>
+        <button type="button" class="primary" id="run">Run the rounds</button>
+        <button type="button" id="skip" hidden>Skip animation</button>
+        <span id="run-status" role="status" aria-live="polite"></span>
+      </p>
+      <p class="hint">Animation is skipped automatically if your system asks for reduced motion.</p>
+    </form>
+
+    <div id="result" hidden>
+      <h2>Result</h2>
+      <p><span class="stars" id="stars" role="img" aria-label="stars"></span></p>
+      <p><strong id="score-line"></strong></p>
+      <p id="score-parts" class="hint"></p>
+      <h3>Global loss per round</h3>
+      <div id="game-chart"></div>
+      <ul class="legend" aria-label="chart legend">
+        <li><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke:var(--c1);stroke-width:2.6"/></svg>your run (solid)</li>
+        <li><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke:var(--c2);stroke-width:2;stroke-dasharray:7 4"/></svg>synchronous reference (dashed)</li>
+      </ul>
+      <h3>Who was admitted, round by round</h3>
+      <div id="game-strip"></div>
+      <p class="hint">A = admitted, L = late (dashed), R = admitted because the fair policy required it (thick ring), &ndash; = absent. Bottom rows: delayed deltas merged this round and the simulated round time.</p>
+      <h3>Debrief</h3>
+      <ul class="debrief" id="debrief"></ul>
+      <p>The real experiment behind this level: <a id="real-link" href="index.html#real">E13</a>.</p>
+    </div>
+
+    <h3>How the stars are decided</h3>
+    <p id="star-rule" class="hint"></p>
+    <noscript><p class="banner">The game needs JavaScript. Everything runs locally in your browser; nothing is sent anywhere.</p></noscript>
+  </section>
+
+  <div class="notice" id="nonmonetary-notice">
+    <strong>Notice.</strong> All references to $HIVE and "Points" (PTS) refer exclusively to internal, non-monetary, non-transferable accounting units measuring contributed and reciprocal computing power.
+    NO MONEY, FIAT CURRENCY, CRYPTOCURRENCY, FINANCIAL INSTRUMENT, SECURITY, WAGE, OR MONETARY PAYMENT OF ANY KIND IS OR WILL EVER BE INVOLVED, PROMISED, OWED, OR PAID.
+    (See <a href="../../LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md">LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md</a>.)
+    The "learning score" in this game is only a teaching number: it is not PTS or $HIVE and has no reward value.
+  </div>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>Quorum Quest runs entirely in your browser: no network requests, no cookies, no accounts. Best scores are kept in local storage only if your browser allows it. Source and contribution guide: <a href="https://github.com/xaviercallens/HiveMind">github.com/xaviercallens/HiveMind</a>, <a href="README.md">docs/site/README.md</a>.</p>
+  </div>
+</footer>
+
+<script src="swarm_lab.js"></script>
+<script src="app.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
