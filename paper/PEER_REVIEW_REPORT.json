@@ -1,11 +1,11 @@
 {
   "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-  "version": "3.7.1",
+  "version": "3.7.2",
   "is_peer_review": false,
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-24T01:13:49Z",
+  "timestamp_utc": "2026-10-24T06:22:18Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -1022,8 +1022,8 @@
         "check_id": "PROV-27",
         "metric_name": "independent Lean kernel gate: theorems verified / declared",
         "expected_tokens": [
-          "120/120",
-          "120 of 120"
+          "128/128",
+          "128 of 128"
         ],
         "source_artifact": "artifacts/lean_independent_runner_check.json",
         "passed": true

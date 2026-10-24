@@ -228,7 +228,7 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
 
 - **E5-het** (`artifacts/experiments/E5_het_report.json`, 2,652 runs incl. the pre-registered grid extension, 3 seeds, all controls passed, `ρ = 0` reproduces E5-toy to 1e-9): the heterogeneity knob works (delta cosine 0.909 → 0.079; `||RDA||/||direct||` 1.04 → 2.25 at M = 8, and the common-norm formula of the paper's Proposition predicts 1.80 / 2.27 from the cosines, within 1 %). On the original LR grid every best LR was censored at the top (the toy trains far below its optimal step); the pre-registered extension (amendment 2) found the optimum at the divergence edge: direct best at η = 6.79 for both M, RDA best at 4.8 for both M. **P2 refuted by the rule** (direct's best LR does not grow with M; the arg-mins are not separated by their intervals, so the rule needs an interval-separation clause at 0.5B), **P9 refuted at M = 8** (best-LR ratio √2 vs predicted 2.25), supported at M = 4; **P3 inconclusive** (+0.003 ± 0.012); **P4 refuted at every ρ** (−0.0025 ± 0.0023 at ρ = 4). P3/P4 were measured on the original grid, i.e. at LRs far below the optimum: low power.
 - **E10-lattice** (`artifacts/experiments/E10_lattice_report.json`, 36 runs, 46 s; `E10_lattice_first_execution_lr2.4.json` kept as sensitivity): **P10a supported** (E₈/ℤ⁸ relative-MSE ratio 0.79 ± 0.02 at the matched ≈1.7-bit rate; Gaussian value 0.86), **P10b inconclusive** (−0.003 ± 0.019 with EF), **P10c supported** (−0.012 ± 0.077). The 2-bit cells are invalid (rates 3.10 vs 3.36 unmatched) and all realised rates drift above target because the scale was calibrated once on a round-0 delta: per-round scale adaptation is a prerequisite of `HM-S10-01`.
-- **Independent Lean gate** (`artifacts/lean_independent_runner_check.json`): AutoevolveAI's `anse.formal.lean_runner` found 13 theorems with no `#print axioms` line; added; now 120/120, 0 sorry, 0 untrusted axioms. The theorem count was right, the axiom coverage was not.
+- **Independent Lean gate** (`artifacts/lean_independent_runner_check.json`): AutoevolveAI's `anse.formal.lean_runner` found 13 theorems with no `#print axioms` line; added; now 120/120, 0 sorry, 0 untrusted axioms. The theorem count was right, the axiom coverage was not. Re-run 2026-10-24 on the 128-theorem file that reached `main` by direct push: 128/128, 0 sorry, 0 untrusted; Theorems 125 and 127 flagged (tautological conjunct; unused gate hypothesis) → `HM-S10-09`.
 - **Decision consequences applied**: PA-CGAD stays off by default under quorum (P4); RDA stays "norm bookkeeping" in the paper's claims (P2/P9 at toy scale); the E5 rule for 0.5B gains an interval-separation clause and an LR sweep up to divergence for both merges; the E₈ codec is a selectable option, not the default, until E10b at 0.5B (`HM-S10-01`).
 - **Leveraged from the owner's other projects** (ROADMAP §3.8): OptimalEnergyAI decoders and rate accounting (E10), AutoevolveAI Lean runner (PROV-27) and APIExtractor (HM-S9-09), GWAYA zero-stub audit (78 files clean), runux signSGD as the 1-bit arm's motivation (re-implemented, licence), xavuntu `tpu_trainer.py` as the TPU-learner candidate (HM-S10-03), Xbrain/brain Rust learner feasibility (HM-S10-04).
 - Ledger: `artifacts/predictions_ledger.json` now carries E5-toy and E5-het decisions per prediction plus P9 and P10a–c.
@@ -267,3 +267,21 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   tamperer at any ε: dtype is a class boundary; bf16 workers get a bf16 validator and their own ε measured on GPU
   (`HM-S10-08`, pre-registered consequence). The cell took 19,233 s on CPU (single-threaded bf16 path) vs 3–16 min
   for fp32 cells; the GPU bf16 class is the one that matters and is not measured here. Paper v3.7.1, PROV-34.
+
+### 2026-10-24 (morning) — Lean gate at 128; T4 branch reviewed before its PR; `main` locked to PRs
+
+- **Independent Lean gate re-run** on the 128-theorem file that reached `main` by direct push: 128/128, 0 sorry, 0 untrusted
+  axioms (`artifacts/lean_independent_runner_check.json`, schema v1.1 keeps the 23 Oct run as `previous_run`). Theorems 125
+  and 127 compile but do not constrain the σ-MoE gate / factored-gossip barrier they are named after → `HM-S10-09`.
+- **T4 branch review** (`docs/review/t4_branch_review_2026-10-24.md`): E10b INVALID (positive control failed, seed 3);
+  E11 Qwen-7B row invalid (negative control failed, −0.47 ± 0.20 nats); E12-GPU (same-T4 exact, every class crossing
+  > ε, fp64+snap proxy does not help) and E13 (P13b refuted: the all-on swarm keeps −0.05 ± 0.35 of the single-learner
+  gain; the K<M quorum with a persistent straggler is the mechanism, no-quorum retention 0.94) are sound and will be
+  the headline of v3.8.0 once the branch is rebased (11 conflicts) and gated.
+- **Governance**: `main` requires a PR and enforces admins after two coordinator commits with the owner's e-mail
+  bypassed the gate; gatekeeper retries merges of ACCEPTed heads (PR #125).
+- **Hardening (owner's brief)**: `HiveMindFirewall` delivered with a 59-vector scripted red team (first run 47/49, two defects
+  fixed, second 49/49, 0 false positives); Season 11 tasks in ROADMAP §3.9; design `docs/SECURITY_HARDENING_PHASE.md`.
+- **Compute economy (owner's brief)**: BOINC-credit coin and Nash-equilibrium market proposed (`docs/COMPUTE_COIN_AND_MARKET.md`);
+  pre-registered simulation: Kelly efficiency ≥ 0.80, 300/300 Tullock certified, routing 55/60 undamped → 60/60 damped (run 1 kept).
+  Proposed, not adopted (`HM-S12-02`); Season 12 in ROADMAP §3.10.
