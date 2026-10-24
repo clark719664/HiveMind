@@ -1867,18 +1867,28 @@ def render_hivemind_at_home_html(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HiveMind@home &bull; Cyber-Bee &amp; La Ruche Community Supercomputer</title>
   <meta name="description" content="HiveMind@home & La Ruche: Share your idle consumer GPU when not gaming, earn HiveMind Compute Points, and harness open-source Sparse MoE models (GWAYA Python Coding, Gwen MoE, Astrophysics Exoplanet & SETI Detection)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {{
-      --bg-deep: #04060d;
-      --bg-card: #0a0f1e;
+      --bg-deep: #080d1e;
+      --bg-card: #0e1324;
+      --surface-container: #161b2c;
+      --surface-container-high: #1a1f31;
+      --surface-container-highest: #24293b;
       --bg-hex: #070b16;
-      --border-cyan: #00f0ff;
-      --border-amber: #f59e0b;
+      --border-cyan: #00eefc;
+      --border-amber: #fbbf24;
       --honey-gold: #fbbf24;
-      --text-main: #f1f5f9;
+      --plasma-cyan: #00eefc;
+      --text-main: #dde1fa;
       --text-muted: #94a3b8;
-      --accent-green: #10b981;
-      --accent-purple: #a855f7;
+      --accent-green: #34d399;
+      --accent-purple: #c084fc;
+      --font-headline: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      --font-body: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
     }}
     * {{ box-sizing: border-box; }}
     body {{
@@ -1886,20 +1896,24 @@ def render_hivemind_at_home_html(
       padding: 0;
       background-color: var(--bg-deep);
       background-image:
-        radial-gradient(circle at 15% 10%, rgba(245, 158, 11, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 85% 15%, rgba(0, 240, 255, 0.11) 0%, transparent 45%),
-        radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+        radial-gradient(circle at 15% 10%, rgba(251, 191, 36, 0.14) 0%, transparent 42%),
+        radial-gradient(circle at 85% 15%, rgba(0, 238, 252, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 90%, rgba(52, 211, 153, 0.09) 0%, transparent 50%);
       color: var(--text-main);
-      font-family: 'Inter', 'JetBrains Mono', 'Fira Code', system-ui, -apple-system, sans-serif;
+      font-family: var(--font-body);
       line-height: 1.5;
     }}
-    code, pre {{
-      font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    h1, h2, h3, h4, .brand-title {{
+      font-family: var(--font-headline);
+      letter-spacing: -0.015em;
+    }}
+    code, pre, .mono, .pill, .lang-btn, .nav-tab {{
+      font-family: var(--font-mono);
     }}
     header {{
-      border-bottom: 1px solid rgba(245, 158, 11, 0.42);
-      background: rgba(4, 6, 13, 0.94);
-      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.42);
+      background: rgba(8, 13, 30, 0.95);
+      backdrop-filter: blur(12px);
       padding: 16px 26px;
       position: sticky;
       top: 0;
@@ -1916,10 +1930,10 @@ def render_hivemind_at_home_html(
     }}
     .brand-title {{
       font-size: 1.32rem;
-      font-weight: 900;
+      font-weight: 800;
       color: var(--honey-gold);
-      letter-spacing: 0.03em;
-      text-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
     }}
     .brand-sub {{
       font-size: 0.78rem;
@@ -1935,19 +1949,43 @@ def render_hivemind_at_home_html(
       border-radius: 999px;
       font-size: 0.73rem;
       font-weight: 700;
-      border: 1px solid #00f0ff;
-      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid var(--plasma-cyan);
+      background: rgba(0, 238, 252, 0.1);
       color: #38bdf8;
     }}
     .pill-gold {{
-      border: 1px solid #f59e0b;
-      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid var(--border-amber);
+      background: rgba(251, 191, 36, 0.14);
       color: #fbbf24;
     }}
     .pill-green {{
       border: 1px solid #10b981;
       background: rgba(16, 185, 129, 0.14);
       color: #34d399;
+    }}
+    .lang-btn {{
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 999px;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      background: rgba(14, 19, 36, 0.88);
+      color: #dde1fa;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      letter-spacing: 0.02em;
+    }}
+    .lang-btn:hover {{
+      border-color: var(--plasma-cyan);
+      color: #ffffff;
+      transform: translateY(-1px);
+    }}
+    .lang-btn.active {{
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.35), rgba(0, 238, 252, 0.25));
+      border-color: #fbbf24;
+      color: #fbbf24;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
     }}
     /* Cyber-Bee Navigation Tabs */
     .cyber-nav {{
@@ -1962,25 +2000,25 @@ def render_hivemind_at_home_html(
     .nav-tab {{
       padding: 8px 15px;
       border-radius: 8px;
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      background: rgba(15, 23, 42, 0.75);
-      color: #cbd5e1;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(14, 19, 36, 0.82);
+      color: #dde1fa;
       font-size: 0.78rem;
-      font-weight: 800;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.18s ease;
       letter-spacing: 0.02em;
     }}
     .nav-tab:hover {{
-      border-color: #00f0ff;
+      border-color: var(--plasma-cyan);
       color: #ffffff;
       transform: translateY(-1px);
     }}
     .nav-tab.active {{
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(0, 240, 255, 0.18));
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.30), rgba(0, 238, 252, 0.20));
       border-color: #fbbf24;
       color: #fbbf24;
-      box-shadow: 0 0 14px rgba(245, 158, 11, 0.32);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.35);
     }}
     main {{
       max-width: 1440px;
@@ -2260,12 +2298,12 @@ def render_hivemind_at_home_html(
         <div class="brand-sub" data-i18n="charter_sub">{state.get('charter')}</div>
       </div>
       <div class="pill-row" style="align-items:center;">
-        <div id="lang-switcher-bar" style="display:flex;gap:4px;background:rgba(15,23,42,0.9);padding:3px 6px;border-radius:999px;border:1px solid #f59e0b;" role="group" aria-label="Language Switcher (EN, FR, ZH, ES, DE)">
-          <button type="button" class="nav-tab lang-btn active" data-lang="en" style="padding:3px 9px;font-size:0.71rem;">&#x1F1EC;&#x1F1E7; EN</button>
-          <button type="button" class="nav-tab lang-btn" data-lang="fr" style="padding:3px 9px;font-size:0.71rem;">&#x1F1EB;&#x1F1F7; FR</button>
-          <button type="button" class="nav-tab lang-btn" data-lang="zh" style="padding:3px 9px;font-size:0.71rem;">&#x1F1E8;&#x1F1F3; &#x4E2D;&#x6587;</button>
-          <button type="button" class="nav-tab lang-btn" data-lang="es" style="padding:3px 9px;font-size:0.71rem;">&#x1F1EA;&#x1F1F8; ES</button>
-          <button type="button" class="nav-tab lang-btn" data-lang="de" style="padding:3px 9px;font-size:0.71rem;">&#x1F1E9;&#x1F1EA; DE</button>
+        <div id="lang-switcher-bar" style="display:flex;gap:4px;background:rgba(14,19,36,0.95);padding:3px 6px;border-radius:999px;border:1px solid #fbbf24;box-shadow:0 0 10px rgba(251,191,36,0.22);" role="group" aria-label="Language Switcher (EN, FR, ZH, ES, DE)">
+          <button type="button" class="lang-btn active" data-lang="en">&#x1F1EC;&#x1F1E7; EN</button>
+          <button type="button" class="lang-btn" data-lang="fr">&#x1F1EB;&#x1F1F7; FR</button>
+          <button type="button" class="lang-btn" data-lang="zh">&#x1F1E8;&#x1F1F3; &#x4E2D;&#x6587;</button>
+          <button type="button" class="lang-btn" data-lang="es">&#x1F1EA;&#x1F1F8; ES</button>
+          <button type="button" class="lang-btn" data-lang="de">&#x1F1E9;&#x1F1EA; DE</button>
         </div>
         <span class="pill-gold"><span data-i18n="points_balance_label">Compute Points Balance</span>: <strong id="header-points-balance">1,250 pts</strong> (0.00 EUR/USD)</span>
         <span class="pill">GCP Cloud Run: {cloud_run.get('service_name', 'hivemind-at-home-ruche')} ($0/mo Idle)</span>
@@ -2328,14 +2366,53 @@ def render_hivemind_at_home_html(
         </div>
       </section>
 
-      <section class="card col-5">
-        <h2>
-          <span>&#x1F36F; Live Cyber-Beehive Simulation: GPU Bees &rarr; La Ruche</span>
-          <span style="font-size:0.74rem;color:#fbbf24;">E8 Nectar Flow</span>
-        </h2>
-        <canvas id="cyber-bee-overview-canvas" width="540" height="310" style="width:100%;height:310px;background:#040711;border:1px solid rgba(245,158,11,0.45);border-radius:10px;display:block;"></canvas>
+      <section class="card col-5" style="display:flex;flex-direction:column;justify-content:space-between;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h2 style="margin:0;font-size:1.02rem;">
+            <span>&#x1F36F; Live Cyber-Beehive Simulation: GPU Bees &rarr; La Ruche</span>
+          </h2>
+          <span class="pill-gold" style="font-size:0.72rem;">E8 Nectar Flow</span>
+        </div>
+        <div style="position:relative;width:100%;height:310px;background:#040711;border:1px solid rgba(251,191,36,0.45);border-radius:10px;overflow:hidden;box-shadow:inset 0 0 20px rgba(0,0,0,0.85);">
+          <!-- SVG Base Simulation Layer (Guarantees immediate vector rendering with 0 black frames) -->
+          <svg id="cyber-bee-svg-layer" viewBox="0 0 540 310" width="100%" height="310" style="position:absolute;inset:0;pointer-events:none;">
+            <defs>
+              <radialGradient id="hiveCorePulse" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#00eefc" stop-opacity="0.38"/>
+                <stop offset="60%" stop-color="#fbbf24" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#0e1324" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="#040711"/>
+            <!-- Cyber grid lines -->
+            <g stroke="rgba(0, 238, 252, 0.08)" stroke-width="1">
+              <line x1="0" y1="77" x2="540" y2="77"/>
+              <line x1="0" y1="155" x2="540" y2="155"/>
+              <line x1="0" y1="233" x2="540" y2="233"/>
+              <line x1="135" y1="0" x2="135" y2="310"/>
+              <line x1="270" y1="0" x2="270" y2="310"/>
+              <line x1="405" y1="0" x2="405" y2="310"/>
+            </g>
+            <!-- Core Hive Halo -->
+            <circle cx="270" cy="155" r="75" fill="url(#hiveCorePulse)"/>
+            <!-- Honeycomb Center Cluster -->
+            <g transform="translate(270, 155)">
+              <polygon points="0,-18 15.6,-9 15.6,9 0,18 -15.6,9 -15.6,-9" fill="rgba(0,238,252,0.25)" stroke="#00eefc" stroke-width="2"/>
+              <polygon points="0,-52 15.6,-43 15.6,-25 0,-16 -15.6,-25 -15.6,-43" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" stroke-width="1.6"/>
+              <polygon points="30,-35 45.6,-26 45.6,-8 30,1 14.4,-8 14.4,-26" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" stroke-width="1.6"/>
+              <polygon points="30,-1 45.6,8 45.6,26 30,35 14.4,26 14.4,8" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" stroke-width="1.6"/>
+              <polygon points="0,16 15.6,25 15.6,43 0,52 -15.6,43 -15.6,25" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" stroke-width="1.6"/>
+              <polygon points="-30,-1 -14.4,8 -14.4,26 -30,35 -45.6,26 -45.6,8" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" stroke-width="1.6"/>
+              <polygon points="-30,-35 -14.4,-26 -14.4,-8 -30,1 -45.6,-8 -45.6,-26" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" stroke-width="1.6"/>
+              <text x="0" y="3" text-anchor="middle" fill="#00eefc" font-size="8.5" font-family="'JetBrains Mono', monospace" font-weight="bold">TOP-2 MoE</text>
+              <text x="0" y="66" text-anchor="middle" fill="#fbbf24" font-size="9" font-family="'JetBrains Mono', monospace" font-weight="bold">LA RUCHE VAULT</text>
+            </g>
+          </svg>
+          <!-- Dynamic High-Frequency HTML5 Canvas Layer (Smooth 60 FPS Particle Physics) -->
+          <canvas id="cyber-bee-overview-canvas" width="540" height="310" style="position:relative;width:100%;height:310px;display:block;"></canvas>
+        </div>
         <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:0.74rem;color:#94a3b8;margin-top:8px;">
-          <span>&#x1F7E1; Golden Particles = 2-Bit E8 Lattice Gradients</span>
+          <span>&#x1F7E1; Golden Particles = 2-Bit E8 Lattice Gradients (30.89x)</span>
           <span>&#x1F535; Center Hive = Top-2 Active Sigma-MoE Router</span>
         </div>
       </section>
@@ -2884,7 +2961,7 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
       }}
       requestAnimationFrame(drawVideoCinemaFrame);
     }}
-    requestAnimationFrame(drawVideoCinemaFrame);
+    drawVideoCinemaFrame();
 
     if (vidPlayBtn) {{
       vidPlayBtn.addEventListener('click', function() {{
@@ -3020,7 +3097,7 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
       }});
       requestAnimationFrame(animateCyberBees);
     }}
-    requestAnimationFrame(animateCyberBees);
+    animateCyberBees();
 
     // -------------------------------------------------------------------------
     // 2. Screen 2: Gaming Preemption Simulator + Spend Compute Points Studio
@@ -3140,7 +3217,7 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
         .then(function(r) {{ return r.json(); }})
         .then(function(receipt) {{
           updatePointsDisplay(computePointsBalance + (receipt.reciprocity_points_awarded || 250));
-          ptsOutput.textContent = '✅ WORKUNIT VERIFIED (+250 Compute Points Awarded! New Balance: ' + computePointsBalance + ' pts)\n' + JSON.stringify(receipt, null, 2);
+          ptsOutput.textContent = '✅ WORKUNIT VERIFIED (+250 Compute Points Awarded! New Balance: ' + computePointsBalance + ' pts)\\n' + JSON.stringify(receipt, null, 2);
         }})
         .catch(function() {{
           updatePointsDisplay(computePointsBalance + 250);
@@ -3172,8 +3249,8 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
             updatePointsDisplay(res.points_balance_after);
           }}
           ptsOutput.textContent =
-            '🐝 SPECIALIST BEE: ' + res.specialist_bee_invoked + ' (-' + res.points_spent + ' pts | Remaining: ' + res.points_balance_after + ' pts)\n\n' +
-            res.domain_output + '\n\n[Receipt SHA-256: ' + res.redemption_receipt_sha256 + ']';
+            '🐝 SPECIALIST BEE: ' + res.specialist_bee_invoked + ' (-' + res.points_spent + ' pts | Remaining: ' + res.points_balance_after + ' pts)\\n\\n' +
+            res.domain_output + '\\n\\n[Receipt SHA-256: ' + res.redemption_receipt_sha256 + ']';
         }})
         .catch(function() {{
           updatePointsDisplay(Math.max(0, computePointsBalance - cost));
@@ -3193,8 +3270,8 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
         var ex = EXAMPLES[idx];
         if (!ex) return;
         var titleStr = (ex.titles && ex.titles[currentLang]) || (ex.titles && ex.titles.en) || ex.example_id;
-        if (exCodeViewer) exCodeViewer.textContent = '# ' + titleStr + ' (' + ex.bee_codename + ')\n' + ex.code_snippet;
-        if (exOutViewer) exOutViewer.textContent = '[' + currentLang.toUpperCase() + ' • ' + ex.example_id + ']\n' + ex.verified_output;
+        if (exCodeViewer) exCodeViewer.textContent = '# ' + titleStr + ' (' + ex.bee_codename + ')\\n' + ex.code_snippet;
+        if (exOutViewer) exOutViewer.textContent = '[' + currentLang.toUpperCase() + ' • ' + ex.example_id + ']\\n' + ex.verified_output;
         renderProceduralVisual(ex.service_id || 'python_coding_gwaya');
         triggerMoEInference(ex.prompt);
       }});
@@ -3490,6 +3567,15 @@ def export_hivemind_at_home_artifacts(
 
     html_p.write_text(html, encoding="utf-8")
     state_p.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+
+    # Export standalone SVG vector visuals for static hosting & offline access
+    poster_svg = render_cyber_bee_poster_svg()
+    exoplanet_svg = render_exoplanet_seti_visual_svg()
+    (html_p.parent / "cyber-bee-poster.svg").write_text(poster_svg, encoding="utf-8")
+    (html_p.parent / "cyber_bee_poster.svg").write_text(poster_svg, encoding="utf-8")
+    (html_p.parent / "exoplanet-seti-visual.svg").write_text(exoplanet_svg, encoding="utf-8")
+    (html_p.parent / "exoplanet_seti_visual.svg").write_text(exoplanet_svg, encoding="utf-8")
+
     return state
 
 
