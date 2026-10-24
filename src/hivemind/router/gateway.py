@@ -22,6 +22,7 @@ import json
 import logging
 import math
 import re
+import secrets
 import socket
 import threading
 import time
@@ -35,7 +36,7 @@ from urllib.parse import urlsplit
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -46,11 +47,14 @@ from hivemind.router.accounts import (
     HandleTaken,
     InsufficientBalance,
     ProducerRecord,
+    ReservedHandle,
     RouterStore,
     TooManyHolds,
     UnknownAccount,
 )
 from hivemind.router.catalog import catalog_payload
+from hivemind.router.google_auth import GoogleAuthError, GoogleIdTokenVerifier
+from hivemind.router.signup_page import content_security_policy, render_signup_page
 from hivemind.router.market import (
     MECHANISM_NO_TRADE,
     ConsumerBid,
@@ -425,6 +429,12 @@ class RegisterRequest(BaseModel):
     role: Literal["consumer", "producer", "prosumer"]
 
 
+class GoogleRegisterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id_token: str = Field(min_length=1, max_length=4096)
+    role: Literal["consumer", "producer", "prosumer"] = "prosumer"
+
+
 class MaxPriceRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     max_price_per_1k: float = Field(gt=0.0, le=MAX_PRICE_CEILING, allow_inf_nan=False)
@@ -545,12 +555,19 @@ def create_router_app(
     resolver: Resolver | None = None,
     trusted_proxy_hops: int = 0,
     max_producer_capacity_1k: float = MAX_PRODUCER_CAPACITY_1K,
+    google_client_id: str | None = None,
+    google_verifier: GoogleIdTokenVerifier | None = None,
+    open_registration: bool = True,
 ) -> FastAPI:
     """Build the gateway app. ``resolver`` (host -> IP strings) is injectable for tests of the SSRF guard.
 
     ``trusted_proxy_hops`` is the number of reverse proxies in front of the app that append to ``X-Forwarded-For``
     (0 = use the TCP peer; 1 on Cloud Run). The rate limiter keys on the entry that many hops from the right, which a
     client cannot forge. ``max_producer_capacity_1k`` is the operator clamp on self-declared producer capacity.
+
+    ``google_client_id`` turns on "Sign in with Google" registration (``/signup`` and ``/v1/hivemind/register/google``);
+    without it both are disabled. ``google_verifier`` lets tests inject keys. ``open_registration=False`` closes the
+    handle-only ``/v1/hivemind/register`` so that Google sign-in is the only way in.
     """
     client = http_client if http_client is not None else httpx.Client(timeout=PRODUCER_TIMEOUT_S, follow_redirects=False)
     resolve: Resolver = resolver if resolver is not None else _default_resolver
@@ -897,16 +914,48 @@ def create_router_app(
         raw = await request.body()
         return await run_in_threadpool(handle_chat, account, raw)
 
+    google = google_verifier or (GoogleIdTokenVerifier(google_client_id, clock=clock) if google_client_id else None)
+
+    @app.get("/signup", response_class=HTMLResponse)
+    def signup() -> HTMLResponse:
+        nonce = secrets.token_urlsafe(18)
+        page = render_signup_page(google.client_id if google else None, nonce)
+        return HTMLResponse(page, headers={"Content-Security-Policy": content_security_policy(nonce), "Cache-Control": "no-store",
+                                           "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"})
+
+    @app.post("/v1/hivemind/register/google")
+    def register_google(request: Request, payload: GoogleRegisterRequest) -> JSONResponse:
+        if google is None:
+            raise RouterError(503, "Sign in with Google is not enabled on this gateway.", "service_unavailable", "google_signin_disabled")
+        if not register_limiter.allow(client_key(request), clock()):
+            raise RouterError(429, "Too many sign-ins; try again in a minute.", "rate_limit_error", "rate_limited")
+        try:
+            identity = google.verify(payload.id_token)
+        except GoogleAuthError as exc:
+            if exc.code == "keys_unavailable":
+                raise RouterError(503, "Could not reach Google to check the sign-in; try again.", "service_unavailable", "google_unreachable") from None
+            if exc.code == "busy":
+                raise RouterError(503, "Too many sign-ins in progress; try again.", "service_unavailable", "busy") from None
+            LOGGER.info("google sign-in refused: %s", exc.code)  # reason code only: never the token
+            raise RouterError(401, "Google sign-in failed. Sign in again.", "authentication_error", f"google_{exc.code}") from None
+        account_id, api_key, created = store.sign_in_with_identity("google", identity.subject, payload.role)
+        account = store.get_account(account_id)
+        role = account.role if account is not None else payload.role
+        return JSONResponse({"account_id": account_id, "api_key": api_key, "role": role, "created": created},
+                            headers={"Cache-Control": "no-store"})
+
     @app.post("/v1/hivemind/register")
     def register(request: Request, payload: RegisterRequest) -> dict[str, str]:
+        if not open_registration:
+            raise RouterError(403, "Handle registration is closed. Sign in with Google at /signup.", "permission_error", "registration_closed")
         if not register_limiter.allow(client_key(request), clock()):
             raise RouterError(429, "Too many registrations; try again in a minute.", "rate_limit_error", "rate_limited")
         try:
             account_id, api_key = store.register(payload.handle, payload.role)
         except HandleTaken:
             raise RouterError(409, "That handle is already registered.", "invalid_request_error", "handle_taken") from None
-        except SwarmSecurityViolationError:
-            raise RouterError(400, "Handle rejected: use 1-64 ASCII letters, digits and . _ @ + - characters.", "invalid_request_error", "invalid_handle") from None
+        except (SwarmSecurityViolationError, ReservedHandle):
+            raise RouterError(400, "Handle rejected: use 1-64 ASCII letters, digits and . _ @ + - characters, not starting with 'google.'.", "invalid_request_error", "invalid_handle") from None
         return {"account_id": account_id, "api_key": api_key, "role": payload.role}
 
     @app.get("/v1/hivemind/me")

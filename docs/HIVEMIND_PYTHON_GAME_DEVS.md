@@ -26,6 +26,13 @@ They need only `httpx` (the shield also needs `fastapi` and `uvicorn`).
 
 ## 2. Use HiveMind from your editor
 
+**Easiest: sign in with Google.** Open `/signup` on the gateway
+(`https://hivemind-openrouter-1003063861791.us-central1.run.app/signup`), pick what you want to do, click the Google button,
+and copy the API key shown. It is free, needs no password, and your e-mail address is not stored (only an anonymous hash
+of your Google account id). Signing in again later gives you a new key and retires the old one, so it also recovers a lost
+key. The button works once the operator has switched Google sign-in on (see `HIVEMIND_OPENROUTER.md`); until then the page
+says so and you can register with a handle as below.
+
 ```bash
 pip install httpx
 python hivemind_connect.py register --handle your-name --save-key ~/.hivemind_key   # key saved owner-only

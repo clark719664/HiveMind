@@ -9,6 +9,9 @@
 #   REGION (default us-central1), SECRET_NAME (default hivemind-router-secret),
 #   SERVICE_ACCOUNT (default hivemind-openrouter@$GCP_PROJECT.iam.gserviceaccount.com),
 #   LEDGER_BUCKET (default hivemind-openrouter-ledger-<project number>)
+#   HIVEMIND_GOOGLE_CLIENT_ID  OAuth web client id that enables "Sign in with Google" at /signup (set it on EVERY deploy:
+#                              --set-env-vars replaces the service's variables). HIVEMIND_OPEN_REGISTRATION=0 closes
+#                              handle-only registration once Google sign-in works.
 #
 # Pre-provisioned (one time): the service account, the Secret Manager secret (accessor role for the account) and the
 # private versioned GCS bucket (objectAdmin for the account).
@@ -37,6 +40,10 @@ find "$stage/src" -name __pycache__ -type d -prune -exec rm -rf {} +
 cp "$here/Dockerfile" "$here/server.py" "$here/entrypoint.sh" "$here/requirements.txt" "$stage/"
 chmod +x "$stage/entrypoint.sh"
 
+ENV_VARS="HIVEMIND_ROUTER_DB=/data/router.db,HIVEMIND_ROUTER_REPLICA_URL=gcs://${LEDGER_BUCKET}/router,HIVEMIND_ROUTER_ADMIN_KEY_HASH=${HIVEMIND_ROUTER_ADMIN_KEY_HASH}"
+[ -n "${HIVEMIND_GOOGLE_CLIENT_ID:-}" ] && ENV_VARS="${ENV_VARS},HIVEMIND_GOOGLE_CLIENT_ID=${HIVEMIND_GOOGLE_CLIENT_ID}"
+[ -n "${HIVEMIND_OPEN_REGISTRATION:-}" ] && ENV_VARS="${ENV_VARS},HIVEMIND_OPEN_REGISTRATION=${HIVEMIND_OPEN_REGISTRATION}"
+
 cd "$stage"
 gcloud run deploy hivemind-openrouter \
   --project "$GCP_PROJECT" \
@@ -50,5 +57,5 @@ gcloud run deploy hivemind-openrouter \
   --concurrency 40 \
   --memory 512Mi \
   --timeout 600 \
-  --set-env-vars "HIVEMIND_ROUTER_DB=/data/router.db,HIVEMIND_ROUTER_REPLICA_URL=gcs://${LEDGER_BUCKET}/router,HIVEMIND_ROUTER_ADMIN_KEY_HASH=${HIVEMIND_ROUTER_ADMIN_KEY_HASH}" \
+  --set-env-vars "${ENV_VARS}" \
   --set-secrets "HIVEMIND_ROUTER_SECRET=${SECRET_NAME}:latest"

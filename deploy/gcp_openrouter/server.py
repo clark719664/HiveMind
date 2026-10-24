@@ -11,6 +11,10 @@ Configuration (environment):
                                     reverse proxies in front of the app that append to X-Forwarded-For (Cloud Run: 1).
                                     The registration limiter keys on the entry that many hops from the right, which a
                                     client cannot forge. 0 (default) keys on the TCP peer.
+    HIVEMIND_GOOGLE_CLIENT_ID       optional; the OAuth web client id (a public identifier, not a secret) that turns on
+                                    "Sign in with Google" registration at /signup. Unset = disabled.
+    HIVEMIND_OPEN_REGISTRATION      "0" closes handle-only registration so that Google sign-in is the only way in.
+                                    Default "1". Closing it without a Google client id is refused at start-up.
 """
 
 from __future__ import annotations
@@ -40,7 +44,12 @@ def build_app(env: Mapping[str, str]) -> FastAPI:
     hops = int(env.get("HIVEMIND_ROUTER_TRUSTED_PROXY_HOPS", "0") or "0")
     if hops < 0:
         raise RuntimeError("HIVEMIND_ROUTER_TRUSTED_PROXY_HOPS must be >= 0")
-    return create_router_app(store, admin_key_hash=admin_key_hash, trusted_proxy_hops=hops)
+    google_client_id = env.get("HIVEMIND_GOOGLE_CLIENT_ID", "").strip() or None
+    open_registration = env.get("HIVEMIND_OPEN_REGISTRATION", "1").strip() != "0"
+    if not open_registration and google_client_id is None:
+        raise RuntimeError("HIVEMIND_OPEN_REGISTRATION=0 needs HIVEMIND_GOOGLE_CLIENT_ID: nobody could register otherwise")
+    return create_router_app(store, admin_key_hash=admin_key_hash, trusted_proxy_hops=hops,
+                             google_client_id=google_client_id, open_registration=open_registration)
 
 
 app: FastAPI = build_app(os.environ)
