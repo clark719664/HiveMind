@@ -1,0 +1,11 @@
+{
+  "experiment_id": "E11-kv-lattice",
+  "amends": "E11_kv_lattice_prereg.json (unchanged; its sha256 stays the one recorded in every raw file and the report)",
+  "amendment": 1,
+  "registered_utc": "2026-10-23T22:40:00Z",
+  "when": "after the first execution on qwen0.5b (kept as E11_first_execution_qwen0.5b.json) and before any qwen7b or gemma4-e4b result existed",
+  "change": "calibration_rule: the measured rate that the bisection matches to R is now the coordinate-weighted mean of the per-layer factorised rates (at most 4096 (token, head) vectors per layer), instead of the rate of all layers pooled into one histogram",
+  "why": "evaluation measures the rate per layer (a coder keeps per-layer tables); the entropy of a mixture of layers exceeds the mean per-layer entropy, so the pooled calibration realised 1.70 / 2.63 / 3.63 bits/dim against targets 2 / 3 / 4 in the first execution, and the matched-rate rule (|realised - R| <= 0.1) invalidated every P11 comparison. The three lattices were matched to each other within 0.04 bit/dim, so no arm was favoured; only the target was missed",
+  "unchanged": "codecs, data, seeds, metric, acceptance rules, controls (including negative_1_fine_lattice, which failed in the first execution because FP8 e4m3 keeps 3 mantissa bits and is therefore far coarser than an 8-bit lattice; the control is kept as registered and its failure is reported)",
+  "decision_basis": "the decisive qwen0.5b run is the second execution under this amendment; the first execution is reported, not discarded"
+}

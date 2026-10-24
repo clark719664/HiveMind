@@ -1,0 +1,95 @@
+{
+  "experiment_id": "E10b-lattice-05b",
+  "status": "registered by the scientific lead before any GPU run; drafted by a subagent, reviewed and accepted as written (per-(learner, round) scale calibration, P10a with EF on, 5e-3 fine-scale tolerance); the real data/model path was exercised once on CPU with a 1-round, 2-learner, 2-step configuration (plumbing only, not evidence)",
+  "registered_utc": "2026-10-23T23:25:00Z",
+  "registered_before_run": true,
+  "roadmap_task": "HM-S10-01",
+  "decides": [
+    "P10a (E8 vs Z8 distortion at matched measured rate, on real 0.5B LoRA deltas)",
+    "P10b (E8 vs Z8 held-out loss at matched rate)",
+    "P10c (error feedback recovers the unquantised loss at 1 bit/dim)"
+  ],
+  "builds_on": "E10-lattice (toy scale: P10a supported, ratio 0.79 +/- 0.02 at the matched ~1.7-bit rate; P10b inconclusive; P10c supported; 2-bit cells invalid because the once-calibrated scale drifted). Leverages OptimalEnergyAI decoders (X. Callens, 2026) via hivemind.compress.lattice_quantizer / kv_lattice, signSGD (arXiv:1802.04434), EF21 error feedback (HiveMind Lean Theorem 107), DiLoCo outer Nesterov (arXiv:2311.08105).",
+  "testbed": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct (local HF cache), fp32 base, rank-8 LoRA (alpha 16) on q_proj and v_proj of all 24 layers via run_experiment_E12_replay_divergence.LoRALinear / build_model; 540,672 trainable coordinates (A ~ N(0, 1/r), B = 0, init drawn from the run seed and shared by all learners)",
+    "learners": "M = 4, simulated sequentially on one GPU; each learner has its own persistent AdamW state (lr 5e-4, betas 0.9/0.95, weight decay 0.01, grad-clip 1.0, constant lr), micro-batch 4 x 256 tokens, one micro-batch per inner step",
+    "data": "HuggingFaceFW/fineweb-edu sample/10BT/000_00000.parquet (local HF cache). Learner i packs consecutive documents (EOS-joined) from row 10000*i; held-out slice = 128 sequences x 256 tokens packed from row 40000 (disjoint from every learner shard). 'Non-IID' here means disjoint, differently-positioned slices of one web-text source; this is mild heterogeneity and is stated as a scope limit. Token-tensor sha256 of every shard and of the held-out set is recorded in the report",
+    "rounds": "R = 12 outer rounds, H = 40 inner AdamW steps per learner per round (480 steps per learner, 1920 learner-steps and ~0.49M tokens per learner per run)",
+    "outer": "pseudo-gradient g = mean_i (theta_global - theta_i after the codec); Nesterov SGD, lr 0.7, momentum 0.9 (buf = mu buf + g; theta -= lr (g + mu buf)); outer lr is NOT tuned per codec",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "seed_effect": "seed fixes the LoRA init and each learner's batch order; shards and the held-out set are identical across seeds, so the three seeds measure init/order variance only, and every contrast is paired by seed",
+    "metric": "held-out cross-entropy (mean over 128 x 256 tokens, no gradient) after round 12; loss curve evaluated at rounds 0, 3, 6, 9, 12"
+  },
+  "arms": {
+    "none": "learner deltas merged unquantised (baseline)",
+    "sign+EF": "Q(v) = mean|v| sign(v), 1 bit/dim, EF21 carry per learner",
+    "Z8@R+EF": "blockwise (8 coordinates over the flat delta+carry vector) nearest point of scale*Z^8, R in {1, 2}, EF21 carry per learner",
+    "E8@R+EF": "blockwise nearest point of scale*E8, same rule, R in {1, 2}",
+    "sign (positive control)": "sign without EF",
+    "E8@6 (negative control)": "E8 at 6 bits/dim, EF off"
+  },
+  "calibration": {
+    "rule": "scale found by bisection on log-scale (same algorithm and 0.02 bit/dim tolerance as hivemind.compress.calibrate_scale_for_rate) so that the measured factorised rate (kv_lattice.factorised_rate_t with a single constant context = the E10 numpy rate) of the vector actually quantised (delta + EF carry) equals R",
+    "deviation_from_e10": "E10 calibrated once on the round-0 delta of learner 0, and the realised rates then drifted (R = 2: 3.10 vs 3.36 bits, matched-rate control failed). Here the scale is re-calibrated for every (learner, round) vector, so the realised rate equals R by construction (within tolerance) and the matched-rate control is a check on the calibration, not on luck. The scale is one float of side information per delta and is not counted in the rate. The comparison is therefore at equal measured (plug-in) entropy, not equal wire bytes",
+    "implementation": "torch float64 decoders of hivemind.compress.kv_lattice (bit-identical to the numpy decoders; checked in the run by control negative_2) on the training device"
+  },
+  "metrics": [
+    "final held-out loss at round 12",
+    "mean per-(learner, round) relative quantisation MSE ||v - Q(v)||^2 / ||v||^2 where v = delta + carry",
+    "mean measured rate (bits/dim) and the min/max calibrated scale"
+  ],
+  "acceptance_rules": {
+    "t_interval": "df = 2, 95% two-sided, t = 4.302652729911275; half-width = t * sd / sqrt(3) on per-seed paired values",
+    "P10a": "paired per-seed ratio relMSE(E8)/relMSE(Z8) with EF on (the EF-off lattice cells of E10 are not re-run); supported if the mean ratio < 1 with the interval excluding 1 at every matched R; refuted if the interval is above 1 at some matched R; inconclusive otherwise. Reported against the Gaussian prediction 0.86 and the E10 toy value 0.81 (EF on, R = 1) without a pass/fail band",
+    "P10b": "per (R, EF on): paired per-seed loss(Z8) - loss(E8); supported if > 0 with the interval excluding 0; refuted if < 0 with the interval excluding 0; inconclusive if the interval includes 0. Headline = R = 1. With three seeds an effect smaller than ~1.7 sd of the paired differences cannot be separated from zero: 'inconclusive' is the expected outcome for a small true effect and is reported as such, not as support",
+    "P10c": "loss(E8@1+EF) - loss(none): refuted if > 0 with the interval excluding 0, otherwise 'supported' in the weak, non-rejection sense of E10 (an interval that includes 0 with three seeds does not show equality; the point estimate and half-width are reported, and Z8@1+EF, sign+EF and the 2-bit arms vs none are listed as context only, no status)",
+    "diverged_runs": "a run whose delta or held-out loss becomes non-finite is stopped and recorded as diverged (loss = +inf); any P10b/P10c cell involving a diverged arm is 'invalid (diverged run)'; a diverged sign (no EF) run counts as 'hurts' in the positive control"
+  },
+  "controls": {
+    "positive": "sign without EF must end with a higher final held-out loss than 'none' in every seed",
+    "negative_1_fine_scale": "E8 at 6 bits/dim, EF off must reproduce the 'none' final loss within 5e-3 in every seed (looser than E10's 1e-3 because fp32 GPU kernels are not bit-reproducible run to run; the threshold is fixed here, before any run)",
+    "negative_2_decoders": "(a) brute_force_decoder_check(kind, 1000 queries, seed 2026) has 0 mismatches / non-members for Z8 and E8; (b) the torch decoders used in the run equal the numpy decoders exactly on 2000 random blocks per lattice and their factorised rates agree within 1e-9",
+    "negative_3_matched_rate": "at each R the realised mean rates of Z8 and E8 agree within 0.1 bit/dim, otherwise the P10 comparisons at that R are invalid; the headline R = 1 must be matched",
+    "learning": "the 'none' arm must end with a lower held-out loss than its round-0 loss in every seed (otherwise the testbed does not train and no codec contrast means anything)"
+  },
+  "run_is_valid_iff": "all controls above pass; if any fails, P10a-P10c are reported but marked invalid and no decision consequence is drawn",
+  "sizing": {
+    "arms": 8,
+    "seeds": 3,
+    "runs": 24,
+    "inner_steps_per_run": 1920,
+    "inner_steps_total": 46080,
+    "lattice_codec_calls": 720,
+    "eval_passes": 120,
+    "assumptions": {
+      "sec_per_inner_step": 0.12,
+      "basis": "Tesla T4, seq 256, micro-batch 4, fp32 base + LoRA (assumed from the brief, not measured in this draft)",
+      "sec_per_lattice_codec_call": 1.5,
+      "codec_basis": "per (learner, round) vector of 540,672 coordinates = 67,584 blocks: ~12 bisection evaluations (+2 bracket evaluations) of the float64 torch decoder and the entropy-based rate (~20 torch.unique calls on 67,584-element keys, tens of ms each on the GPU) plus one dequantisation. Assumed, not measured. If instead the CPU numpy decoders were used, the same call costs several seconds per bisection step (np.unique over axis 0 of 67,584 x k keys, 14 evaluations) and the run would add roughly 1-2 hours; that is why the torch ports are used. The sign and none arms cost ~0",
+      "sec_per_eval_pass": 1.3,
+      "eval_basis": "128 x 256 tokens forward only, batch 4",
+      "sec_setup_and_controls": 150,
+      "setup_basis": "model load + shard tokenisation (~2M tokens) + brute-force decoder check"
+    },
+    "estimate_s": {
+      "inner_steps": 5529.6,
+      "lattice_codec": 1080.0,
+      "eval": 156.0,
+      "setup_and_controls": 150.0,
+      "total": 6915.6
+    },
+    "estimated_hours": 1.92,
+    "budget_hours": 2.5,
+    "headroom": "~0.58 h (30% over the estimate) before the 2.5 h budget; `python3 scripts/run_experiment_E10b_lattice_05b.py --estimate` reproduces these numbers. The runner writes <report>.partial.json after every (arm, seed) cell and accepts --resume. The first completed cell (wall_seconds in the partial file) should be compared with 1920 steps x 0.12 s = 230 s for the 'none' arm before committing the rest of the budget"
+  },
+  "decision_consequences": "P10a and P10b supported at R = 1 (valid controls): E8 blockwise quantisation becomes the default outer-delta codec of the campaign at 1-2 bits/dim with EF (HM-S10-01). P10b inconclusive: the distortion gain is documented but the codec stays an option, and the contrast is a candidate for the larger E-series run with more seeds. P10b refuted: the 0.65 dB gain does not reach the loss at 0.5B and the codec stays an option. P10c refuted at 0.5B: EF is insufficient at 1 bit/dim here and the campaign floor is 2 bits/dim (to be re-tested with E8@2+EF vs none, context only)",
+  "not_included": [
+    "SparseLoCo / ComputeVisibleSparseLoCoCompressor 2-bit LUT arm: it is top-k sparse (~3% density) with index bits and so has no rate matched to R in bits/dim over all coordinates; comparing it is a separate matched-bytes experiment. The compressor gained an optional value_codec ('Z' / 'E8') so that lattice-coded SparseLoCo values can be added later",
+    "EF-off lattice arms (E10 already has them at toy scale); per-layer or per-tensor scales (the delta of LoRA A and B tensors differ in magnitude, so one global scale per vector is a coarse choice shared by Z8 and E8; a per-tensor-scale variant is exploratory); outer-lr sweep per codec; more than three seeds; fp16/bf16 base"
+  ],
+  "scope": "0.5B-parameter model, rank-8 LoRA deltas (~0.54M coordinates) from 40-step inner loops, M = 4 simulated learners, 480 inner steps per learner, mild data heterogeneity (disjoint web-text slices), three seeds that vary init and batch order only; no claim about larger models, real non-IID data, or wire-level compression ratios"
+}

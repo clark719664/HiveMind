@@ -1,7 +1,7 @@
 {
   "schema_version": "hivemind-gwaya-stub-audit/v1.0",
   "auditor": "gwaya.ast_audit.ZeroStubAudit (GWAYA-GwenLayaOpenModel)",
-  "files_audited": 111,
+  "files_audited": 143,
   "files_failed": [],
   "all_passed": true,
   "results": [
@@ -61,6 +61,15 @@
     },
     {
       "file": "src/hivemind/boinc/validator.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/boinc/validator_assignment.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -213,6 +222,15 @@
       }
     },
     {
+      "file": "src/hivemind/compress/kv_lattice.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "src/hivemind/compress/lattice_quantizer.py",
       "passed": true,
       "detail": {
@@ -286,6 +304,15 @@
     },
     {
       "file": "src/hivemind/core/fomoe_sigma_routing.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/core/kv_page_codecs.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -394,6 +421,24 @@
     },
     {
       "file": "src/hivemind/game/steam_edition.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/lab/__init__.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/lab/swarm_lab.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -717,7 +762,151 @@
       }
     },
     {
+      "file": "scripts/aggregate_E11b_sweep.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "scripts/aggregate_e8_pilot.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/analyze_E13_predictions.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/analyze_E14_E15_hypotheses.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/bench_granite_step.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/build_site_data.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/checkpoint_state.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e13_swarm_lib.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e13_watchdog.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e15_data.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e15_gate.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e15_lib.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e16_fake_ollama.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/e16_ollama.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/fill_deployment_guide.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/gwaya_lite.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/gwaya_lite_live_check.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -771,7 +960,25 @@
       }
     },
     {
+      "file": "scripts/merge_e13_reports.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "scripts/pr_gatekeeper.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/publish_campaign_to_gcs.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -861,7 +1068,61 @@
       }
     },
     {
+      "file": "scripts/run_experiment_E10b_lattice_05b.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/run_experiment_E11_kv_lattice.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "scripts/run_experiment_E12_replay.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/run_experiment_E12_replay_divergence.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/run_experiment_E13_swarm_local.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/run_experiment_E15_gwaya_rft.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/run_experiment_E16_gwaya_lite_t4.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -942,7 +1203,25 @@
       }
     },
     {
+      "file": "scripts/run_t4_benchmark_queue.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "scripts/run_wan_quic_turn_fault_benchmark.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "scripts/swarm_lab.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -1003,8 +1282,17 @@
         "violations": [],
         "penalty_energy": 0.0
       }
+    },
+    {
+      "file": "scripts/write_t4_benchmark_report.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
     }
   ],
-  "written_utc": "2026-10-24T12:51:08Z",
-  "receipt_sha256": "2b980b8bb02b616066feab783e1f69905b404a6842e1edac3332c877c6163f28"
+  "written_utc": "2026-10-24T13:28:04Z",
+  "receipt_sha256": "209e8a30f80e6fedba40ac853ebf145140de782d40a3689d6d287b365fe85047"
 }

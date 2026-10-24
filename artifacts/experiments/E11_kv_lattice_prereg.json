@@ -1,0 +1,52 @@
+{
+  "experiment_id": "E11-kv-lattice",
+  "registered_utc": "2026-10-23T21:20:00Z",
+  "registered_before_run": true,
+  "decides": [
+    "P11a (A2 per RoPE plane lowers dNLL vs scalar quantisation at matched measured bits)",
+    "P11b (E8 lowers dNLL vs scalar only after a per-head KLT)"
+  ],
+  "research_question": "RQ10 (docs/RESEARCH_PROGRAM.md), task HM-S10-05",
+  "leverages": "RunuX KV-cache study (doi:10.5281/zenodo.22879667, measurement only, no code reused); OptimalEnergyAI H1.6 (A2 per RoPE plane) and oai_ml.core decoders, via src/hivemind/compress/lattice_quantizer.py and their torch ports in src/hivemind/compress/kv_lattice.py; FP8PagedKVCache._quantize_page_fp8 of src/hivemind/core/btm_moe.py (the FP8 arm is that function, called unchanged)",
+  "deviations_from_the_design_in_RESEARCH_PROGRAM": [
+    "Models: the design names Qwen2.5-0.5B; the cached checkpoint on this host is Qwen2.5-0.5B-Instruct. At the user's direction (2026-10-23) two larger models are added to use the 16 GB T4: Qwen2.5-Coder-7B-Instruct (the only complete 7B Qwen on disk; fp16, the 1.09 GB input-embedding table on CPU, everything else on the GPU) and Gemma-4-E4B (base, pretrained; bf16, because Gemma activations overflow in fp16; bf16 runs on the T4 through PyTorch's sm_75 path). The Coder model is evaluated on WikiText, which is out of its training domain; dNLL is paired against its own fp16 baseline, so this changes the baseline level, not the comparison.",
+    "KV extraction: OptimalEnergyAI's poc2_crystallized_attention/extract.py is not on this host; the capture is re-implemented as a transformers attention-interface hook ('kvq') that receives post-RoPE keys and values exactly as the cache stores them (before repeat_kv), quantises them and calls the stock SDPA attention. For Gemma 4 the KV-shared layers re-quantise the same un-quantised source tensor, which is a deterministic function and therefore equals reading a quantised cache; their rate is not counted twice.",
+    "Rate: measured as in E10 (factorised plug-in entropy), conditioned on the channel group inside the head (block index for Z/E8, RoPE-plane index for A2), identically for every lattice.",
+    "Seeds = three disjoint sets of evaluation windows (sequence samples), as the design says."
+  ],
+  "models": {
+    "qwen0.5b": {"repo": "Qwen/Qwen2.5-0.5B-Instruct", "dtype": "float16", "placement": "all on cuda:0"},
+    "qwen7b": {"repo": "Qwen/Qwen2.5-Coder-7B-Instruct", "dtype": "float16", "placement": "model.embed_tokens on cpu, rest on cuda:0"},
+    "gemma4-e4b": {"repo": "google/gemma-4-E4B", "dtype": "bfloat16", "placement": "text model on cuda:0; per-layer-embedding tables on cpu if the GPU does not hold them; vision/audio towers not loaded or unused"},
+    "validity": "a model whose fp16/bf16 baseline NLL is not finite, or whose hook-identity control fails, is reported invalid and excluded from the decision"
+  },
+  "data": {
+    "eval": "WikiText-2-raw-v1 test split, '\\n\\n'.join(text), tokenised by each model's tokenizer; n = floor(tokens / 1024) non-overlapping windows of 1024 tokens; seed s in {1,2,3} uses windows floor((3 j + s - 1) n / 24), j = 0..7 (8 windows, 8184 predicted tokens per seed)",
+    "calibration": "WikiText-2-raw-v1 validation split, first 2 windows of 1024 tokens (disjoint from every evaluation window)"
+  },
+  "metric": "dNLL = mean next-token NLL (nats) with the codec minus the same with the no-op hook, over the same windows, per seed; mean over 3 seeds with df = 2 95% t-interval; also the mean relative MSE ||x - x_hat||^2/||x||^2 of K and V and the mean measured rate",
+  "codecs": {
+    "none": "no-op hook (baseline and hook-identity control)",
+    "fp8": "FP8PagedKVCache._quantize_page_fp8 / _dequantize_page_fp8 on each (token, kv-head) row of head_dim values: e4m3 with an fp16 absmax/448 scale; 8 + 16/d bits/dim",
+    "int@b": "asymmetric uniform per (token, kv-head) min-max with 2^b levels, two fp16 side values (KIVI-style per-token), b in {2,3,4}; b + 32/d bits/dim. Secondary comparator (fixed rate, what a deployable kernel would do)",
+    "Z@R, A2@R, E8@R": "each (token, kv-head) vector divided by its RMS (fp16 side value, 16/d bits/dim, identical for the three lattices), quantised on scale * L (Z and E8: consecutive blocks of 8 channels; A2: RoPE planes (i, i + d/2)), multiplied back; R in {2,3,4} measured bits/dim of the lattice payload",
+    "transform": "none, or a per-(layer, kv-head, K/V) KLT: the eigenbasis (descending variance) of the covariance of the raw vectors in the calibration windows, applied before the RMS normalisation and undone after decoding",
+    "calibration_rule": "one scale per (model, lattice, transform, R, K/V), found by bisection on log-scale so that the measured rate of the pooled normalised calibration rows of all non-shared layers is R within 0.02 bit/dim; the same scale is used for every layer, window and seed; the realised rate is measured on the first window of every seed and reported"
+  },
+  "acceptance_rules": {
+    "primary_comparator": "Z@R with the same transform (entropy-coded scalar under the same normalisation and measured rate). INT@b is reported as a secondary comparator only and decides nothing.",
+    "P11a": "per model, d_A2(R) = dNLL(Z@R, none) - dNLL(A2@R, none) per seed. Supported if d_A2 > 0 with the CI excluding 0 at every matched R; refuted if the CI excludes 0 below zero at some matched R, or includes 0 at every matched R (the design's refutation clause: no gain at matched bytes); inconclusive otherwise",
+    "P11b": "per model, d_E8(R, t) = dNLL(Z@R, t) - dNLL(E8@R, t). Supported if d_E8(R, none) has a CI including 0 or below 0 at every matched R AND d_E8(R, KLT) > 0 with CI excluding 0 at every matched R; refuted if d_E8(R, none) > 0 with CI excluding 0 at some R (E8 needs no transform) or d_E8(R, KLT) has a CI including or below 0 at every R (the transform does not unlock it); inconclusive otherwise",
+    "overall": "each prediction is decided per valid model and all per-model statuses are reported. Overall 'supported' requires 'supported' on every valid model; overall 'refuted' if refuted on any valid model; otherwise 'mixed/inconclusive'. No model is designated headline after the fact: the decision consequence requires agreement across models",
+    "descriptive_not_decisive": "the bytes-vs-dNLL frontier: whether A2@4 or E8@4 (KLT) reaches FP8's dNLL (paired difference CI including 0) at about half its bytes"
+  },
+  "controls": {
+    "positive": "dNLL(int@2) > 0 with CI excluding 0 on every model (the harness must see 2-bit KV quantisation)",
+    "negative_1_fine_lattice": "A2@8 (none) vs fp8: the paired difference dNLL(A2@8) - dNLL(fp8) has a CI including 0, or |mean| <= 0.002 nats",
+    "negative_2_hook_identity": "the no-op hook reproduces the stock SDPA NLL of evaluation window 0 bit for bit on every model",
+    "negative_3_decoders": "torch decoders equal the numpy reference decoders bit for bit on 20000 queries with exact ties (Z, E8, on cuda), and A2 passes a two-sided exhaustive check on 5000 queries with 0 mismatches",
+    "matched_rate": "a lattice cell whose realised mean rate differs from its target R by more than 0.1 bit/dim is invalid; an R at which any of Z, A2, E8 (same transform) is invalid is not a matched R for that comparison"
+  },
+  "decision_consequences": "P11a supported on every model: A2 per RoPE plane becomes the candidate page codec of FP8PagedKVCache at 4 bits (HM-S10-05 builds the pluggable page codec and a fused kernel); P11a refuted: the KV ring stays on FP8 and lattice work stays on outer deltas (E10b); P11b supported: E8 + KLT is the codec to try below 4 bits; P11b refuted on the 'no transform' side: the transform is dropped",
+  "scope": "prefill-time fake quantisation of K and V (each query attends to the quantised keys and values of every position, which is what reading a quantised cache gives); no fused kernel, no paged byte layout and no decode latency is measured; WikiText-2 only; three models on one T4"
+}

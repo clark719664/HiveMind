@@ -1,0 +1,324 @@
+{
+  "schema_version": "hivemind-experiment-E14-hypotheses/v1.0",
+  "experiment_id": "E14-swarm-fairness",
+  "rules": {
+    "H14a": "S6 keeps more of the synchronous improvement than S2: per-seed paired difference loss(S2) - loss(S6); df=2 95% t-interval (t = 4.302652729911275); supported if the interval is above 0, refuted if it is below 0, inconclusive if it includes 0",
+    "H14b": "the same for S7",
+    "H14c_descriptive": "registered retention rho = (L_round0 - L_cell)/(L_round0 - L_S0) per seed for S2, S6, S7 against the 0.5 viability bar of P13b and the K=M value (0.94 on qwen0.5b in E13); round-latency increase of S6, carried deltas / staleness histogram of S7, upload bytes",
+    "no_multiple_comparison_correction": "two hypotheses per model, stated as exploratory"
+  },
+  "prereg_sha256": "42b794fd4c52536faed7c67f8fda09978e530e2defef29e3f94f7c29a4ddd7d1",
+  "t_crit_df2": 4.302652729911275,
+  "scope": "one GPU, thread-hosted peers, 3 seeds, 2 models, 6 rounds; no WAN claim; fixed constants (MAX_EXCLUSION 1, MAX_STALENESS 2) not tuned",
+  "status_of_experiment": "exploratory follow-up of E13 (decides no registered E13 prediction); written after the E13 result and the E13c diagnostic, before any S6/S7 run",
+  "models": {
+    "qwen0.5b": {
+      "H14a": {
+        "cell": "S6",
+        "S2_minus_cell_per_seed": {
+          "1": 0.13980788737535477,
+          "2": 0.1337207406759262,
+          "3": 0.09884945303201675
+        },
+        "n": 3,
+        "decidable": true,
+        "mean": 0.12412602702776591,
+        "half_width": 0.054901254993400816,
+        "interval": [
+          0.0692247720343651,
+          0.17902728202116674
+        ],
+        "status": "supported",
+        "report_check": {
+          "report_mean": 0.12412602702776591,
+          "report_ci95": 0.054901254993400816,
+          "report_direction": "cell better than S2",
+          "agrees": true
+        }
+      },
+      "H14b": {
+        "cell": "S7",
+        "S2_minus_cell_per_seed": {
+          "1": 0.08925273269414902,
+          "2": 0.09578704088926315,
+          "3": 0.04670237749814987
+        },
+        "n": 3,
+        "decidable": true,
+        "mean": 0.07724738369385402,
+        "half_width": 0.0662115836477168,
+        "interval": [
+          0.011035800046137217,
+          0.14345896734157082
+        ],
+        "status": "supported",
+        "report_check": {
+          "report_mean": 0.07724738369385402,
+          "report_ci95": 0.0662115836477168,
+          "report_direction": "cell better than S2",
+          "agrees": true
+        }
+      },
+      "retention_vs_S0": {
+        "S2": {
+          "per_seed": {
+            "1": -0.15357145962480073,
+            "2": -0.11013519903039225,
+            "3": 0.10947696224560427
+          },
+          "n": 3,
+          "mean": -0.05140989880319624,
+          "half_width": 0.3502996533143782,
+          "interval": [
+            -0.4017095521175744,
+            0.29888975451118194
+          ]
+        },
+        "S6": {
+          "per_seed": {
+            "1": 0.9058960303740373,
+            "2": 0.8870582990326925,
+            "3": 0.8440410849005782
+          },
+          "n": 3,
+          "mean": 0.8789984714357694,
+          "half_width": 0.07876045430658743,
+          "interval": [
+            0.800238017129182,
+            0.9577589257423568
+          ]
+        },
+        "S7": {
+          "per_seed": {
+            "1": 0.5227878678653043,
+            "2": 0.6041759384240851,
+            "3": 0.4565288669407004
+          },
+          "n": 3,
+          "mean": 0.5278308910766966,
+          "half_width": 0.18370846681798142,
+          "interval": [
+            0.34412242425871514,
+            0.711539357894678
+          ]
+        }
+      },
+      "retention_bar_P13b": 0.5,
+      "descriptive_costs": {
+        "round_latency_p50_s": {
+          "S0": 19.510541931500484,
+          "S2": 16.462761230995966,
+          "S6": 20.99453088049995,
+          "S7": 16.3236185584974
+        },
+        "S6_over_S2_latency": 1.2752739705032958,
+        "S7_over_S2_latency": 0.9915480355606089,
+        "S6_fair": {
+          "extra_wait_s_total": 79.17120029799844,
+          "extra_wait_s_mean_per_round": 4.398400016555469,
+          "rounds_with_extra_wait": 10,
+          "forced_admissions_total": 13,
+          "fair_wait_timeouts_total": 0
+        },
+        "S7_carry": {
+          "carried_count_total": 18,
+          "carried_tokens_total": 368640,
+          "staleness_hist": {
+            "1": 16,
+            "2": 2
+          },
+          "too_stale_discarded_total": 0
+        },
+        "admitted_fraction_mean": {
+          "S2": 0.5,
+          "S6": 0.6805555555555556,
+          "S7": 0.5
+        },
+        "late_discards_total": {
+          "S2": 27,
+          "S6": 20,
+          "S7": 6
+        }
+      },
+      "controls": {
+        "flags": {
+          "s1_equals_s0": null,
+          "s0_learns": true,
+          "raw_wire_bytes_exact": null,
+          "codec_rate_on_target": true,
+          "workers_start_identical": true,
+          "no_failed_cells": true
+        },
+        "failed": [],
+        "not_evaluated": [
+          "raw_wire_bytes_exact",
+          "s1_equals_s0"
+        ],
+        "s0_twin_bit_identical": true,
+        "report_controls_all_passed": false,
+        "valid": true,
+        "note": "report_controls_all_passed is false only because controls of cells outside the E14 grid (S1 identity, raw wire bytes) are not evaluated (null)"
+      }
+    },
+    "granite1b": {
+      "H14a": {
+        "cell": "S6",
+        "S2_minus_cell_per_seed": {
+          "1": 0.02541945377985666,
+          "2": 0.005005866289138794,
+          "3": 0.01705828309059143
+        },
+        "n": 3,
+        "decidable": true,
+        "mean": 0.015827867719862294,
+        "half_width": 0.025492879146674866,
+        "interval": [
+          -0.009665011426812573,
+          0.04132074686653716
+        ],
+        "status": "inconclusive",
+        "report_check": {
+          "report_mean": 0.015827867719862294,
+          "report_ci95": 0.025492879146674866,
+          "report_direction": "within CI of S2",
+          "agrees": true
+        }
+      },
+      "H14b": {
+        "cell": "S7",
+        "S2_minus_cell_per_seed": {
+          "1": 5.303819974278312e-05,
+          "2": -0.024861176808674834,
+          "3": -0.02261466781298349
+        },
+        "n": 3,
+        "decidable": true,
+        "mean": -0.015807602140638515,
+        "half_width": 0.034235314431427764,
+        "interval": [
+          -0.050042916572066276,
+          0.01842771229078925
+        ],
+        "status": "inconclusive",
+        "report_check": {
+          "report_mean": -0.015807602140638515,
+          "report_ci95": 0.034235314431427764,
+          "report_direction": "within CI of S2",
+          "agrees": true
+        }
+      },
+      "retention_vs_S0": {
+        "S2": {
+          "per_seed": {
+            "1": -0.45113639762817764,
+            "2": -0.20249765643587286,
+            "3": -0.45859203399636195
+          },
+          "n": 3,
+          "mean": -0.37074202935347084,
+          "half_width": 0.3620669991636134,
+          "interval": [
+            -0.7328090285170843,
+            -0.008675030189857436
+          ]
+        },
+        "S6": {
+          "per_seed": {
+            "1": -0.003527960680236265,
+            "2": -0.11388851228913857,
+            "3": -0.12306332327872539
+          },
+          "n": 3,
+          "mean": -0.08015993208270007,
+          "half_width": 0.16525376879316592,
+          "interval": [
+            -0.245413700875866,
+            0.08509383671046584
+          ]
+        },
+        "S7": {
+          "per_seed": {
+            "1": -0.45020245365396794,
+            "2": -0.6425668616955096,
+            "3": -0.9034123183298484
+          },
+          "n": 3,
+          "mean": -0.6653938778931087,
+          "half_width": 0.5650558788087447,
+          "interval": [
+            -1.2304497567018533,
+            -0.10033799908436392
+          ]
+        }
+      },
+      "retention_bar_P13b": 0.5,
+      "descriptive_costs": {
+        "round_latency_p50_s": {
+          "S0": 46.204943937998905,
+          "S2": 42.72439538299659,
+          "S6": 50.35347814099805,
+          "S7": 43.33633495249887
+        },
+        "S6_over_S2_latency": 1.178565025663012,
+        "S7_over_S2_latency": 1.0143229544623544,
+        "S6_fair": {
+          "extra_wait_s_total": 77.78719184098736,
+          "extra_wait_s_mean_per_round": 4.321510657832631,
+          "rounds_with_extra_wait": 5,
+          "forced_admissions_total": 5,
+          "fair_wait_timeouts_total": 0
+        },
+        "S7_carry": {
+          "carried_count_total": 12,
+          "carried_tokens_total": 245760,
+          "staleness_hist": {
+            "1": 12
+          },
+          "too_stale_discarded_total": 0
+        },
+        "admitted_fraction_mean": {
+          "S2": 0.6666666666666666,
+          "S6": 0.7592592592592592,
+          "S7": 0.6666666666666666
+        },
+        "late_discards_total": {
+          "S2": 15,
+          "S6": 10,
+          "S7": 3
+        }
+      },
+      "controls": {
+        "flags": {
+          "s1_equals_s0": null,
+          "s0_learns": true,
+          "raw_wire_bytes_exact": null,
+          "codec_rate_on_target": true,
+          "workers_start_identical": true,
+          "no_failed_cells": true
+        },
+        "failed": [],
+        "not_evaluated": [
+          "raw_wire_bytes_exact",
+          "s1_equals_s0"
+        ],
+        "s0_twin_bit_identical": true,
+        "report_controls_all_passed": false,
+        "valid": true,
+        "note": "report_controls_all_passed is false only because controls of cells outside the E14 grid (S1 identity, raw wire bytes) are not evaluated (null)"
+      }
+    }
+  },
+  "sources": {
+    "qwen0.5b": {
+      "file": "E14_report_qwen0.5b.json",
+      "receipt_sha256": "975d81b7b503e8e21004ba15332ab5908a5029895c60e393594ac9458b46ef5f",
+      "file_sha256": "bb9683a4da1552c6d934e5068010c3ca6b48b2960b4e963004d670fca7b63dd4"
+    },
+    "granite1b": {
+      "file": "E14_report_granite1b.json",
+      "receipt_sha256": "5f9eac4939b1333c07769030d76aa67025391712e133026caa983dc902213940",
+      "file_sha256": "ceb4787a59e227c4c1124325467da4dedff409819642d574e3902cb2121b6ebf"
+    }
+  },
+  "receipt_sha256": "a29dea38cca6f5362c776796f6168a52d1725d7aea7f9c1b127ca6cde6afd628"
+}

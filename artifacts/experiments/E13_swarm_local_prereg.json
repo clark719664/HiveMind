@@ -1,0 +1,63 @@
+{
+  "experiment_id": "E13-swarm-local",
+  "registered_utc": "2026-10-24T02:55:00Z",
+  "registered_before_run": true,
+  "roadmap": "E8's localhost negative control (docs/RESEARCH_PROGRAM.md E8 + its amendment; ROADMAP HM-S9-07); validates the HiveMind swarm protocol end to end on one GPU. Requested by the user on 2026-10-24: simulate the swarm on one large local GPU to validate the concept on several MoE models and the inter-worker communication.",
+  "what_this_can_and_cannot_claim": {
+    "can": "that M independent worker processes (or peer threads sharing one frozen model) exchanging LoRA deltas over real localhost HTTP, with K<M quorum, adaptive grace, RDA, E8 lattice compression with error feedback, stragglers and churn, reach a held-out loss close to a synchronous single-process DiLoCo run at matched tokens; that the protocol is numerically correct (identity control); and the measured wire bytes.",
+    "cannot": "P1/RQ1 or any WAN, NAT, volunteer-churn, latency-percentile or throughput claim (all processes share one GPU and one host: round latencies are GPU time-sharing artefacts, descriptive only); anything about QUIC, hidden-state expert routing across machines (swarm_fabric), NF4, Skip-Token, Skip-Attention, PA-CGAD or fixed-point exits (listed as not included); anything about expert-level training (LoRA is on attention q_proj/v_proj only; the Granite experts and routers are frozen but used in every forward)."
+  },
+  "leverages": "decoupled_diloco.py (select_quorum, AdaptiveGraceWindowController, radial_directional_average; loaded by file path because the swarm package needs aioquic, absent here); E8 pilot HTTP protocol; E10b building blocks (PEFT-scale LoRA init, DiLoCo inner loop, outer Nesterov, torch E8 codec with per-(worker, round) scale calibration); E11 dataset_texts; E12 finding that same-device separate-process replay is bit-exact.",
+  "models": {
+    "qwen0.5b": {"repo": "Qwen/Qwen2.5-0.5B-Instruct", "role": "dense reference", "dtype": "fp16 base + fp32 LoRA/optimizer, autocast, static loss scale 256", "workers": 4, "hosting": "process", "domains": ["code", "wiki-fr", "pubmed", "gsm8k"]},
+    "granite1b": {"repo": "ibm-granite/granite-3.1-1b-a400m-base", "role": "pretrained MoE (32 experts, top-8, 24 layers)", "workers": 3, "hosting": "process", "grad_ckpt": true, "domains": ["code", "wiki-fr", "pubmed"]},
+    "granite3b": {"repo": "ibm-granite/granite-3.1-3b-a800m-base", "role": "pretrained MoE (40 experts, top-8, 32 layers)", "workers": 4, "hosting": "thread (one frozen 6.6 GB model, 4 peer threads over the same HTTP protocol; peers' forward/backward serialized)", "domains": ["code", "wiki-fr", "pubmed", "gsm8k"], "note": "only one copy of the 3B model fits the T4, so this model validates the protocol with thread-hosted peers; the transport is still real HTTP but the peers are not separate OS processes"},
+    "not_included": "qwen0.5b-moe (repo sparse-upcycling): its experts are identical at initialisation, so it would test nothing about routing; no other ungated native MoE of at most 4B total parameters was found (checked 2026-10-24)"
+  },
+  "grid": {
+    "qwen0.5b": {"cells": ["S0", "S1", "S2", "S3", "S4", "S5"], "seeds": [1, 2, 3]},
+    "granite1b": {"cells": ["S0", "S1", "S2"], "seeds": [1, 2, 3]},
+    "granite3b": {"cells": ["S0", "S1", "S2"], "seeds": [1], "status": "feasibility only: one seed, no interval, P13b descriptive"},
+    "rounds": 6,
+    "inner_steps_per_round": 20,
+    "micro_batch": 4,
+    "seq_len": 256,
+    "inner_optimizer": "AdamW lr 5e-4, betas (0.9, 0.95), wd 0.01, grad clip 1.0, persistent per worker across rounds",
+    "outer": "Nesterov SGD lr 0.7 momentum 0.9 (buf = mu buf + g; theta -= lr (g + mu buf)); not tuned per cell",
+    "lora": "rank 8, alpha 16, q_proj and v_proj of all layers, PEFT-scale init A ~ U(-1/sqrt(fan_in), 1/sqrt(fan_in)), B = 0, identical for all workers (E10b amendment 2 lesson; E12's N(0,1/r) init is NOT used)",
+    "seed_effect": "seed fixes the LoRA init and the batch order; shards, held-out set and the straggler/churn schedule are identical across seeds. Process timing (which K workers arrive first among the non-delayed ones) is not controlled, so S2-S5 contain scheduling nondeterminism that the three seeds do not resample"
+  },
+  "cells": {
+    "S0": "sync_baseline: ONE process, M learners simulated sequentially, K = M, direct token-weighted average, no codec. The matched-tokens reference",
+    "S1": "swarm_identity: real M-process HTTP swarm, K = M, direct, no codec, no stragglers or churn",
+    "S2": "swarm_all_on: K = ceil(M/2), adaptive grace, RDA, E8@2+EF (2 bits/dim measured, error feedback per worker), stragglers (worker M-1 sleeps 2x its median compute in rounds 1, 3, 5) and churn (worker 1 SIGKILLed after round 2, re-spawned with fresh optimizer and EF state before round 4)",
+    "S3": "no_codec: S2 with raw fp32 deltas",
+    "S4": "no_rda: S2 with direct merge",
+    "S5": "no_quorum: S2 with K = M (waits for stragglers; with the churned worker dead the effective quorum is min(K, alive))",
+    "e8_amendment": "S2 is the all-mechanisms-on cell and S3-S5 the each-mechanism-off cells for the mechanisms that exist in this local swarm (codec, RDA, quorum)."
+  },
+  "data": "non-IID: worker i trains only on domain DOMAINS[i] (code = codeparrot-clean-valid, wiki-fr = French Wikipedia, pubmed = PubMed articles, gsm8k = GSM8K test text; loaders of E11/E11b). Per domain, tokens of that model's tokenizer: train = first 50% of the evaluation text, held-out = last 20%, the middle 30% unused (disjoint); sha256 of every token tensor is recorded. The global metric is the cross-entropy over a FIXED mixture of 16 held-out sequences x 256 tokens per domain of the workers' domains (also reported per domain)",
+  "predictions": {
+    "P13a": "Protocol correctness: the final global LoRA of S1 (and of S1t when run) equals S0's within max|diff| <= 1e-6, for every model and seed (E12: same-device separate-process replay is bit-exact, so any nonzero difference is a protocol bug).",
+    "P13b": "Swarm viability: retention rho_s = (L_round0 - L_S2,s) / (L_round0 - L_S0,s), the share of the synchronous baseline's held-out improvement that the all-mechanisms-on swarm keeps, per seed. Supported on a model with 3 seeds if mean(rho) - t(0.975, df=2) sd/sqrt(3) >= 0.5; refuted if mean(rho) + half-width < 0.5; inconclusive otherwise. With one seed (granite3b): the point estimate is reported and no status is assigned (descriptive, n=1). The 0.5 margin is a viability bar chosen before any run, not a power-based equivalence margin; the retention itself and the stricter 0.75 bar are reported for every model.",
+    "P13c": "Wire cost: measured upload bytes of S2 (real HTTP bodies, int8 codewords + scale, zlib) divided by S1's raw fp32 upload bytes per worker-round is <= 0.30 (the ideal entropy-coded ratio at 2.0 bits/dim is 0.0625; the actual int8+zlib body is larger). Reported with the ideal ratio. Decided per model from the mean over rounds, workers and seeds (descriptive interval).",
+    "P13d": "Each-off interactions (qwen0.5b only; descriptive, no status): paired per-seed differences L(S3) - L(S2), L(S4) - L(S2), L(S5) - L(S2) with df=2 intervals, and the retention of each cell, to show whether a single mechanism accounts for the gap to S0.",
+    "descriptive_moe_routing": "for the Granite models: per-domain expert usage of the final global model on the held-out windows (mean normalised entropy per layer, share of tokens on the 25% most-used experts), from forward hooks on the routers. No prediction; it documents whether domains route to different experts."
+  },
+  "controls": {
+    "identity": "P13a itself (S1 vs S0 <= 1e-6)",
+    "learning": "S0 must lower the mixture held-out loss by at least 0.05 nats between round 0 and round 3 (fail-fast), otherwise the testbed does not teach and no contrast means anything (E10b lesson)",
+    "all_workers_same_init": "all workers start from the identical LoRA init (sha256 equal)",
+    "raw_wire": "raw upload bodies are exactly 4 x n_coords bytes",
+    "codec_rate": "mean measured E8 codec rate within 0.05 bit/dim of 2.0",
+    "run_is_valid_iff": "all controls above pass for that model; otherwise its P13a-P13d are reported as invalid with the failed controls named (applied by the aggregator)"
+  },
+  "fail_fast": {
+    "learning_gate": "after the S0 round-3 evaluation, abort the invocation (exit code 3, report status 'aborted by registered fail-fast rule') if the mixture held-out loss has not dropped by >= 0.05 nats",
+    "step_time": "qwen0.5b only: abort if the first 20 inner steps of the first S0 run average more than 1.3 x 0.45 s = 0.585 s per step; the Granite models have no registered time assumption and are timed, not gated"
+  },
+  "sizing": "qwen0.5b: 6 cells x 3 seeds x 480 inner steps (R x M x H) = 8,640 steps at the assumed 0.45 s/step = about 1.5 h including evaluation and process starts (--estimate); granite1b and granite3b step times are unmeasured: the lead measures them on the first S0 run and amends the sizing before any further granite cell if the projection exceeds 1 h per model",
+  "scheduling": "one queue job per model, resumable (--resume, design-hash guarded raw file), in the order qwen0.5b, granite1b, granite3b; nothing else runs on the GPU during an E13 job",
+  "decision_consequences": "P13a and P13b supported on qwen0.5b and granite1b: the local-swarm concept (quorum + RDA + E8 EF compression + churn over real HTTP) is validated for a dense and a pretrained MoE model on one GPU and E8's localhost negative control is satisfied, which is a precondition (not a substitute) for the multi-host gameday HM-S9-07; P13a failing anywhere: protocol bug, no other result of that model is interpreted; P13b refuted: the all-on swarm loses more than half of the synchronous improvement at this size and the loss is attributed using P13d before any WAN run; P13c failing: the codec wire format needs a real entropy coder before bytes are claimed",
+  "scope": "3 models, 6 rounds x 20 inner steps (120 steps per worker), 3-4 workers, 3 seeds (1 for granite3b), localhost HTTP on one Tesla T4; mixture of 3-4 domains"
+}

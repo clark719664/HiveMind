@@ -1,0 +1,16 @@
+{
+  "experiment_id": "E13-swarm-local",
+  "amends": "E13_swarm_local_prereg.json + amendment_1 (both unchanged)",
+  "amendment": 2,
+  "registered_utc": "2026-10-24T06:40:00Z",
+  "when": "after the first real-model S0 / S0b cells of qwen0.5b and the memory preflight fallback that they triggered; before any swarm cell of E13 has run",
+  "observed": "S0b twin on the T4 is bit-identical (max|diff| 0.0). The memory preflight found that 4 OS processes of Qwen2.5-0.5B need 20.03 GiB (4.56 GiB measured peak + 0.45 each) against 13.76 GiB free, so the registered qwen0.5b swarm cells run thread-hosted (4 peer threads over the same real HTTP protocol, one frozen model). This is the fallback registered in amendment 1; hosting is reported per cell.",
+  "added_run": {
+    "name": "E13-m2proc",
+    "what": "qwen0.5b with M=2 workers as separate OS processes (about 10 GiB), cells S0 and S1 only, seed 1, same rounds/inner steps/optimizer/data as E13 (domains code and wiki-fr)",
+    "why": "keeps the multi-process transport path exercised on the real GPU, which the main qwen0.5b and granite cells cannot do within 14.5 GiB",
+    "rule": "descriptive control: S1 (2 OS processes) must equal its own S0 within 1e-6; no P13b/P13c status is assigned; it does not enter the P13a counts of the registered grid but is reported next to them",
+    "outputs": "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_m2proc.json and E13_swarm_local_report_m2proc.json"
+  },
+  "unchanged": "every prediction, threshold and control of the prereg and amendment 1"
+}

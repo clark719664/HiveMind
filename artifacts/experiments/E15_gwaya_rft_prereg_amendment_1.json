@@ -1,0 +1,17 @@
+{
+  "experiment_id": "E15-gwaya-rft",
+  "amends": "E15_gwaya_rft_prereg.json (unchanged)",
+  "amendment": 1,
+  "registered_utc": "2026-10-24T14:30:00Z",
+  "when": "after the pipeline was built and tested on CPU (48 tests, tiny-model smoke, hostile-candidate sandbox probes) and before any real-model generation",
+  "changes": {
+    "train_set_size": "462 problems, not 464: two MBPP near-duplicate pairs (eval task 104 vs train 569, eval 427 vs train 928) match on normalised prompt text, and the registered rule is that no eval prompt may occur in TRAIN, so the two train problems are removed (reported as removed_for_text_overlap). The fail-fast yield threshold stays 150. Two identical reference solutions remain between train and eval under different prompts; reported, not removed.",
+    "pass_at_1_definition": "pass@1 is functional: all tests (visible and hidden) pass in the sandbox. The zero-stub audit is applied by the gate for selection and RFT data collection but not to the final functional judgement; accepted_gwaya (tests pass AND audit clean) and stub_flagged_among_passing are reported next to it. The vendored upstream auditor flags any pass outside an except handler or class body and any annotated return None-only function, so it can reject legitimate code; this lowers the RFT yield and is a property of GWAYA, not tuned here.",
+    "gate_implementation": "third_party/gwaya/ast_audit.py vendored unmodified at GWAYA commit 9c0001e8307d079ac834a86bc37e2d56703a4fb5 (sha256 af8f382c5a670bfc2e3632bf91d942d78810c54bc3f8f7014162ebf22b37dd7b); sandbox = user/mount/net/pid/ipc/uts namespaces with tmpfs over /home, /root, /tmp, /mnt and other paths, minimal /dev, all capabilities dropped and verified, no_new_privs, rlimits, empty environment, nonce-based completion marker; no seccomp, no cgroups; the kernel is shared, so it is a defence for a 1.5B model generating Python functions, not for adversarial third-party code",
+    "time_failfast": "--max-hours 3.0 (exit 3) checked during the RFT stage, as in E13",
+    "sampling_seeds": "derived per generation batch from the (task_id, sample_index) keys in the batch, so results depend on batch composition; reported",
+    "energy": "NVML whole-GPU power x time; other processes on the GPU inflate it; descriptive only"
+  },
+  "unchanged": "every hypothesis, threshold, control and the 7.5 GiB cap of the pre-registration",
+  "outputs": "artifacts/experiments/E15/ (stage JSONs and journals), artifacts/experiments/E15_gwaya_rft_report.json"
+}

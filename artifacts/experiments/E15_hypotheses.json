@@ -1,0 +1,172 @@
+{
+  "schema_version": "hivemind-experiment-E15-hypotheses/v1.0",
+  "experiment_id": "E15-gwaya-rft",
+  "rules": {
+    "H15a": "RFT improves greedy pass@1 on MBPP-sanitized: C2 - C0 >= +3.0 points with exact two-sided McNemar p < 0.05 -> supported; C2 - C0 < 0 with p < 0.05 -> refuted (fine-tuning hurts); otherwise inconclusive",
+    "H15b": "the GWAYA inference loop improves the base: C1 - C0 >= +5.0 points with McNemar p < 0.05 -> supported; C1 - C0 <= 0 -> refuted; otherwise inconclusive (GWAYA own README reports +4.7 to +7.8 points for the same model family and fails its own +8.0 gate; +5.0 is chosen before any run)",
+    "H15c": "stacking (descriptive): C3 - C1 and C3 - C0 with McNemar p, no status",
+    "H15d": "resource: training and every inference stage run to completion with the 7.5 GiB cap enforced (peak reserved <= 8.0 GiB) -> supported; an out-of-memory under the cap -> refuted",
+    "H15e_generalisation_descriptive": "HumanEval C2 - C0 with McNemar p (does RFT on MBPP transfer or hurt out of distribution), no status"
+  },
+  "prereg_sha256": "a7f601f6b964cc03909f485ef4eb68521beefbfe68ec2df245c71d240bb91eb0",
+  "amendment_1_sha256": "7c26d13eb823aef912c1eab51f7480c59859da9d29c99b507dfa18b9214836f3",
+  "scope": "one 1.5B model, one fine-tuning run (one seed, no interval over training seeds), MBPP-sanitized n=257 and HumanEval n=164, a sandbox that is not GWAYA own; pass@1 differences are paired by problem (McNemar) but do not include training-seed variance; no claim beyond Python function synthesis on these two benchmarks",
+  "source": {
+    "file": "E15_gwaya_rft_report.json",
+    "receipt_sha256": "678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9",
+    "file_sha256": "b44ef54c9d36b28d477d332a9170395c4bbf711b6c10fe2ca9dc1e43dda745b6"
+  },
+  "hypotheses": {
+    "valid": true,
+    "validity_rule": "run_is_valid_iff all E15 controls pass (report controls.all_passed)",
+    "H15a": {
+      "status": "inconclusive",
+      "computed_status": "inconclusive",
+      "comparison": "C2-C0",
+      "n": 257,
+      "points": 0.7782101167315175,
+      "b_only": 15,
+      "a_only": 13,
+      "mcnemar_p": 0.8505540192127228,
+      "report_mcnemar_p": 0.8505540192127228,
+      "report_diff_points": 0.7782101167315175,
+      "report_agrees": true
+    },
+    "H15b": {
+      "status": "supported",
+      "computed_status": "supported",
+      "comparison": "C1-C0",
+      "n": 257,
+      "points": 7.003891050583658,
+      "b_only": 19,
+      "a_only": 1,
+      "mcnemar_p": 4.00543212890625e-05,
+      "report_mcnemar_p": 4.00543212890625e-05,
+      "report_diff_points": 7.003891050583658,
+      "report_agrees": true
+    },
+    "H15d": {
+      "status": "supported",
+      "computed_status": "supported",
+      "peak_reserved_gib_per_stage": {
+        "baseline": 4.17578125,
+        "loop_base": 4.23828125,
+        "rft": 4.466796875,
+        "train": 4.1484375,
+        "tuned": 4.36328125
+      },
+      "max_peak_reserved_gib": 4.466796875,
+      "limit_gib": 8.0,
+      "stage_status": {
+        "baseline": "ok",
+        "loop_base": "ok",
+        "rft": "ok",
+        "train": "ok",
+        "tuned": "ok",
+        "controls": "ok"
+      }
+    },
+    "H15c_descriptive": {
+      "status": "descriptive (no status)",
+      "C3_minus_C1": {
+        "comparison": "C3-C1",
+        "n": 257,
+        "points": 1.1673151750972763,
+        "b_only": 12,
+        "a_only": 9,
+        "mcnemar_p": 0.6636238098144531,
+        "report_mcnemar_p": 0.6636238098144531,
+        "report_diff_points": 1.1673151750972763,
+        "report_agrees": true
+      },
+      "C3_minus_C0": {
+        "comparison": "C3-C0",
+        "n": 257,
+        "points": 8.171206225680933,
+        "b_only": 26,
+        "a_only": 5,
+        "mcnemar_p": 0.00019219517707824707,
+        "report_mcnemar_p": 0.00019219517707824707,
+        "report_diff_points": 8.171206225680933,
+        "report_agrees": true
+      }
+    },
+    "H15e_descriptive": {
+      "status": "descriptive (no status)",
+      "comparison": "C2h-C0h (HumanEval)",
+      "n": 164,
+      "points": 0.6097560975609756,
+      "b_only": 12,
+      "a_only": 11,
+      "mcnemar_p": 1.0,
+      "report_mcnemar_p": 1.0,
+      "report_diff_points": 0.6097560975609756,
+      "report_agrees": true
+    },
+    "conditions": {
+      "C0": {
+        "n": 257,
+        "passes": 169,
+        "pass_at_1": 0.6575875486381323,
+        "wilson95": [
+          0.5976347185425646,
+          0.7128987387008274
+        ]
+      },
+      "C1": {
+        "n": 257,
+        "passes": 187,
+        "pass_at_1": 0.7276264591439688,
+        "wilson95": [
+          0.6701450454269766,
+          0.7784032817023672
+        ]
+      },
+      "C2": {
+        "n": 257,
+        "passes": 171,
+        "pass_at_1": 0.6653696498054474,
+        "wilson95": [
+          0.6056194756001525,
+          0.720248967186123
+        ]
+      },
+      "C3": {
+        "n": 257,
+        "passes": 190,
+        "pass_at_1": 0.7392996108949417,
+        "wilson95": [
+          0.682381834605974,
+          0.7891689708376952
+        ]
+      },
+      "C0h": {
+        "n": 164,
+        "passes": 110,
+        "pass_at_1": 0.6707317073170732,
+        "wilson95": [
+          0.5956203559404486,
+          0.7380278403602346
+        ]
+      },
+      "C2h": {
+        "n": 164,
+        "passes": 111,
+        "pass_at_1": 0.676829268292683,
+        "wilson95": [
+          0.6019119505159681,
+          0.743652252795454
+        ]
+      }
+    },
+    "energy_wh_per_stage": {
+      "baseline": 9.09922818869931,
+      "loop_base": 14.658572808658622,
+      "rft": 74.80068484989962,
+      "train": 6.717452089405553,
+      "tuned": 16.57395542838037,
+      "controls": null
+    }
+  },
+  "receipt_sha256": "8ef9ce8a24696976f6a6dac7f087b97138739661c46b2c746e9e0faf0781c80e"
+}

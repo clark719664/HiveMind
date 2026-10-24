@@ -1,0 +1,1464 @@
+{
+ "started_unix": 1792824645.8937912,
+ "deadline_unix": 1792857045.8937912,
+ "hours": 9.0,
+ "jobs": [
+  {
+   "name": "E13_granite1b_v2",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--experts-impl",
+    "grouped_mm",
+    "--no-grad-ckpt",
+    "--peer-hosting",
+    "thread",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1,2,3",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_granite1b.json",
+    "--resume"
+   ],
+   "start_unix": 1792824645.89489,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 938.7,
+   "log_tail": [
+    "[E13 hb] granite1b S1 seed 3 t=180s round 4/6 admitted-so-far [1, 2] of effective K 3, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 0",
+    "[E13 hb] granite1b S1 seed 3 t=240s round 6/6 admitted-so-far [] of effective K 3, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 0",
+    "seed 3 S1 swarm_identity final 2.1182 (init 2.1690) admitted/round [3, 3, 3, 3, 3, 3] late 0 up 49545216B 300.66s",
+    "[E13 hb] granite1b S2 seed 3 t=60s round 2/6 admitted-so-far [] of effective K 2, alive [0, 1, 2], evals [] of [0, 3, 6], late 0",
+    "[E13 hb] granite1b S2 seed 3 t=120s round 3/6 admitted-so-far [0] of effective K 2, alive [0, 2], evals [0] of [0, 3, 6], late 2",
+    "[E13 hb] granite1b S2 seed 3 t=180s round 4/6 admitted-so-far [0] of effective K 2, alive [0, 1, 2], evals [0] of [0, 3, 6], late 2",
+    "[E13 hb] granite1b S2 seed 3 t=240s round 5/6 admitted-so-far [1] of effective K 2, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 3",
+    "seed 3 S2 swarm_all_on   final 2.2178 (init 2.1690) admitted/round [2, 2, 2, 2, 2, 2] late 5 up 4261665B 318.22s",
+    "{",
+    "  \"controls_all_passed\": true,",
+    "  \"runs\": 9,",
+    "  \"elapsed_s\": 934.82,",
+    "  \"receipt\": \"46737aad48c791fabd60a3c2d7c44aa2f03325fbe60c74f166155f3cd9347ef2\"",
+    "}",
+    "E13 DONE model=granite1b cells_ok=9 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_granite1b.json"
+   ]
+  },
+  {
+   "name": "E14_qwen0.5b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--cells",
+    "S0,S2,S6,S7",
+    "--seeds",
+    "1,2,3",
+    "--out",
+    "artifacts/experiments/E14_raw_qwen0.5b.json",
+    "--report",
+    "artifacts/experiments/E14_report_qwen0.5b.json",
+    "--resume"
+   ],
+   "start_unix": 1792825584.6422336,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 1626.5,
+   "log_tail": [
+    "seed 3 S2 swarm_all_on   final 2.3506 (init 2.3653) admitted/round [2, 2, 2, 2, 2, 2] late 8 up 3926489B 113.62s",
+    "[E13] memory preflight: process hosting needs 20.09 GiB (M=4 x (4.57 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.07 GiB)",
+    "[E13 hb] qwen0.5b S6 seed 3 t=60s round 4/6 admitted-so-far [] of effective K 2, alive [0, 1, 2, 3], evals [0] of [0, 3, 6], late 4, fair-exclusion counters {0: 0, 1: 0, 2: 0, 3: 1} (max 1)",
+    "[E13 hb] qwen0.5b S6 seed 3 t=120s round 6/6 admitted-so-far [0, 1, 2] of effective K 2, alive [0, 1, 2, 3], evals [0, 3] of [0, 3, 6], late 7, fair-exclusion counters {0: 1, 1: 0, 2: 0, 3: 1} (max 1)",
+    "seed 3 S6 fair_quorum    final 2.2518 (init 2.3653) admitted/round [2, 3, 2, 3, 2, 4] late 7 up 4518359B 131.97s",
+    "[E13] memory preflight: process hosting needs 20.09 GiB (M=4 x (4.57 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.07 GiB)",
+    "[E13 hb] qwen0.5b S7 seed 3 t=60s round 4/6 admitted-so-far [2] of effective K 2, alive [0, 1, 2, 3], evals [0] of [0, 3, 6], late 0, carry queue 0",
+    "seed 3 S7 deferred_carry final 2.3039 (init 2.3653) admitted/round [2, 2, 2, 2, 2, 2] late 2 up 3926654B 113.56s",
+    "{",
+    "  \"controls_all_passed\": false,",
+    "  \"runs\": 12,",
+    "  \"elapsed_s\": 1618.57,",
+    "  \"receipt\": \"975d81b7b503e8e21004ba15332ab5908a5029895c60e393594ac9458b46ef5f\"",
+    "}",
+    "E13 DONE model=qwen0.5b cells_ok=12 cells_failed=0 report=artifacts/experiments/E14_report_qwen0.5b.json"
+   ]
+  },
+  {
+   "name": "E13d_qwen0.5b_m6",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--workers",
+    "6",
+    "--cells",
+    "S0,S1,S2,S5",
+    "--seeds",
+    "1,2,3",
+    "--out",
+    "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_m6.json",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_m6.json",
+    "--resume"
+   ],
+   "start_unix": 1792827211.156451,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 2545.7,
+   "log_tail": [
+    "[E13 hb] qwen0.5b S2 seed 3 t=60s round 3/6 admitted-so-far [] of effective K 3, alive [0, 2, 3, 4, 5], evals [0] of [0, 3, 6], late 5",
+    "[E13 hb] qwen0.5b S2 seed 3 t=120s round 5/6 admitted-so-far [] of effective K 3, alive [0, 1, 2, 3, 4, 5], evals [0, 3] of [0, 3, 6], late 11",
+    "seed 3 S2 swarm_all_on   final 2.7287 (init 2.7418) admitted/round [3, 3, 3, 3, 3, 3] late 17 up 6854880B 189.6s",
+    "[E13] memory preflight: process hosting needs 30.18 GiB (M=6 x (4.58 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.08 GiB)",
+    "[E13 hb] qwen0.5b S5 seed 3 t=60s round 2/6 admitted-so-far [0, 1, 5] of effective K 6, alive [0, 1, 2, 3, 4, 5], evals [0] of [0, 3, 6], late 0",
+    "[E13 hb] qwen0.5b S5 seed 3 t=120s round 4/6 admitted-so-far [0, 2, 3, 4] of effective K 6, alive [0, 1, 2, 3, 4, 5], evals [0] of [0, 3, 6], late 0",
+    "[E13 hb] qwen0.5b S5 seed 3 t=180s round 6/6 admitted-so-far [1, 2, 3] of effective K 6, alive [0, 1, 2, 3, 4, 5], evals [0, 3] of [0, 3, 6], late 0",
+    "seed 3 S5 no_quorum      final 2.6321 (init 2.7418) admitted/round [6, 6, 5, 6, 6, 6] late 0 up 6862514B 203.3s",
+    "{",
+    "  \"controls_all_passed\": true,",
+    "  \"runs\": 12,",
+    "  \"elapsed_s\": 2541.95,",
+    "  \"receipt\": \"18d8e5da22530302b9b8cbcd2430fa0c69cdefc99e1adcfbb29f7840280b2c97\"",
+    "}",
+    "E13 DONE model=qwen0.5b cells_ok=12 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_m6.json"
+   ]
+  },
+  {
+   "name": "E15_gwaya_rft",
+   "argv": [
+    "scripts/run_experiment_E15_gwaya_rft.py",
+    "--resume",
+    "--out",
+    "artifacts/experiments/E15",
+    "--report",
+    "artifacts/experiments/E15_gwaya_rft_report.json",
+    "--scratch",
+    "/mnt/disks/disk-socrateai-local-1/e15_scratch"
+   ],
+   "start_unix": 1792829756.8888268,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 6663.7,
+   "log_tail": [
+    "[E15] stage controls ...",
+    "{",
+    "  \"status\": \"complete\",",
+    "  \"pass_at_1\": {",
+    "    \"C0\": 0.6575875486381323,",
+    "    \"C1\": 0.7276264591439688,",
+    "    \"C2\": 0.6653696498054474,",
+    "    \"C3\": 0.7392996108949417,",
+    "    \"C0h\": 0.6707317073170732,",
+    "    \"C2h\": 0.676829268292683",
+    "  },",
+    "  \"controls_all_passed\": true,",
+    "  \"receipt\": \"678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9\"",
+    "}",
+    "E15 DONE model=coder1.5b stages_ok=6 stages_failed=0 report=artifacts/experiments/E15_gwaya_rft_report.json"
+   ]
+  },
+  {
+   "name": "E16_gwaya_lite_t4",
+   "argv": [
+    "scripts/run_experiment_E16_gwaya_lite_t4.py",
+    "--resume",
+    "--out",
+    "artifacts/experiments/E16",
+    "--report",
+    "artifacts/experiments/E16_gwaya_lite_t4_report.json"
+   ],
+   "start_unix": 1792836420.6400568,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 4410.1,
+   "log_tail": [
+    "      \"L4096\": 0.8015564202334631",
+    "    },",
+    "    \"7b\": {",
+    "      \"R4096\": 0.8171206225680934,",
+    "      \"L4096\": 0.8560311284046692,",
+    "      \"R8192\": 0.8171206225680934",
+    "    }",
+    "  },",
+    "  \"hypotheses\": {",
+    "    \"H16c_headline_7b\": \"supported\"",
+    "  },",
+    "  \"run_valid\": true,",
+    "  \"receipt\": \"6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1\"",
+    "}",
+    "E16 DONE tiers=1.5b,3b,7b stages_ok=5 stages_failed=0 run_valid=True report=artifacts/experiments/E16_gwaya_lite_t4_report.json"
+   ]
+  },
+  {
+   "name": "E14_granite1b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--experts-impl",
+    "grouped_mm",
+    "--no-grad-ckpt",
+    "--peer-hosting",
+    "thread",
+    "--cells",
+    "S0,S2,S6,S7",
+    "--seeds",
+    "1,2,3",
+    "--out",
+    "artifacts/experiments/E14_raw_granite1b.json",
+    "--report",
+    "artifacts/experiments/E14_report_granite1b.json",
+    "--resume"
+   ],
+   "start_unix": 1792840830.7088397,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 4086.3,
+   "log_tail": [
+    "[E13 hb] granite1b S6 seed 3 t=240s round 5/6 admitted-so-far [] of effective K 2, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 3, fair-exclusion counters {0: 0, 1: 1, 2: 0} (max 1)",
+    "[E13 hb] granite1b S6 seed 3 t=300s round 6/6 admitted-so-far [0, 1] of effective K 2, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 4, fair-exclusion counters {0: 0, 1: 0, 2: 1} (max 1)",
+    "seed 3 S6 fair_quorum    final 2.1752 (init 2.1690) admitted/round [2, 2, 2, 2, 2, 3] late 4 up 4262237B 330.82s",
+    "[E13 hb] granite1b S7 seed 3 t=60s round 2/6 admitted-so-far [] of effective K 2, alive [0, 1, 2], evals [] of [0, 3, 6], late 0, carry queue 0",
+    "[E13 hb] granite1b S7 seed 3 t=120s round 3/6 admitted-so-far [] of effective K 2, alive [0, 2], evals [0] of [0, 3, 6], late 0, carry queue 1",
+    "[E13 hb] granite1b S7 seed 3 t=180s round 4/6 admitted-so-far [0] of effective K 2, alive [0, 1, 2], evals [0] of [0, 3, 6], late 0, carry queue 0",
+    "[E13 hb] granite1b S7 seed 3 t=240s round 5/6 admitted-so-far [] of effective K 2, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 0, carry queue 1",
+    "seed 3 S7 deferred_carry final 2.2149 (init 2.1690) admitted/round [2, 2, 2, 2, 2, 2] late 1 up 4260720B 328.56s",
+    "{",
+    "  \"controls_all_passed\": false,",
+    "  \"runs\": 12,",
+    "  \"elapsed_s\": 4079.0,",
+    "  \"receipt\": \"5f9eac4939b1333c07769030d76aa67025391712e133026caa983dc902213940\"",
+    "}",
+    "E13 DONE model=granite1b cells_ok=12 cells_failed=0 report=artifacts/experiments/E14_report_granite1b.json"
+   ]
+  },
+  {
+   "name": "E11b_qwen0.5b_fineweb-edu_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "fineweb-edu"
+   ],
+   "status": "skipped (output exists)"
+  },
+  {
+   "name": "E11b_qwen7b_fineweb-edu_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "fineweb-edu"
+   ],
+   "status": "skipped (output exists)"
+  },
+  {
+   "name": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b",
+    "--dataset",
+    "fineweb-edu"
+   ],
+   "status": "skipped (output exists)"
+  }
+ ],
+ "gpu_samples": 676,
+ "gpu_util_mean_pct": 74.5,
+ "gpu_util_by_job": {
+  "E14_qwen0.5b": 88.8,
+  "E16_gwaya_lite_t4": 86.1,
+  "E13d_qwen0.5b_m6": 90.5,
+  "E13_granite1b_v2": 50.2,
+  "E15_gwaya_rft": 76.2,
+  "E14_granite1b": 49.2
+ },
+ "gpu_mem_peak_gib": 6.68,
+ "gpu_trace": [
+  {
+   "t": 1792824647.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 9,
+   "mem_used_gib": 0.44,
+   "power_w": 31.4
+  },
+  {
+   "t": 1792824767.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 52,
+   "mem_used_gib": 6.36,
+   "power_w": 76.7
+  },
+  {
+   "t": 1792824887.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 52,
+   "mem_used_gib": 6.36,
+   "power_w": 69.7
+  },
+  {
+   "t": 1792825007.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 68.5
+  },
+  {
+   "t": 1792825127.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 51,
+   "mem_used_gib": 6.63,
+   "power_w": 63.3
+  },
+  {
+   "t": 1792825247.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 60,
+   "mem_used_gib": 6.63,
+   "power_w": 56.0
+  },
+  {
+   "t": 1792825367.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 50,
+   "mem_used_gib": 6.63,
+   "power_w": 63.5
+  },
+  {
+   "t": 1792825487.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 70.3
+  },
+  {
+   "t": 1792825607.5,
+   "job": "E14_qwen0.5b",
+   "util_pct": 0,
+   "mem_used_gib": 0.44,
+   "power_w": 10.8
+  },
+  {
+   "t": 1792825727.6,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 5.18,
+   "power_w": 66.5
+  },
+  {
+   "t": 1792825847.6,
+   "job": "E14_qwen0.5b",
+   "util_pct": 95,
+   "mem_used_gib": 5.2,
+   "power_w": 73.0
+  },
+  {
+   "t": 1792825967.6,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792826087.7,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 60.6
+  },
+  {
+   "t": 1792826207.7,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 58.2
+  },
+  {
+   "t": 1792826327.7,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 5.2,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792826447.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 96,
+   "mem_used_gib": 6.33,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792826567.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 68.2
+  },
+  {
+   "t": 1792826687.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 74.1
+  },
+  {
+   "t": 1792826807.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 5.2,
+   "power_w": 67.3
+  },
+  {
+   "t": 1792826927.9,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 65.3
+  },
+  {
+   "t": 1792827047.9,
+   "job": "E14_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 6.33,
+   "power_w": 68.6
+  },
+  {
+   "t": 1792827168.0,
+   "job": "E14_qwen0.5b",
+   "util_pct": 100,
+   "mem_used_gib": 6.33,
+   "power_w": 65.6
+  },
+  {
+   "t": 1792827288.0,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 5.19,
+   "power_w": 61.0
+  },
+  {
+   "t": 1792827408.0,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 95,
+   "mem_used_gib": 5.19,
+   "power_w": 66.5
+  },
+  {
+   "t": 1792827528.0,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 5.2,
+   "power_w": 65.0
+  },
+  {
+   "t": 1792827648.1,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 95,
+   "mem_used_gib": 6.37,
+   "power_w": 66.7
+  },
+  {
+   "t": 1792827768.1,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 92,
+   "mem_used_gib": 6.4,
+   "power_w": 59.3
+  },
+  {
+   "t": 1792827888.1,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 97,
+   "mem_used_gib": 6.4,
+   "power_w": 74.1
+  },
+  {
+   "t": 1792828008.2,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 0,
+   "mem_used_gib": 1.24,
+   "power_w": 32.0
+  },
+  {
+   "t": 1792828128.2,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 97,
+   "mem_used_gib": 6.4,
+   "power_w": 67.8
+  },
+  {
+   "t": 1792828248.2,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 100,
+   "mem_used_gib": 5.2,
+   "power_w": 63.8
+  },
+  {
+   "t": 1792828368.2,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 99,
+   "mem_used_gib": 5.2,
+   "power_w": 68.8
+  },
+  {
+   "t": 1792828488.3,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 93,
+   "mem_used_gib": 6.4,
+   "power_w": 73.1
+  },
+  {
+   "t": 1792828608.3,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 6.26,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792828728.3,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 99,
+   "mem_used_gib": 6.4,
+   "power_w": 71.0
+  },
+  {
+   "t": 1792828848.3,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 96,
+   "mem_used_gib": 6.4,
+   "power_w": 59.7
+  },
+  {
+   "t": 1792828968.4,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 6.4,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792829088.4,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 5.2,
+   "power_w": 66.0
+  },
+  {
+   "t": 1792829208.4,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 100,
+   "mem_used_gib": 6.4,
+   "power_w": 68.1
+  },
+  {
+   "t": 1792829328.5,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 77,
+   "mem_used_gib": 6.4,
+   "power_w": 58.5
+  },
+  {
+   "t": 1792829448.5,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 6.4,
+   "power_w": 58.7
+  },
+  {
+   "t": 1792829568.5,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 6.26,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792829688.5,
+   "job": "E13d_qwen0.5b_m6",
+   "util_pct": 98,
+   "mem_used_gib": 6.4,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792829808.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 59,
+   "mem_used_gib": 4.15,
+   "power_w": 64.8
+  },
+  {
+   "t": 1792829928.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 48,
+   "mem_used_gib": 4.15,
+   "power_w": 64.2
+  },
+  {
+   "t": 1792830048.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 98,
+   "mem_used_gib": 4.69,
+   "power_w": 68.1
+  },
+  {
+   "t": 1792830168.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 97,
+   "mem_used_gib": 4.77,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792830288.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 98,
+   "mem_used_gib": 4.24,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792830408.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 68,
+   "mem_used_gib": 4.39,
+   "power_w": 66.0
+  },
+  {
+   "t": 1792830528.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 83,
+   "mem_used_gib": 4.39,
+   "power_w": 64.1
+  },
+  {
+   "t": 1792830648.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 91,
+   "mem_used_gib": 4.39,
+   "power_w": 63.5
+  },
+  {
+   "t": 1792830768.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 66,
+   "mem_used_gib": 4.39,
+   "power_w": 63.7
+  },
+  {
+   "t": 1792830888.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 0,
+   "mem_used_gib": 4.83,
+   "power_w": 42.6
+  },
+  {
+   "t": 1792831008.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 98,
+   "mem_used_gib": 4.83,
+   "power_w": 65.7
+  },
+  {
+   "t": 1792831128.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 95,
+   "mem_used_gib": 4.22,
+   "power_w": 65.5
+  },
+  {
+   "t": 1792831248.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 68,
+   "mem_used_gib": 4.59,
+   "power_w": 68.7
+  },
+  {
+   "t": 1792831368.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 76,
+   "mem_used_gib": 5.06,
+   "power_w": 64.8
+  },
+  {
+   "t": 1792831488.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 71,
+   "mem_used_gib": 5.06,
+   "power_w": 65.5
+  },
+  {
+   "t": 1792831608.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 78,
+   "mem_used_gib": 5.06,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792831729.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 82,
+   "mem_used_gib": 5.06,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792831849.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 98,
+   "mem_used_gib": 5.06,
+   "power_w": 63.7
+  },
+  {
+   "t": 1792831969.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 80,
+   "mem_used_gib": 5.06,
+   "power_w": 68.0
+  },
+  {
+   "t": 1792832089.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 97,
+   "mem_used_gib": 5.06,
+   "power_w": 67.6
+  },
+  {
+   "t": 1792832209.1,
+   "job": "E15_gwaya_rft",
+   "util_pct": 75,
+   "mem_used_gib": 5.06,
+   "power_w": 65.2
+  },
+  {
+   "t": 1792832329.1,
+   "job": "E15_gwaya_rft",
+   "util_pct": 52,
+   "mem_used_gib": 5.06,
+   "power_w": 56.6
+  },
+  {
+   "t": 1792832449.2,
+   "job": "E15_gwaya_rft",
+   "util_pct": 66,
+   "mem_used_gib": 5.06,
+   "power_w": 74.9
+  },
+  {
+   "t": 1792832569.2,
+   "job": "E15_gwaya_rft",
+   "util_pct": 26,
+   "mem_used_gib": 5.06,
+   "power_w": 43.0
+  },
+  {
+   "t": 1792832689.2,
+   "job": "E15_gwaya_rft",
+   "util_pct": 98,
+   "mem_used_gib": 5.06,
+   "power_w": 68.5
+  },
+  {
+   "t": 1792832809.3,
+   "job": "E15_gwaya_rft",
+   "util_pct": 67,
+   "mem_used_gib": 5.06,
+   "power_w": 63.6
+  },
+  {
+   "t": 1792832929.3,
+   "job": "E15_gwaya_rft",
+   "util_pct": 65,
+   "mem_used_gib": 5.06,
+   "power_w": 65.0
+  },
+  {
+   "t": 1792833049.3,
+   "job": "E15_gwaya_rft",
+   "util_pct": 0,
+   "mem_used_gib": 5.06,
+   "power_w": 43.3
+  },
+  {
+   "t": 1792833169.3,
+   "job": "E15_gwaya_rft",
+   "util_pct": 55,
+   "mem_used_gib": 5.06,
+   "power_w": 65.4
+  },
+  {
+   "t": 1792833289.3,
+   "job": "E15_gwaya_rft",
+   "util_pct": 65,
+   "mem_used_gib": 5.06,
+   "power_w": 62.6
+  },
+  {
+   "t": 1792833409.4,
+   "job": "E15_gwaya_rft",
+   "util_pct": 55,
+   "mem_used_gib": 5.06,
+   "power_w": 64.2
+  },
+  {
+   "t": 1792833529.4,
+   "job": "E15_gwaya_rft",
+   "util_pct": 56,
+   "mem_used_gib": 5.06,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792833649.4,
+   "job": "E15_gwaya_rft",
+   "util_pct": 77,
+   "mem_used_gib": 5.06,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792833769.5,
+   "job": "E15_gwaya_rft",
+   "util_pct": 80,
+   "mem_used_gib": 5.06,
+   "power_w": 68.3
+  },
+  {
+   "t": 1792833889.5,
+   "job": "E15_gwaya_rft",
+   "util_pct": 63,
+   "mem_used_gib": 5.06,
+   "power_w": 65.7
+  },
+  {
+   "t": 1792834009.5,
+   "job": "E15_gwaya_rft",
+   "util_pct": 57,
+   "mem_used_gib": 5.06,
+   "power_w": 64.2
+  },
+  {
+   "t": 1792834129.5,
+   "job": "E15_gwaya_rft",
+   "util_pct": 98,
+   "mem_used_gib": 5.06,
+   "power_w": 68.8
+  },
+  {
+   "t": 1792834249.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 64,
+   "mem_used_gib": 5.06,
+   "power_w": 65.0
+  },
+  {
+   "t": 1792834369.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 73,
+   "mem_used_gib": 5.06,
+   "power_w": 66.7
+  },
+  {
+   "t": 1792834489.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 79,
+   "mem_used_gib": 5.06,
+   "power_w": 70.9
+  },
+  {
+   "t": 1792834609.6,
+   "job": "E15_gwaya_rft",
+   "util_pct": 69,
+   "mem_used_gib": 5.06,
+   "power_w": 66.1
+  },
+  {
+   "t": 1792834729.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 86,
+   "mem_used_gib": 5.06,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792834849.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 68,
+   "mem_used_gib": 5.06,
+   "power_w": 62.2
+  },
+  {
+   "t": 1792834969.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 57,
+   "mem_used_gib": 5.06,
+   "power_w": 61.6
+  },
+  {
+   "t": 1792835089.7,
+   "job": "E15_gwaya_rft",
+   "util_pct": 64,
+   "mem_used_gib": 5.06,
+   "power_w": 63.7
+  },
+  {
+   "t": 1792835209.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 100,
+   "mem_used_gib": 4.77,
+   "power_w": 64.5
+  },
+  {
+   "t": 1792835329.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 99,
+   "mem_used_gib": 4.77,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792835449.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 91,
+   "mem_used_gib": 4.77,
+   "power_w": 65.1
+  },
+  {
+   "t": 1792835569.8,
+   "job": "E15_gwaya_rft",
+   "util_pct": 59,
+   "mem_used_gib": 4.22,
+   "power_w": 66.5
+  },
+  {
+   "t": 1792835689.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 47,
+   "mem_used_gib": 4.22,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792835809.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 81,
+   "mem_used_gib": 4.7,
+   "power_w": 64.9
+  },
+  {
+   "t": 1792835929.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 67,
+   "mem_used_gib": 4.7,
+   "power_w": 65.2
+  },
+  {
+   "t": 1792836049.9,
+   "job": "E15_gwaya_rft",
+   "util_pct": 62,
+   "mem_used_gib": 4.7,
+   "power_w": 65.7
+  },
+  {
+   "t": 1792836170.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 87,
+   "mem_used_gib": 4.7,
+   "power_w": 69.0
+  },
+  {
+   "t": 1792836290.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 97,
+   "mem_used_gib": 4.99,
+   "power_w": 63.9
+  },
+  {
+   "t": 1792836410.0,
+   "job": "E15_gwaya_rft",
+   "util_pct": 0,
+   "mem_used_gib": 4.99,
+   "power_w": 31.0
+  },
+  {
+   "t": 1792836530.0,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 0,
+   "mem_used_gib": 0.54,
+   "power_w": 31.8
+  },
+  {
+   "t": 1792836650.1,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 0,
+   "mem_used_gib": 0.54,
+   "power_w": 31.1
+  },
+  {
+   "t": 1792836770.1,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 5.79,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792836890.1,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 83,
+   "mem_used_gib": 2.04,
+   "power_w": 36.8
+  },
+  {
+   "t": 1792837010.1,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 52,
+   "mem_used_gib": 2.04,
+   "power_w": 78.0
+  },
+  {
+   "t": 1792837130.1,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 91,
+   "mem_used_gib": 2.04,
+   "power_w": 67.7
+  },
+  {
+   "t": 1792837250.2,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 92,
+   "mem_used_gib": 2.04,
+   "power_w": 60.2
+  },
+  {
+   "t": 1792837370.2,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 96,
+   "mem_used_gib": 3.08,
+   "power_w": 66.9
+  },
+  {
+   "t": 1792837490.2,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 94,
+   "mem_used_gib": 3.08,
+   "power_w": 68.1
+  },
+  {
+   "t": 1792837610.2,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 96,
+   "mem_used_gib": 3.08,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792837730.3,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 96,
+   "mem_used_gib": 3.08,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792837850.3,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 92,
+   "mem_used_gib": 3.08,
+   "power_w": 65.6
+  },
+  {
+   "t": 1792837970.3,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 96,
+   "mem_used_gib": 3.08,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792838090.4,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 5.77,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792838210.4,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 5.78,
+   "power_w": 35.8
+  },
+  {
+   "t": 1792838330.4,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 5.78,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792838450.4,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 5.78,
+   "power_w": 69.0
+  },
+  {
+   "t": 1792838570.5,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 5.78,
+   "power_w": 66.9
+  },
+  {
+   "t": 1792838690.5,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 48,
+   "mem_used_gib": 5.78,
+   "power_w": 69.4
+  },
+  {
+   "t": 1792838810.5,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 94,
+   "mem_used_gib": 5.78,
+   "power_w": 39.8
+  },
+  {
+   "t": 1792838930.5,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 5.78,
+   "power_w": 65.4
+  },
+  {
+   "t": 1792839050.6,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 5.78,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792839170.6,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 5.78,
+   "power_w": 66.5
+  },
+  {
+   "t": 1792839290.6,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 5.78,
+   "power_w": 68.0
+  },
+  {
+   "t": 1792839410.6,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 0,
+   "mem_used_gib": 5.78,
+   "power_w": 30.8
+  },
+  {
+   "t": 1792839530.6,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 95,
+   "mem_used_gib": 5.78,
+   "power_w": 66.7
+  },
+  {
+   "t": 1792839650.7,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 5.78,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792839770.7,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 5.78,
+   "power_w": 65.5
+  },
+  {
+   "t": 1792839890.7,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 97,
+   "mem_used_gib": 6.66,
+   "power_w": 66.7
+  },
+  {
+   "t": 1792840010.7,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 66,
+   "mem_used_gib": 6.66,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792840130.8,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 6.66,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792840250.8,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 99,
+   "mem_used_gib": 6.66,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792840370.8,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 6.66,
+   "power_w": 35.1
+  },
+  {
+   "t": 1792840490.8,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 6.66,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792840610.9,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 98,
+   "mem_used_gib": 6.66,
+   "power_w": 68.5
+  },
+  {
+   "t": 1792840730.9,
+   "job": "E16_gwaya_lite_t4",
+   "util_pct": 99,
+   "mem_used_gib": 6.66,
+   "power_w": 65.6
+  },
+  {
+   "t": 1792840850.9,
+   "job": "E14_granite1b",
+   "util_pct": 0,
+   "mem_used_gib": 0.44,
+   "power_w": 11.2
+  },
+  {
+   "t": 1792840970.9,
+   "job": "E14_granite1b",
+   "util_pct": 52,
+   "mem_used_gib": 6.36,
+   "power_w": 66.1
+  },
+  {
+   "t": 1792841090.9,
+   "job": "E14_granite1b",
+   "util_pct": 52,
+   "mem_used_gib": 6.36,
+   "power_w": 69.2
+  },
+  {
+   "t": 1792841211.0,
+   "job": "E14_granite1b",
+   "util_pct": 59,
+   "mem_used_gib": 6.39,
+   "power_w": 61.5
+  },
+  {
+   "t": 1792841331.0,
+   "job": "E14_granite1b",
+   "util_pct": 57,
+   "mem_used_gib": 6.39,
+   "power_w": 71.2
+  },
+  {
+   "t": 1792841451.0,
+   "job": "E14_granite1b",
+   "util_pct": 0,
+   "mem_used_gib": 0.75,
+   "power_w": 31.2
+  },
+  {
+   "t": 1792841571.0,
+   "job": "E14_granite1b",
+   "util_pct": 53,
+   "mem_used_gib": 6.63,
+   "power_w": 68.8
+  },
+  {
+   "t": 1792841691.1,
+   "job": "E14_granite1b",
+   "util_pct": 50,
+   "mem_used_gib": 6.63,
+   "power_w": 74.7
+  },
+  {
+   "t": 1792841811.1,
+   "job": "E14_granite1b",
+   "util_pct": 57,
+   "mem_used_gib": 6.63,
+   "power_w": 70.9
+  },
+  {
+   "t": 1792841931.1,
+   "job": "E14_granite1b",
+   "util_pct": 51,
+   "mem_used_gib": 6.63,
+   "power_w": 64.5
+  },
+  {
+   "t": 1792842051.1,
+   "job": "E14_granite1b",
+   "util_pct": 52,
+   "mem_used_gib": 6.63,
+   "power_w": 68.1
+  },
+  {
+   "t": 1792842171.1,
+   "job": "E14_granite1b",
+   "util_pct": 49,
+   "mem_used_gib": 6.63,
+   "power_w": 73.3
+  },
+  {
+   "t": 1792842291.2,
+   "job": "E14_granite1b",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 63.7
+  },
+  {
+   "t": 1792842411.2,
+   "job": "E14_granite1b",
+   "util_pct": 60,
+   "mem_used_gib": 6.38,
+   "power_w": 69.4
+  },
+  {
+   "t": 1792842531.2,
+   "job": "E14_granite1b",
+   "util_pct": 52,
+   "mem_used_gib": 6.39,
+   "power_w": 69.5
+  },
+  {
+   "t": 1792842651.2,
+   "job": "E14_granite1b",
+   "util_pct": 48,
+   "mem_used_gib": 6.39,
+   "power_w": 71.5
+  },
+  {
+   "t": 1792842771.3,
+   "job": "E14_granite1b",
+   "util_pct": 51,
+   "mem_used_gib": 6.63,
+   "power_w": 69.2
+  },
+  {
+   "t": 1792842891.3,
+   "job": "E14_granite1b",
+   "util_pct": 60,
+   "mem_used_gib": 6.63,
+   "power_w": 65.9
+  },
+  {
+   "t": 1792843011.3,
+   "job": "E14_granite1b",
+   "util_pct": 56,
+   "mem_used_gib": 6.5,
+   "power_w": 64.4
+  },
+  {
+   "t": 1792843131.3,
+   "job": "E14_granite1b",
+   "util_pct": 0,
+   "mem_used_gib": 6.63,
+   "power_w": 43.3
+  },
+  {
+   "t": 1792843251.4,
+   "job": "E14_granite1b",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 60.1
+  },
+  {
+   "t": 1792843371.4,
+   "job": "E14_granite1b",
+   "util_pct": 46,
+   "mem_used_gib": 6.63,
+   "power_w": 59.2
+  },
+  {
+   "t": 1792843491.4,
+   "job": "E14_granite1b",
+   "util_pct": 60,
+   "mem_used_gib": 6.63,
+   "power_w": 65.3
+  },
+  {
+   "t": 1792843611.4,
+   "job": "E14_granite1b",
+   "util_pct": 52,
+   "mem_used_gib": 6.63,
+   "power_w": 67.6
+  },
+  {
+   "t": 1792843731.4,
+   "job": "E14_granite1b",
+   "util_pct": 48,
+   "mem_used_gib": 6.39,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792843851.4,
+   "job": "E14_granite1b",
+   "util_pct": 50,
+   "mem_used_gib": 6.39,
+   "power_w": 69.3
+  },
+  {
+   "t": 1792843971.5,
+   "job": "E14_granite1b",
+   "util_pct": 51,
+   "mem_used_gib": 6.63,
+   "power_w": 66.9
+  },
+  {
+   "t": 1792844091.5,
+   "job": "E14_granite1b",
+   "util_pct": 47,
+   "mem_used_gib": 6.63,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792844211.5,
+   "job": "E14_granite1b",
+   "util_pct": 56,
+   "mem_used_gib": 6.63,
+   "power_w": 65.2
+  },
+  {
+   "t": 1792844331.5,
+   "job": "E14_granite1b",
+   "util_pct": 55,
+   "mem_used_gib": 6.63,
+   "power_w": 69.8
+  },
+  {
+   "t": 1792844451.6,
+   "job": "E14_granite1b",
+   "util_pct": 53,
+   "mem_used_gib": 6.63,
+   "power_w": 58.7
+  },
+  {
+   "t": 1792844571.6,
+   "job": "E14_granite1b",
+   "util_pct": 56,
+   "mem_used_gib": 6.63,
+   "power_w": 61.8
+  },
+  {
+   "t": 1792844691.6,
+   "job": "E14_granite1b",
+   "util_pct": 48,
+   "mem_used_gib": 6.63,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792844811.6,
+   "job": "E14_granite1b",
+   "util_pct": 55,
+   "mem_used_gib": 6.63,
+   "power_w": 70.7
+  }
+ ]
+}

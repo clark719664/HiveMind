@@ -1,0 +1,52 @@
+{
+  "experiment_id": "E15-gwaya-rft",
+  "registered_utc": "2026-10-24T13:00:00Z",
+  "registered_before_run": true,
+  "title": "GWAYA-gated rejection-sampling fine-tuning (RFT) of a low-cost coding assistant that trains and runs in under 8 GB of VRAM",
+  "requested_by": "the user, 2026-10-24: implement the training and leverage GWAYA as a low-cost, efficient coding assistant on a GPU of less than 8 GB VRAM",
+  "roadmap": "HM-S10-06 (coding curriculum for the campaign), the GWAYA entry of ROADMAP 3.8; new task HM-S10-11",
+  "what_gwaya_is_here": "GWAYA (xaviercallens/GWAYA-GwenLayaOpenModel, MIT) is a fail-closed verification layer: a candidate is accepted only if a zero-stub AST audit is clean AND an oracle (sandboxed execution of the task tests) passes, otherwise UNVERIFIED. It trains nothing. E15 adds the training around it: GWAYA decides which model-generated solutions become training data and which inference-time candidate is returned.",
+  "deviations_from_gwaya": [
+    "GWAYA own Bubblewrap oracle is not available on this host (bwrap not installed); the sandbox is a user/mount/net/pid-namespace launcher with tmpfs over the home directory, rlimits and an empty environment, tested with hostile probes; it is NOT equivalent to GWAYA own oracle and the gate is reported as GWAYA-style",
+    "only gwaya/ast_audit.py is used, vendored unmodified at a pinned commit (third_party/gwaya/PROVENANCE.md); the gwaya package, its MCP server and its repair prompts are not used; the repair loop here is our own and documented",
+    "Laya (the Convai decision model / the Laya-LoRA companion) is a gate classifier, not a code generator, and is not used"
+  ],
+  "model": {
+    "base": "Qwen/Qwen2.5-Coder-1.5B-Instruct (the model of GWAYA own README evaluation), fp16 weights, no quantisation library",
+    "lora": "hand-rolled, rank 16, alpha 32, PEFT-scale init, on q,k,v,o,gate,up,down of every layer; fp32 LoRA parameters and optimizer states, fp16 autocast, static loss scale 256",
+    "vram_cap": "torch.cuda.set_per_process_memory_fraction(7.5 GiB / total) at process start, so that every stage must run inside an 8 GB card budget even though the T4 has 15 GB; peak reserved per stage is recorded"
+  },
+  "data": {
+    "train": "MBPP full train + validation (task_ids 511-974, 464 problems), used only for rejection sampling and fine-tuning",
+    "eval": "MBPP sanitized test (257 problems; task_ids disjoint from train, asserted) and HumanEval (164; evaluation only, never trained on)",
+    "prompting": "chat prompt with the problem text and the VISIBLE test test_list[0]; the inference gate sees only test_list[0]; final pass@1 uses ALL tests; the RFT gate uses all tests of the train problem"
+  },
+  "procedure": {
+    "C0": "base, greedy",
+    "C1": "base + GWAYA inference loop: candidates [greedy, 2 samples T=0.7 top_p=0.95], first gate-passing (stub audit + visible test) wins, else up to 3 repair rounds with the gate feedback, else the first greedy candidate",
+    "RFT_generation": "8 samples per train problem (T=0.8, top_p=0.95), gate with all tests, keep at most 2 distinct (AST-normalised) accepted solutions per problem",
+    "training": "3 epochs, lr 2e-4 cosine, 10 warmup steps, micro-batch 4 x accumulation 4, max sequence 768, gradient checkpointing, loss on assistant tokens only",
+    "C2": "tuned, greedy",
+    "C3": "tuned + GWAYA inference loop (MBPP only)",
+    "HumanEval": "C0 and C2 greedy only"
+  },
+  "hypotheses": {
+    "H15a": "RFT improves greedy pass@1 on MBPP-sanitized: C2 - C0 >= +3.0 points with exact two-sided McNemar p < 0.05 -> supported; C2 - C0 < 0 with p < 0.05 -> refuted (fine-tuning hurts); otherwise inconclusive",
+    "H15b": "the GWAYA inference loop improves the base: C1 - C0 >= +5.0 points with McNemar p < 0.05 -> supported; C1 - C0 <= 0 -> refuted; otherwise inconclusive (GWAYA own README reports +4.7 to +7.8 points for the same model family and fails its own +8.0 gate; +5.0 is chosen before any run)",
+    "H15c": "stacking (descriptive): C3 - C1 and C3 - C0 with McNemar p, no status",
+    "H15d": "resource: training and every inference stage run to completion with the 7.5 GiB cap enforced (peak reserved <= 8.0 GiB) -> supported; an out-of-memory under the cap -> refuted",
+    "H15e_generalisation_descriptive": "HumanEval C2 - C0 with McNemar p (does RFT on MBPP transfer or hurt out of distribution), no status"
+  },
+  "controls": {
+    "gate_accepts_references": ">= 95% of the MBPP reference solutions (code field) of 100 train problems and >= 98% of HumanEval canonical solutions are ACCEPTED by the gate",
+    "stubs_rejected": "100% of planted stub bodies are rejected",
+    "containment": "the hostile-candidate probes of tests/test_e15_gate.py (secret file read, network, memory bomb, infinite loop, fork bomb, disk fill, host process inspection, tampering with the vendored auditor) are all contained; gate_available() true",
+    "no_leakage": "no eval task_id or normalised prompt in the training set",
+    "run_is_valid_iff": "all controls pass; otherwise H15a-H15e are reported as invalid"
+  },
+  "fail_fast": "exit 3 if fewer than 150 of the 464 train problems yield >= 1 accepted sample (the rejection-sampled set would be too small to learn from); exit 3 if the projected total time exceeds --max-hours (default 3.0)",
+  "cost_accounting": "generated tokens, GPU seconds, accepted solutions per GPU-minute, peak reserved GiB and an NVML power x time energy estimate (Wh) per stage; descriptive",
+  "decision_consequences": "H15a and H15b supported: the pipeline (GWAYA gate + RFT + LoRA under 8 GB) is a documented low-cost recipe for the community GPU program and a candidate base for the coding curriculum of HM-S10-06; H15a not supported but H15b supported: the inference-time gate alone is the efficient path and training needs more verified data; neither supported: the recipe does not beat the base at this size and the result is reported as such",
+  "scope": "one 1.5B model, one fine-tuning run (one seed, no interval over training seeds), MBPP-sanitized n=257 and HumanEval n=164, a sandbox that is not GWAYA own; pass@1 differences are paired by problem (McNemar) but do not include training-seed variance; no claim beyond Python function synthesis on these two benchmarks",
+  "non_monetary": "no PTS or $HIVE reward is attached to any part of this experiment"
+}
