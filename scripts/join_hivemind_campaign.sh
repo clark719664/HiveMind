@@ -47,11 +47,15 @@ PYTHONPATH="$ROOT_DIR/src" "$PYTHON_BIN" "$ROOT_DIR/scripts/run_multi_moe_hf_cam
     --tier standard | tee "$ROOT_DIR/artifacts/latest_user_campaign_summary.md"
 
 echo ""
-echo "[Step 2/3] Running the Season 9 & Season 10 GPU + HiveMind Swarm Campaigns (CAMP-S9/S10 1..4)..."
+echo "[Step 2/4] Running the Season 9 & Season 10 GPU + HiveMind Swarm Campaigns (CAMP-S9/S10 1..4)..."
 PYTHONPATH="$ROOT_DIR/src" "$PYTHON_BIN" "$ROOT_DIR/scripts/run_season9_10_gpu_swarm_campaigns.py" \
     --contributor-handle "$HANDLE" | tee -a "$ROOT_DIR/artifacts/latest_user_campaign_summary.md"
 
 echo ""
-echo "[Step 3/3] SUCCESS! Copy the Markdown receipts above (or from artifacts/latest_user_campaign_summary.md)"
-echo "and paste them into the Community Campaign Hub:"
+echo "[Step 3/4] Running the 8-Domain Dataset Mining Campaign, populating La Ruche MoE Vault & building HiveMind@home GCP Dashboard..."
+PYTHONPATH="$ROOT_DIR/src" "$PYTHON_BIN" "$ROOT_DIR/scripts/run_hivemind_at_home_and_ruche_campaign.py" | tee -a "$ROOT_DIR/artifacts/latest_user_campaign_summary.md"
+
+echo ""
+echo "[Step 4/4] SUCCESS! Open artifacts/hivemind_at_home_dashboard.html in your browser,"
+echo "load the Community MoE model from artifacts/la_ruche_vault/, and paste your receipt into:"
 echo "  👉 https://github.com/xaviercallens/HiveMind/discussions/86"
