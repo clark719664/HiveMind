@@ -15,12 +15,18 @@ import torch
 @pytest.fixture
 def interpreter_fabric(monkeypatch):
     """Decorate an isolated module's kernels without reloading the original."""
+    import os
+
+    if os.environ.get("TRITON_INTERPRET") != "1":
+        pytest.skip(
+            "CPU interpreter tests require TRITON_INTERPRET=1 before starting "
+            "coverage/pytest so Triton language helpers are interpreted at import time"
+        )
     pytest.importorskip("triton", reason="optional Triton CPU interpreter")
     from triton.runtime.interpreter import InterpretedFunction
 
     from hivemind.swarm import swarm_fabric as original
 
-    monkeypatch.setenv("TRITON_INTERPRET", "1")
     name = "hivemind.swarm._fabric_interpreter_test"
     spec = importlib.util.spec_from_file_location(name, original.__file__)
     assert spec is not None and spec.loader is not None

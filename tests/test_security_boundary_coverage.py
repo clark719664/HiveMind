@@ -77,7 +77,7 @@ def test_source_without_patch_counts_reported_additions():
         "Add implementation",
         "A small computation implementation",
         "contributor",
-        [{"filename": "src/worker.rs", "additions": 3}],
+        [{"filename": "src/hivemind/worker.rs", "additions": 3}],
     )
     assert result.functional_lines_added == 3
     assert result.scanned_files_count == 1

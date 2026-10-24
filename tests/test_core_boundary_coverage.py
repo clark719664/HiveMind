@@ -18,13 +18,12 @@ from torch import nn
 
 import hivemind.config as config
 from hivemind.compress import lattice_quantizer as lattice
-from hivemind.core import btm_moe, btm_upcycle, diloco_inner
+from hivemind.core import btm_moe, btm_upcycle, diloco_inner, quantization
 from hivemind.core.diloco_outer import DiLoCoOuterOptimizer
 from hivemind.core.fomoe_sigma_routing import (
     sigmoid_independent_topk_routing,
     skip_token_flops_per_token,
 )
-from hivemind.core.quantization import build_local_qwen2_backbone
 from hivemind.data import token_training_eval as token_eval
 from hivemind.security.gpu_execution_circuit_breaker import GPUExecutionCircuitBreaker
 
@@ -35,7 +34,9 @@ _TOKEN_KEYS = ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HUGGINGFACE_HUB_TOKEN", "H
 @pytest.fixture
 def isolated_token_environment(monkeypatch):
     for key in _TOKEN_KEYS:
-        monkeypatch.delenv(key, raising=False)
+        # Record absent keys too, so direct resolver writes are removed at teardown.
+        monkeypatch.setenv(key, "")
+        monkeypatch.delenv(key)
     # Replace only config's os reference; changing global os.name breaks pathlib on Linux.
     monkeypatch.setattr(config, "os", SimpleNamespace(name="nt", environ=os.environ))
 
@@ -304,22 +305,31 @@ def test_upcycle_rejects_non_numeric_reputation_before_touching_model(invalid):
 
 
 @pytest.mark.parametrize("mode", ["tsv", "iso_cts"])
-def test_upcycle_without_attention_adapters_preserves_base_projections(mode):
-    base, _, _ = build_local_qwen2_backbone(
-        seed=17, vocab_size=32, hidden_size=8, intermediate_size=16, num_hidden_layers=1,
-        num_attention_heads=2, num_key_value_heads=1, max_position_embeddings=16,
-        device=torch.device("cpu"), use_4bit_nf4_if_cuda=False,
-    )
-    layer = base.model.layers[0]
-    saved = {name: getattr(layer.self_attn, name).weight.detach().clone()
-             for name in ("q_proj", "k_proj", "v_proj", "o_proj")}
-    inputs = torch.tensor([[[0.1] * 8, [0.2] * 8]])
-    with torch.no_grad():
-        expected_ffn = layer.mlp(inputs).clone()
-    model, report = btm_upcycle.upcycle_branches_to_sparse_moe(
-        base, {"A": {}, "B": {}}, lora_rank_r=2, lora_alpha=4, top_k=2,
-        target_device=torch.device("cpu"), in_place=True, attention_merge_mode=mode,
-    )
+@pytest.mark.parametrize("model_kind", ["bare", "wrapped"])
+def test_upcycle_without_attention_adapters_preserves_base_projections(mode, model_kind, monkeypatch):
+    monkeypatch.setattr(quantization, "configure_deterministic_runtime", lambda *args, **kwargs: None)
+    with torch.random.fork_rng(devices=[]):
+        # Seed only the CPU generator; torch.manual_seed also affects CUDA generators.
+        torch.default_generator.manual_seed(17)
+        base, _, _ = quantization.build_local_qwen2_backbone(
+            seed=17, vocab_size=32, hidden_size=8, intermediate_size=16, num_hidden_layers=1,
+            num_attention_heads=2, num_key_value_heads=1, max_position_embeddings=16,
+            device=torch.device("cpu"), use_4bit_nf4_if_cuda=False,
+        )
+        layer = base.model.layers[0]
+        saved = {name: getattr(layer.self_attn, name).weight.detach().clone()
+                 for name in ("q_proj", "k_proj", "v_proj", "o_proj")}
+        inputs = torch.tensor([[[0.1] * 8, [0.2] * 8]])
+        with torch.no_grad():
+            expected_ffn = layer.mlp(inputs).clone()
+        source_model = base
+        if model_kind == "wrapped":
+            source_model = nn.Module()
+            source_model.base_model = base
+        model, report = btm_upcycle.upcycle_branches_to_sparse_moe(
+            source_model, {"A": {}, "B": {}}, lora_rank_r=2, lora_alpha=4, top_k=2,
+            target_device=torch.device("cpu"), in_place=True, attention_merge_mode=mode,
+        )
     for name, weight in saved.items():
         torch.testing.assert_close(getattr(model.backbone.model.layers[0].self_attn, name).weight, weight)
     block, = model.get_moe_blocks()
@@ -341,6 +351,8 @@ class _QuadraticAdapter(nn.Module):
 
 
 def test_inner_loop_thermal_sleep_and_preemption_capture_uncheckpointed_state(monkeypatch):
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(diloco_inner, "configure_deterministic_runtime", lambda *args, **kwargs: None)
     model = _QuadraticAdapter()
     breaker = GPUExecutionCircuitBreaker(
         simulated_telemetry={"temperature_c": 80.0, "power_draw_watts": 35.0,
@@ -351,12 +363,13 @@ def test_inner_loop_thermal_sleep_and_preemption_capture_uncheckpointed_state(mo
         sleep=sleep, perf_counter=diloco_inner.time.perf_counter,
     ))
     preempt = Mock(side_effect=[False, True])
-    result = diloco_inner.run_diloco_inner_loop(
-        model=model, token_sequences=torch.tensor([[1, 2, 3, 4]]), worker_id="boundary-worker",
-        branch_name="Code", inner_steps_H=3, checkpoint_interval_s=2, lr=0.01,
-        weight_decay=0.0, should_preempt_fn=preempt, circuit_breaker=breaker,
-        enable_thermal_sleep=True,
-    )
+    with torch.random.fork_rng(devices=[]):
+        result = diloco_inner.run_diloco_inner_loop(
+            model=model, token_sequences=torch.tensor([[1, 2, 3, 4]]), worker_id="boundary-worker",
+            branch_name="Code", inner_steps_H=3, checkpoint_interval_s=2, lr=0.01,
+            weight_decay=0.0, should_preempt_fn=preempt, circuit_breaker=breaker,
+            enable_thermal_sleep=True,
+        )
     assert result.steps_completed == 1
     assert result.preempted_by_daemon is True
     assert result.thermal_throttled_steps == 2
