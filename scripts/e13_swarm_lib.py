@@ -7,6 +7,9 @@ E8/Z lattice codewords + zlib), the HTTP coordinator, and the worker process loo
 
 This is E8's "localhost negative control". It cannot support any WAN / volunteer claim.
 
+Error-feedback caveat: a worker updates its EF carry as if its delta WAS applied; when the coordinator discards the delta (late, outside the grace window, stale
+incarnation) the carry is therefore not exact. This is the E8-pilot behaviour and is intentionally unchanged.
+
 ``hivemind.swarm`` cannot be imported here (its ``__init__`` needs the optional aioquic), so ``decoupled_diloco.py``
 (which only needs torch) is loaded BY FILE PATH; its functions (select_quorum, AdaptiveGraceWindowController,
 direct_weighted_average, radial_directional_average, token_weighted_quality_weight) are used unchanged.
@@ -14,6 +17,7 @@ direct_weighted_average, radial_directional_average, token_weighted_quality_weig
 
 from __future__ import annotations
 
+import atexit
 import glob
 import hashlib
 import importlib.util
@@ -43,6 +47,7 @@ PROJECT_ROOT = HERE.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 sys.path.insert(0, str(HERE))
 
+from e13_watchdog import start_parent_watchdog  # noqa: E402,F401  (re-exported; torch-free module)
 import run_experiment_E10b_lattice_05b as e10b  # noqa: E402  (lora_params / get_flat / set_flat / TorchLatticeCodec / clean; importing is side-effect free)
 
 HUB = Path(os.path.expanduser("~/.cache/huggingface/hub"))
@@ -63,6 +68,72 @@ CLOSE_POLL_S = 0.01
 E8_CODEWORD_SCALE = 2.0  # E8/Z codewords are multiples of 1/2: sent as int8(2 c)
 ROUTING_TOP_FRACTION = 0.25
 SMOKE_VOCAB = 256
+FAILFAST_ROUND = 3  # the round-3 evaluation (learning gate); the registered evaluation versions are 0, FAILFAST_ROUND and R
+STARTUP_TIMEOUT_S = 900.0  # hello / registration phase deadline (min with the cell timeout)
+STALL_FLOOR_S, STALL_FACTOR, STALL_FIRST_S, HEARTBEAT_S = 600.0, 20.0, 1800.0, 60.0  # per-round stall watchdog
+INT8_MAX = 127
+
+
+def eval_versions(rounds: int) -> Tuple[int, ...]:
+    """Versions of the global LoRA that are evaluated on the held-out mixture: 0, FAILFAST_ROUND (the learning gate) and R (smoke runs with R < 3: 0 and R)."""
+    return tuple(sorted({0, min(FAILFAST_ROUND, rounds), rounds}))
+
+
+def configure_determinism() -> None:
+    """Identical numerics for S0 and every worker / host: deterministic cuBLAS workspace, math SDPA only (no flash / mem-efficient kernels, whose reductions are
+    shape- and batch-dependent), deterministic algorithms (warn only). Must run before any CUDA use."""
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    torch.backends.cuda.enable_flash_sdp(False)
+    torch.backends.cuda.enable_mem_efficient_sdp(False)
+    torch.backends.cuda.enable_math_sdp(True)
+    torch.use_deterministic_algorithms(True, warn_only=True)
+
+
+# ---------------------------------------------------------------- spawned worker registry (orphan protection on the coordinator side)
+_SPAWNED: List[subprocess.Popen] = []
+_SPAWNED_LOCK = threading.Lock()
+
+
+def kill_spawned() -> int:
+    """SIGKILL (by pid, one Popen at a time) and reap every worker still running. Registered with atexit by the experiment script; returns how many were killed."""
+    with _SPAWNED_LOCK:
+        procs = list(_SPAWNED)
+        _SPAWNED.clear()
+    n = 0
+    for p in procs:
+        try:
+            if p.poll() is None:
+                p.kill()
+                n += 1
+            p.wait(timeout=30)
+        except Exception:  # noqa: BLE001 (best effort at interpreter exit)
+            pass
+    return n
+
+
+class StallWatchdog:
+    """Progress watchdog of one wait loop. ``poll(token, latencies, state)``: raises TimeoutError when ``token`` has not changed for
+    max(STALL_FLOOR_S, STALL_FACTOR x median(latencies)) seconds (STALL_FIRST_S while no round has completed); prints a heartbeat every HEARTBEAT_S."""
+
+    def __init__(self, label: str, clock: Callable[[], float] = time.monotonic, printer: Callable[[str], None] = lambda m: print(m, flush=True),
+                 floor_s: float = STALL_FLOOR_S, factor: float = STALL_FACTOR, first_s: float = STALL_FIRST_S, heartbeat_s: float = HEARTBEAT_S) -> None:
+        self.label, self.clock, self.printer = label, clock, printer
+        self.floor_s, self.factor, self.first_s, self.heartbeat_s = floor_s, factor, first_s, heartbeat_s
+        self.t0 = self.last_change = self.last_beat = clock()
+        self.token: Any = object()
+
+    def limit_s(self, latencies: Sequence[float]) -> float:
+        return self.first_s if not latencies else max(self.floor_s, self.factor * statistics.median(latencies))
+
+    def poll(self, token: Any, latencies: Sequence[float], state: Callable[[], str]) -> None:
+        now = self.clock()
+        if token != self.token:
+            self.token, self.last_change = token, now
+        if now - self.last_beat >= self.heartbeat_s:
+            self.last_beat = now
+            self.printer(f"[E13 hb] {self.label} t={now - self.t0:.0f}s {state()}")
+        if now - self.last_change > self.limit_s(latencies):
+            raise TimeoutError(f"{self.label}: no progress for {now - self.last_change:.0f}s (limit {self.limit_s(latencies):.0f}s); {state()}")
 
 
 # ---------------------------------------------------------------- misc
@@ -122,7 +193,7 @@ def _snapshot(repo: str) -> str:
     return hits[0]
 
 
-def load_tiny(device: str) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
+def load_tiny(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
     """Random-init tiny Qwen2 (fp32, CPU) for smoke / tests; no tokenizer (synthetic tokens)."""
     from transformers import Qwen2Config, Qwen2ForCausalLM
 
@@ -132,7 +203,7 @@ def load_tiny(device: str) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
     return Qwen2ForCausalLM(cfg).to(device).eval(), None, LORA_TARGETS
 
 
-def load_qwen05(device: str) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
+def load_qwen05(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
     """Qwen2.5-0.5B-Instruct from the HF cache: fp16 base on CUDA (fp32 on CPU)."""
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -142,28 +213,49 @@ def load_qwen05(device: str) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
     return model, AutoTokenizer.from_pretrained(path), LORA_TARGETS
 
 
-def _load_hf_lm(key: str) -> Callable[[str], Tuple[nn.Module, Any, Tuple[str, ...]]]:
+LOAD_INFO: Dict[str, Any] = {}  # what the last HF loader actually did (experts implementation requested / used), recorded in the S0 record
+
+
+def resolve_experts_impl(model_key: str, override: Optional[str]) -> Optional[str]:
+    """None / unset override -> MODEL_META's 'experts_implementation' (granite: 'eager'); 'default' -> do not pass the kwarg (HF default); else the override."""
+    if override in (None, ""):
+        return MODEL_META[model_key].get("experts_implementation")
+    return None if override == "default" else override
+
+
+def _load_hf_lm(key: str) -> Callable[..., Tuple[nn.Module, Any, Tuple[str, ...]]]:
     """Loader of an HF causal LM from the cache: fp16 base on CUDA (fp32 on CPU); q_proj / v_proj are plain bias-free nn.Linear (Granite MoE: attention-only LoRA;
     the fused 3-D experts and the router are frozen but used in every forward)."""
 
-    def loader(device: str) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
+    def loader(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
         path = _snapshot(MODEL_META[key]["repo"])
         dtype = torch.float16 if device.startswith("cuda") else torch.float32
-        model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype).to(device).eval()
+        LOAD_INFO.clear()
+        LOAD_INFO.update({"experts_impl_requested": experts_impl, "experts_impl_used": None})
+        model = None
+        if experts_impl:  # eager: the default grouped_mm falls back on sm75 to a Python loop with host syncs and computes weight grads for the frozen experts
+            try:
+                model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype, experts_implementation=experts_impl)
+                LOAD_INFO["experts_impl_used"] = experts_impl
+            except (TypeError, ValueError) as exc:  # this model class does not take the kwarg: retry without and say so
+                LOAD_INFO["experts_impl_error"] = f"{type(exc).__name__}: {exc}"
+        if model is None:
+            model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype)
+        model = model.to(device).eval()
         return model, AutoTokenizer.from_pretrained(path), LORA_TARGETS
 
     loader.__name__ = f"load_{key.replace('.', '_')}"
     return loader
 
 
-def _not_included(device: str) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
+def _not_included(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
     raise NotImplementedError("not included: dense-upcycled experts are identical at init")
 
 
 # key -> loader(device) -> (model, tokenizer, lora_target_module_names). Adding a model = one loader + one MODEL_META row.
-LOADERS: Dict[str, Callable[[str], Tuple[nn.Module, Any, Tuple[str, ...]]]] = {
+LOADERS: Dict[str, Callable[..., Tuple[nn.Module, Any, Tuple[str, ...]]]] = {
     "tiny": load_tiny,
     "qwen0.5b": load_qwen05,
     "granite1b": _load_hf_lm("granite1b"),
@@ -175,8 +267,8 @@ LOADERS: Dict[str, Callable[[str], Tuple[nn.Module, Any, Tuple[str, ...]]]] = {
 MODEL_META: Dict[str, Dict[str, Any]] = {
     "tiny": {"repo": None, "amp": False, "sec_per_step": None, "workers": 2, "hosting": "process", "grad_ckpt": False},
     "qwen0.5b": {"repo": "Qwen/Qwen2.5-0.5B-Instruct", "amp": True, "sec_per_step": 0.45, "workers": 4, "hosting": "process", "grad_ckpt": False},  # ~2-3 GB per process
-    "granite1b": {"repo": "ibm-granite/granite-3.1-1b-a400m-base", "amp": True, "sec_per_step": None, "workers": 3, "hosting": "process", "grad_ckpt": True},  # ~3.8 GB/proc with ckpt
-    "granite3b": {"repo": "ibm-granite/granite-3.1-3b-a800m-base", "amp": True, "sec_per_step": None, "workers": 4, "hosting": "thread", "grad_ckpt": False},  # ~11 GB: ONE process
+    "granite1b": {"repo": "ibm-granite/granite-3.1-1b-a400m-base", "amp": True, "sec_per_step": None, "workers": 3, "hosting": "process", "grad_ckpt": True, "experts_implementation": "eager"},  # ~3.8 GB/proc with ckpt
+    "granite3b": {"repo": "ibm-granite/granite-3.1-3b-a800m-base", "amp": True, "sec_per_step": None, "workers": 4, "hosting": "thread", "grad_ckpt": False, "experts_implementation": "eager"},  # ~11 GB: ONE process
     "qwen0.5b-moe": {"repo": None, "amp": True, "sec_per_step": None, "workers": 4, "hosting": "process", "grad_ckpt": False},
 }
 
@@ -230,12 +322,12 @@ def reset_lora_all(model: nn.Module, init_seed: int) -> None:
             mod.lora_B.zero_()
 
 
-def build_model(model_key: str, device: str, seed: int, grad_ckpt: bool = False) -> Tuple[nn.Module, Any, List[nn.Parameter]]:
+def build_model(model_key: str, device: str, seed: int, grad_ckpt: bool = False, experts_impl: Optional[str] = None) -> Tuple[nn.Module, Any, List[nn.Parameter]]:
     """Load, wrap with LoRA, PEFT-init from ``seed``. Returns (model, tokenizer, lora params in a fixed order).
 
     Everything runs with dropout off (``model.eval()``; Granite has attention_dropout 0.1). Gradient checkpointing in HF is only active in train mode, so with
     ``grad_ckpt`` the model is put in train mode AFTER setting every ``attention_dropout`` to 0 (numerically the same forward as eval mode, less activation memory)."""
-    model, tok, targets = LOADERS[model_key](device)
+    model, tok, targets = LOADERS[model_key](device, experts_impl)
     attach_lora(model, targets)
     reset_lora_all(model, seed)
     if grad_ckpt:
@@ -252,7 +344,18 @@ def build_model(model_key: str, device: str, seed: int, grad_ckpt: bool = False)
 
 
 # ---------------------------------------------------------------- data: non-IID domain shards
+def stride_indices(n_available: int, n_pick: int) -> List[int]:
+    """``n_pick`` sequence indices spread evenly over ``n_available`` consecutive sequences: floor(i * n_available / n_pick). Deterministic, strictly increasing,
+    first = 0, last = n_available - ceil(n_available / n_pick)."""
+    if n_available < n_pick:
+        raise ValueError("fewer sequences available than requested")
+    return [(i * n_available) // n_pick for i in range(n_pick)]
+
+
 def _split_ids(ids: Sequence[int], seq_len: int, eval_seqs: int) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, Any]]:
+    """train = first TRAIN_FRAC of the token stream (cut into non-overlapping sequences); held-out region = last HELDOUT_FRAC, cut into non-overlapping sequences
+    of which ``eval_seqs`` are taken at an EVEN STRIDE over the whole region (``stride_indices``), not the first contiguous ones, so the evaluation sample is not
+    one local stretch of a (sorted / clustered) corpus. Identical for S0 and every swarm worker (they all read the same token file)."""
     n = len(ids)
     t = torch.as_tensor(np.asarray(ids, dtype=np.int64)).to(torch.int32)
     n_train, held_start = int(TRAIN_FRAC * n), int((1.0 - HELDOUT_FRAC) * n)
@@ -263,9 +366,12 @@ def _split_ids(ids: Sequence[int], seq_len: int, eval_seqs: int) -> Tuple[torch.
     if held.numel() < eval_seqs * seq_len:
         raise ValueError(f"held-out split has {held.numel()} tokens < {eval_seqs} x {seq_len}")
     train_seqs = train[: n_seq * seq_len].reshape(n_seq, seq_len)
-    eval_slice = held[: eval_seqs * seq_len].reshape(eval_seqs, seq_len)
+    n_held_seq = held.numel() // seq_len
+    eval_idx = stride_indices(n_held_seq, eval_seqs)
+    eval_slice = held[: n_held_seq * seq_len].reshape(n_held_seq, seq_len)[eval_idx]
     prov = {"tokens_total": n, "train_tokens": int(train.numel()), "train_sequences": n_seq, "heldout_tokens": int(held.numel()), "unused_middle_tokens": held_start - n_train,
-            "train_range": [0, n_train], "heldout_range": [held_start, n], "train_sha256": tensor_sha(train_seqs), "heldout_full_sha256": tensor_sha(held), "eval_slice_sha256": tensor_sha(eval_slice)}
+            "train_range": [0, n_train], "heldout_range": [held_start, n], "train_sha256": tensor_sha(train_seqs), "heldout_full_sha256": tensor_sha(held), "eval_slice_sha256": tensor_sha(eval_slice),
+            "eval_sampling": f"{eval_seqs} of {n_held_seq} held-out sequences at stride floor(i*{n_held_seq}/{eval_seqs})", "eval_sequence_indices": eval_idx}
     return train_seqs, eval_slice, prov
 
 
@@ -487,6 +593,7 @@ class WireCodec:
         self.spec = spec
         self.kind, self.rate, self.ef = parse_codec_spec(spec)
         self.codec = _CapturingCodec(self.kind, self.rate, self.ef) if self.kind else None
+        self.n_int16 = 0  # how many encoded deltas needed int16 codewords
 
     def encode(self, delta: torch.Tensor) -> Tuple[bytes, Dict[str, Any]]:
         n = int(delta.numel())
@@ -496,11 +603,17 @@ class WireCodec:
         q = self.codec.quantize(delta)
         c = self.codec.last_codewords
         cw = (c * E8_CODEWORD_SCALE).round()
-        if float(cw.abs().max()) > 127:
-            raise ValueError("codeword exceeds int8 range")
-        body = zlib.compress(cw.to(torch.int8).cpu().numpy().tobytes(), 6)
+        mx = float(cw.abs().max())
+        if mx > 32767:
+            raise ValueError(f"codeword {mx} exceeds the int16 range")
+        if mx > INT8_MAX:  # outlier-dominated delta: int16 codewords (tag in the metadata); the int8 path below is unchanged
+            cw_dtype, tdtype = "int16", torch.int16
+            self.n_int16 += 1
+        else:
+            cw_dtype, tdtype = "int8", torch.int8
+        body = zlib.compress(cw.to(tdtype).cpu().numpy().tobytes(), 6)
         npad = int(c.numel())
-        meta = {"codec": self.kind, "n": n, "scale": repr(float(self.codec.last_scale)), "rate": q.rate_bits_per_dim, "rel_mse": q.relative_mse, "raw_bytes": raw,
+        meta = {"codec": self.kind, "cw_dtype": cw_dtype, "n": n, "scale": repr(float(self.codec.last_scale)), "rate": q.rate_bits_per_dim, "rel_mse": q.relative_mse, "raw_bytes": raw,
                 "ideal_bytes": q.rate_bits_per_dim * npad / 8.0}
         return body, meta
 
@@ -512,7 +625,8 @@ def decode_body(body: bytes, meta: Dict[str, Any]) -> torch.Tensor:
         if len(body) != 4 * n:
             raise ValueError("raw body has the wrong length")
         return torch.frombuffer(bytearray(body), dtype=torch.float32).clone()
-    cw = torch.frombuffer(bytearray(zlib.decompress(body)), dtype=torch.int8).to(torch.float64) / E8_CODEWORD_SCALE
+    wire_dtype = torch.int16 if meta.get("cw_dtype", "int8") == "int16" else torch.int8
+    cw = torch.frombuffer(bytearray(zlib.decompress(body)), dtype=wire_dtype).to(torch.float64) / E8_CODEWORD_SCALE
     return (cw * float(meta["scale"])).reshape(-1)[:n].to(torch.float32)
 
 
@@ -523,28 +637,45 @@ def parse_straggle(spec: str, n_workers: int) -> Dict[Tuple[int, int], float]:
     if spec in ("", "off"):
         return out
     for part in spec.split(";"):
-        w, rs, f = part.split(":")
-        wi = int(w) % n_workers
-        for r in rs.split(","):
-            out[(wi, int(r))] = float(f)
+        try:
+            w, rs, f = part.split(":")
+            wi = _chaos_worker(int(w), n_workers, "straggle")
+            for r in rs.split(","):
+                out[(wi, int(r))] = float(f)
+        except ValueError as exc:
+            raise ValueError(f"bad straggle spec {spec!r} (part {part!r}): {exc}") from exc
     return out
+
+
+def _chaos_worker(w: int, n_workers: int, what: str) -> int:
+    """Resolve a (possibly negative) worker index; reject nonexistent workers and worker 0 (the registered chaos never targets worker 0)."""
+    if not -n_workers <= w < n_workers:
+        raise ValueError(f"{what}: worker {w} does not exist (M = {n_workers})")
+    wi = w % n_workers
+    if wi == 0:
+        raise ValueError(f"{what}: worker 0 must not be targeted")
+    return wi
 
 
 def parse_churn(spec: str, n_workers: int) -> Optional[Tuple[int, int, int]]:
     """'W:KILL:RESPAWN' -> (worker, kill_after_round, respawn_after_round): SIGKILL after round KILL closes, re-spawn once round RESPAWN closes (>= KILL)."""
     if spec in ("", "off"):
         return None
-    w, k, r = (int(x) for x in spec.split(":"))
+    try:
+        w, k, r = (int(x) for x in spec.split(":"))
+    except ValueError as exc:
+        raise ValueError(f"bad churn spec {spec!r}: {exc}") from exc
     if r < k:
         raise ValueError("respawn round must be >= kill round")
-    return w % n_workers, k, r
+    return _chaos_worker(w, n_workers, "churn"), k, r
 
 
 # ---------------------------------------------------------------- coordinator (holds no model)
 class Coordinator:
     """Round state machine + the HTTP-level handlers (so tests can drive it without sockets). All byte counts are len() of real HTTP bodies."""
 
-    def __init__(self, workers: int, rounds: int, inner: int, k: int, merge: str, grace: bool, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(self, workers: int, rounds: int, inner: int, k: int, merge: str, grace: bool, clock: Callable[[], float] = time.monotonic,
+                 eval_at: Optional[Sequence[int]] = None) -> None:
         if not 1 <= k <= workers:
             raise ValueError("need 1 <= K <= M")
         if merge not in ("direct", "rda"):
@@ -567,6 +698,8 @@ class Coordinator:
         self._window: Optional[float] = None
         self._tq: Optional[float] = None
         self.evals: Dict[int, Dict[str, Any]] = {}
+        self.eval_versions: Tuple[int, ...] = tuple(eval_at) if eval_at is not None else eval_versions(rounds)
+        self.eval_claims: Dict[int, Tuple[int, int]] = {}  # version -> (worker, incarnation) currently evaluating it
         self.rounds_log: List[Dict[str, Any]] = []
         self.late: List[Dict[str, Any]] = []
         self.posts: List[Dict[str, Any]] = []  # one row per POSTed delta (accepted or not): bytes, ideal, raw, rate
@@ -606,6 +739,20 @@ class Coordinator:
         with self.cv:
             return self.cv.wait_for(lambda: self.theta is not None and all(w in self.init_shas for w in range(self.workers)), timeout=timeout)
 
+    def missing_workers(self) -> List[int]:
+        with self.cv:
+            return [w for w in range(self.workers) if w not in self.init_shas]
+
+    def progress_token(self) -> Tuple[Any, ...]:
+        """Changes whenever the open round makes progress (a delta was accepted, a round closed, a peer died / came back)."""
+        with self.cv:
+            return (self.version, tuple(sorted(self.inbox)), tuple(sorted(self.alive)), self.done)
+
+    def state_summary(self) -> str:
+        with self.cv:
+            return (f"round {self.version + 1}/{self.rounds} admitted-so-far {sorted(self.inbox)} of effective K {max(1, min(self.k, len(self.alive)))}, alive {sorted(self.alive)}, "
+                    f"evals {sorted(self.evals)} of {list(self.eval_versions)}, late {len(self.late)}")
+
     def open_first(self) -> None:
         with self.cv:
             self.opened, self.open_t, self.version = True, self.clock(), 0
@@ -634,9 +781,27 @@ class Coordinator:
             self.bytes_eval += len(body)
             return body
 
-    def eval_todo(self) -> List[int]:
+    def eval_assignee(self, v: int) -> int:
+        """Worker that evaluates version ``v``: v mod M if alive, else the lowest-id alive worker (caller holds the lock)."""
+        w = v % self.workers
+        if w in self.alive:
+            return w
+        return min(self.alive) if self.alive else w
+
+    def eval_todo(self, worker: int, incarn: Optional[int] = None) -> List[int]:
+        """Versions ``worker`` must evaluate now (assigned to it, already published, not evaluated, not held by another live peer); they are claimed for it."""
         with self.cv:
-            return [v for v in range(self.version + 1) if v not in self.evals and v in self.history]
+            inc = self.incarn.get(worker, 0) if incarn is None else incarn
+            out: List[int] = []
+            for v in self.eval_versions:
+                if v in self.evals or v not in self.history or self.eval_assignee(v) != worker:
+                    continue
+                claim = self.eval_claims.get(v)
+                if claim is not None and claim != (worker, inc) and claim[0] in self.alive and self.incarn.get(claim[0]) == claim[1]:
+                    continue
+                self.eval_claims[v] = (worker, inc)
+                out.append(v)
+            return out
 
     def post_eval(self, version: int, payload: Dict[str, Any], nbytes: int) -> None:
         with self.cv:
@@ -646,7 +811,7 @@ class Coordinator:
 
     def wait_evals(self, timeout: float) -> bool:
         with self.cv:
-            return self.cv.wait_for(lambda: len(self.evals) >= self.rounds + 1, timeout=timeout)
+            return self.cv.wait_for(lambda: all(v in self.evals for v in self.eval_versions), timeout=timeout)
 
     def post_delta(self, worker: int, meta: Dict[str, Any], body: bytes) -> Dict[str, Any]:
         arrival = self.clock()
@@ -656,7 +821,7 @@ class Coordinator:
             self._add(self.bytes_up, (worker, r), len(body))
             cur = self.version + 1
             row = {"worker": worker, "round": r, "bytes": len(body), "raw_bytes": int(meta["raw_bytes"]), "ideal_bytes": float(meta["ideal_bytes"]), "rate": meta.get("rate"),
-                   "rel_mse": meta.get("rel_mse"), "arrived_in_round": cur}
+                   "rel_mse": meta.get("rel_mse"), "arrived_in_round": cur, "cw_dtype": meta.get("cw_dtype")}
             reason = None
             if not self.opened or self.done:
                 reason = "not open"
@@ -764,7 +929,7 @@ def make_server(coord: Coordinator) -> ThreadingHTTPServer:
                 elif path == "/alive":
                     self._json(coord.alive_map())
                 elif path == "/evaltodo":
-                    self._json(coord.eval_todo())
+                    self._json(coord.eval_todo(int(q["worker"]), int(q["incarn"]) if "incarn" in q else None))
                 else:
                     self._send(code=404)
             except (BrokenPipeError, ConnectionResetError):
@@ -828,7 +993,9 @@ class PeerEnv:
 
 
 def peer_loop(env: PeerEnv, wid: int, inc: int) -> str:
-    """One peer: GET global -> H inner AdamW steps on DOMAINS[wid] -> POST (optionally compressed) delta -> repeat. Peer 0 also evaluates the global held-out set.
+    """One peer: GET global -> H inner AdamW steps on DOMAINS[wid] -> POST (optionally compressed) delta -> repeat. Evaluation duty: after each POST and at the end the
+    peer asks ``/evaltodo`` and evaluates the held-out set at the versions the coordinator assigned to it (version v goes to worker v mod M if alive, else the lowest
+    alive id), so no single peer (in particular not the code-domain worker 0) carries all evaluations.
     Own LoRA flat vector (swapped in with set_flat inside ``local_train``), AdamW state, shard, codec/EF carry. Returns 'done' or 'stopped' (thread hosting churn)."""
     cfg, base, device, amp = env.cfg, env.base, env.device, env.amp
     shard = env.train[DOMAINS[wid]]
@@ -841,13 +1008,13 @@ def peer_loop(env: PeerEnv, wid: int, inc: int) -> str:
     held_m = {d: env.held[d] for d in DOMAINS[: cfg.workers]}
 
     def do_evals() -> None:
-        for v in json.loads(http_request(f"{base}/evaltodo")[1]):
+        for v in json.loads(http_request(f"{base}/evaltodo?worker={wid}&incarn={inc}")[1]):
             theta = torch.frombuffer(bytearray(http_request(f"{base}/theta?version={v}")[1]), dtype=torch.float32).clone()
             t = time.perf_counter()
             with env.lock:
                 per = eval_domains(env.model, env.params, theta, held_m, cfg.eval_batch, device, amp)
                 routing = routing_stats(env.model, env.params, theta, held_m, cfg.eval_batch, device, amp) if v == cfg.rounds else None
-            payload = {"version": v, "per_domain": per, "mixture": mixture(per), "eval_s": time.perf_counter() - t}
+            payload = {"version": v, "per_domain": per, "mixture": mixture(per), "eval_s": time.perf_counter() - t, "evaluator": wid}
             if routing is not None:
                 payload["routing"] = routing
             http_request(f"{base}/eval?version={v}", json.dumps(payload).encode(), {"Content-Type": "application/json"})
@@ -864,13 +1031,13 @@ def peer_loop(env: PeerEnv, wid: int, inc: int) -> str:
             return "stopped"  # churn: the coordinator declared this incarnation dead; its optimizer / EF state is discarded with the thread
         if headers.get("X-Wait") == "1":
             if headers.get("X-Done") == "1" and have >= 0:
+                do_evals()
                 env.done.set()
                 return "done"
             continue
         v, done = int(headers["X-Version"]), headers["X-Done"] == "1"
         if done:
-            if wid == 0:
-                do_evals()
+            do_evals()
             env.done.set()
             return "done"
         theta = torch.frombuffer(bytearray(body), dtype=torch.float32).clone()
@@ -884,17 +1051,18 @@ def peer_loop(env: PeerEnv, wid: int, inc: int) -> str:
         meta.update({"round": rnd, "compute_s": res["compute_s"], "tokens": res["tokens"], "steps": res["steps"], "skipped_steps": res["skipped_steps"], "incarnation": inc})
         http_request(f"{base}/delta?worker={wid}", payload, {"X-Meta": json.dumps(meta), "Content-Type": "application/octet-stream"})
         have = v
-        if wid == 0:
-            do_evals()
+        do_evals()
 
 
 def run_worker(cfg_path: str) -> int:
     """Process hosting: this process is ONE peer (``worker_id``). Thread hosting: this process is the host of all M peers (one frozen model, peers are threads
     talking to the coordinator over the same HTTP protocol)."""
+    configure_determinism()  # before any CUDA use, identical to S0
     wc = json.loads(Path(cfg_path).read_text(encoding="utf-8"))
+    start_parent_watchdog(1.0, wc.get("parent_pid"))  # coordinator died (SIGKILL / OOM): exit(3) instead of becoming an orphan that holds GPU memory
     if wc["device"] == "cpu":
         torch.set_num_threads(int(wc.get("threads", 2)))
-    model, _, params = build_model(wc["model"], wc["device"], int(wc["seed"]), bool(wc.get("grad_ckpt", False)))
+    model, _, params = build_model(wc["model"], wc["device"], int(wc["seed"]), bool(wc.get("grad_ckpt", False)), wc.get("experts_impl"))
     train, held = load_token_file(wc["tokens_file"])
     env = PeerEnv(wc, model, params, train, held)
     if not env.thread_mode:
@@ -930,8 +1098,13 @@ def run_worker(cfg_path: str) -> int:
 
 
 def spawn_worker(script: str, cfg_path: Path, log_path: Path, env: Dict[str, str]) -> subprocess.Popen:
-    log = open(log_path, "ab")
-    return subprocess.Popen([sys.executable, script, "--worker", "--worker-config", str(cfg_path)], stdout=log, stderr=subprocess.STDOUT, env=env)
+    """Start one worker / host process (own pid; not a new session or process group: the coordinator kills each worker by pid and ``kill_spawned`` is the atexit net)."""
+    with open(log_path, "ab") as log:  # the child inherits its own duplicate of the descriptor; the parent's handle is closed here
+        p = subprocess.Popen([sys.executable, script, "--worker", "--worker-config", str(cfg_path)], stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=False)
+    with _SPAWNED_LOCK:
+        _SPAWNED[:] = [q for q in _SPAWNED if q.poll() is None]
+        _SPAWNED.append(p)
+    return p
 
 
 def log_tail(path: Path, n: int = 15) -> str:
