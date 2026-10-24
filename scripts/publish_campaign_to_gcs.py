@@ -3,7 +3,7 @@
 Stage (default, local, private, no cloud calls): builds ``<stage-dir>/t4_campaign_2026-10-24/`` with
   reports/   top-level campaign reports, predictions, pre-registrations and amendments (artifacts/experiments/*.json of E10b..E16, queue logs)
   details/   the git-ignored stage files and per-problem journals of E15 / E16 (artifacts/experiments/E15, E16)
-  adapters/  the E15 LoRA adapter (E15_lora.pt) with its sha256 and a loading note (it did NOT improve greedy accuracy: H15a not supported)
+  adapters/  (only with --include-adapter) the E15 LoRA adapter with its sha256 and a loading note (it did NOT improve greedy accuracy: H15a not supported)
   site/      the static Swarm Lab site (docs/site)
   docs/      community guides (Swarm Lab, GWAYA coding assistant, GWAYA T4 deployment)
   benchmarks/ the 10-hour campaign report
@@ -89,7 +89,7 @@ def p1_results_md() -> str:
             + "\n\nFull per-problem data: `details/E16/`; the full report: `reports/E16_gwaya_lite_t4_report.json`.\n")
 
 
-def stage(stage_dir: Path) -> Path:
+def stage(stage_dir: Path, include_adapter: bool = False) -> Path:
     out = stage_dir / PKG
     if out.exists():
         shutil.rmtree(out)
@@ -101,7 +101,7 @@ def stage(stage_dir: Path) -> Path:
         for f in sorted((EXP / sub).rglob("*")) if (EXP / sub).is_dir() else []:
             copy(f, out / "details" / sub / f.relative_to(EXP / sub), skipped)
     lora = Path(SCRATCH_LORA)
-    if lora.is_file():
+    if include_adapter and lora.is_file():
         (out / "adapters").mkdir(parents=True, exist_ok=True)
         shutil.copy2(lora, out / "adapters" / lora.name)
         (out / "adapters" / "README.md").write_text(
@@ -161,12 +161,13 @@ def main() -> int:
     ap.add_argument("--stage", action="store_true")
     ap.add_argument("--stage-dir", default=DEFAULT_STAGE)
     ap.add_argument("--upload", default=None, help="gs://BUCKET/PREFIX")
+    ap.add_argument("--include-adapter", action="store_true", help="also stage the 74 MB E15 LoRA adapter (excluded by default: no accuracy gain, and public downloads cost egress)")
     ap.add_argument("--allow-public", action="store_true")
     ap.add_argument("--allow-existing", action="store_true")
     a = ap.parse_args()
     if not (a.stage or a.upload):
         ap.error("--stage and/or --upload")
-    out = stage(Path(a.stage_dir)) if a.stage else Path(a.stage_dir) / PKG
+    out = stage(Path(a.stage_dir), a.include_adapter) if a.stage else Path(a.stage_dir) / PKG
     if a.upload:
         if not out.is_dir():
             print("nothing staged; run with --stage first")
