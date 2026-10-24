@@ -2,30 +2,6 @@
  "campaign": "T4 follow-up (extension) after the 10-hour campaign: jobs cut by its deadline + Gemma on the E11b amendment-1 datasets",
  "jobs": [
   {
-   "name": "E13_qwen0.5b_m2proc_v2",
-   "argv": [
-    "scripts/run_experiment_E13_swarm_local.py",
-    "--model",
-    "qwen0.5b",
-    "--workers",
-    "2",
-    "--peer-hosting",
-    "process",
-    "--cells",
-    "S0,S1",
-    "--seeds",
-    "1",
-    "--learning-gate",
-    "0.0",
-    "--out",
-    "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_m2proc.json",
-    "--report",
-    "artifacts/experiments/E13_swarm_local_report_m2proc.json",
-    "--resume"
-   ],
-   "output": null
-  },
-  {
    "name": "E13_granite1b_v2",
    "argv": [
     "scripts/run_experiment_E13_swarm_local.py",
@@ -47,6 +23,24 @@
    "output": null
   },
   {
+   "name": "E14_qwen0.5b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--cells",
+    "S0,S2,S6,S7",
+    "--seeds",
+    "1,2,3",
+    "--out",
+    "artifacts/experiments/E14_raw_qwen0.5b.json",
+    "--report",
+    "artifacts/experiments/E14_report_qwen0.5b.json",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
    "name": "E13d_qwen0.5b_m6",
    "argv": [
     "scripts/run_experiment_E13_swarm_local.py",
@@ -62,6 +56,29 @@
     "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_m6.json",
     "--report",
     "artifacts/experiments/E13_swarm_local_report_m6.json",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
+   "name": "E14_granite1b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--experts-impl",
+    "grouped_mm",
+    "--no-grad-ckpt",
+    "--peer-hosting",
+    "thread",
+    "--cells",
+    "S0,S2,S6,S7",
+    "--seeds",
+    "1,2,3",
+    "--out",
+    "artifacts/experiments/E14_raw_granite1b.json",
+    "--report",
+    "artifacts/experiments/E14_report_granite1b.json",
     "--resume"
    ],
    "output": null

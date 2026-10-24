@@ -9,6 +9,9 @@ This is E8's "localhost negative control". It cannot support any WAN / volunteer
 
 Error-feedback caveat: a worker updates its EF carry as if its delta WAS applied; when the coordinator discards the delta (late, outside the grace window, stale
 incarnation) the carry is therefore not exact. This is the E8-pilot behaviour and is intentionally unchanged.
+E14 (opt-in S6 / S7): S7 merges late deltas (weight / (1 + staleness)) instead of discarding them, so for the deferred ones the EF assumption "the delta was applied" is
+closer to true (still not exact: a carried delta is applied one or two versions late, with a reduced weight, and one that is dropped as too stale or after the last round is
+still assumed applied). S6 only changes WHEN a round closes (bounded wait for repeatedly excluded workers), not which deltas are applied.
 
 ``hivemind.swarm`` cannot be imported here (its ``__init__`` needs the optional aioquic), so ``decoupled_diloco.py``
 (which only needs torch) is loaded BY FILE PATH; its functions (select_quorum, AdaptiveGraceWindowController,
@@ -72,6 +75,10 @@ FAILFAST_ROUND = 3  # the round-3 evaluation (learning gate); the registered eva
 STARTUP_TIMEOUT_S = 900.0  # hello / registration phase deadline (min with the cell timeout)
 STALL_FLOOR_S, STALL_FACTOR, STALL_FIRST_S, HEARTBEAT_S = 600.0, 20.0, 1800.0, 60.0  # per-round stall watchdog
 INT8_MAX = 127
+# E14 (exploratory, opt-in cells S6 fair_quorum / S7 deferred_carry; S0-S5 never use them)
+MAX_EXCLUSION = 1  # S6: a round waits for every alive worker that was not admitted in this many consecutive rounds
+MAX_STALENESS = 2  # S7: a late delta older than this many global versions is discarded (counted); weight of a carried delta = normal weight / (1 + staleness)
+FAIR_WAIT_CAP_FRACTION = 0.5  # S6: per-round cap of the extra wait = this x the StallWatchdog limit, so the cap always fires before the watchdog
 
 
 def eval_versions(rounds: int) -> Tuple[int, ...]:
@@ -134,6 +141,12 @@ class StallWatchdog:
             self.printer(f"[E13 hb] {self.label} t={now - self.t0:.0f}s {state()}")
         if now - self.last_change > self.limit_s(latencies):
             raise TimeoutError(f"{self.label}: no progress for {now - self.last_change:.0f}s (limit {self.limit_s(latencies):.0f}s); {state()}")
+
+
+def fair_wait_cap_s(latencies: Sequence[float]) -> float:
+    """S6 per-round cap of the extra (bounded-exclusion) wait: FAIR_WAIT_CAP_FRACTION x the StallWatchdog limit for the same latencies."""
+    limit = STALL_FIRST_S if not latencies else max(STALL_FLOOR_S, STALL_FACTOR * statistics.median(latencies))
+    return FAIR_WAIT_CAP_FRACTION * limit
 
 
 # ---------------------------------------------------------------- misc
@@ -486,6 +499,15 @@ def merge_deltas(deltas: Sequence[torch.Tensor], tokens: Sequence[int], steps: S
     return fn(list(deltas), w)
 
 
+def merge_deltas_weighted(deltas: Sequence[torch.Tensor], tokens: Sequence[int], steps: Sequence[int], mode: str, discounts: Sequence[float]) -> torch.Tensor:
+    """``merge_deltas`` with a per-delta divisor (S7: 1 + staleness; 1.0 = a fresh delta): weight_i = token_weighted_quality_weight(tokens_i, steps_i) / discounts_i.
+    (The averages normalise the weights.) ``merge_deltas`` itself is unchanged, so S0-S5 are bit-identical to before."""
+    dd = load_decoupled_diloco()
+    w = [dd.token_weighted_quality_weight(t, s) / float(d) for t, s, d in zip(tokens, steps, discounts)]
+    fn = dd.radial_directional_average if mode == "rda" else dd.direct_weighted_average
+    return fn(list(deltas), w)
+
+
 def outer_nesterov(theta: torch.Tensor, buf: torch.Tensor, g: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """buf = mu buf + g; theta -= lr (g + mu buf)  (as torch.optim.SGD(nesterov=True), same arithmetic as E10b)."""
     buf = OUTER_MOMENTUM * buf + g
@@ -675,9 +697,15 @@ class Coordinator:
     """Round state machine + the HTTP-level handlers (so tests can drive it without sockets). All byte counts are len() of real HTTP bodies."""
 
     def __init__(self, workers: int, rounds: int, inner: int, k: int, merge: str, grace: bool, clock: Callable[[], float] = time.monotonic,
-                 eval_at: Optional[Sequence[int]] = None) -> None:
+                 eval_at: Optional[Sequence[int]] = None, fair_max_exclusion: int = 0, carry_max_staleness: Optional[int] = None,
+                 fair_cap_fn: Optional[Callable[[Sequence[float]], float]] = None) -> None:
+        """E14 options (both off = the E13 behaviour, bit for bit): ``fair_max_exclusion`` = MAX_EXCLUSION > 0 turns on S6 bounded exclusion (a round also waits for every
+        alive worker not admitted in that many consecutive rounds, up to ``fair_cap_fn(round latencies)`` seconds); ``carry_max_staleness`` = MAX_STALENESS (not None) turns on
+        S7 deferred-delta carry-over (late deltas are queued and merged into the next merge with weight / (1 + staleness) instead of being discarded)."""
         if not 1 <= k <= workers:
             raise ValueError("need 1 <= K <= M")
+        if fair_max_exclusion < 0 or (carry_max_staleness is not None and carry_max_staleness < 0):
+            raise ValueError("fair_max_exclusion and carry_max_staleness must be >= 0")
         if merge not in ("direct", "rda"):
             raise ValueError("merge must be direct or rda")
         self.dd = load_decoupled_diloco()
@@ -710,6 +738,16 @@ class Coordinator:
         self.bytes_control = 0
         self.events: List[Dict[str, Any]] = []
         self.requests = 0
+        # E14 state (inert unless enabled)
+        self.fair_max = int(fair_max_exclusion)
+        self.carry_max = carry_max_staleness
+        self.fair_cap_fn = fair_cap_fn or fair_wait_cap_s
+        self.excl: Dict[int, int] = {w: 0 for w in range(workers)}  # consecutive rounds an alive worker was not admitted
+        self._fair_t0: Optional[float] = None  # when the round first met every other closing condition but still lacked a required worker
+        self.fair_wait_timeouts = 0
+        self.carry_queue: List[Dict[str, Any]] = []  # late deltas waiting for the next merge
+        self._too_stale_round = 0
+        self.carry_too_stale_total = 0
 
     # -- helpers
     def _add(self, d: Dict[Tuple[int, int], int], key: Tuple[int, int], n: int) -> None:
@@ -720,6 +758,7 @@ class Coordinator:
             (self.alive.add if alive else self.alive.discard)(worker)
             if alive:
                 self.incarn[worker] = self.incarn.get(worker, -1) + 1
+            self.excl[worker] = 0  # re-spawn (new incarnation) or death: the exclusion count restarts; a dead worker is never waited for
             self.events.append({"event": "alive" if alive else "dead", "worker": worker, "after_round": self.version, "t": self.clock()})
             self.cv.notify_all()
 
@@ -751,7 +790,9 @@ class Coordinator:
     def state_summary(self) -> str:
         with self.cv:
             return (f"round {self.version + 1}/{self.rounds} admitted-so-far {sorted(self.inbox)} of effective K {max(1, min(self.k, len(self.alive)))}, alive {sorted(self.alive)}, "
-                    f"evals {sorted(self.evals)} of {list(self.eval_versions)}, late {len(self.late)}")
+                    f"evals {sorted(self.evals)} of {list(self.eval_versions)}, late {len(self.late)}"
+                    + (f", fair-exclusion counters {dict(sorted(self.excl.items()))} (max {self.fair_max})" if self.fair_max else "")
+                    + (f", carry queue {len(self.carry_queue)}" if self.carry_max is not None else ""))
 
     def open_first(self) -> None:
         with self.cv:
@@ -823,16 +864,36 @@ class Coordinator:
             row = {"worker": worker, "round": r, "bytes": len(body), "raw_bytes": int(meta["raw_bytes"]), "ideal_bytes": float(meta["ideal_bytes"]), "rate": meta.get("rate"),
                    "rel_mse": meta.get("rel_mse"), "arrived_in_round": cur, "cw_dtype": meta.get("cw_dtype")}
             reason = None
+            carry = False
             if not self.opened or self.done:
                 reason = "not open"
             elif r != cur:
-                reason = "late (round already closed)"
+                if self.carry_max is not None and r < cur:  # S7: a late delta is kept for the next merge unless it is from a dead / old incarnation, too stale or a duplicate
+                    if worker not in self.alive:
+                        reason = "worker not alive"
+                    elif int(meta.get("incarnation", self.incarn.get(worker, 0))) != self.incarn.get(worker, 0):
+                        reason = "stale incarnation"
+                    elif cur - r > self.carry_max:
+                        reason = "too stale (staleness > MAX_STALENESS)"
+                        self._too_stale_round += 1
+                        self.carry_too_stale_total += 1
+                    elif any(e["worker"] == worker and e["round"] == r for e in self.carry_queue):
+                        reason = "duplicate"
+                    carry = reason is None
+                else:
+                    reason = "late (round already closed)"
             elif worker not in self.alive:
                 reason = "worker not alive"
             elif int(meta.get("incarnation", self.incarn.get(worker, 0))) != self.incarn.get(worker, 0):
                 reason = "stale incarnation"
             elif worker in self.inbox:
                 reason = "duplicate"
+            if carry:
+                self.carry_queue.append({"worker": worker, "round": r, "delta": decode_body(body, meta), "tokens": int(meta["tokens"]), "steps": int(meta["steps"]), "arrived_in_round": cur})
+                row.update({"accepted": True, "carried": True})
+                self.posts.append(row)
+                self.cv.notify_all()
+                return {"accepted": True, "carried": True, "round": cur}
             if reason is not None:
                 row["accepted"] = False
                 self.posts.append(row)
@@ -864,19 +925,70 @@ class Coordinator:
                     self._window = self.ctrl.grace_window_seconds()
             if n < len(self.alive) and (now - self.open_t) < self._tq + self._window:
                 return None
+            # S6 bounded exclusion: every alive worker excluded for >= MAX_EXCLUSION consecutive rounds must have posted for this round (dead workers never block);
+            # the extra wait is capped (fair_cap_fn) and a timeout closes the round with what is there
+            required = sorted(w for w in self.alive if self.excl.get(w, 0) >= self.fair_max) if self.fair_max else []
+            fair_timed_out = False
+            if any(w not in self.inbox for w in required):
+                if self._fair_t0 is None:
+                    self._fair_t0 = now
+                if now - self._fair_t0 < self.fair_cap_fn([r["latency_s"] for r in self.rounds_log]):
+                    return None
+                fair_timed_out = True
+                self.fair_wait_timeouts += 1
             arrivals = [self.dd.LearnerArrival(str(w), v["arrival_rel"], v["steps"], v["tokens"]) for w, v in self.inbox.items()]
             sel = self.dd.select_quorum(arrivals, min_quorum_k=eff_k, grace_window_s=self._window)
             admitted = sorted(int(i) for i in sel.admitted_learner_ids)
-            unadmitted = sorted(int(i) for i in sel.deferred_learner_ids)  # arrived before the close but outside the window: discarded, counted
-            for w in unadmitted:
-                self.late.append({"worker": w, "delta_round": self.version + 1, "arrived_in_round": self.version + 1, "reason": "outside grace window", "bytes": 0})
-            g = merge_deltas([self.inbox[w]["delta"] for w in admitted], [self.inbox[w]["tokens"] for w in admitted], [self.inbox[w]["steps"] for w in admitted], self.merge)
-            self.theta, self.buf = outer_nesterov(self.theta, self.buf, g)
+            unadmitted = sorted(int(i) for i in sel.deferred_learner_ids)  # arrived before the close but outside the window: discarded, counted (S7: carried to the next merge)
             rnd = self.version + 1
+            forced = [w for w in required if w in self.inbox and w not in admitted]  # S6: admitted although outside the grace window
+            if forced:
+                admitted = sorted(set(admitted) | set(forced))
+                unadmitted = [w for w in unadmitted if w not in forced]
+            carry_in, self.carry_queue = self.carry_queue, []
+            carry_use: List[Dict[str, Any]] = []
+            stale_now = 0
+            for e in sorted(carry_in, key=lambda e: (e["worker"], e["round"])):
+                if rnd - e["round"] > (self.carry_max if self.carry_max is not None else -1):
+                    stale_now += 1
+                    self.carry_too_stale_total += 1
+                    self.late.append({"worker": e["worker"], "delta_round": e["round"], "arrived_in_round": e["arrived_in_round"], "reason": "too stale at merge", "bytes": 0})
+                else:
+                    carry_use.append(e)
+            queued_next = 0
+            for w in unadmitted:
+                if self.carry_max is not None and rnd < self.rounds:  # S7: keep it for the next round's merge (no next round after the last one: discard)
+                    v = self.inbox[w]
+                    self.carry_queue.append({"worker": w, "round": rnd, "delta": v["delta"], "tokens": v["tokens"], "steps": v["steps"], "arrived_in_round": rnd})
+                    queued_next += 1
+                else:
+                    self.late.append({"worker": w, "delta_round": rnd, "arrived_in_round": rnd, "reason": "outside grace window", "bytes": 0})
+            d_fresh = [self.inbox[w]["delta"] for w in admitted]
+            t_fresh, s_fresh = [self.inbox[w]["tokens"] for w in admitted], [self.inbox[w]["steps"] for w in admitted]
+            if carry_use:
+                g = merge_deltas_weighted(d_fresh + [e["delta"] for e in carry_use], t_fresh + [e["tokens"] for e in carry_use], s_fresh + [e["steps"] for e in carry_use], self.merge,
+                                          [1.0] * len(admitted) + [1.0 + (rnd - e["round"]) for e in carry_use])
+            else:
+                g = merge_deltas(d_fresh, t_fresh, s_fresh, self.merge)
+            self.theta, self.buf = outer_nesterov(self.theta, self.buf, g)
             rec = {"round": rnd, "latency_s": now - self.open_t, "quorum_at_s": self._tq, "grace_window_s": self._window, "effective_k": eff_k, "alive": sorted(self.alive),
                    "arrivals_s": {str(w): v["arrival_rel"] for w, v in self.inbox.items()}, "compute_s": {str(w): v["compute_s"] for w, v in self.inbox.items()},
                    "admitted": admitted, "unadmitted_at_close": unadmitted, "merged_norm": float(g.norm())}
+            if self.fair_max:
+                rec.update({"fair_waited_for": required, "fair_extra_wait_s": (now - self._fair_t0) if self._fair_t0 is not None else 0.0, "fair_timed_out": fair_timed_out,
+                            "fair_forced_admitted": forced, "exclusion_counters_before": {str(w): c for w, c in sorted(self.excl.items())}})
+                for w in self.alive:  # consecutive rounds in which an ALIVE worker was not admitted
+                    self.excl[w] = 0 if w in admitted else self.excl.get(w, 0) + 1
+            if self.carry_max is not None:
+                hist: Dict[str, int] = {}
+                for e in carry_use:
+                    hist[str(rnd - e["round"])] = hist.get(str(rnd - e["round"]), 0) + 1
+                rec.update({"carried_count": len(carry_use), "carried_tokens": sum(e["tokens"] for e in carry_use),
+                            "carried": [{"worker": e["worker"], "delta_round": e["round"], "staleness": rnd - e["round"], "weight_divisor": 1.0 + (rnd - e["round"]), "tokens": e["tokens"]} for e in carry_use],
+                            "staleness_hist": hist, "carry_too_stale_discarded": stale_now + self._too_stale_round, "carry_queued_for_next": queued_next})
+                self._too_stale_round = 0
             self.rounds_log.append(rec)
+            self._fair_t0 = None
             self.inbox, self._window, self._tq = {}, None, None
             if before_publish is not None:
                 before_publish(rnd)  # churn: kill / respawn BEFORE the next round opens
@@ -888,6 +1000,29 @@ class Coordinator:
             return rec
 
     # -- summaries
+    def e14_summary(self) -> Dict[str, Any]:
+        """Totals of the E14 mechanisms for the cell record ({} when neither is on)."""
+        out: Dict[str, Any] = {}
+        if self.fair_max:
+            rl = [r for r in self.rounds_log if "fair_waited_for" in r]
+            out["fair"] = {"max_exclusion": self.fair_max, "fair_wait_timeouts": self.fair_wait_timeouts, "rounds_with_required_workers": sum(1 for r in rl if r["fair_waited_for"]),
+                           "rounds_with_extra_wait": sum(1 for r in rl if r["fair_extra_wait_s"] > 0.0), "extra_wait_s_total": sum(r["fair_extra_wait_s"] for r in rl),
+                           "forced_admissions_total": sum(len(r["fair_forced_admitted"]) for r in rl),
+                           "per_round": [{"round": r["round"], "waited_for": r["fair_waited_for"], "extra_wait_s": r["fair_extra_wait_s"], "timed_out": r["fair_timed_out"],
+                                          "forced_admitted": r["fair_forced_admitted"]} for r in rl]}
+        if self.carry_max is not None:
+            rl = [r for r in self.rounds_log if "carried_count" in r]
+            hist: Dict[str, int] = {}
+            for r in rl:
+                for k_, v_ in r["staleness_hist"].items():
+                    hist[k_] = hist.get(k_, 0) + v_
+            out["carry"] = {"max_staleness": self.carry_max, "carried_count_total": sum(r["carried_count"] for r in rl), "carried_tokens_total": sum(r["carried_tokens"] for r in rl),
+                            "staleness_hist": hist, "too_stale_discarded_total": self.carry_too_stale_total,
+                            "queued_unmerged_at_end": len(self.carry_queue),
+                            "per_round": [{"round": r["round"], "carried_count": r["carried_count"], "carried_tokens": r["carried_tokens"], "staleness_hist": r["staleness_hist"],
+                                           "too_stale_discarded": r["carry_too_stale_discarded"]} for r in rl]}
+        return out
+
     def per_round_bytes(self) -> Tuple[List[Dict[str, int]], List[Dict[str, int]], int]:
         up = [{str(w): self.bytes_up.get((w, r), 0) for w in range(self.workers)} for r in range(1, self.rounds + 1)]
         down = [{str(w): self.bytes_down.get((w, r), 0) for w in range(self.workers)} for r in range(1, self.rounds + 1)]

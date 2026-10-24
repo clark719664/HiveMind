@@ -854,3 +854,321 @@ def test_default_scratch_is_not_under_artifacts(e13):
 def test_estimate_counts_three_evaluations_and_twin(e13):
     est = e13.estimate("qwen0.5b", e13.RunCfg(rounds=6, workers=4, inner=20))
     assert est["breakdown_s"]["eval_s"] == 18 * 3 * e13.SEC_PER_EVAL and est["breakdown_s"]["diagnostic_twin_S0b_s"] > 0
+
+
+# ---------------------------------------------------------------- E14: S6 fair_quorum (bounded exclusion) and S7 deferred_carry (opt-in, exploratory)
+class _Clk:
+    def __init__(self):
+        self.t = 0.0
+
+    def __call__(self):
+        return self.t
+
+
+def _fcoord(lib, workers=4, k=2, fair=1, carry=None, rounds=6, merge="direct", cap=None, n=8):
+    clk = _Clk()
+    c = lib.Coordinator(workers, rounds=rounds, inner=3, k=k, merge=merge, grace=False, clock=clk, fair_max_exclusion=fair, carry_max_staleness=carry, fair_cap_fn=cap)
+    for w in range(workers):
+        c.hello(w, "sha", (torch.arange(n, dtype=torch.float32) * 0.1).numpy().tobytes() if w == 0 else b"")
+    assert c.wait_ready(1.0)
+    c.open_first()
+    return c, clk
+
+
+def _post(c, clk, t, w, rnd, val=1.0, n=8, tokens=96, inc=None):
+    clk.t = t
+    meta = _delta_meta(rnd, n, tokens=tokens)
+    if inc is not None:
+        meta["incarnation"] = inc
+    return c.post_delta(w, meta, torch.full((n,), float(val)).numpy().tobytes())
+
+
+def _round1_without_2_3(c, clk):
+    _post(c, clk, 1.0, 0, 1)
+    _post(c, clk, 2.0, 1, 1)
+    rec = c.try_close_round()  # window 0: closes with the first K = 2; workers 2 and 3 are excluded once
+    assert rec["admitted"] == [0, 1] and c.excl == {0: 0, 1: 0, 2: 1, 3: 1}
+    return rec
+
+
+def test_s6_waits_for_excluded_workers_then_force_admits_them_and_resets_counters(lib):
+    c, clk = _fcoord(lib)
+    r1 = _round1_without_2_3(c, clk)
+    assert r1["fair_waited_for"] == [] and r1["fair_extra_wait_s"] == 0.0
+    _post(c, clk, 3.0, 0, 2)
+    _post(c, clk, 4.0, 1, 2)
+    assert c.try_close_round() is None and c._fair_t0 == 4.0  # quorum + grace are met, but 2 and 3 (counter 1 >= MAX_EXCLUSION) have not posted
+    _post(c, clk, 5.0, 2, 2)
+    clk.t = 6.0
+    assert c.try_close_round() is None  # still waiting for 3
+    _post(c, clk, 7.0, 3, 2)
+    rec = c.try_close_round()
+    assert rec["fair_waited_for"] == [2, 3] and rec["admitted"] == [0, 1, 2, 3] and rec["fair_forced_admitted"] == [2, 3] and rec["unadmitted_at_close"] == []
+    assert rec["fair_extra_wait_s"] == 3.0 and rec["fair_timed_out"] is False and rec["exclusion_counters_before"] == {"0": 0, "1": 0, "2": 1, "3": 1}
+    assert c.excl == {0: 0, 1: 0, 2: 0, 3: 0} and c.fair_wait_timeouts == 0 and c.late == []
+    # round 3: nobody is required any more: closes with the first two again, no wait
+    _post(c, clk, 8.0, 0, 3)
+    _post(c, clk, 9.0, 1, 3)
+    r3 = c.try_close_round()
+    assert r3["admitted"] == [0, 1] and r3["fair_extra_wait_s"] == 0.0 and c.excl[2] == 1
+    s = c.e14_summary()["fair"]
+    assert s["rounds_with_required_workers"] == 1 and s["rounds_with_extra_wait"] == 1 and s["extra_wait_s_total"] == 3.0 and s["forced_admissions_total"] == 2
+
+
+def test_s6_starving_worker_dies_mid_wait_does_not_block(lib):
+    c, clk = _fcoord(lib)
+    _round1_without_2_3(c, clk)
+    _post(c, clk, 3.0, 0, 2)
+    _post(c, clk, 4.0, 1, 2)
+    _post(c, clk, 5.0, 2, 2)
+    assert c.try_close_round() is None  # waiting for 3
+    c.set_alive(3, False)  # churn kills the starving worker while the coordinator waits
+    assert c.excl[3] == 0
+    clk.t = 5.5
+    rec = c.try_close_round()
+    assert rec is not None and rec["admitted"] == [0, 1, 2] and rec["fair_waited_for"] == [2] and c.fair_wait_timeouts == 0
+    # both starving workers dead: the effective K shrinks and nothing is waited for
+    c2, clk2 = _fcoord(lib)
+    _round1_without_2_3(c2, clk2)
+    _post(c2, clk2, 3.0, 0, 2)
+    _post(c2, clk2, 4.0, 1, 2)
+    assert c2.try_close_round() is None
+    c2.set_alive(2, False)
+    c2.set_alive(3, False)
+    assert c2.try_close_round()["admitted"] == [0, 1]
+    # a re-spawned (new incarnation) worker starts with a clean counter and is not waited for
+    c2.set_alive(3, True)
+    assert c2.excl[3] == 0 and c2.incarn[3] == 1
+    _post(c2, clk2, 5.0, 0, 3)
+    _post(c2, clk2, 6.0, 1, 3)
+    assert c2.try_close_round()["admitted"] == [0, 1]
+
+
+def test_s6_starving_worker_never_posts_times_out_and_round_closes(lib):
+    c, clk = _fcoord(lib, cap=lambda lat: 10.0)
+    _round1_without_2_3(c, clk)
+    _post(c, clk, 3.0, 0, 2)
+    _post(c, clk, 4.0, 1, 2)
+    assert c.try_close_round() is None  # wait starts at t = 4
+    clk.t = 13.9
+    assert c.try_close_round() is None
+    clk.t = 14.0
+    rec = c.try_close_round()  # cap reached: close with what is there
+    assert rec is not None and c.version == 2 and rec["admitted"] == [0, 1] and rec["fair_timed_out"] is True and rec["fair_extra_wait_s"] == 10.0
+    assert rec["fair_waited_for"] == [2, 3] and c.fair_wait_timeouts == 1 and c.excl[2] == 2 and c.e14_summary()["fair"]["fair_wait_timeouts"] == 1
+    # a worker that keeps starving is waited for again next round (each wait capped); the wait timer restarted
+    _post(c, clk, 15.0, 0, 3)
+    _post(c, clk, 16.0, 1, 3)
+    assert c.try_close_round() is None and c._fair_t0 == 16.0
+    clk.t = 26.0
+    assert c.try_close_round()["fair_timed_out"] is True and c.fair_wait_timeouts == 2
+
+
+def test_s6_cap_is_below_the_stall_watchdog_limit(lib):
+    wd = lib.StallWatchdog("x")
+    assert lib.fair_wait_cap_s([]) == 0.5 * wd.limit_s([]) == 900.0
+    for lat in ([1.0], [10.0, 20.0], [100.0, 100.0, 100.0]):
+        assert lib.fair_wait_cap_s(lat) == 0.5 * wd.limit_s(lat) < wd.limit_s(lat)
+    assert (lib.MAX_EXCLUSION, lib.MAX_STALENESS) == (1, 2)
+
+
+def test_s6_degenerate_k_equals_m_and_m2_k1(lib):
+    c, clk = _fcoord(lib, workers=3, k=3)  # K = M: a round only closes with everybody, so the fairness rule can never add a wait
+    _post(c, clk, 1.0, 0, 1)
+    _post(c, clk, 2.0, 1, 1)
+    assert c.try_close_round() is None
+    _post(c, clk, 3.0, 2, 1)
+    rec = c.try_close_round()
+    assert rec["admitted"] == [0, 1, 2] and rec["fair_waited_for"] == [] and rec["fair_extra_wait_s"] == 0.0 and c.excl == {0: 0, 1: 0, 2: 0}
+    c.set_alive(2, False)  # K = M with a dead peer: effective K = 2, closes
+    _post(c, clk, 4.0, 0, 2)
+    _post(c, clk, 5.0, 1, 2)
+    assert c.try_close_round()["admitted"] == [0, 1]
+    # M = 2, K = 1: worker 1 is slow in round 1, then waited for in round 2
+    c2, clk2 = _fcoord(lib, workers=2, k=1)
+    _post(c2, clk2, 1.0, 0, 1)
+    assert c2.try_close_round()["admitted"] == [0] and c2.excl == {0: 0, 1: 1}
+    late = _post(c2, clk2, 2.0, 1, 1)
+    assert late["accepted"] is False and "late" in late["reason"]  # S6 alone still discards the late delta
+    _post(c2, clk2, 3.0, 0, 2)
+    assert c2.try_close_round() is None
+    _post(c2, clk2, 4.0, 1, 2)
+    r2 = c2.try_close_round()
+    assert r2["admitted"] == [0, 1] and r2["fair_waited_for"] == [1] and r2["fair_extra_wait_s"] == 1.0 and c2.excl == {0: 0, 1: 0}
+    # M = 2, K = 1 and the slow worker dies while waited for
+    c3, clk3 = _fcoord(lib, workers=2, k=1)
+    _post(c3, clk3, 1.0, 0, 1)
+    c3.try_close_round()
+    _post(c3, clk3, 2.0, 0, 2)
+    assert c3.try_close_round() is None
+    c3.set_alive(1, False)
+    assert c3.try_close_round()["admitted"] == [0]
+
+
+def test_s6_off_leaves_the_close_logic_untouched(lib):
+    c, clk = _fcoord(lib, fair=0)
+    _post(c, clk, 1.0, 0, 1)
+    _post(c, clk, 2.0, 1, 1)
+    rec = c.try_close_round()
+    assert "fair_waited_for" not in rec and "carried_count" not in rec and c.e14_summary() == {}
+    _post(c, clk, 3.0, 0, 2)
+    _post(c, clk, 4.0, 1, 2)
+    assert c.try_close_round()["admitted"] == [0, 1]  # would have waited for 2 and 3 under S6
+
+
+def test_s7_late_delta_is_carried_with_staleness_discount(lib):
+    c, clk = _fcoord(lib, workers=3, k=2, fair=0, carry=2)
+    theta0 = c.theta.clone()
+    _post(c, clk, 1.0, 0, 1, 1.0)
+    _post(c, clk, 2.0, 1, 1, 1.0)
+    assert c.try_close_round()["admitted"] == [0, 1]
+    late = _post(c, clk, 3.0, 2, 1, 4.0)  # worker 2's round-1 delta arrives after the round closed
+    assert late == {"accepted": True, "carried": True, "round": 2} and c.late == [] and len(c.carry_queue) == 1
+    assert c.posts[-1]["accepted"] is True and c.posts[-1]["carried"] is True and c.bytes_up[(2, 1)] == 32
+    assert _post(c, clk, 3.5, 2, 1, 4.0)["accepted"] is False  # a second copy of the same (worker, round) is a duplicate
+    _post(c, clk, 4.0, 0, 2, 1.0)
+    _post(c, clk, 5.0, 1, 2, 1.0)
+    rec = c.try_close_round()
+    assert rec["admitted"] == [0, 1] and rec["carried_count"] == 1 and rec["carried_tokens"] == 96 and rec["staleness_hist"] == {"1": 1} and rec["carry_too_stale_discarded"] == 0
+    assert rec["carried"] == [{"worker": 2, "delta_round": 1, "staleness": 1, "weight_divisor": 2.0, "tokens": 96}] and c.carry_queue == []
+    # direct merge, equal token weights w: fresh 1 and 1 (weight w each), carried 4.0 with weight w / 2  ->  (1 + 1 + 0.5 * 4) / 2.5 = 1.6
+    th1, buf1 = lib.outer_nesterov(theta0, torch.zeros(8), torch.full((8,), 1.0))
+    th2, _ = lib.outer_nesterov(th1, buf1, torch.full((8,), 4.0 / 2.5))
+    assert torch.allclose(c.theta, th2, atol=1e-6)
+    s = c.e14_summary()["carry"]
+    assert s["carried_count_total"] == 1 and s["staleness_hist"] == {"1": 1} and s["too_stale_discarded_total"] == 0 and s["queued_unmerged_at_end"] == 0
+
+
+def test_s7_discount_with_rda_and_weighted_helper(lib):
+    ds = [torch.tensor([3.0, 0.0]), torch.tensor([0.0, 3.0])]
+    plain = lib.merge_deltas(ds, [10, 10], [1, 1], "rda")
+    assert torch.equal(lib.merge_deltas_weighted(ds, [10, 10], [1, 1], "rda", [1.0, 1.0]), plain)  # divisor 1 == no discount
+    heavy = lib.merge_deltas_weighted(ds, [10, 10], [1, 1], "rda", [1.0, 3.0])  # the second delta counts 1/3
+    assert float(heavy[0]) > float(heavy[1]) > 0.0 and abs(float(heavy.norm()) - 3.0) < 1e-5  # RDA radius = weighted mean of the norms = 3; the direction is tilted to the fresh delta
+
+
+def test_s7_too_stale_dead_and_stale_incarnation_deltas_are_rejected(lib):
+    c, clk = _fcoord(lib, workers=3, k=2, fair=0, carry=2, rounds=6)
+    for r in (1, 2, 3):
+        _post(c, clk, float(r), 0, r)
+        _post(c, clk, r + 0.5, 1, r)
+        assert c.try_close_round()["admitted"] == [0, 1]
+    # round 4 is open; worker 2's round-1 delta has staleness 3 > MAX_STALENESS = 2, its round-2 delta staleness 2 is accepted
+    stale = _post(c, clk, 10.0, 2, 1)
+    assert stale["accepted"] is False and "too stale" in stale["reason"] and c.carry_too_stale_total == 1 and c.late[-1]["reason"].startswith("too stale")
+    assert _post(c, clk, 10.1, 2, 2)["accepted"] is True
+    _post(c, clk, 11.0, 0, 4)
+    _post(c, clk, 12.0, 1, 4)
+    rec = c.try_close_round()
+    assert rec["staleness_hist"] == {"2": 1} and rec["carry_too_stale_discarded"] == 1 and rec["carried_count"] == 1
+    # dead worker / old incarnation: rejected as before even though S7 carries
+    c.set_alive(2, False)
+    assert _post(c, clk, 13.0, 2, 4)["reason"] == "worker not alive"
+    c.set_alive(2, True)  # incarnation 1
+    assert "incarnation" in _post(c, clk, 13.5, 2, 4, inc=0)["reason"]
+    assert _post(c, clk, 13.6, 2, 4, inc=1)["accepted"] is True and len(c.carry_queue) == 1
+
+
+def test_s7_unadmitted_at_close_is_carried_not_discarded_and_off_it_is_discarded(lib):
+    c, clk = _fcoord(lib, workers=3, k=1, fair=0, carry=None)
+    _post(c, clk, 1.0, 0, 1, 1.0)
+    _post(c, clk, 2.0, 1, 1, 5.0)  # arrives before the close but outside the (zero) grace window
+    clk.t = 3.0
+    rec = c.try_close_round()
+    assert rec["admitted"] == [0] and rec["unadmitted_at_close"] == [1] and [e["reason"] for e in c.late] == ["outside grace window"] and c.carry_queue == []
+    c, clk = _fcoord(lib, workers=3, k=1, fair=0, carry=2)
+    _post(c, clk, 1.0, 0, 1, 1.0)
+    _post(c, clk, 2.0, 1, 1, 5.0)
+    clk.t = 3.0
+    rec = c.try_close_round()
+    assert rec["admitted"] == [0] and rec["unadmitted_at_close"] == [1] and c.late == [] and [(e["worker"], e["round"]) for e in c.carry_queue] == [(1, 1)] and rec["carry_queued_for_next"] == 1
+    _post(c, clk, 4.0, 0, 2, 1.0)
+    clk.t = 5.0
+    r2 = c.try_close_round()
+    assert r2["admitted"] == [0] and r2["carried_count"] == 1 and r2["staleness_hist"] == {"1": 1} and c.carry_queue == []
+    # the last round has no next round: its unadmitted delta is discarded and logged
+    c, clk = _fcoord(lib, workers=3, k=1, fair=0, carry=2, rounds=1)
+    _post(c, clk, 1.0, 0, 1)
+    _post(c, clk, 2.0, 1, 1)
+    clk.t = 3.0
+    assert c.try_close_round()["unadmitted_at_close"] == [1] and c.carry_queue == [] and c.late[-1]["reason"] == "outside grace window"
+
+
+def test_e14_cells_are_opt_in_and_do_not_touch_the_design_hash(e13):
+    assert e13.ALL_CELLS == ("S0", "S1", "S2", "S3", "S4", "S5") and e13.EXTRA_CELLS == ("S1t",) and e13.E14_CELLS == ("S6", "S7")
+    s2, s6, s7 = e13.CELL_SPECS["S2"], e13.CELL_SPECS["S6"], e13.CELL_SPECS["S7"]
+    for spec in (s6, s7):
+        assert (spec.k, spec.merge, spec.grace, spec.codec, spec.chaos, spec.hosting) == (s2.k, s2.merge, s2.grace, s2.codec, s2.chaos, s2.hosting)
+    assert (s6.fair, s6.carry, s7.fair, s7.carry, s2.fair, s2.carry) == (True, False, False, True, False, False)
+    d = e13.design_dict("qwen0.5b", e13.FULL, "p")
+    assert set(d["cells"]) == {"S1", "S1t", "S2", "S3", "S4", "S5"}
+    assert d["cells"]["S2"] == {"name": "swarm_all_on", "k": "half", "merge": "rda", "grace": True, "codec": "E8@2+EF", "chaos": True, "hosting": None}  # the pre-E14 field set, unchanged
+
+
+def test_aggregate_e14_paired_vs_s2_retention_and_absent_cells_leave_report_unchanged(e13):
+    base = []
+    for s, (f0, f2) in zip((1, 2, 3), ((2.0, 2.9), (2.1, 2.9), (2.2, 3.0))):
+        base += [_fake_run("m", "S0", s, f0), _fake_run("m", "S2", s, f2, codec="E8@2+EF")]
+    no_e14 = e13.aggregate({"design_sha256": "x", "runs": base})["models"]["m"]
+    assert "e14" not in no_e14 and "S6" not in no_e14["paired_vs_S0"] and "S7" not in no_e14["paired_vs_S0"] and "S6" not in no_e14["cells"]
+    runs = list(base)
+    for s, (f6, f7) in zip((1, 2, 3), ((2.3, 2.5), (2.4, 2.6), (2.5, 2.4))):
+        for cell, f in (("S6", f6), ("S7", f7)):
+            r = _fake_run("m", cell, s, f, codec="E8@2+EF")
+            r["e14"] = ({"fair": {"max_exclusion": 1, "fair_wait_timeouts": 0, "rounds_with_required_workers": 2, "rounds_with_extra_wait": 1, "extra_wait_s_total": 4.0, "forced_admissions_total": 2,
+                                  "per_round": [{}] * 6}} if cell == "S6" else
+                        {"carry": {"max_staleness": 2, "carried_count_total": 3, "carried_tokens_total": 288, "staleness_hist": {"1": 2, "2": 1}, "too_stale_discarded_total": 1, "queued_unmerged_at_end": 0}})
+            runs.append(r)
+    m = e13.aggregate({"design_sha256": "x", "runs": runs})["models"]["m"]
+    assert m["paired_vs_S0"]["S2"] == no_e14["paired_vs_S0"]["S2"]  # the E13 part is untouched by the presence of E14 cells
+    d = m["e14"]["paired_vs_S2"]["S6"]
+    assert d["S2_minus_cell_final_loss_per_seed"] == pytest.approx([0.6, 0.5, 0.5]) and d["direction"] == "cell better than S2" and d["ci95"] > 0
+    assert m["e14"]["paired_vs_S2"]["S7"]["S2_minus_cell_final_loss_per_seed"] == pytest.approx([0.4, 0.3, 0.6])
+    assert m["paired_vs_S0"]["S6"]["final_loss_minus_S0_per_seed"] == pytest.approx([0.3, 0.3, 0.3])
+    # registered retention formula: (3.0 - L_cell) / (3.0 - L_S0)
+    assert m["e14"]["retention_vs_S0"]["S6"]["retention_per_seed"]["1"] == pytest.approx((3.0 - 2.3) / (3.0 - 2.0))
+    assert m["e14"]["retention_vs_S0"]["S2"]["retention_per_seed"]["1"] == pytest.approx((3.0 - 2.9) / 1.0) and "mean" in m["e14"]["retention_vs_S0"]["S7"]
+    assert m["cells"]["S6"]["e14"]["fair"]["extra_wait_s_total"] == 12.0 and m["cells"]["S7"]["e14"]["carry"]["staleness_hist"] == {"1": 6, "2": 3}
+    assert m["cells"]["S7"]["e14"]["carry"]["too_stale_discarded_total"] == 3
+    # the predictions script keeps working and adds an E14 section
+    import analyze_E13_predictions as an
+
+    res = an.analyse_model(m)
+    assert res["E14"]["S6"]["mean_retention"] == pytest.approx(sum((3.0 - f) / (3.0 - g) for f, g in ((2.3, 2.0), (2.4, 2.1), (2.5, 2.2))) / 3)
+    assert res["E14"]["S6"]["paired_vs_S2"]["direction"] == "cell better than S2" and "S2_reference_mean_retention" in res["E14"] and "P13b" in res
+    assert "E14" not in an.analyse_model(no_e14)
+
+
+def test_smoke_e14_cells_through_main_process_hosting(e13, tmp_path, capsys):
+    out = tmp_path / "e14.json"
+    assert e13.main(["--smoke", "--out", str(out), "--scratch", str(tmp_path / "scr"), "--cells", "S0,S2,S6,S7"]) == 0
+    raw = json.loads(out.read_text(encoding="utf-8"))
+    by = {r["cell"]: r for r in raw["runs"]}
+    assert set(by) == {"S0", "S2", "S6", "S7"} and all(r["status"] == "ok" for r in raw["runs"])
+    assert "fair" in by["S6"]["e14"] and "carry" in by["S7"]["e14"] and "e14" not in by["S2"]
+    assert by["S6"]["e14"]["fair"]["fair_wait_timeouts"] == 0 and all("fair_waited_for" in q for q in by["S6"]["rounds_log"]) and all("carried_count" in q for q in by["S7"]["rounds_log"])
+    assert by["S6"]["K"] == by["S7"]["K"] == 1 and by["S6"]["codec"] == by["S7"]["codec"] == "E8@2+EF" and [e["event"] for e in by["S7"]["churn_events"]] == ["killed", "respawned"]
+    rep = json.loads((tmp_path / "e14.report.json").read_text(encoding="utf-8"))["models"]["tiny"]
+    assert {"S6", "S7"} <= set(rep["cells"]) and set(rep["e14"]["paired_vs_S2"]) == {"S6", "S7"}
+    assert capsys.readouterr().out.strip().splitlines()[-1].endswith("report=" + str(tmp_path / "e14.report.json"))
+
+
+def test_smoke_six_workers_all_requested_cells_thread_hosting(e13, tmp_path):
+    out = tmp_path / "m6.json"
+    t0 = time.perf_counter()
+    assert e13.main(["--smoke", "--workers", "6", "--peer-hosting", "thread", "--out", str(out), "--scratch", str(tmp_path / "scr"), "--cells", "S0,S1,S2,S5,S6,S7"]) == 0
+    assert time.perf_counter() - t0 < 120.0
+    by = {r["cell"]: r for r in json.loads(out.read_text(encoding="utf-8"))["runs"]}
+    assert set(by) == {"S0", "S1", "S2", "S5", "S6", "S7"} and all(r["status"] == "ok" for r in by.values())
+    assert list(by["S0"]["per_domain_final"]) == list(e13.DOMAINS) and by["S1"]["identity_vs_s0"]["passed"]
+    assert by["S2"]["K"] == by["S6"]["K"] == by["S7"]["K"] == 3 and by["S5"]["K"] == 6 and by["S6"]["straggle"] == [[5, 1, 2.0]] and by["S6"]["churn"] == [1, 1, 1]
+    assert by["S6"]["init_identical"] and len(by["S6"]["admitted_per_round"]) == 2
+
+
+def test_s6_timeout_end_to_end_a_worker_that_never_posts_cannot_hang_the_cell(e13, monkeypatch, tmp_path):
+    monkeypatch.setattr(e13.lib, "fair_wait_cap_s", lambda lat: 1.0)
+    ctx = _smoke_ctx(e13, tmp_path, straggle="1:1:3000", churn="off", cell_timeout_s=240.0)  # worker 1 sleeps 3000 x its compute time after round 1: starving in round 2
+    t0 = time.time()
+    rec = e13.run_cell("tiny", "S6", 1, ctx)
+    assert time.time() - t0 < 120.0 and rec["status"] == "ok"
+    assert rec["e14"]["fair"]["fair_wait_timeouts"] >= 1 and rec["rounds_log"][1]["fair_timed_out"] is True and rec["rounds_log"][1]["fair_waited_for"] == [1] and rec["rounds_log"][1]["admitted"] == [0]

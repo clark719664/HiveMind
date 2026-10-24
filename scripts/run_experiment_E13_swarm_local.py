@@ -13,6 +13,9 @@ Cells (run_cell(model, cell, seed)):
   S1t = S1 with --peer-hosting thread (smoke default; one frozen model, M peer threads over the same HTTP protocol; identity control applies as well)
   S2 swarm_all_on   K=ceil(M/2), adaptive grace, RDA, E8@2+EF, stragglers and churn ON
   S3 no_codec       S2 with codec none          S4 no_rda  S2 with direct merge          S5 no_quorum  S2 with K=M
+  E14 (exploratory, OPT-IN: only run when named in --cells; not in the default cells, the smoke defaults or the design hash):
+  S6 fair_quorum    S2 + bounded exclusion: a round also waits for every alive worker not admitted in MAX_EXCLUSION (1) consecutive rounds (capped, see lib)
+  S7 deferred_carry S2 + late deltas are carried into the next merge with weight / (1 + staleness), dropped beyond MAX_STALENESS (2) versions
 
 NOT INCLUDED in this local swarm (the E8 amendment lists them for the WAN factorial): NF4, Skip-Token, Skip-Attention, PA-CGAD, fixed-point exits.
 
@@ -78,7 +81,8 @@ T_CRIT_DF2 = 4.302652729911275  # two-sided 95% t quantile, df = 2 (three seeds)
 SEEDS = (1, 2, 3)
 ALL_CELLS = ("S0", "S1", "S2", "S3", "S4", "S5")
 EXTRA_CELLS = ("S1t",)  # S1 with thread peer-hosting (always run by the smoke; opt-in via --cells otherwise)
-REPORT_CELLS = ALL_CELLS + EXTRA_CELLS
+E14_CELLS = ("S6", "S7")  # exploratory, opt-in only (never in the default --cells nor in the smoke defaults)
+REPORT_CELLS = ALL_CELLS + EXTRA_CELLS + E14_CELLS
 CODEC_ON = "E8@2+EF"  # E8 lattice, 2 bits/dim measured, error feedback
 IDENTITY_TOL = 1e-6
 RATE_TOL = 0.05  # |mean measured rate - target| for the codec control
@@ -109,6 +113,11 @@ class CellSpec:
     codec: str
     chaos: bool  # stragglers + churn
     hosting: Optional[str] = None  # None = ctx.hosting
+    fair: bool = False  # E14 S6: bounded exclusion (lib.MAX_EXCLUSION)
+    carry: bool = False  # E14 S7: deferred-delta carry-over (lib.MAX_STALENESS)
+
+
+LEGACY_SPEC_FIELDS = ("name", "k", "merge", "grace", "codec", "chaos", "hosting")  # the design hash covers exactly these (and only the S1-S5 / S1t cells): E14 changes nothing there
 
 
 CELL_SPECS: Dict[str, CellSpec] = {
@@ -118,6 +127,8 @@ CELL_SPECS: Dict[str, CellSpec] = {
     "S3": CellSpec("no_codec", "half", "rda", True, "none", True),
     "S4": CellSpec("no_rda", "half", "direct", True, CODEC_ON, True),
     "S5": CellSpec("no_quorum", "M", "rda", True, CODEC_ON, True),
+    "S6": CellSpec("fair_quorum", "half", "rda", True, CODEC_ON, True, fair=True),
+    "S7": CellSpec("deferred_carry", "half", "rda", True, CODEC_ON, True, carry=True),
 }
 CELL_NAMES = {"S0": "sync_baseline", **{k: v.name for k, v in CELL_SPECS.items()}}
 
@@ -345,7 +356,8 @@ def run_swarm(model_key: str, cell: str, seed: int, ctx: Ctx) -> Dict[str, Any]:
     cell_dir.mkdir(parents=True, exist_ok=True)
     for old in cell_dir.glob("*.log"):
         old.unlink()
-    coord = lib.Coordinator(M, cfg.rounds, cfg.inner, K, spec.merge, spec.grace)
+    coord = lib.Coordinator(M, cfg.rounds, cfg.inner, K, spec.merge, spec.grace, fair_max_exclusion=lib.MAX_EXCLUSION if spec.fair else 0,
+                            carry_max_staleness=lib.MAX_STALENESS if spec.carry else None)
     server = lib.make_server(coord)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     port = server.server_address[1]
@@ -467,6 +479,8 @@ def run_swarm(model_key: str, cell: str, seed: int, ctx: Ctx) -> Dict[str, Any]:
         "final_theta_sha256": lib.tensor_sha(theta), "final_theta_path": str(theta_path), "routing": ev[cfg.rounds].get("routing"), "data_provenance": prov,
         "http_requests": coord.requests, "wall_seconds": round(time.perf_counter() - t_all, 2),
     }
+    if spec.fair or spec.carry:
+        rec["e14"] = coord.e14_summary()
     if cell in ("S1", "S1t"):
         rec["identity_vs_s0"] = identity_vs_s0(model_key, seed, theta, ctx)
     return rec
@@ -506,6 +520,27 @@ def failed_record(model: str, cell: str, seed: int, exc: BaseException) -> Dict[
 
 def is_ok(r: Dict[str, Any]) -> bool:
     return r.get("status", "ok") == "ok"
+
+
+def e14_cell_stats(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+    """Totals over the seeds of one E14 cell (S6: fair-wait; S7: carry-over)."""
+    out: Dict[str, Any] = {}
+    fair = [r["e14"]["fair"] for r in rows if r.get("e14", {}).get("fair")]
+    if fair:
+        n_rounds = sum(len(f["per_round"]) for f in fair)
+        out["fair"] = {"max_exclusion": fair[0]["max_exclusion"], "fair_wait_timeouts_total": sum(f["fair_wait_timeouts"] for f in fair),
+                       "rounds_with_required_workers": sum(f["rounds_with_required_workers"] for f in fair), "rounds_with_extra_wait": sum(f["rounds_with_extra_wait"] for f in fair),
+                       "extra_wait_s_total": sum(f["extra_wait_s_total"] for f in fair), "extra_wait_s_mean_per_round": (sum(f["extra_wait_s_total"] for f in fair) / n_rounds) if n_rounds else None,
+                       "forced_admissions_total": sum(f["forced_admissions_total"] for f in fair)}
+    carry = [r["e14"]["carry"] for r in rows if r.get("e14", {}).get("carry")]
+    if carry:
+        hist: Dict[str, int] = {}
+        for c in carry:
+            for k_, v_ in c["staleness_hist"].items():
+                hist[k_] = hist.get(k_, 0) + v_
+        out["carry"] = {"max_staleness": carry[0]["max_staleness"], "carried_count_total": sum(c["carried_count_total"] for c in carry), "carried_tokens_total": sum(c["carried_tokens_total"] for c in carry),
+                        "staleness_hist": hist, "too_stale_discarded_total": sum(c["too_stale_discarded_total"] for c in carry), "queued_unmerged_at_end_total": sum(c["queued_unmerged_at_end"] for c in carry)}
+    return out
 
 
 def aggregate(raw: Dict[str, Any]) -> Dict[str, Any]:
@@ -548,8 +583,12 @@ def aggregate(raw: Dict[str, Any]) -> Dict[str, Any]:
                 "round_latency_s": {"p50": lib.percentile(lat, 0.5), "p95": lib.percentile(lat, 0.95), "p99": lib.percentile(lat, 0.99), "n": len(lat), "note": "descriptive only: one GPU, time-shared"},
                 "mean_measured_rate_bits_per_dim": statistics.fmean([r["wire"]["mean_measured_rate_bits_per_dim"] for r in rows if r["wire"].get("mean_measured_rate_bits_per_dim") is not None] or [float("nan")]),
             }
+            if cell in E14_CELLS:
+                cells[cell]["e14"] = e14_cell_stats(rows)
         paired: Dict[str, Any] = {}
         for cell in REPORT_CELLS[1:]:
+            if cell in E14_CELLS and not any((cell, s) in by for s in seeds):
+                continue  # E14 cells are opt-in: absent means no entry (the E13 report is unchanged)
             ss = [s for s in seeds if (cell, s) in by and ("S0", s) in by]
             if len(ss) != 3:
                 paired[cell] = {"status": f"needs exactly 3 paired seeds (have {len(ss)})", "seeds": ss}
@@ -557,6 +596,30 @@ def aggregate(raw: Dict[str, Any]) -> Dict[str, Any]:
             d = [by[(cell, s)]["final_loss"] - by[("S0", s)]["final_loss"] for s in ss]
             m, h = mean_ci(d)
             paired[cell] = {"final_loss_minus_S0_per_seed": d, "mean": m, "ci95": h, "t_crit_df2": T_CRIT_DF2, "ci_excludes_0": bool(abs(m) > h), "direction": "worse than S0" if m > h else ("better than S0" if m < -h else "within CI of S0")}
+        e14_present = [c for c in E14_CELLS if any((c, s) in by for s in seeds)]
+        paired_s2: Dict[str, Any] = {}
+        retention: Dict[str, Any] = {}
+        for cell in e14_present:
+            ss = [s for s in seeds if (cell, s) in by and ("S2", s) in by]
+            if len(ss) != 3:
+                paired_s2[cell] = {"status": f"needs exactly 3 paired seeds with S2 (have {len(ss)})", "seeds": ss}
+                continue
+            d = [by[("S2", s)]["final_loss"] - by[(cell, s)]["final_loss"] for s in ss]  # S2 minus cell: positive = the E14 cell is better than S2
+            m, h = mean_ci(d)
+            paired_s2[cell] = {"S2_minus_cell_final_loss_per_seed": d, "mean": m, "ci95": h, "t_crit_df2": T_CRIT_DF2, "ci_excludes_0": bool(abs(m) > h),
+                               "direction": "cell better than S2" if m > h else ("cell worse than S2" if m < -h else "within CI of S2")}
+        for cell in (("S2",) if e14_present else ()) + tuple(e14_present):  # registered formula rho_s = (L_round0 - L_cell,s) / (L_round0 - L_S0,s)
+            rho = {}
+            for s in seeds:
+                if (cell, s) in by and ("S0", s) in by:
+                    den = by[("S0", s)]["initial_loss"] - by[("S0", s)]["final_loss"]
+                    if den != 0.0:
+                        rho[s] = (by[("S0", s)]["initial_loss"] - by[(cell, s)]["final_loss"]) / den
+            row: Dict[str, Any] = {"retention_per_seed": {str(s): v for s, v in rho.items()}}
+            if len(rho) == 3:
+                m, h = mean_ci(list(rho.values()))
+                row.update({"mean": m, "ci95": h, "t_crit_df2": T_CRIT_DF2})
+            retention[cell] = row
         ident = []
         for c in ("S1", "S1t"):
             for s in seeds:
@@ -582,6 +645,7 @@ def aggregate(raw: Dict[str, Any]) -> Dict[str, Any]:
         }
         out[model] = {"cells": cells, "failed_cells": failed_list, "paired_vs_S0": paired, "controls": controls, "controls_all_passed": all(c["passed"] is True for c in controls.values()),
                       "hosting_fallback_cells": [{"cell": r["cell"], "seed": r["seed"], "preflight": r.get("memory_preflight")} for r in mr if r.get("hosting_fallback")],
+                      **({"e14": {"cells": e14_present, "paired_vs_S2": paired_s2, "retention_vs_S0": retention, "note": "exploratory (E14); retention = (L_round0 - L_cell) / (L_round0 - L_S0), paired_vs_S2 = S2 minus cell"}} if e14_present else {}),
                       "not_included": NOT_INCLUDED, "scope": "localhost negative control (E8): single GPU, time-shared; NOT evidence for any WAN / volunteer claim"}
     return finalize_report(out, raw.get("design_sha256"))
 
@@ -612,7 +676,7 @@ def merge_with_existing_report(path: Path, res: Dict[str, Any]) -> Dict[str, Any
 def design_dict(model_key: str, cfg: RunCfg, prereg_sha: str, experts_impl: Optional[str] = None) -> Dict[str, Any]:
     return {"eval": {"versions": list(lib.eval_versions(cfg.rounds)), "evaluator": "v mod M if alive else lowest alive", "heldout_sampling": "even stride over the held-out region"},
             "determinism": ["CUBLAS_WORKSPACE_CONFIG=:4096:8", "math SDPA only", "use_deterministic_algorithms(warn_only)"], "experts_impl": lib.resolve_experts_impl(model_key, experts_impl), "codec_wire": "int8, int16 if max|2c|>127",
-            "model": model_key, "cfg": cfg.as_dict(), "domains": list(DOMAINS[: cfg.workers]), "cells": {k: v.__dict__ for k, v in CELL_SPECS.items()}, "prereg_sha256": prereg_sha,
+            "model": model_key, "cfg": cfg.as_dict(), "domains": list(DOMAINS[: cfg.workers]), "cells": {k: {f: getattr(v, f) for f in LEGACY_SPEC_FIELDS} for k, v in CELL_SPECS.items() if k not in E14_CELLS}, "prereg_sha256": prereg_sha,
             "inner": [INNER_LR, list(INNER_BETAS), INNER_WD, GRAD_CLIP], "outer": [OUTER_LR, OUTER_MOMENTUM], "lora": [LORA_RANK, LORA_ALPHA, list(LORA_TARGETS)],
             "split": [lib.TRAIN_FRAC, lib.HELDOUT_FRAC], "straggle": [DEFAULT_STRAGGLE, SMOKE_STRAGGLE], "churn": [DEFAULT_CHURN, SMOKE_CHURN], "grace": [GRACE_TAU, GRACE_GAMMA, lib.GRACE_EMA],
             "loss_scale": LOSS_SCALE_FP16, "gates": [LEARNING_GATE_OVERRIDE if LEARNING_GATE_OVERRIDE is not None else LEARNING_GATE_NATS, FAILFAST_ROUND, FAILFAST_STEPS, FAILFAST_SEC_FACTOR]}
@@ -721,6 +785,8 @@ def _coordinator_main(a: argparse.Namespace, ap: argparse.ArgumentParser) -> int
     model_key = "tiny" if a.smoke else a.model
     meta = lib.MODEL_META[model_key]
     cfg = SMOKE if a.smoke else RunCfg(rounds=a.rounds, workers=a.workers or meta["workers"], inner=a.inner)
+    if a.smoke and a.workers is not None and a.workers != SMOKE.workers:  # smoke with M != 2 (e.g. 6 peers); the default smoke is unchanged
+        cfg = RunCfg(**{**SMOKE.as_dict(), "workers": a.workers})
     hosting = a.peer_hosting or meta["hosting"]
     grad_ckpt = meta["grad_ckpt"] if a.grad_ckpt is None else a.grad_ckpt
     seeds = tuple(int(s) for s in (a.seeds or ("1" if a.smoke else "1,2,3")).split(","))
