@@ -91,7 +91,10 @@ def trust_report(pr: Dict[str, Any]) -> Dict[str, Any]:
     return {"author_login": author_login, "author_is_owner_login": author_login == OWNER_LOGIN, "commits": commit_rows, "owner_authored": bool(all_ok and commit_rows)}
 
 
-SCAN_EXEMPT_FILES = {"scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py"}  # they define and test the patterns
+SCAN_EXEMPT_FILES = {  # these files *define and test* the forbidden patterns, so their text necessarily contains them
+    "scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py",
+    "src/hivemind/security/hivemind_firewall.py", "src/hivemind/security/firewall_pentest_corpus.py", "tests/test_hivemind_firewall.py",
+}
 SCAN_SKIP_SUFFIXES = (".md", ".txt", ".rst", ".tex", ".json", ".jsonl", ".csv")  # prose and data, not executed
 
 
