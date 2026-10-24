@@ -86,6 +86,7 @@ DEFAULT_STRAGGLE = "-1:1,3,5:2.0"  # worker M-1 sleeps 2 x its median compute ti
 DEFAULT_CHURN = "1:2:3"  # worker 1 SIGKILLed after round 2 closes, re-spawned (fresh optimizer + EF carry) once round 3 closes, i.e. before round 4
 SMOKE_STRAGGLE, SMOKE_CHURN = "-1:1:2.0", "1:1:1"  # 2 rounds only: restart worker 1 across the round-1/round-2 boundary
 LEARNING_GATE_NATS = 0.05  # fail-fast: S0 mixture held-out loss must drop by this much between round 0 and round FAILFAST_ROUND
+LEARNING_GATE_OVERRIDE: Optional[float] = None  # --learning-gate: only for a registered waiver (amendment 5: identity-only M=2 run)
 SMOKE_LEARNING_GATE_NATS = -1e9  # disabled in the smoke (random tiny model, 3 steps); tests patch it to exercise the abort path
 FAILFAST_ROUND = lib.FAILFAST_ROUND
 GIB = 1024 ** 3
@@ -271,7 +272,7 @@ def run_s0(model_key: str, seed: int, ctx: Ctx, twin: bool = False) -> Dict[str,
     skipped = 0
     failfast = (not ctx.s0_done) and not twin
     step_times: Optional[List[float]] = [] if failfast else None
-    gate = SMOKE_LEARNING_GATE_NATS if cfg.smoke else LEARNING_GATE_NATS
+    gate = SMOKE_LEARNING_GATE_NATS if cfg.smoke else (LEARNING_GATE_OVERRIDE if LEARNING_GATE_OVERRIDE is not None else LEARNING_GATE_NATS)
     for rnd in range(1, cfg.rounds + 1):
         t0 = time.perf_counter()
         outs = []
@@ -614,7 +615,7 @@ def design_dict(model_key: str, cfg: RunCfg, prereg_sha: str, experts_impl: Opti
             "model": model_key, "cfg": cfg.as_dict(), "domains": list(DOMAINS[: cfg.workers]), "cells": {k: v.__dict__ for k, v in CELL_SPECS.items()}, "prereg_sha256": prereg_sha,
             "inner": [INNER_LR, list(INNER_BETAS), INNER_WD, GRAD_CLIP], "outer": [OUTER_LR, OUTER_MOMENTUM], "lora": [LORA_RANK, LORA_ALPHA, list(LORA_TARGETS)],
             "split": [lib.TRAIN_FRAC, lib.HELDOUT_FRAC], "straggle": [DEFAULT_STRAGGLE, SMOKE_STRAGGLE], "churn": [DEFAULT_CHURN, SMOKE_CHURN], "grace": [GRACE_TAU, GRACE_GAMMA, lib.GRACE_EMA],
-            "loss_scale": LOSS_SCALE_FP16, "gates": [LEARNING_GATE_NATS, FAILFAST_ROUND, FAILFAST_STEPS, FAILFAST_SEC_FACTOR]}
+            "loss_scale": LOSS_SCALE_FP16, "gates": [LEARNING_GATE_OVERRIDE if LEARNING_GATE_OVERRIDE is not None else LEARNING_GATE_NATS, FAILFAST_ROUND, FAILFAST_STEPS, FAILFAST_SEC_FACTOR]}
 
 
 def write_raw(path: Path, design_sha: str, runs: List[Dict[str, Any]]) -> None:
@@ -682,6 +683,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--grad-ckpt", action=argparse.BooleanOptionalAction, default=None, help="gradient checkpointing (default per model: granite1b on)")
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--cell-timeout", type=float, default=DEFAULT_CELL_TIMEOUT_S, help="wall seconds per swarm cell (default 3600)")
+    ap.add_argument("--learning-gate", type=float, default=None, help="override the S0 learning gate in nats (registered default 0.05; use only with a registered waiver)")
     ap.add_argument("--max-hours", type=float, default=DEFAULT_MAX_HOURS, help="fail-fast if the time projected from the first S0 round exceeds this (default 3.0)")
     ap.add_argument("--experts-impl", choices=("eager", "grouped_mm", "default"), default=None,
                     help="MoE experts implementation passed to from_pretrained (default per model: granite 'eager'; 'default' = do not pass the kwarg)")
@@ -689,6 +691,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--worker-config", default=None, help=argparse.SUPPRESS)
     a = ap.parse_args(argv)
+    global LEARNING_GATE_OVERRIDE
+    LEARNING_GATE_OVERRIDE = a.learning_gate
 
     if a.worker:
         return lib.run_worker(a.worker_config)

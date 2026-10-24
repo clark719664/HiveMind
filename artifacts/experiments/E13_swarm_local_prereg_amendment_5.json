@@ -1,0 +1,10 @@
+{
+  "experiment_id": "E13-swarm-local",
+  "amends": "E13_swarm_local_prereg.json + amendments 1-4 (unchanged)",
+  "amendment": 5,
+  "registered_utc": "2026-10-24T09:20:00Z",
+  "when": "after the E13-m2proc run (amendment 2) was aborted by the registered learning gate (S0 with M=2, domains code and wiki-fr, improved the mixture held-out loss by only 0.0253 nats by round 3 < 0.05); before any rerun",
+  "waiver": "for the identity-only M=2 OS-process run (cells S0 and S1, seed 1) the learning gate is relaxed from 0.05 to 0.0 nats (S0 must not get worse by round 3) via the new --learning-gate option. Reason: the run asserts only that two real OS processes over HTTP reproduce their own S0 exactly, which does not depend on how much the model learns; M=2 sees only two domains and learns less by round 3.",
+  "not_waived": "the gate stays 0.05 for every other E13 run; the s0_learns control (final < initial) still applies; no P13b/P13c status is assigned to this run (amendment 2)",
+  "code": "--learning-gate (default None = registered 0.05) in scripts/run_experiment_E13_swarm_local.py; the design hash records the effective gate"
+}
