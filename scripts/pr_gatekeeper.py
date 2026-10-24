@@ -45,7 +45,8 @@ REPO = "xaviercallens/HiveMind"
 # registered on GitHub, HIVEMIND_GATE_REQUIRE_SIGNED=1 makes an unsigned owner-attributed commit HOLD instead of ACCEPT.
 REQUIRE_SIGNED_COMMITS = os.environ.get("HIVEMIND_GATE_REQUIRE_SIGNED", "0") == "1"
 LOG_DIR = PROJECT_ROOT / "artifacts" / "pr_gatekeeper"
-PY = os.environ.get("HIVEMIND_PY", sys.executable)
+_venv_py = PROJECT_ROOT / ".venv" / "bin" / "python"
+PY = os.environ.get("HIVEMIND_PY", str(_venv_py) if _venv_py.exists() else sys.executable)
 SMOKE_TESTS = ["tests/test_decoupled_diloco_quorum.py", "tests/test_readme_claims.py", "tests/test_lattice_quantizer.py"]
 # (regex over ADDED diff lines, reason). The patterns are assembled from fragments so that this file itself
 # does not contain the literal strings that repository hooks refuse to see in shell commands.
@@ -167,7 +168,7 @@ def gwaya_audit(wt: Path, files: List[str]) -> Dict[str, Any]:
 def run_pytest(wt: Path, files: List[str]) -> Dict[str, Any]:
     targets = sorted({f for f in files if f.startswith("tests/") and f.endswith(".py") and (wt / f).exists()} | {t for t in SMOKE_TESTS if (wt / t).exists()})
     env = dict(os.environ, PYTHONPATH=str(wt / "src"))
-    rc, out = sh([PY, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider", "-x", "--deselect", "tests/test_seti_swarm_v2.py::test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching"], cwd=wt, timeout=TEST_TIMEOUT_S, env=env)
+    rc, out = sh([PY, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider", "-p", "no:cov", "-p", "no:typeguard", "-x", "--deselect", "tests/test_seti_swarm_v2.py::test_s3_01_multi_node_wan_nat_traversal_stun_turn_hole_punching"], cwd=wt, timeout=TEST_TIMEOUT_S, env=env)
     tail = out.strip().splitlines()[-1] if out.strip() else ""
     return {"targets": targets, "returncode": rc, "summary": tail[:200], "passed": rc == 0}
 
