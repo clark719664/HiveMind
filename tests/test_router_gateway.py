@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
-import openai
 import pytest
 from fastapi.testclient import TestClient
 from hypothesis import given, settings
@@ -426,6 +425,7 @@ def test_streaming_502_when_all_producers_fail_and_no_charge(world: World) -> No
 
 
 def test_official_openai_client_works_against_the_gateway(world: World) -> None:
+    openai = pytest.importorskip("openai")
     consumer_id, key = world.consumer(10.0)
     world.producer("prod-a.test", {"qwen": "qwen3:8b"})
     sdk = openai.OpenAI(base_url="http://testserver/v1", api_key=key, http_client=world.app_client, max_retries=0)
