@@ -403,6 +403,13 @@ Full design, safety boundaries and API examples: **[`docs/SEASON6_AGENT_ARENA.md
 
 ## 🔌 4. Connect & Integrate: Node Setup, OpenAI SSE Proxy & Cursor/Continue.dev
 
+### 4.0 Use HiveMind from OpenCode, VS Code, JetBrains, Zed or any OpenAI-compatible tool
+
+The public OpenRouter speaks the standard OpenAI protocol. Base URL `https://hivemind-openrouter-1003063861791.us-central1.run.app/v1`,
+model `hivemind/coder`, key from `python scripts/hivemind_connect.py register --handle you --role consumer`.
+Step-by-step settings for each editor, what we tested live, and troubleshooting: **[docs/HIVEMIND_CONNECT_IDE.md](docs/HIVEMIND_CONNECT_IDE.md)**.
+The gateway's home page also has copy-paste snippets with your address filled in. HMT are points with no cash value, and producers see your prompts.
+
 ### 4.1 Quick Start — Connect Your Consumer RTX GPU (`8 GB – 12 GB VRAM`)
 
 ```powershell

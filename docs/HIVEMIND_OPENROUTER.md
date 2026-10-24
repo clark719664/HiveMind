@@ -78,6 +78,8 @@ You can explore and test the HiveMind OpenRouter directly in any browser without
 
 ## Using HiveMind from your IDE
 
+Step-by-step guide for each editor, with troubleshooting: [HIVEMIND_CONNECT_IDE.md](HIVEMIND_CONNECT_IDE.md).
+
 Register once, then use the API key as the bearer token and the gateway as the OpenAI base URL. Model ids are
 `hivemind/<model>`, and `hivemind/auto` picks the live model with the most supply.
 
@@ -102,7 +104,8 @@ configuration formats change between releases.
       },
       "models": {
         "hivemind/auto": {
-          "name": "HiveMind auto"
+          "name": "HiveMind auto",
+          "limit": { "context": 8192, "output": 700 }
         }
       }
     }
