@@ -181,6 +181,94 @@
    "output": "artifacts/experiments/E11b_raw_qwen7b_gsm8k_w1024.json"
   },
   {
+   "name": "E11b_qwen0.5b_news_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "news"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen0.5b_news_w1024.json"
+  },
+  {
+   "name": "E11b_qwen7b_news_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "news"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen7b_news_w1024.json"
+  },
+  {
+   "name": "E11b_qwen0.5b_fiction_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "fiction"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen0.5b_fiction_w1024.json"
+  },
+  {
+   "name": "E11b_qwen7b_fiction_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "fiction"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen7b_fiction_w1024.json"
+  },
+  {
+   "name": "E11b_qwen0.5b_pubmed_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "pubmed"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen0.5b_pubmed_w1024.json"
+  },
+  {
+   "name": "E11b_qwen7b_pubmed_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "pubmed"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen7b_pubmed_w1024.json"
+  },
+  {
+   "name": "E11b_qwen0.5b_wiki-fr_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "wiki-fr"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen0.5b_wiki-fr_w1024.json"
+  },
+  {
+   "name": "E11b_qwen7b_wiki-fr_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "wiki-fr"
+   ],
+   "output": "artifacts/experiments/E11b_raw_qwen7b_wiki-fr_w1024.json"
+  },
+  {
    "name": "E11b_gemma4-e4b_gsm8k_w1024",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",

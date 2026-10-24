@@ -392,6 +392,24 @@ def dataset_texts(name: str) -> Tuple[str, str]:
         rows = [json.loads(line) for line in gzip.open(_hub_file("datasets--codeparrot--codeparrot-clean-valid", "file-000000000054.json.gz"), "rt")]
         code = [r["content"] for r in rows if r.get("content")]
         return "\n\n".join(code[:30]), "\n\n".join(code[200:900])
+    # second E11b wave (2026-10-24): news, narrative fiction, biomedical science, French
+    if name == "news":
+        cal = pd.read_parquet(_hub_file("datasets--abisee--cnn_dailymail", "3.0.0/validation-*.parquet"), columns=["article"])["article"]
+        ev = pd.read_parquet(_hub_file("datasets--abisee--cnn_dailymail", "3.0.0/test-*.parquet"), columns=["article"])["article"]
+        return "\n\n".join(cal.iloc[:40].tolist()), "\n\n".join(ev.iloc[:700].tolist())
+    if name == "fiction":
+        txt = pd.read_parquet(_hub_file("datasets--EleutherAI--lambada_openai", "en/test/en.parquet"), columns=["text"])["text"]
+        return "\n\n".join(txt.iloc[:300].tolist()), "\n\n".join(txt.iloc[1000:4500].tolist())
+    if name == "pubmed":
+        cal = pd.read_parquet(_hub_file("datasets--ccdv--pubmed-summarization", "section/validation-*.parquet"), columns=["article"])["article"]
+        ev = pd.read_parquet(_hub_file("datasets--ccdv--pubmed-summarization", "section/test-*.parquet"), columns=["article"])["article"]
+        return "\n\n".join(cal.iloc[:10].tolist()), "\n\n".join(ev.iloc[:160].tolist())
+    if name == "wiki-fr":
+        import pyarrow.parquet as pq
+
+        pf = pq.ParquetFile(_hub_file("datasets--wikimedia--wikipedia", "20231101.fr/train-00000-of-00017.parquet"))
+        arts = pf.read_row_group(0, columns=["text"]).column("text").to_pylist()
+        return "\n\n".join(arts[:20]), "\n\n".join(arts[100:250])
     raise KeyError(name)
 
 
@@ -734,7 +752,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", choices=list(MODELS))
     ap.add_argument("--aggregate", action="store_true")
-    ap.add_argument("--dataset", default="wikitext2", choices=["wikitext2", "fineweb-edu", "gsm8k", "code"])
+    ap.add_argument("--dataset", default="wikitext2", choices=["wikitext2", "fineweb-edu", "gsm8k", "code", "news", "fiction", "pubmed", "wiki-fr"])
     ap.add_argument("--window", type=int, default=WINDOW)
     ap.add_argument("--windows-per-seed", type=int, default=WINDOWS_PER_SEED)
     a = ap.parse_args()

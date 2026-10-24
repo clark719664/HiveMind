@@ -308,10 +308,72 @@
     "  \"receipt\": \"712fb41a75ede9b3762e68840085c8ff02cf03767550557b5a1e8178e043a109\"",
     "}"
    ]
+  },
+  {
+   "name": "E11b_qwen0.5b_fineweb-edu_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "fineweb-edu"
+   ],
+   "start_unix": 1792806968.9068637,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 336.4,
+   "log_tail": [
+    "[qwen0.5b] seed 2 window 186: base NLL 3.0907",
+    "[qwen0.5b] seed 2 window 266: base NLL 2.8194",
+    "[qwen0.5b] seed 2 window 346: base NLL 2.5926",
+    "[qwen0.5b] seed 2 window 426: base NLL 2.6653",
+    "[qwen0.5b] seed 2 window 506: base NLL 2.5791",
+    "[qwen0.5b] seed 2 window 586: base NLL 2.9543",
+    "[qwen0.5b] seed 3 window 53: base NLL 2.7159",
+    "[qwen0.5b] seed 3 window 133: base NLL 2.8238",
+    "[qwen0.5b] seed 3 window 213: base NLL 2.3451",
+    "[qwen0.5b] seed 3 window 293: base NLL 3.3736",
+    "[qwen0.5b] seed 3 window 373: base NLL 2.3293",
+    "[qwen0.5b] seed 3 window 453: base NLL 2.4227",
+    "[qwen0.5b] seed 3 window 533: base NLL 2.6347",
+    "[qwen0.5b] seed 3 window 613: base NLL 2.3609",
+    "[qwen0.5b] wrote E11b_raw_qwen0.5b_fineweb-edu_w1024.json in 332.3s, peak 1.295 GiB"
+   ]
+  },
+  {
+   "name": "E11b_qwen7b_fineweb-edu_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "fineweb-edu"
+   ],
+   "start_unix": 1792807305.304516,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 1310.8,
+   "log_tail": [
+    "[qwen7b] seed 2 window 186: base NLL 2.9070",
+    "[qwen7b] seed 2 window 266: base NLL 2.4509",
+    "[qwen7b] seed 2 window 346: base NLL 2.3261",
+    "[qwen7b] seed 2 window 426: base NLL 2.3295",
+    "[qwen7b] seed 2 window 506: base NLL 2.2091",
+    "[qwen7b] seed 2 window 586: base NLL 2.6739",
+    "[qwen7b] seed 3 window 53: base NLL 2.3108",
+    "[qwen7b] seed 3 window 133: base NLL 2.3399",
+    "[qwen7b] seed 3 window 213: base NLL 2.0616",
+    "[qwen7b] seed 3 window 293: base NLL 3.0720",
+    "[qwen7b] seed 3 window 373: base NLL 1.9169",
+    "[qwen7b] seed 3 window 453: base NLL 2.0754",
+    "[qwen7b] seed 3 window 533: base NLL 2.2687",
+    "[qwen7b] seed 3 window 613: base NLL 2.0319",
+    "[qwen7b] wrote E11b_raw_qwen7b_fineweb-edu_w1024.json in 1302.5s, peak 14.228 GiB"
+   ]
   }
  ],
- "gpu_samples": 612,
- "gpu_util_mean_pct": 63.3,
+ "gpu_samples": 667,
+ "gpu_util_mean_pct": 64.2,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E10b_amended": 98.5,
@@ -320,6 +382,8 @@
   "E11_gemma4-e4b_retry": 97.7,
   "E11_qwen0.5b": 26.0,
   "E11_qwen7b": 31.3,
+  "E11b_qwen7b_fineweb-edu_w1024": 76.6,
+  "E11b_qwen0.5b_fineweb-edu_w1024": 64.5,
   "E11_qwen7b_retry": 73.2,
   "E10b_lattice_05b": 99.7,
   "E12_replay_retry": 10.6
@@ -1396,6 +1460,104 @@
    "util_pct": 100,
    "mem_used_gib": 7.2,
    "power_w": 67.0
+  },
+  {
+   "t": 1792806995.3,
+   "job": "E11b_qwen0.5b_fineweb-edu_w1024",
+   "util_pct": 0,
+   "mem_used_gib": 1.47,
+   "power_w": 30.8
+  },
+  {
+   "t": 1792807115.3,
+   "job": "E11b_qwen0.5b_fineweb-edu_w1024",
+   "util_pct": 39,
+   "mem_used_gib": 1.57,
+   "power_w": 44.7
+  },
+  {
+   "t": 1792807235.3,
+   "job": "E11b_qwen0.5b_fineweb-edu_w1024",
+   "util_pct": 99,
+   "mem_used_gib": 2.05,
+   "power_w": 60.9
+  },
+  {
+   "t": 1792807355.3,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 0,
+   "mem_used_gib": 13.71,
+   "power_w": 30.9
+  },
+  {
+   "t": 1792807475.3,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 51,
+   "mem_used_gib": 13.94,
+   "power_w": 54.6
+  },
+  {
+   "t": 1792807595.4,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 62.9
+  },
+  {
+   "t": 1792807715.4,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 73,
+   "mem_used_gib": 14.81,
+   "power_w": 64.7
+  },
+  {
+   "t": 1792807835.4,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 64.8
+  },
+  {
+   "t": 1792807955.5,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 66.5
+  },
+  {
+   "t": 1792808075.5,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 73,
+   "mem_used_gib": 14.81,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792808195.5,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 75,
+   "mem_used_gib": 14.81,
+   "power_w": 58.6
+  },
+  {
+   "t": 1792808315.5,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 68.4
+  },
+  {
+   "t": 1792808435.6,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 77,
+   "mem_used_gib": 14.81,
+   "power_w": 39.7
+  },
+  {
+   "t": 1792808555.6,
+   "job": "E11b_qwen7b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 14.81,
+   "power_w": 67.9
   }
  ]
 }
