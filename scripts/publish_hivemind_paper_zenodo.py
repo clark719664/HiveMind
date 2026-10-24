@@ -197,7 +197,7 @@ def main() -> int:
     ap.add_argument("--stage", choices=["draft", "upload", "publish"], required=True)
     ap.add_argument("--deposition-id", type=int, default=None)
     ap.add_argument("--new-version-of", type=int, default=None, help="existing record id to create a new version of")
-    ap.add_argument("--version", default="3.7.0")
+    ap.add_argument("--version", default="3.7.1")
     args = ap.parse_args()
     token = load_token()
 

@@ -372,6 +372,9 @@ def verify_manuscript_data_consistency(
         e12_thr = max(float(e12["cells"][c]["linf_vs_ref"]) for c in ("threads_1", "threads_8") if c in e12["cells"])
         _add_check("PROV-32", "E12 cross-host CPU replay divergence (L-inf after 50 steps)", [f"{e12_remote * 1e4:.1f}\\cdot 10^{{-4}}", f"{e12_remote * 1e4:.2f}\\cdot 10^{{-4}}"], "artifacts/experiments/E12_pilot_report.json")
         _add_check("PROV-33", "E12 largest thread-count replay divergence (L-inf after 50 steps)", [f"{e12_thr * 1e4:.1f}\\cdot 10^{{-4}}", f"{e12_thr * 1e4:.2f}\\cdot 10^{{-4}}"], "artifacts/experiments/E12_pilot_report.json")
+        if "bf16_autocast" in e12["cells"]:
+            e12_bf16 = float(e12["cells"]["bf16_autocast"]["linf_vs_ref"])
+            _add_check("PROV-34", "E12 bf16-autocast replay divergence against an fp32 reference (L-inf after 50 steps)", [f"{e12_bf16 * 1e3:.1f}\\cdot 10^{{-3}}", f"{e12_bf16 * 1e3:.2f}\\cdot 10^{{-3}}"], "artifacts/experiments/E12_pilot_report.json")
     e10 = exp_v3_data.get("__e10__", {})
     if e10:
         e10_ratio = float(e10["analysis"]["P10a"]["cells"]["R=1.0|EF=off"]["ratio_mean"])
@@ -619,7 +622,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     peer_review_report = {
         "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-        "version": "3.7.0",
+        "version": "3.7.1",
         "is_peer_review": False,
         "disclosure": AUDIT_DISCLOSURE,
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
@@ -659,7 +662,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-        "version": "3.7.0",
+        "version": "3.7.1",
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
         "workspace_root": ".",
         "artifacts_and_entrypoints": {
