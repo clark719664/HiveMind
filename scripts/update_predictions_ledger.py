@@ -35,7 +35,34 @@ PREDICTIONS: Dict[str, Dict[str, str]] = {
     "P10a": {"rq": "RQ9", "claim": "E8 blockwise quantisation of outer deltas has lower distortion than Z8 at matched measured rate", "decided_by": "E10-lattice"},
     "P10b": {"rq": "RQ9", "claim": "E8 reaches a lower held-out loss than Z8 at matched rate (headline: 1 bit/dim with error feedback)", "decided_by": "E10-lattice"},
     "P10c": {"rq": "RQ9", "claim": "error feedback recovers the unquantised loss at 1 bit/dim with E8", "decided_by": "E10-lattice"},
+    "P11a": {"rq": "RQ10", "claim": "A2 per RoPE plane lowers KV-cache dNLL vs scalar quantisation at matched measured bits", "decided_by": "E11-kv-lattice"},
+    "P11b": {"rq": "RQ10", "claim": "E8 lowers KV-cache dNLL vs scalar only after a per-head KLT", "decided_by": "E11-kv-lattice"},
+    "P12-same": {"rq": "RQ11", "claim": "same-class spot-check replay divergence <= eps = 1e-4", "decided_by": "E12-replay-divergence"},
+    "P12-cross": {"rq": "RQ11", "claim": "cross-class spot-check replay divergence > eps = 1e-4", "decided_by": "E12-replay-divergence"},
+    "P12-fixed-point": {"rq": "RQ11", "claim": "fixed-point replay of the checked segment is exact across classes", "decided_by": "E12 (needs a fixed-point kernel)"},
 }
+E10B = PROJECT_ROOT / "artifacts" / "experiments" / "E10b_lattice_05b_report.json"
+E11 = PROJECT_ROOT / "artifacts" / "experiments" / "E11_kv_lattice_report.json"
+E12 = PROJECT_ROOT / "artifacts" / "experiments" / "E12_replay_divergence_report.json"
+
+
+def _norm(status: str) -> str:
+    s = status.split(";")[0].split(" ")[0].strip("(:")
+    return s if s in ("supported", "refuted", "inconclusive", "invalid", "inapplicable") else "inconclusive" if s.startswith("mixed") else s
+
+
+def _e10b_decision(rep: Dict[str, Any], pid: str) -> Dict[str, Any]:
+    """E10b at 0.5B; the registered rule 'run_is_valid_iff all controls pass' is applied here even when the
+    receipted report predates the runner applying it."""
+    a = rep["analysis"][pid]
+    computed = a.get("computed_status", a["status"])
+    ok = rep["controls_all_passed"]
+    failed = [k for k, v in rep["controls"].items() if isinstance(v, dict) and v.get("passed") is False]
+    status = computed if ok else f"invalid (controls failed: {', '.join(failed)}); computed: {computed}"
+    return {"experiment": "E10b-lattice-05b", "status": _norm(status), "status_detail": status,
+            "scale": "Qwen2.5-0.5B rank-8 LoRA deltas (540,672 coords), M = 4, R = 6, H = 20, fineweb-edu, 3 seeds (E10b, amendment 2)",
+            "artifact": "artifacts/experiments/E10b_lattice_05b_report.json", "receipt_sha256": rep["receipt_sha256"],
+            "evidence": {k: v for k, v in a.items() if k not in ("cells",)} | ({"cells": a["cells"]} if "cells" in a else {})}
 
 
 def _status_from_e5(report: Dict[str, Any], key: str) -> Dict[str, Any]:
@@ -99,6 +126,27 @@ def main() -> int:
                           "artifact": "artifacts/experiments/E10_lattice_report.json", "receipt_sha256": e10["receipt_sha256"], "prereg_sha256": e10["prereg_sha256"],
                           "controls_all_passed": e10["controls_all_passed"], "evidence": {k: v for k, v in a.items() if k != "cells"} | ({"cells": {ck: {kk: vv for kk, vv in cv.items() if kk != "per_seed"} for ck, cv in a["cells"].items()}} if "cells" in a else {}),
                           "note": "decided at toy scale only"})
+            if E10B.exists():
+                rep = json.loads(E10B.read_text(encoding="utf-8"))
+                entry["decisions"] = [{"experiment": "E10-lattice", **{k: entry[k] for k in ("status", "status_detail", "scale", "artifact", "receipt_sha256")}},
+                                      _e10b_decision(rep, pid)]
+                entry["note"] = "headline status from E10 (toy scale); the 0.5B run E10b is listed under 'decisions' and is invalid unless all its controls passed"
+        elif pid.startswith("P11") and E11.exists():
+            e11 = json.loads(E11.read_text(encoding="utf-8"))
+            a = e11["analysis"][pid]
+            entry.update({"status": _norm(a["status"]), "status_detail": a["status"], "per_model": a["per_model"],
+                          "scale": "real KV tensors of Qwen2.5-0.5B-Instruct, Qwen2.5-Coder-7B-Instruct and Gemma-4-E4B on WikiText-2, 1024-token windows, 3 seeds (E11, amendment 1)",
+                          "artifact": "artifacts/experiments/E11_kv_lattice_report.json", "receipt_sha256": e11["receipt_sha256"], "prereg_sha256": e11["prereg_sha256"],
+                          "controls_all_passed": e11["controls_all_passed"],
+                          "note": "overall rule: refuted if refuted on any valid model; the A2@8-vs-FP8 negative control failed on both Qwen models by a design error recorded in amendment 1"})
+        elif pid.startswith("P12") and E12.exists():
+            e12 = json.loads(E12.read_text(encoding="utf-8"))
+            a = e12["analysis"][pid]
+            entry.update({"status": "untested" if a["status"].startswith("not decided") else _norm(a["status"]), "status_detail": a["status"],
+                          "scale": "Qwen2.5-0.5B rank-8 LoRA, 50-step segments, 9 segments per cell; Tesla T4 vs the same T4 (separate process) vs this host's x86 CPU (E12)",
+                          "artifact": "artifacts/experiments/E12_replay_divergence_report.json", "receipt_sha256": e12["receipt_sha256"], "prereg_sha256": e12["prereg_sha256"],
+                          "controls_all_passed": e12["controls_all_passed"], "evidence": e12["summary"], "basis": a.get("basis"),
+                          "note": "RTX 2070, TPU-VM CPU and a second T4 were not run; the LoRA init is ~18x PEFT's default, which may inflate cross-class magnitudes"})
         elif e5h is not None and pid == "P9":
             entry.update(_status_from_e5_het(e5h, "P9"))
             entry["note"] = "decided at toy scale only"

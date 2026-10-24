@@ -117,7 +117,7 @@ two-sided brute-force check, and the ℤ⁸/E₈ arms must realise the same rate
 Pre-registration: `artifacts/experiments/E10_lattice_prereg.json`; code:
 `src/hivemind/compress/lattice_quantizer.py` (decoders ported from OptimalEnergyAI with attribution).
 
-### E11 — Lattice KV-cache codecs for the inference ring (added 2026-10-23; decides RQ10; pre-registration still to be written)
+### E11 — Lattice KV-cache codecs for the inference ring (added 2026-10-23; decides RQ10; pre-registered in `artifacts/experiments/E11_kv_lattice_prereg.json` + amendment 1, run 2026-10-23/24 — see the status log)
 
 Real `Qwen2.5-0.5B` KV tensors captured with OptimalEnergyAI's `poc2_crystallized_attention/extract.py`
 (`capture_kv`, `rope_planes`), WikiText ΔNLL as the metric. Factors: codec ∈ {FP8 per-page absmax (current
@@ -130,7 +130,7 @@ E8 amendment (from the external review of v3.5.0): the WAN factorial must includ
 against *each-mechanism-off* cells (NF4, 2-bit DCT+EF21, Skip-Token, Skip-Attention, PA-CGAD, fixed-point
 exits) so that interactions between approximations, not only main effects, are detectable.
 
-### E12 — Spot-check replay divergence across hardware (added 2026-10-23; decides RQ11; pre-registration still to be written)
+### E12 — Spot-check replay divergence across hardware (added 2026-10-23; decides RQ11; pre-registered in `artifacts/experiments/E12_replay_divergence_prereg.json`, run 2026-10-24 on the T4 and this host's CPU only — see the status log)
 
 One honest worker's 50-step segment (Qwen2.5-0.5B LoRA, the PoC configuration) replayed on the T4 of this
 workstation, the RTX 2070 of the PoC and the CPU of the TPU VM; metric `‖Δθ‖∞` per pair, 3 segments × 3
@@ -244,3 +244,33 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   method papers (10.5281/zenodo.22829767, 23467992) are now the cited source of §4's protocol.
 - Paper v3.5.1 (Directions subsection, 5 self-citations verified against the Zenodo API) republished on Zenodo.
 - **External review of v3.5.0 received** (provenance unstated; recorded verbatim in `paper/review/external_review_v3.5.0_2026-10-23.md` with a point-by-point response). Accepted: hardware-heterogeneity caveat on the ε-spot-check (new RQ11/E12, `HM-S10-08`), compounding-approximations threat (E8 all-on vs each-off cells), PoC-scale caveat, architecture figure, Skip-Token dropout note, PA-CGAD-under-quorum note. Declined: moving the scripted-review correction out of the manuscript. Four reported typos were PDF-text-extraction artefacts (source and PDF text checked). Paper v3.6.0.
+
+### 2026-10-24 — 10-hour T4 campaign: E11, E12, E10b decided as registered; E11b exploratory sweep
+
+Report: `docs/benchmarks/T4_10h_campaign_report.md` (generated from the receipts by `scripts/write_t4_benchmark_report.py`).
+Ledger: `artifacts/predictions_ledger.json` (P11a, P11b, P12-* added; E10b attached to P10a–c as an invalid decision).
+
+- **E11 (RQ10)** on real KV tensors of Qwen2.5-0.5B-Instruct (fp16), Qwen2.5-Coder-7B-Instruct (fp16, embeddings on
+  CPU) and Gemma-4-E4B (bf16, per-layer embeddings on CPU), WikiText-2, 1024-token windows, 3 seeds:
+  **P11a refuted on all three models** (no detectable gain of A₂ per RoPE plane over entropy-coded scalar at matched
+  measured bits); **P11b refuted** on Gemma (E₈ already beats ℤ without the KLT; inconclusive on 0.5B, supported on
+  7B by its one rate-matched KLT cell). Consequence: the KV ring stays on FP8 (`HM-S10-05` keeps the pluggable codec,
+  adopts none). Amendment 1 (per-layer calibration rate) was made after the first 0.5B execution and before any 7B /
+  Gemma result; the A₂@8-vs-FP8 negative control fails on both Qwen models because e4m3 keeps 3 mantissa bits (a
+  design error, kept as registered). Many 7B cells missed the matched-rate band; Qwen-7B is extremely KV-sensitive
+  (FP8 ΔNLL +0.47 nats).
+- **E12 (RQ11)**: **P12-same supported** (same T4, separate process: ‖Δθ‖∞ = 0.0 in 9/9), **P12-cross supported** (T4 vs
+  x86 CPU, fp32: 2.0e-4–6.3e-4 > ε in 9/9), controls pass. The fp64 + 2⁻²⁰ snapping proxy does not reduce the
+  cross-device divergence, which sits near the inner lr from step 10 on — consistent with Adam's sign-like early steps
+  turning any tiny gradient difference into an ≈lr step (interpretation). RTX 2070 / TPU cells and the fixed-point
+  clause remain open. `HM-S10-08`: validators are assigned by accelerator class; cross-class replays are 'not comparable'.
+- **E10b (RQ9 at 0.5B)**: first execution aborted by the lead after one cell (0.72 s/step vs 0.12 assumed; the
+  E12-style LoRA init made the testbed diverge — confirmed by a CPU diagnostic); amendment 2 (PEFT-scale init, 5 arms,
+  R = 6, H = 20, registered fail-fast rule). The amended run is **invalid**: its positive control failed (sign without
+  EF did not hurt in seed 3; all arms end within ~1e-3 nats). Descriptive: relMSE(E₈)/relMSE(ℤ⁸) = 0.869 ± 0.003 at 1
+  bit/dim on real LoRA deltas (Gaussian prediction 0.86). P10a–c keep their E10 (toy) statuses.
+- **E11b** (exploratory, decides nothing): same codecs on fineweb-edu, code and GSM8K and at 4096 tokens; results in
+  the campaign report.
+- Code delivered on the way (Sonnet / Haiku subagents, reviewed by the lead): GPU lattice codecs with A₂
+  (`hivemind.compress.kv_lattice`), pluggable KV page codecs, validator assignment, E10b runner, E11b aggregator, a
+  lazy `peft` import in `hivemind.core.quantization` (the replay path no longer needs peft), 60+ CPU tests.

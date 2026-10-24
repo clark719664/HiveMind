@@ -1,6 +1,6 @@
 {
   "schema_version": "hivemind-predictions-ledger/v1.1",
-  "updated_utc": "2026-10-23T17:43:57Z",
+  "updated_utc": "2026-10-24T01:57:33Z",
   "predictions": {
     "P1": {
       "rq": "RQ1",
@@ -518,7 +518,42 @@
           }
         }
       },
-      "note": "decided at toy scale only"
+      "note": "headline status from E10 (toy scale); the 0.5B run E10b is listed under 'decisions' and is invalid unless all its controls passed",
+      "decisions": [
+        {
+          "experiment": "E10-lattice",
+          "status": "supported",
+          "status_detail": "supported; R in [2.0] invalid (matched-rate control failed)",
+          "scale": "toy LoRA deltas (2048 coords) on the E5-het rho = 4, M = 8 testbed, 3 seeds (E10-lattice)",
+          "artifact": "artifacts/experiments/E10_lattice_report.json",
+          "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335"
+        },
+        {
+          "experiment": "E10b-lattice-05b",
+          "status": "invalid",
+          "status_detail": "invalid (controls failed: positive_sign_hurts); computed: supported",
+          "scale": "Qwen2.5-0.5B rank-8 LoRA deltas (540,672 coords), M = 4, R = 6, H = 20, fineweb-edu, 3 seeds (E10b, amendment 2)",
+          "artifact": "artifacts/experiments/E10b_lattice_05b_report.json",
+          "receipt_sha256": "712fb41a75ede9b3762e68840085c8ff02cf03767550557b5a1e8178e043a109",
+          "evidence": {
+            "status": "supported",
+            "cells": {
+              "R=1.0|EF=on": {
+                "ratio_mean": 0.8690809083922092,
+                "ci95": 0.002528724047902844,
+                "per_seed": [
+                  0.8684860915671402,
+                  0.8685003283735652,
+                  0.870256305235922
+                ],
+                "gaussian_prediction": 0.86,
+                "e10_toy_ratio_R1": 0.81,
+                "rate_matched": true
+              }
+            }
+          }
+        }
+      ]
     },
     "P10b": {
       "rq": "RQ9",
@@ -556,7 +591,40 @@
           }
         }
       },
-      "note": "decided at toy scale only"
+      "note": "headline status from E10 (toy scale); the 0.5B run E10b is listed under 'decisions' and is invalid unless all its controls passed",
+      "decisions": [
+        {
+          "experiment": "E10-lattice",
+          "status": "inconclusive",
+          "status_detail": "inconclusive (CI includes 0)",
+          "scale": "toy LoRA deltas (2048 coords) on the E5-het rho = 4, M = 8 testbed, 3 seeds (E10-lattice)",
+          "artifact": "artifacts/experiments/E10_lattice_report.json",
+          "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335"
+        },
+        {
+          "experiment": "E10b-lattice-05b",
+          "status": "invalid",
+          "status_detail": "invalid (controls failed: positive_sign_hurts); computed: inconclusive (CI includes 0)",
+          "scale": "Qwen2.5-0.5B rank-8 LoRA deltas (540,672 coords), M = 4, R = 6, H = 20, fineweb-edu, 3 seeds (E10b, amendment 2)",
+          "artifact": "artifacts/experiments/E10b_lattice_05b_report.json",
+          "receipt_sha256": "712fb41a75ede9b3762e68840085c8ff02cf03767550557b5a1e8178e043a109",
+          "evidence": {
+            "status": "inconclusive (CI includes 0)",
+            "cells": {
+              "R=1.0|EF=on": {
+                "z8_minus_e8_mean": 0.0001237727701663971,
+                "ci95": 0.0003858876292626267,
+                "per_seed": [
+                  -4.032999277114868e-05,
+                  0.00014310702681541443,
+                  0.00026854127645492554
+                ],
+                "status": "inconclusive (CI includes 0)"
+              }
+            }
+          }
+        }
+      ]
     },
     "P10c": {
       "rq": "RQ9",
@@ -574,14 +642,228 @@
         "ci95": 0.07729458851962026,
         "status": "supported"
       },
-      "note": "decided at toy scale only"
+      "note": "headline status from E10 (toy scale); the 0.5B run E10b is listed under 'decisions' and is invalid unless all its controls passed",
+      "decisions": [
+        {
+          "experiment": "E10-lattice",
+          "status": "supported",
+          "status_detail": "supported",
+          "scale": "toy LoRA deltas (2048 coords) on the E5-het rho = 4, M = 8 testbed, 3 seeds (E10-lattice)",
+          "artifact": "artifacts/experiments/E10_lattice_report.json",
+          "receipt_sha256": "e16e482d06f042d70a4cecaad5b696c4cb90f67154402570b56963d80cac3335"
+        },
+        {
+          "experiment": "E10b-lattice-05b",
+          "status": "invalid",
+          "status_detail": "invalid (controls failed: positive_sign_hurts); computed: supported",
+          "scale": "Qwen2.5-0.5B rank-8 LoRA deltas (540,672 coords), M = 4, R = 6, H = 20, fineweb-edu, 3 seeds (E10b, amendment 2)",
+          "artifact": "artifacts/experiments/E10b_lattice_05b_report.json",
+          "receipt_sha256": "712fb41a75ede9b3762e68840085c8ff02cf03767550557b5a1e8178e043a109",
+          "evidence": {
+            "minus_none_mean": -5.448982119560242e-05,
+            "ci95": 0.0008819600010650527,
+            "per_seed": [
+              0.00020183250308036804,
+              9.443238377571106e-05,
+              -0.00045973435044288635
+            ],
+            "status": "supported",
+            "context_only": {
+              "Z8@1+EF": {
+                "minus_none_mean": 6.928294897079468e-05,
+                "ci95": 0.000568271798249405,
+                "per_seed": [
+                  0.00016150251030921936,
+                  0.0002375394105911255,
+                  -0.00019119307398796082
+                ],
+                "status": "supported"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "P11a": {
+      "rq": "RQ10",
+      "claim": "A2 per RoPE plane lowers KV-cache dNLL vs scalar quantisation at matched measured bits",
+      "decided_by": "E11-kv-lattice",
+      "status": "refuted",
+      "status_detail": "refuted (on qwen0.5b, qwen7b, gemma4-e4b)",
+      "per_model": {
+        "qwen0.5b": "refuted",
+        "qwen7b": "refuted",
+        "gemma4-e4b": "refuted"
+      },
+      "scale": "real KV tensors of Qwen2.5-0.5B-Instruct, Qwen2.5-Coder-7B-Instruct and Gemma-4-E4B on WikiText-2, 1024-token windows, 3 seeds (E11, amendment 1)",
+      "artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+      "receipt_sha256": "d47e0956eef3a8314e1a0ab3c64c5d8679ca8a7d28f0af9f088920d19b20ac51",
+      "prereg_sha256": "f79e06aeb2f12e0314a1d381ef87df3f6548dedf4393699854d0a216814b6cb5",
+      "controls_all_passed": false,
+      "note": "overall rule: refuted if refuted on any valid model; the A2@8-vs-FP8 negative control failed on both Qwen models by a design error recorded in amendment 1"
+    },
+    "P11b": {
+      "rq": "RQ10",
+      "claim": "E8 lowers KV-cache dNLL vs scalar only after a per-head KLT",
+      "decided_by": "E11-kv-lattice",
+      "status": "refuted",
+      "status_detail": "refuted (on gemma4-e4b)",
+      "per_model": {
+        "qwen0.5b": "inconclusive",
+        "qwen7b": "supported",
+        "gemma4-e4b": "refuted (E8 already beats Z without the transform)"
+      },
+      "scale": "real KV tensors of Qwen2.5-0.5B-Instruct, Qwen2.5-Coder-7B-Instruct and Gemma-4-E4B on WikiText-2, 1024-token windows, 3 seeds (E11, amendment 1)",
+      "artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+      "receipt_sha256": "d47e0956eef3a8314e1a0ab3c64c5d8679ca8a7d28f0af9f088920d19b20ac51",
+      "prereg_sha256": "f79e06aeb2f12e0314a1d381ef87df3f6548dedf4393699854d0a216814b6cb5",
+      "controls_all_passed": false,
+      "note": "overall rule: refuted if refuted on any valid model; the A2@8-vs-FP8 negative control failed on both Qwen models by a design error recorded in amendment 1"
+    },
+    "P12-same": {
+      "rq": "RQ11",
+      "claim": "same-class spot-check replay divergence <= eps = 1e-4",
+      "decided_by": "E12-replay-divergence",
+      "status": "supported",
+      "status_detail": "supported",
+      "scale": "Qwen2.5-0.5B rank-8 LoRA, 50-step segments, 9 segments per cell; Tesla T4 vs the same T4 (separate process) vs this host's x86 CPU (E12)",
+      "artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+      "receipt_sha256": "fb1a33f6e01ad0242c6d7666a148f61d7df896742f04f3188763d64933b6a99b",
+      "prereg_sha256": "9d039cca758d2a48491765046c4cfc3f666824b9f4edadd848b60bffc5247bd5",
+      "controls_all_passed": true,
+      "evidence": {
+        "A_same_process_T4": {
+          "max_linf": 0.0,
+          "min_linf": 0.0,
+          "n_above_eps": 0,
+          "n": 9
+        },
+        "B_separate_process_T4": {
+          "max_linf": 0.0,
+          "min_linf": 0.0,
+          "n_above_eps": 0,
+          "n": 9
+        },
+        "C_cross_T4_vs_cpu": {
+          "max_linf": 0.0006259679794311523,
+          "min_linf": 0.0002049621834885329,
+          "n_above_eps": 9,
+          "n": 9
+        },
+        "D_proxy_fp64_snap_T4_vs_cpu": {
+          "max_linf": 0.0006341934204101562,
+          "min_linf": 0.0001983642578125,
+          "n_above_eps": 9,
+          "n": 9
+        },
+        "E_tamper": {
+          "max_linf": 2.960813045501709,
+          "min_linf": 2.6186968088150024,
+          "n_above_eps": 9,
+          "n": 9
+        }
+      },
+      "basis": "cell B (same T4, separate process) - a proxy for same class, not a second T4",
+      "note": "RTX 2070, TPU-VM CPU and a second T4 were not run; the LoRA init is ~18x PEFT's default, which may inflate cross-class magnitudes"
+    },
+    "P12-cross": {
+      "rq": "RQ11",
+      "claim": "cross-class spot-check replay divergence > eps = 1e-4",
+      "decided_by": "E12-replay-divergence",
+      "status": "supported",
+      "status_detail": "supported",
+      "scale": "Qwen2.5-0.5B rank-8 LoRA, 50-step segments, 9 segments per cell; Tesla T4 vs the same T4 (separate process) vs this host's x86 CPU (E12)",
+      "artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+      "receipt_sha256": "fb1a33f6e01ad0242c6d7666a148f61d7df896742f04f3188763d64933b6a99b",
+      "prereg_sha256": "9d039cca758d2a48491765046c4cfc3f666824b9f4edadd848b60bffc5247bd5",
+      "controls_all_passed": true,
+      "evidence": {
+        "A_same_process_T4": {
+          "max_linf": 0.0,
+          "min_linf": 0.0,
+          "n_above_eps": 0,
+          "n": 9
+        },
+        "B_separate_process_T4": {
+          "max_linf": 0.0,
+          "min_linf": 0.0,
+          "n_above_eps": 0,
+          "n": 9
+        },
+        "C_cross_T4_vs_cpu": {
+          "max_linf": 0.0006259679794311523,
+          "min_linf": 0.0002049621834885329,
+          "n_above_eps": 9,
+          "n": 9
+        },
+        "D_proxy_fp64_snap_T4_vs_cpu": {
+          "max_linf": 0.0006341934204101562,
+          "min_linf": 0.0001983642578125,
+          "n_above_eps": 9,
+          "n": 9
+        },
+        "E_tamper": {
+          "max_linf": 2.960813045501709,
+          "min_linf": 2.6186968088150024,
+          "n_above_eps": 9,
+          "n": 9
+        }
+      },
+      "basis": "cell C (T4 vs this host's x86 CPU, float32 both)",
+      "note": "RTX 2070, TPU-VM CPU and a second T4 were not run; the LoRA init is ~18x PEFT's default, which may inflate cross-class magnitudes"
+    },
+    "P12-fixed-point": {
+      "rq": "RQ11",
+      "claim": "fixed-point replay of the checked segment is exact across classes",
+      "decided_by": "E12 (needs a fixed-point kernel)",
+      "status": "untested",
+      "status_detail": "not decided (no fixed-point kernel); fp64 + 2^-20 snapping proxy reported in cell D",
+      "scale": "Qwen2.5-0.5B rank-8 LoRA, 50-step segments, 9 segments per cell; Tesla T4 vs the same T4 (separate process) vs this host's x86 CPU (E12)",
+      "artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+      "receipt_sha256": "fb1a33f6e01ad0242c6d7666a148f61d7df896742f04f3188763d64933b6a99b",
+      "prereg_sha256": "9d039cca758d2a48491765046c4cfc3f666824b9f4edadd848b60bffc5247bd5",
+      "controls_all_passed": true,
+      "evidence": {
+        "A_same_process_T4": {
+          "max_linf": 0.0,
+          "min_linf": 0.0,
+          "n_above_eps": 0,
+          "n": 9
+        },
+        "B_separate_process_T4": {
+          "max_linf": 0.0,
+          "min_linf": 0.0,
+          "n_above_eps": 0,
+          "n": 9
+        },
+        "C_cross_T4_vs_cpu": {
+          "max_linf": 0.0006259679794311523,
+          "min_linf": 0.0002049621834885329,
+          "n_above_eps": 9,
+          "n": 9
+        },
+        "D_proxy_fp64_snap_T4_vs_cpu": {
+          "max_linf": 0.0006341934204101562,
+          "min_linf": 0.0001983642578125,
+          "n_above_eps": 9,
+          "n": 9
+        },
+        "E_tamper": {
+          "max_linf": 2.960813045501709,
+          "min_linf": 2.6186968088150024,
+          "n_above_eps": 9,
+          "n": 9
+        }
+      },
+      "basis": null,
+      "note": "RTX 2070, TPU-VM CPU and a second T4 were not run; the LoRA init is ~18x PEFT's default, which may inflate cross-class magnitudes"
     }
   },
   "status_counts": {
-    "untested": 5,
-    "refuted": 3,
+    "untested": 6,
+    "refuted": 5,
     "inconclusive": 2,
-    "supported": 2
+    "supported": 4
   },
-  "receipt_sha256": "e51905a53983cbd609902bfdb54d13b8f33e0e729f0b38a6e1a6d0f9c34f2475"
+  "receipt_sha256": "a09499ed6755309dd51ae6629cdebba2a8b4c7fc0b52dcb4bd39b5466c58ba79"
 }
