@@ -1,0 +1,534 @@
+{
+  "schema_version": "hivemind-experiment-E13/v1.0",
+  "experiment_id": "E13-swarm-local",
+  "design_sha256": "1e630fc2fba340af9120e0e1c40f12913de30f08c01eaedf85e01162b2885c47",
+  "models": {
+    "qwen0.5b": {
+      "cells": {
+        "S0": {
+          "name": "sync_baseline",
+          "status": "ok",
+          "failed_seeds": [],
+          "seeds": [
+            1,
+            2,
+            3
+          ],
+          "final_loss_per_seed": [
+            2.62104424337546,
+            2.6191779176394143,
+            2.6215782463550568
+          ],
+          "initial_loss_per_seed": [
+            2.7417585949103036,
+            2.7417585949103036,
+            2.7417585949103036
+          ],
+          "per_domain_final_mean": {
+            "code": 2.028803984324137,
+            "wiki-fr": 2.7160709698994956,
+            "pubmed": 2.985088268915812,
+            "gsm8k": 1.2447522580623627,
+            "news": 3.245335578918457,
+            "fiction": 3.5035497546195984
+          },
+          "wire": {
+            "up_bytes_mean_per_run": 0.0,
+            "down_bytes_mean_per_run": 0.0,
+            "raw_fp32_delta_bytes_total": 0,
+            "ideal_entropy_coded_bytes_total": 0.0,
+            "actual_up_bytes_total": 0,
+            "compression_ratio_actual": null,
+            "compression_ratio_ideal": null,
+            "int16_posts_total": 0,
+            "runs_needing_int16": []
+          },
+          "admitted_fraction_mean": 1.0,
+          "late_discards_total": 0,
+          "hosting_fallback_seeds": [],
+          "round_latency_s": {
+            "p50": 29.322771741000906,
+            "p95": 30.079098536600938,
+            "p99": 30.638233965716207,
+            "n": 18,
+            "note": "descriptive only: one GPU, time-shared"
+          },
+          "mean_measured_rate_bits_per_dim": null
+        },
+        "S1": {
+          "name": "swarm_identity",
+          "status": "ok",
+          "failed_seeds": [],
+          "seeds": [
+            1,
+            2,
+            3
+          ],
+          "final_loss_per_seed": [
+            2.62104424337546,
+            2.6191779176394143,
+            2.6215782463550568
+          ],
+          "initial_loss_per_seed": [
+            2.7417585949103036,
+            2.7417585949103036,
+            2.7417585949103036
+          ],
+          "per_domain_final_mean": {
+            "code": 2.028803984324137,
+            "wiki-fr": 2.7160709698994956,
+            "pubmed": 2.985088268915812,
+            "gsm8k": 1.2447522580623627,
+            "news": 3.245335578918457,
+            "fiction": 3.5035497546195984
+          },
+          "wire": {
+            "up_bytes_mean_per_run": 77856768.0,
+            "down_bytes_mean_per_run": 90832896.0,
+            "raw_fp32_delta_bytes_total": 233570304,
+            "ideal_entropy_coded_bytes_total": 233570304.0,
+            "actual_up_bytes_total": 233570304,
+            "compression_ratio_actual": 1.0,
+            "compression_ratio_ideal": 1.0,
+            "int16_posts_total": 0,
+            "runs_needing_int16": []
+          },
+          "admitted_fraction_mean": 1.0,
+          "late_discards_total": 0,
+          "hosting_fallback_seeds": [
+            1,
+            2,
+            3
+          ],
+          "round_latency_s": {
+            "p50": 29.839420187498035,
+            "p95": 32.49216548794757,
+            "p99": 32.646289332790985,
+            "n": 18,
+            "note": "descriptive only: one GPU, time-shared"
+          },
+          "mean_measured_rate_bits_per_dim": null
+        },
+        "S2": {
+          "name": "swarm_all_on",
+          "status": "ok",
+          "failed_seeds": [],
+          "seeds": [
+            1,
+            2,
+            3
+          ],
+          "final_loss_per_seed": [
+            2.696715156237284,
+            2.694136386116346,
+            2.7286767264207206
+          ],
+          "initial_loss_per_seed": [
+            2.7417585949103036,
+            2.7417585949103036,
+            2.7417585949103036
+          ],
+          "per_domain_final_mean": {
+            "code": 2.165071795384089,
+            "wiki-fr": 2.735164980093638,
+            "pubmed": 2.9483672976493835,
+            "gsm8k": 1.3565378387769063,
+            "news": 3.287138283252716,
+            "fiction": 3.7467763423919678
+          },
+          "wire": {
+            "up_bytes_mean_per_run": 6788000.666666667,
+            "down_bytes_mean_per_run": 90112000.0,
+            "raw_fp32_delta_bytes_total": 224919552,
+            "ideal_entropy_coded_bytes_total": 14001797.35671502,
+            "actual_up_bytes_total": 20364002,
+            "compression_ratio_actual": 11.04495825525847,
+            "compression_ratio_ideal": 16.063619996052328,
+            "int16_posts_total": 0,
+            "runs_needing_int16": []
+          },
+          "admitted_fraction_mean": 0.5,
+          "late_discards_total": 50,
+          "hosting_fallback_seeds": [
+            1,
+            2,
+            3
+          ],
+          "round_latency_s": {
+            "p50": 29.31125931849965,
+            "p95": 33.94710929214998,
+            "p99": 34.14380342722972,
+            "n": 18,
+            "note": "descriptive only: one GPU, time-shared"
+          },
+          "mean_measured_rate_bits_per_dim": 1.9914573355570973
+        },
+        "S5": {
+          "name": "no_quorum",
+          "status": "ok",
+          "failed_seeds": [],
+          "seeds": [
+            1,
+            2,
+            3
+          ],
+          "final_loss_per_seed": [
+            2.627451861898104,
+            2.623124142487844,
+            2.632087856531143
+          ],
+          "initial_loss_per_seed": [
+            2.7417585949103036,
+            2.7417585949103036,
+            2.7417585949103036
+          ],
+          "per_domain_final_mean": {
+            "code": 2.0514238675435386,
+            "wiki-fr": 2.7314201394716897,
+            "pubmed": 2.9718780716260276,
+            "gsm8k": 1.2432289620240529,
+            "news": 3.2626726031303406,
+            "fiction": 3.5047040780385337
+          },
+          "wire": {
+            "up_bytes_mean_per_run": 6864581.666666667,
+            "down_bytes_mean_per_run": 90832896.0,
+            "raw_fp32_delta_bytes_total": 227082240,
+            "ideal_entropy_coded_bytes_total": 14136330.40397273,
+            "actual_up_bytes_total": 20593745,
+            "compression_ratio_actual": 11.026757882065647,
+            "compression_ratio_ideal": 16.063733197420394,
+            "int16_posts_total": 0,
+            "runs_needing_int16": []
+          },
+          "admitted_fraction_mean": 0.9722222222222222,
+          "late_discards_total": 0,
+          "hosting_fallback_seeds": [
+            1,
+            2,
+            3
+          ],
+          "round_latency_s": {
+            "p50": 31.15160185050263,
+            "p95": 36.271569027050276,
+            "p99": 40.335217983009635,
+            "n": 18,
+            "note": "descriptive only: one GPU, time-shared"
+          },
+          "mean_measured_rate_bits_per_dim": 1.992064958171662
+        }
+      },
+      "failed_cells": [],
+      "paired_vs_S0": {
+        "S1": {
+          "final_loss_minus_S0_per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean": 0.0,
+          "ci95": 0.0,
+          "t_crit_df2": 4.302652729911275,
+          "ci_excludes_0": false,
+          "direction": "within CI of S0"
+        },
+        "S2": {
+          "final_loss_minus_S0_per_seed": [
+            0.07567091286182404,
+            0.07495846847693155,
+            0.1070984800656638
+          ],
+          "mean": 0.08590928713480646,
+          "ci95": 0.04559345759462622,
+          "t_crit_df2": 4.302652729911275,
+          "ci_excludes_0": true,
+          "direction": "worse than S0"
+        },
+        "S3": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        },
+        "S4": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        },
+        "S5": {
+          "final_loss_minus_S0_per_seed": [
+            0.006407618522644043,
+            0.003946224848429658,
+            0.010509610176086426
+          ],
+          "mean": 0.0069544845157200426,
+          "ci95": 0.008236631833887,
+          "t_crit_df2": 4.302652729911275,
+          "ci_excludes_0": false,
+          "direction": "within CI of S0"
+        },
+        "S1t": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        }
+      },
+      "controls": {
+        "s1_equals_s0": {
+          "rows": [
+            {
+              "available": true,
+              "max_abs_diff": 0.0,
+              "tolerance": 1e-06,
+              "passed": true,
+              "bit_identical": true,
+              "identity_noise_floor": {
+                "available": true,
+                "max_abs_diff": 0.0,
+                "bit_identical": true,
+                "twin_final_loss": 2.62104424337546,
+                "note": "diagnostic only; the identity rule stays S1 vs S0 <= 1e-6"
+              }
+            },
+            {
+              "available": true,
+              "max_abs_diff": 0.0,
+              "tolerance": 1e-06,
+              "passed": true,
+              "bit_identical": true
+            },
+            {
+              "available": true,
+              "max_abs_diff": 0.0,
+              "tolerance": 1e-06,
+              "passed": true,
+              "bit_identical": true
+            }
+          ],
+          "tolerance": 1e-06,
+          "passed": true
+        },
+        "s0_learns": {
+          "rows": [
+            {
+              "seed": 1,
+              "initial": 2.7417585949103036,
+              "final": 2.62104424337546
+            },
+            {
+              "seed": 2,
+              "initial": 2.7417585949103036,
+              "final": 2.6191779176394143
+            },
+            {
+              "seed": 3,
+              "initial": 2.7417585949103036,
+              "final": 2.6215782463550568
+            }
+          ],
+          "passed": true
+        },
+        "raw_wire_bytes_exact": {
+          "passed": true,
+          "note": "codec 'none': every POSTed body is exactly 4 x n_coords bytes"
+        },
+        "codec_rate_on_target": {
+          "passed": true,
+          "tolerance": 0.05
+        },
+        "workers_start_identical": {
+          "passed": true
+        },
+        "no_failed_cells": {
+          "passed": true,
+          "failed": []
+        }
+      },
+      "controls_all_passed": true,
+      "hosting_fallback_cells": [
+        {
+          "cell": "S1",
+          "seed": 1,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4903141376,
+            "need_process_bytes": 32317951176,
+            "need_thread_bytes": 5440012288,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S2",
+          "seed": 1,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4903141376,
+            "need_process_bytes": 32317951176,
+            "need_thread_bytes": 5440012288,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S5",
+          "seed": 1,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4903141376,
+            "need_process_bytes": 32317951176,
+            "need_thread_bytes": 5440012288,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S1",
+          "seed": 2,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4917821440,
+            "need_process_bytes": 32406031560,
+            "need_thread_bytes": 5454692352,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S2",
+          "seed": 2,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4917821440,
+            "need_process_bytes": 32406031560,
+            "need_thread_bytes": 5454692352,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S5",
+          "seed": 2,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4917821440,
+            "need_process_bytes": 32406031560,
+            "need_thread_bytes": 5454692352,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S1",
+          "seed": 3,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4917821440,
+            "need_process_bytes": 32406031560,
+            "need_thread_bytes": 5454692352,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S2",
+          "seed": 3,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4917821440,
+            "need_process_bytes": 32406031560,
+            "need_thread_bytes": 5454692352,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        },
+        {
+          "cell": "S5",
+          "seed": 3,
+          "preflight": {
+            "requested": "process",
+            "free_bytes": 14779416576,
+            "peak_reserved_bytes": 4917821440,
+            "need_process_bytes": 32406031560,
+            "need_thread_bytes": 5454692352,
+            "workers": 6,
+            "hosting": "thread",
+            "hosting_fallback": true
+          }
+        }
+      ],
+      "not_included": [
+        "NF4",
+        "Skip-Token",
+        "Skip-Attention",
+        "PA-CGAD",
+        "fixed-point exits"
+      ],
+      "scope": "localhost negative control (E8): single GPU, time-shared; NOT evidence for any WAN / volunteer claim"
+    }
+  },
+  "controls_all_passed": true,
+  "receipt_sha256": "18d8e5da22530302b9b8cbcd2430fa0c69cdefc99e1adcfbb29f7840280b2c97",
+  "smoke": false,
+  "hardware": {
+    "device": "cuda",
+    "gpu": "Tesla T4",
+    "cpu": "x86_64",
+    "torch": "2.7.1+cu118"
+  },
+  "elapsed_seconds": 2541.95,
+  "estimate": {
+    "model": "qwen0.5b",
+    "cells": [
+      "S0",
+      "S1",
+      "S2",
+      "S5"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "cfg": {
+      "rounds": 6,
+      "workers": 6,
+      "inner": 20,
+      "seq_len": 256,
+      "micro_batch": 4,
+      "eval_seqs": 16,
+      "eval_batch": 4,
+      "smoke": false
+    },
+    "runs": 12,
+    "inner_steps_per_run": 720,
+    "inner_steps_total": 8640,
+    "rounds_per_run": 6,
+    "tokens_per_worker_per_run": 122880,
+    "assumed_sec_per_inner_step": 0.45,
+    "assumed_sec_per_eval": 3.0,
+    "assumed_sec_process_start": 20.0,
+    "breakdown_s": {
+      "inner_steps_s": 3888.0,
+      "eval_s": 108.0,
+      "process_start_s": 210.0,
+      "data_prep_once_s": 120.0,
+      "straggler_wait_K_eq_M_s": 972.0,
+      "diagnostic_twin_S0b_s": 343.0
+    },
+    "total_s": 5641.0,
+    "total_hours": 1.57
+  }
+}

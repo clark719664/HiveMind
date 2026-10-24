@@ -1,0 +1,90 @@
+{
+  "schema_version": "hivemind-experiment-E13-predictions/v1.0",
+  "experiment_id": "E13-swarm-local",
+  "source_report": "E13_swarm_local_report_m6.json",
+  "source_report_receipt": "18d8e5da22530302b9b8cbcd2430fa0c69cdefc99e1adcfbb29f7840280b2c97",
+  "prereg_sha256": "4e9a2d80020499d0b1c015c828de424ab5ef5fa92b9a74473e473d7921e9f05a",
+  "rules": "scripts/analyze_E13_predictions.py docstring = the registered rules",
+  "models": {
+    "qwen0.5b": {
+      "controls_failed": [],
+      "valid": true,
+      "hosting_fallback": true,
+      "S0_improvement_per_seed": {
+        "1": 0.12071435153484344,
+        "2": 0.12258067727088928,
+        "3": 0.12018034855524684
+      },
+      "P13a": {
+        "status": "supported",
+        "rows": [
+          {
+            "available": true,
+            "max_abs_diff": 0.0,
+            "tolerance": 1e-06,
+            "passed": true,
+            "bit_identical": true,
+            "identity_noise_floor": {
+              "available": true,
+              "max_abs_diff": 0.0,
+              "bit_identical": true,
+              "twin_final_loss": 2.62104424337546,
+              "note": "diagnostic only; the identity rule stays S1 vs S0 <= 1e-6"
+            }
+          },
+          {
+            "available": true,
+            "max_abs_diff": 0.0,
+            "tolerance": 1e-06,
+            "passed": true,
+            "bit_identical": true
+          },
+          {
+            "available": true,
+            "max_abs_diff": 0.0,
+            "tolerance": 1e-06,
+            "passed": true,
+            "bit_identical": true
+          }
+        ]
+      },
+      "P13b": {
+        "status": "inconclusive",
+        "per_seed": {
+          "1": 0.3731407086258331,
+          "2": 0.38849686471154093,
+          "3": 0.10885197660721802
+        },
+        "mean": 0.290163183314864,
+        "half_width": 0.39052563305976545,
+        "interval": [
+          -0.10036244974490144,
+          0.6806888163746294
+        ],
+        "bar": 0.5,
+        "meets_strict_bar_0.75": false
+      },
+      "P13c": {
+        "status": "supported",
+        "upload_ratio_actual": 0.09053904749018885,
+        "upload_ratio_ideal": 0.06225246863694188,
+        "bar": 0.3,
+        "int16_posts_total": 0
+      },
+      "P13d": {
+        "S5": {
+          "name": "no_quorum",
+          "retention_per_seed": {
+            "1": 0.9469191654416126,
+            "2": 0.9678071215114193,
+            "3": 0.9125513421917297
+          },
+          "mean_retention": 0.9424258763815873,
+          "admitted_fraction_mean": 0.9722222222222222,
+          "late_discards_total": 0
+        }
+      }
+    }
+  },
+  "receipt_sha256": "80782618640bcc2f64d60899ee70e0fb4fa46900275aa640f70e4c8b453ec097"
+}
