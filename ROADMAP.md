@@ -245,6 +245,12 @@ Evidence: 144 router tests (Hypothesis properties on the certificate, ledger con
 | `HM-S13-06` | registration has no cost | proof-of-work or invite-gated registration; per-identity abuse limits | G-R2 |
 | `HM-S13-07` | DNS rebinding between check and connect | egress proxy that connects to the checked address | G-R2 |
 | `HM-S13-08` | capacity is self-declared | measured-throughput weighting from live probes | G-R2 |
+| `HM-S13-09` | first users are Python and game coders with gaming GPUs | capability-tier catalog (`/v1/hivemind/catalog`), GPU-aware producer presets with preflight, token-protected producer shield, editor connector, guide `docs/HIVEMIND_PYTHON_GAME_DEVS.md` (**delivered**) | — |
+| `HM-S13-10` | no inline tab-autocomplete | completions/FIM endpoint so editors can complete as you type | G-R1 |
+| `HM-S13-11` | new accounts hold 0 HMT | owner-decided welcome-grant policy, signed through the firewall (`HM-S11-02`), with a per-identity cap | G-R1 |
+| `HM-S13-12` | a gamer's GPU is needed for gaming | game mode: the agent pauses while the GPU is busy with something else and resumes after | G-R2 |
+| `HM-S13-13` | a tier id is only a claim | probe producers with fixed prompts to check the model behind a tier, slash on a mismatch (extends `HM-S13-05`) | G-R2 |
+| `HM-S13-14` | the MoE tiers have no producer yet | seed producers for `moe-general` (16 GB) and `moe-coder` (24 GB), for example the owner's 16 GB card behind the shield | G-R1 |
 
 ---
 

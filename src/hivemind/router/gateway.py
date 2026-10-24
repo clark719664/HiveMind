@@ -50,6 +50,7 @@ from hivemind.router.accounts import (
     TooManyHolds,
     UnknownAccount,
 )
+from hivemind.router.catalog import catalog_payload
 from hivemind.router.market import (
     MECHANISM_NO_TRADE,
     ConsumerBid,
@@ -442,6 +443,9 @@ class HeartbeatRequest(BaseModel):
     cost_per_1k: float = Field(ge=0.0, le=MAX_PRICE_CEILING, allow_inf_nan=False)
     capacity_1k: float = Field(ge=0.0, le=1e12, allow_inf_nan=False)
     execution_class: str = Field(default="unknown", max_length=64)
+    # Secret the gateway presents to the producer's own server (``Authorization: Bearer``) so that only the gateway can
+    # use it. Optional for compatibility; without it the producer's endpoint is open to anyone who learns its URL.
+    endpoint_token: str | None = Field(default=None, min_length=16, max_length=200, pattern=r"^[A-Za-z0-9._~+/=-]+$")
 
 
 class GrantRequest(BaseModel):
@@ -708,7 +712,10 @@ def create_router_app(
             merged["include_usage"] = True
             outgoing["stream_options"] = merged
         url = record.endpoint_url.rstrip("/") + "/v1/chat/completions"
-        return client.build_request("POST", url, json=outgoing, headers={"Accept": "text/event-stream" if stream else "application/json"})
+        headers = {"Accept": "text/event-stream" if stream else "application/json"}
+        if record.endpoint_token:
+            headers["Authorization"] = f"Bearer {record.endpoint_token}"
+        return client.build_request("POST", url, json=outgoing, headers=headers)
 
     def settle(plan: _Plan, account: Account, producer_id: str, reported: tuple[int, int], completion_bytes: int) -> dict[str, Any]:
         """Settle against the escrow taken at plan time: the metered charge can never exceed it, so it is never free."""
@@ -853,6 +860,11 @@ def create_router_app(
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
+    @app.get("/v1/hivemind/catalog")
+    def catalog() -> dict[str, Any]:
+        """Public list of capability tiers (which model fits which GPU); static data, no account needed."""
+        return catalog_payload()
+
     @app.get("/v1/models")
     def list_models() -> dict[str, Any]:
         created = int(clock())
@@ -930,7 +942,8 @@ def create_router_app(
                 raise RouterError(400, f"Invalid model id: {entry.id!r}", "invalid_request_error", "invalid_model_id")
             models.append({"id": public, "local_name": entry.local_name})
         store.upsert_producer(
-            account.account_id, payload.endpoint_url, models, payload.cost_per_1k, payload.capacity_1k, payload.execution_class, now_utc=clock()
+            account.account_id, payload.endpoint_url, models, payload.cost_per_1k, payload.capacity_1k, payload.execution_class,
+            now_utc=clock(), endpoint_token=payload.endpoint_token,
         )
         return {"account_id": account.account_id, "status": "live", "models": [m["id"] for m in models], "ttl_s": PRODUCER_TTL_S}
 

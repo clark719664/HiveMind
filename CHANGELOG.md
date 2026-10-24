@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.9.0 — 2026-10-24 — Open-Router for Python and game coders: tiers, GPU presets, producer shield, editor connector
+
+- Capability tiers (`hivemind.router.catalog`, served publicly at `/v1/hivemind/catalog`): `coder-lite` (3B), `coder` (7B), `coder-plus` (14B) and two mixture-of-experts tiers, `moe-general` (gpt-oss 20B, 16 GB) and `moe-coder` (Qwen3-Coder 30B, 24 GB). One market per tier keeps liquidity deep; the tier id is a claim until `HM-S13-13`.
+- Producer agent: `--suggest --vram-gb/--detect-vram`, `--preset TIER`, preflight that refuses to advertise a model the endpoint does not list, optional endpoint token. The gateway stores the token and presents it as a bearer secret to the producer's own server (additive column; databases created earlier are upgraded in place, tested on an old-schema file).
+- Producer shield (`scripts/hivemind_producer_shield.py`): only `GET /v1/models` and `POST /v1/chat/completions`, constant-time token check, body and concurrency caps, optional model pin, and a fallback that lists models for older Ollama releases. The live run found that fallback was needed: this host's Ollama has no `/v1/models`.
+- Connector (`scripts/hivemind_connect.py`): register (key printed once or saved owner-only), `check`, and editor snippets for Continue, Cline, Aider, OpenCode, Zed, JetBrains, Python and environment variables.
+- Guide `docs/HIVEMIND_PYTHON_GAME_DEVS.md` with game-development recipes and an honest list of what does not exist yet. ROADMAP §3.11 gains `HM-S13-09..14`.
+- Live end-to-end on this host (`scripts/router_gamer_e2e.py`): connector, gateway, shield and real Ollama; negative controls refuse a request without the token and Ollama's management API.
+
 ## v2.8.0 — 2026-10-24 — Operation Open-Router: an OpenAI-compatible MoE gateway with a producer/consumer equilibrium, deployed on GCP
 
 - `hivemind.router`: `market` (Kelly consumer game with a price independent of supply, producer dominant-strategy supply, posted-price fallback, a win-win certificate), `accounts` (HMAC-hashed API keys, hash-chained HMT ledger, escrow holds, conservation invariant), `gateway` (`/v1/chat/completions` incl. streaming, `/v1/models`, registration, producer heartbeat with SSRF guard, public market certificate). Works with any OpenAI client; IDE setup for OpenCode, VS Code (Continue) and generic clients in `docs/HIVEMIND_OPENROUTER.md`.
