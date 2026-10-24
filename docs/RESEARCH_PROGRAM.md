@@ -252,9 +252,11 @@ Ledger: `artifacts/predictions_ledger.json` (P11a, P11b, P12-* added; E10b attac
 
 - **E11 (RQ10)** on real KV tensors of Qwen2.5-0.5B-Instruct (fp16), Qwen2.5-Coder-7B-Instruct (fp16, embeddings on
   CPU) and Gemma-4-E4B (bf16, per-layer embeddings on CPU), WikiText-2, 1024-token windows, 3 seeds:
-  **P11a refuted on all three models** (no detectable gain of A₂ per RoPE plane over entropy-coded scalar at matched
-  measured bits); **P11b refuted** on Gemma (E₈ already beats ℤ without the KLT; inconclusive on 0.5B, supported on
-  7B by its one rate-matched KLT cell). Consequence: the KV ring stays on FP8 (`HM-S10-05` keeps the pluggable codec,
+  **P11a 'refuted' on all three models under the registered rule** (no detectable gain of A₂ per RoPE plane over
+  entropy-coded scalar at any rate-matched R) — Gemma has 3 matched rates, both Qwen models only R = 4 (Qwen-7B: 5/18
+  lattice cells matched), so the Qwen verdicts are weak and 3 seeds give low power; **P11b refuted** on Gemma (E₈
+  already beats ℤ without the KLT; inconclusive on 0.5B; 'supported' on 7B by one matched KLT cell and one matched
+  no-transform cell). Consequence: the KV ring stays on FP8 (`HM-S10-05` keeps the pluggable codec,
   adopts none). Amendment 1 (per-layer calibration rate) was made after the first 0.5B execution and before any 7B /
   Gemma result; the A₂@8-vs-FP8 negative control fails on both Qwen models because e4m3 keeps 3 mantissa bits (a
   design error, kept as registered). Many 7B cells missed the matched-rate band; Qwen-7B is extremely KV-sensitive
