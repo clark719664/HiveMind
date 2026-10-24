@@ -66,6 +66,16 @@ properties; see `GET /v1/hivemind/market?model=...`. The endpoint needs a Bearer
 The win-win property is a property of the posted rules, not a promise about any particular month. It holds
 for every epoch the gateway computes, and the certificate is recomputed each time.
 
+## Interactive Web Portal & In-Browser AI Playground (`/` and `/playground`)
+
+You can explore and test the HiveMind OpenRouter directly in any browser without installing an editor or local dependencies:
+
+- **Root Portal & Playground URL**: `https://hivemind-openrouter-1003063861791.us-central1.run.app/`
+- **In-Browser Chat Console**: Enter your `hm-...` API key, select a capability tier (`coder-lite`, `coder`, `coder-plus`, `moe-general`, `moe-coder`), choose a prompt preset, and inspect real-time streaming tokens, generation speed (tokens/sec), and roundtrip latency (ms).
+- **Live Account Inspector**: Click "Check Account & Balance" to query `/v1/hivemind/me` and inspect your account id, assigned role, and current HMT balance.
+- **1-Click Editor Configurations**: Copy ready-to-paste snippets for Python OpenAI SDK, Continue, Cline, Aider, OpenCode, and cURL with dynamic base URLs.
+- **Gamer / Producer Quickstart**: 3 terminal commands to connect your idle GPU with Ollama and start earning compute points with < 1.5s game preemption.
+
 ## Using HiveMind from your IDE
 
 Register once, then use the API key as the bearer token and the gateway as the OpenAI base URL. Model ids are

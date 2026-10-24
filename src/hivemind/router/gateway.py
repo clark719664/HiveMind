@@ -54,6 +54,7 @@ from hivemind.router.accounts import (
 )
 from hivemind.router.catalog import catalog_payload
 from hivemind.router.google_auth import GoogleAuthError, GoogleIdTokenVerifier
+from hivemind.router.portal_page import portal_content_security_policy, render_portal_page
 from hivemind.router.signup_page import content_security_policy, render_signup_page
 from hivemind.router.market import (
     MECHANISM_NO_TRADE,
@@ -872,10 +873,25 @@ def create_router_app(
                 store.release_hold(plan.request_id)
 
     # ------------------------------------------------------------------ endpoints
-    @app.get("/health")  # Cloud Run's front end swallows /healthz, so the same probe is also served here
-    @app.get("/healthz")
+    @app.api_route("/health", methods=["GET", "HEAD"])  # Cloud Run's front end swallows /healthz, so the same probe is also served here
+    @app.api_route("/healthz", methods=["GET", "HEAD"])
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
+    @app.api_route("/playground", methods=["GET", "HEAD"], response_class=HTMLResponse)
+    def portal() -> HTMLResponse:
+        nonce = secrets.token_urlsafe(18)
+        page = render_portal_page(google.client_id if google else None, nonce)
+        return HTMLResponse(
+            page,
+            headers={
+                "Content-Security-Policy": portal_content_security_policy(nonce),
+                "Cache-Control": "public, max-age=60",
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "strict-origin-when-cross-origin",
+            },
+        )
 
     @app.get("/v1/hivemind/catalog")
     def catalog() -> dict[str, Any]:
@@ -916,7 +932,7 @@ def create_router_app(
 
     google = google_verifier or (GoogleIdTokenVerifier(google_client_id, clock=clock) if google_client_id else None)
 
-    @app.get("/signup", response_class=HTMLResponse)
+    @app.api_route("/signup", methods=["GET", "HEAD"], response_class=HTMLResponse)
     def signup() -> HTMLResponse:
         nonce = secrets.token_urlsafe(18)
         page = render_signup_page(google.client_id if google else None, nonce)

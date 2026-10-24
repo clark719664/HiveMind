@@ -1,7 +1,7 @@
 {
   "schema_version": "hivemind-gwaya-stub-audit/v1.0",
   "auditor": "gwaya.ast_audit.ZeroStubAudit (GWAYA-GwenLayaOpenModel)",
-  "files_audited": 110,
+  "files_audited": 111,
   "files_failed": [],
   "all_passed": true,
   "results": [
@@ -448,6 +448,15 @@
     },
     {
       "file": "src/hivemind/router/market.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/router/portal_page.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -996,6 +1005,6 @@
       }
     }
   ],
-  "written_utc": "2026-10-24T12:30:37Z",
-  "receipt_sha256": "d34c3fd41829b9fbc26d14fe92e43d37e41693d531e852419fd71c1ff2c8c0d1"
+  "written_utc": "2026-10-24T12:51:08Z",
+  "receipt_sha256": "2b980b8bb02b616066feab783e1f69905b404a6842e1edac3332c877c6163f28"
 }

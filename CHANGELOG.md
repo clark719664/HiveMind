@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.10.2 — 2026-10-24 — OpenRouter Interactive Portal, In-Browser Playground & GPU Point Calculator
+
+- `src/hivemind/router/portal_page.py`: interactive OpenRouter portal and AI playground at `/` and `/playground`. Features in-browser chat completion console with streaming token speed (tok/s) and latency metrics, 5 capability tiers matrix, live account inspector (`/v1/hivemind/me`), 1-click editor integration snippets (Python, Continue, Cline, Aider, OpenCode, cURL), and gamer/producer onboarding. Strict CSP with per-request nonces and textContent-only rendering.
+- `src/hivemind/router/gateway.py`: mounted `GET /` and `HEAD /` (and alias `/playground`), plus explicit HEAD support for `/signup`, `/health`, `/healthz` ensuring RFC 9110 compliant 200 responses to health probes and HEAD curl requests.
+- `src/hivemind/boinc/hivemind_at_home_dashboard.py` & `HiveMindatHome.github.io`: added interactive GPU compute points calculator (8 consumer GPU presets, idle hours slider, monthly HMT points & free token projection) and interactive live completion console in Screen 02C, fully localized across 5 languages (`en`, `fr`, `zh`, `es`, `de`).
+- `tests/test_router_portal.py`: comprehensive unit test suite covering root portal and playground routes, HEAD methods, CSP headers, and client ID validation. 227 passed, 1 skipped. GWAYA zero-stub audit passing 111/111 files.
+
 ## v2.10.1 — 2026-10-24 — OpenRouter Google Flow: CLI integration, UI showcase & e2e verification
 
 - `scripts/hivemind_connect.py`: added `register-google` and `login-google` subcommands supporting direct Google ID token (`--token`), automatic `gcloud auth print-identity-token --include-email` token generation (`--gcloud`), and browser-directed registration (`--browser`).
