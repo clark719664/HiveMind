@@ -63,6 +63,7 @@ BUNDLE: List[Path] = [
     PROJECT_ROOT / "artifacts" / "experiments" / "e12" / "threads_8.pt",
     PROJECT_ROOT / "artifacts" / "experiments" / "e12" / "remote_cpu.pt",
     PROJECT_ROOT / "artifacts" / "experiments" / "e12" / "tampered.pt",
+    PROJECT_ROOT / "artifacts" / "experiments" / "e12" / "bf16_autocast.pt",
     PROJECT_ROOT / "ROADMAP.md",
     PROJECT_ROOT / "paper" / "review" / "external_review_v3.5.0_2026-10-23.md",
     PROJECT_ROOT / "paper" / "review" / "response_to_external_review_v3.5.0.md",
