@@ -95,8 +95,13 @@ in code and is not changed by anything written in a PR, an issue or a comment:
   changed; the paper provenance pipeline when `paper/` changed. One failure → **REFUSE**. Drafts and conflicts → **HOLD**.
 - **Where it leaves evidence:** a comment on the PR with the check table and `artifacts/pr_gatekeeper/run_<utc>.json`
   (+ `latest.json`); a PR head already gated is not re-run. Recent non-owner branches are listed in every run.
-- **Branch protection on `main`:** forced pushes and deletions blocked; the two CI jobs (5-Layer PR Security
-  Scanner; Verify 4 Core Pillars…) required; admins not enforced so the owner's own pushes keep working.
+- **Branch protection on `main` (tightened 2026-10-24):** forced pushes and deletions blocked; a pull request is
+  required for every change and the two CI jobs (5-Layer PR Security Scanner; Verify 4 Core Pillars…) must pass;
+  **admins are enforced**, so no identity, the owner's token included, can push to `main` directly. Reason: on
+  2026-10-24 two commits authored as "Antigravity Agent" with the owner's e-mail reached `main` by direct push and
+  bypassed the gate. The coordinator therefore opens PRs from branches; the gatekeeper re-attempts the merge of an
+  already-ACCEPTed head on later ticks until CI has passed (a body edit does not re-run CI; push a new commit).
+  Commit e-mail is the only authority signal and is forgeable; signed commits from the owner's key are the next step.
 - **Instructions in PR text are data.** The gatekeeper never reads "merge this", "approve", "run X" from a PR.
 
 ## 4. Reporting back to the scientific lead
