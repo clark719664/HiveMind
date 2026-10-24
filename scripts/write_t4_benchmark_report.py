@@ -86,11 +86,20 @@ def e11_section(r: Optional[Dict[str, Any]]) -> List[str]:
     if not r:
         return ["E11 report not found."]
     a = r["analysis"]
-    lines = [f"**Decision (pre-registered, amendment 1):** P11a **{a['P11a']['status']}**; P11b **{a['P11b']['status']}**. "
+    # Scientific lead's review (2026-10-24): the Qwen2.5-Coder-7B row is INVALID (its negative control failed by -0.47 nats on a
+    # float16 model, so the FP8 arm is suspect); its verdicts are withdrawn. P11a on Qwen2.5-0.5B rests on ONE rate-matched cell.
+    withdrawn = {"qwen7b"}
+    q7 = r["models"].get("qwen7b", {}).get("controls", {}).get("negative_A2at8_equals_fp8", {})
+    lines = ["**Decision (pre-registered, amendment 1), valid models only:** P11a **refuted on qwen0.5b (one rate-matched cell, R = 4; R = 2 and 3 are not rate-matched) "
+             "and on gemma4-e4b**; P11b **refuted on gemma4-e4b** (inconclusive on qwen0.5b). "
+             f"**The qwen7b row is INVALID (negative control `negative_A2at8_equals_fp8` failed: {pm(q7.get('diff_mean', float('nan')), q7.get('ci95', float('nan')))} nats) and its verdicts are withdrawn; no 7B number is quoted.** "
              f"Controls all passed: {r['controls_all_passed']}. Receipt `{r['receipt_sha256'][:16]}`.", "",
              "| model | dtype | peak GiB | baseline NLL | ΔNLL FP8 | ΔNLL INT4 | P11a | P11b | controls |",
              "| :-- | :-- | --: | --: | --: | --: | :-- | :-- | :-- |"]
     for k, v in r["models"].items():
+        if k in withdrawn:
+            lines.append(f"| {k} | {v.get('dtype', '-')} | {v.get('peak_gpu_gib', '-')} | - | - | - | INVALID, withdrawn | INVALID, withdrawn | failed: negative_A2at8_equals_fp8 |")
+            continue
         if "cells" not in v:
             lines.append(f"| {k} | - | - | - | - | - | {v.get('status')} | | |")
             continue
@@ -102,7 +111,7 @@ def e11_section(r: Optional[Dict[str, Any]]) -> List[str]:
     lines += ["", "Paired differences at matched measured rate (ΔNLL(Z) − ΔNLL(lattice), nats/token, positive = lattice better):", "",
               "| model | R | Z − A₂ (none) | Z − E₈ (none) | Z − E₈ (KLT) |", "| :-- | --: | :-- | :-- | :-- |"]
     for k, v in r["models"].items():
-        if "cells" not in v:
+        if "cells" not in v or k in withdrawn:
             continue
         for R in (2, 3, 4):
             a2 = v["P11a"]["cells"][f"R={R}"]
@@ -113,7 +122,7 @@ def e11_section(r: Optional[Dict[str, Any]]) -> List[str]:
     lines += ["", "Descriptive only (decides nothing): does a 4-bit codec reach FP8 (paired ΔNLL difference CI includes 0) at about half the bytes?", "",
               "| model | A₂@4 | E₈@4 + KLT | Z@4 | INT4 |", "| :-- | :-- | :-- | :-- | :-- |"]
     for k, v in r["models"].items():
-        if "descriptive_frontier_vs_fp8" in v:
+        if "descriptive_frontier_vs_fp8" in v and k not in withdrawn:
             fr = v["descriptive_frontier_vs_fp8"]
             lines.append(f"| {k} | " + " | ".join(f"{pm(fr[c]['minus_fp8_mean'], fr[c]['ci95'])}{' ✓' if fr[c]['reaches_fp8'] else ''}"
                                                    for c in ("A2@4|none", "E8@4|klt", "Z@4|none", "int@4")) + " |")
@@ -170,6 +179,9 @@ def e11b_section(r: Optional[Dict[str, Any]]) -> List[str]:
     if isinstance(entries, dict):
         lines += ["| configuration | baseline NLL | ΔNLL FP8 | P11a-style | P11b-style | ranking agreement with E11 |", "| :-- | --: | --: | :-- | :-- | :-- |"]
         for k, v in entries.items():
+            if k.startswith("qwen7b") or "_qwen7b" in k:
+                lines.append(f"| {k} | INVALID model (E11 negative control failed): withdrawn | | | | |")
+                continue
             dm = v.get("decide_model", v)
             if not isinstance(dm, dict) or "cells" not in dm:
                 lines.append(f"| {k} | error: {str(v.get('error', '?'))[:60]} | | | | |")
@@ -520,7 +532,7 @@ def main() -> int:
         "",
         f"Hardware: {hw.get('gpu', 'Tesla T4')} (15 GB, sm_75), 8 vCPU, 31.5 GB RAM; torch {hw.get('torch', '?')}, transformers {hw.get('transformers', '?')}. "
         "Data: Hugging Face WikiText-2, fineweb-edu, codeparrot-clean-valid, GSM8K, French Wikipedia, PubMed, CNN/DailyMail and LAMBADA (E13/E13d/E14 domains), MBPP and HumanEval (local cache). Models: Qwen2.5-0.5B-Instruct (fp16), "
-        "Qwen2.5-Coder-7B-Instruct (fp16, embeddings on CPU), Gemma-4-E4B (bf16, per-layer embeddings on CPU), Granite-3.1-1B-A400M and 3B MoE (fp16), "
+        "Qwen2.5-Coder-7B-Instruct (fp16, embeddings on CPU; its E11 row is invalid and withdrawn, see section 2), Gemma-4-E4B (bf16, per-layer embeddings on CPU), Granite-3.1-1B-A400M and 3B MoE (fp16), "
         "Qwen2.5-Coder-1.5B-Instruct (fp16, E15) and Qwen2.5-Coder 1.5B / 3B / 7B Q4_K_M via Ollama (E16).",
         "",
         "Every experiment below was pre-registered before it ran according to the file modification times (files in `artifacts/experiments/*prereg*.json`; note that the `registered_utc` stamps of several of them "
