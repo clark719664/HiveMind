@@ -191,6 +191,27 @@ A producer runs any OpenAI-compatible server. This example uses Ollama with `qwe
 Choose `--cost-per-1k` honestly. If it is above the market price, no requests reach you. If it is below
 your real cost, you lose money on every token you serve.
 
+### Serving the `moe-general` tier (gpt-oss 20B) on a 15 GB card such as a Tesla T4
+
+Measured on one Tesla T4 on 2026-10-24 (Ollama 0.34.1, flash attention on, 8-bit KV cache, one slot, 4,096 context,
+card otherwise empty):
+
+- **Memory:** 12,331 MiB resident of 15,360. It does not fit beside a 7B model; a 3B beside it fits but runs partly on the CPU.
+  So a T4 serves *either* `moe-general` *or* `coder`/`coder-lite`, not both at once. Swapping costs a cold load (285 s from disk).
+- **Speed:** 19 to 45 tokens per second on short single requests (indicative, not a benchmark).
+- **Quality:** on six harder coding tasks with hidden tests it solved 6 of 6 on the first attempt where the 7B coder solved 3 of 6 (n = 6, direction only).
+- **It thinks first.** The thinking counts against `max_tokens`, so with a small limit the answer can come back empty. Ask for less thinking with
+  `"reasoning_effort": "low"` (the gateway forwards `low`, `medium` or `high` and drops anything else) and keep `max_tokens` generous. The gateway
+  already bills thinking text, so producers are paid for it.
+- **Start a private server for it** (so the shared service is not reconfigured), then heartbeat the tier:
+
+  ```bash
+  OLLAMA_HOST=127.0.0.1:11436 OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_NUM_PARALLEL=1 OLLAMA_KEEP_ALIVE=30m ollama serve &
+  python scripts/hivemind_producer_agent.py --gateway GATEWAY_URL --endpoint https://YOUR_ENDPOINT --preset moe-general --execution-class t4
+  ```
+
+  Add `--allow-model gpt-oss:20b` to the producer shield. `catalog.py` now lists 15 GB as the minimum for this tier.
+
 ## Python and game developers
 
 The getting-started kit for people who write Python and small games, including GPU sharing, model tiers and editor setup, is

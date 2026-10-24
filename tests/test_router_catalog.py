@@ -32,7 +32,7 @@ def test_moe_tiers_exist_and_declare_their_active_parameters() -> None:
 
 @pytest.mark.parametrize(
     ("vram", "expected"),
-    [(3.9, None), (4.0, "coder-lite"), (6.0, "coder"), (8.0, "coder"), (12.0, "coder-plus"), (16.0, "moe-general"), (24.0, "moe-coder"), (80.0, "moe-coder")],
+    [(3.9, None), (4.0, "coder-lite"), (6.0, "coder"), (8.0, "coder"), (12.0, "coder-plus"), (14.9, "coder-plus"), (15.0, "moe-general"), (15.36, "moe-general"), (16.0, "moe-general"), (24.0, "moe-coder"), (80.0, "moe-coder")],
 )
 def test_recommend_tier_picks_the_biggest_tier_that_fits(vram: float, expected: str | None) -> None:
     tier = recommend_tier(vram)

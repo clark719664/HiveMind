@@ -1083,6 +1083,29 @@ def test_only_allow_listed_request_fields_reach_the_producer(world: World) -> No
         assert name not in forwarded
 
 
+@pytest.mark.parametrize("effort", ["low", "medium", "high"])
+def test_reasoning_effort_enum_reaches_the_producer(world: World, effort: str) -> None:
+    _, key = world.consumer(1000.0)
+    _, _, fake = world.producer("prod-a.test", {"qwen": "q"})
+
+    response = world.chat(key, reasoning_effort=effort)
+
+    assert response.status_code == 200, response.text
+    assert json.loads(fake.calls[0].content)["reasoning_effort"] == effort
+
+
+@pytest.mark.parametrize("value", ["extreme", "LOW", "", None, 3, ["low"], {"x": "y" * 4000}])
+def test_other_reasoning_effort_values_are_dropped(world: World, value: object) -> None:
+    _, key = world.consumer(1000.0)
+    _, _, fake = world.producer("prod-a.test", {"qwen": "q"})
+
+    response = world.chat(key, reasoning_effort=value)
+
+    assert response.status_code == 200, response.text
+    forwarded = json.loads(fake.calls[0].content)
+    assert "reasoning_effort" not in forwarded and forwarded["model"] == "q"
+
+
 def test_container_requirements_cover_every_third_party_import_of_the_router() -> None:
     """A missing dependency only shows up at container start (it did once: cryptography), so check the files statically."""
     import ast

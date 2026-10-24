@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — moe-general (gpt-oss 20B) measured on a T4
+
+- `catalog.py`: `moe-general` minimum memory 16 GB to 15 GB, from a measurement (12,331 MiB resident on a T4, card otherwise empty); the catalog test now covers 14.9, 15.0 and 15.36 GB.
+- `gateway.py`: `reasoning_effort` is forwarded when it is exactly `low`, `medium` or `high` (any other value is dropped), so consumers can limit a reasoning model's thinking. A test caught an unhashable-value crash in the first version; fixed and covered.
+- `docs/HIVEMIND_OPENROUTER.md`: how to serve the tier on a 15 GB card, with the measured memory, speed and the six-task result (n = 6). Not yet served live: it needs the T4, which is being used for E17 training.
+
 ## Unreleased — Prompt-level routing: whole-word keywords and abstention
 
 - `src/hivemind/core/btm_moe.py`: new `keyword_route` (whole-word keyword matching, abstain with `([], {})` when no keyword hits, ties by domain name, optional `min_weight` default 0.0), used by `Season3DomainExpertRegistry.route_domain_query` and `route_with_serving_experts`. Before: with no hit every domain scored 1.0 and the dict order decided, so five of seven probe prompts (python, cardiology, geography, a proof, a pandas traceback) went to Rust + Solidity; keywords matched inside longer words ("arc", "nat", "pub", "by").
