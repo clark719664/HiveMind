@@ -227,6 +227,25 @@ Pre-registered simulation (seed 2026): Kelly efficiency min 0.800 / median 0.869
 | `HM-S12-05` | collusion unmodelled | withholding / cartel red team on the market; vectors join the pen-test corpus | G-M2 |
 | `HM-S12-06` | closed forms are only tested | Lean 4: Kelly FOC and Tullock active-set as theorems over ℚ through the independent gate | G-M3 |
 
+## 🔀 3.11 Season 13 (`Wave 12` — "Operation Open-Router") — an OpenAI-compatible MoE gateway with a producer/consumer equilibrium (owner's brief, 2026-10-24)
+
+Spec of record: [`docs/HIVEMIND_OPENROUTER_SPEC.md`](docs/HIVEMIND_OPENROUTER_SPEC.md); user guide [`docs/HIVEMIND_OPENROUTER.md`](docs/HIVEMIND_OPENROUTER.md); code `hivemind.router` (`market`, `accounts`, `gateway`), producer daemon `scripts/hivemind_producer_agent.py`, deploy files `deploy/gcp_openrouter/`. **Status: deployed** as a public Cloud Run service on the owner's approval (2026-10-24); HMT are points with no cash value.
+
+Mechanism: consumers declare a maximum price and play the Kelly proportional-allocation game, whose per-token price `ω` solves `Σ max(0, 1 − ω/v_j) = 1` and does not depend on the supply `S`; producers therefore face the constant margin `(1 − f)ω` and supplying full capacity is a dominant strategy exactly when their cost is below it. When fewer than two consumers bid, or no producer can profit at `ω`, a posted price just above the cheapest break-even applies (`mechanism` is reported as `kelly`, `posted_price` or `no_trade`). Every clearing carries a certificate (both sides individually rational, no profitable unilateral deviation on either side, conservation) that the public `/v1/hivemind/market` endpoint returns. Security review (adversarial, session model) found 5 high and 6 medium issues in the first build; all 11 were fixed with regression tests, each shown to fail on the reintroduced defect.
+
+Evidence: 144 router tests (Hypothesis properties on the certificate, ledger conservation and metering); a live run against local Ollama through the official `openai` client (price 12/7 matches the closed form for bids 4 and 3; sum of balances equals minted; hash chain verified); a persistence test on the deployed service.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S13-01` | no way for IDE users to reach the swarm | OpenAI-compatible gateway, accounts, HMT ledger, market certificate, producer agent (**delivered**) | — |
+| `HM-S13-02` | deployment | Cloud Run, Secret Manager, service account, Litestream-to-GCS ledger (**delivered**, single instance) | — |
+| `HM-S13-03` | one instance only | shared database (Cloud SQL / Firestore) so the service can scale out | G-R1 |
+| `HM-S13-04` | HMT cannot yet be earned except by serving | owner-signed grant policy through the firewall (`HM-S11-02`) instead of a bearer admin key | G-R1 |
+| `HM-S13-05` | answers are paid but not checked | spot-check verification of producer output (deterministic replay on a sample), slashing on failure | G-R2 |
+| `HM-S13-06` | registration has no cost | proof-of-work or invite-gated registration; per-identity abuse limits | G-R2 |
+| `HM-S13-07` | DNS rebinding between check and connect | egress proxy that connects to the checked address | G-R2 |
+| `HM-S13-08` | capacity is self-declared | measured-throughput weighting from live probes | G-R2 |
+
 ---
 
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)

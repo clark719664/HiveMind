@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.8.0 — 2026-10-24 — Operation Open-Router: an OpenAI-compatible MoE gateway with a producer/consumer equilibrium, deployed on GCP
+
+- `hivemind.router`: `market` (Kelly consumer game with a price independent of supply, producer dominant-strategy supply, posted-price fallback, a win-win certificate), `accounts` (HMAC-hashed API keys, hash-chained HMT ledger, escrow holds, conservation invariant), `gateway` (`/v1/chat/completions` incl. streaming, `/v1/models`, registration, producer heartbeat with SSRF guard, public market certificate). Works with any OpenAI client; IDE setup for OpenCode, VS Code (Continue) and generic clients in `docs/HIVEMIND_OPENROUTER.md`.
+- Producer daemon `scripts/hivemind_producer_agent.py` (refuses a non-https gateway so the key is never sent in clear).
+- Adversarial security review found 5 high and 6 medium issues (sybil bids setting the price, double-spend of one balance, conflicting token limits, unbounded billing and response size, `n`/`best_of` multiplication, capacity weighting, unauthenticated costly market endpoint, body limit after parse, rate limit behind a proxy, empty-choice billing); all fixed with regression tests. Low findings fixed: NAT64/6to4/Teredo/IPv4-compatible SSRF bypass, unmetered request fields (allow-list), producer-agent scheme check, single instance.
+- 144 tests; live end-to-end against local Ollama through the official `openai` client. Public Cloud Run service with a Litestream-replicated ledger in a private versioned GCS bucket; account and balance verified to survive a revision rollout.
+- ROADMAP §3.11 Season 13 (`HM-S13-01..08`). HMT are points with no cash value; producers can read the prompts they serve; output correctness is not yet verified (`HM-S13-05`).
+
+
 ## v2.7.0 — 2026-10-24 — Operation Fair-Market: BOINC computing coin and Nash-equilibrium compute market (proposal + code + simulation)
 
 - `hivemind.economy.compute_coin`: BOINC cobblestone credit granted only for verified work (spot-check + Multi-Krum; class-peak and canonical-replica caps); work-backed $HIVE issuance with geometric decay under the 21 M cap and an 80/15/5 fee split with burn; Kelly consumer equilibrium (efficiency ≥ 0.75 by the 4/3 price-of-anarchy bound), Tullock worker equilibrium (closed form, ε-Nash certified), damped best-response routing across queues with a deviation certificate. 12 tests, 5 property-based.
