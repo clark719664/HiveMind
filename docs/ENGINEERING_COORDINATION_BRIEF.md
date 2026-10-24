@@ -57,7 +57,7 @@ Suggested sequencing:
    PYTHONPATH=src python scripts/run_experiment_E5_het.py            # ~20 min on 8 CPUs; controls must pass
    PYTHONPATH=src python scripts/update_predictions_ledger.py        # statuses copied from artifacts, never typed
    PYTHONPATH=src python scripts/run_experiment_E10_lattice.py       # ~1 min; E8/Z8/sign codecs, controls must pass
-   python -m anse.formal.lean_runner lean4/HiveMindSpec.lean          # from the AutoevolveAI root: independent Lean gate, 120/120
+   python -m anse.formal.lean_runner lean4/HiveMindSpec.lean          # from the AutoevolveAI root: independent Lean gate, 128/128
    python -m anse.formal.lean_runner lean4/mathlib/RDAMultiplier.lean # same root (needs its Mathlib): 3/3 RDA theorems
    ```
 
