@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.5.2 — 2026-10-24 — preprint v3.7.2 (not yet deposited): Lean gate at 128; T4 branch review; main locked to PRs
+
+- Independent Lean gate re-run on the 128-theorem `HiveMindSpec.lean` that reached `main` by direct push (4474802): 128/128, 0 sorry, 0 untrusted axioms; Theorems 125 and 127 flagged as not constraining their mechanism (`HM-S10-09`). Paper inventory table, limitations and README updated to 128.
+- Scientific lead's review of the T4 experiment branch before its PR: `docs/review/t4_branch_review_2026-10-24.md`.
+- Governance: `main` requires a pull request and enforces admins (PR #125 adds the gatekeeper's merge retry); the shared checkout's git e-mail reset to the coordinator's address.
+
+
 ## v2.5.1 — 2026-10-24 — preprint v3.7.1: E12 pilot complete (bf16 cell)
 
 - E12-pilot P12d supported: bf16 autocast replayed by an fp32 validator diverges to 3.3e-3 with 96/96 tensors above ε, 2.7× the tampered control; dtype is a class boundary (validators assigned within dtype class; bf16 ε to be measured on GPU, `HM-S10-08`). PROV-34; ledger P12d; paper §4.1, §E12 and limitations updated. No other numbers changed.
