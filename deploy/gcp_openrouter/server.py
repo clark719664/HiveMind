@@ -13,6 +13,8 @@ Configuration (environment):
                                     client cannot forge. 0 (default) keys on the TCP peer.
     HIVEMIND_GOOGLE_CLIENT_ID       optional; the OAuth web client id (a public identifier, not a secret) that turns on
                                     "Sign in with Google" registration at /signup. Unset = disabled.
+    HIVEMIND_OIDC_PROVIDERS         Optional JSON list of extra OpenID Connect providers (name, issuer, jwks_url, client_id) for
+                                    the general sign-in at /v1/hivemind/register/oidc/<name>; see docs/HIVEMIND_OPENROUTER.md.
     HIVEMIND_OPEN_REGISTRATION      "0" closes handle-only registration so that Google sign-in is the only way in.
                                     Default "1". Closing it without a Google client id is refused at start-up.
 """
@@ -27,6 +29,7 @@ from fastapi import FastAPI
 
 from hivemind.router.accounts import RouterStore
 from hivemind.router.gateway import create_router_app
+from hivemind.router.oidc_auth import providers_from_json
 
 DEFAULT_DB_PATH: str = "/tmp/router.db"
 MEMORY_DB: str = ":memory:"
@@ -45,11 +48,13 @@ def build_app(env: Mapping[str, str]) -> FastAPI:
     if hops < 0:
         raise RuntimeError("HIVEMIND_ROUTER_TRUSTED_PROXY_HOPS must be >= 0")
     google_client_id = env.get("HIVEMIND_GOOGLE_CLIENT_ID", "").strip() or None
+    oidc_text = env.get("HIVEMIND_OIDC_PROVIDERS", "").strip()
+    oidc_verifiers = providers_from_json(oidc_text) if oidc_text else {}
     open_registration = env.get("HIVEMIND_OPEN_REGISTRATION", "1").strip() != "0"
-    if not open_registration and google_client_id is None:
-        raise RuntimeError("HIVEMIND_OPEN_REGISTRATION=0 needs HIVEMIND_GOOGLE_CLIENT_ID: nobody could register otherwise")
+    if not open_registration and google_client_id is None and not oidc_verifiers:
+        raise RuntimeError("HIVEMIND_OPEN_REGISTRATION=0 needs HIVEMIND_GOOGLE_CLIENT_ID or HIVEMIND_OIDC_PROVIDERS: nobody could register otherwise")
     return create_router_app(store, admin_key_hash=admin_key_hash, trusted_proxy_hops=hops,
-                             google_client_id=google_client_id, open_registration=open_registration)
+                             google_client_id=google_client_id, oidc_verifiers=oidc_verifiers, open_registration=open_registration)
 
 
 app: FastAPI = build_app(os.environ)

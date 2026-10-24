@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — General OpenID Connect sign-in (after Google)
+
+- `src/hivemind/router/oidc_auth.py`: provider-agnostic ID-token verifier (`OidcProvider`, `OidcIdTokenVerifier`, `providers_from_json`); `google_auth.py` is now this engine with Google's settings (all 43 Google tests unchanged and passing).
+- `POST /v1/hivemind/register/oidc/{provider}` and public `GET /v1/hivemind/signin/providers`; `RouterStore.allow_identity_provider` reserves each provider's handle prefix (refused if a handle already uses it); `HIVEMIND_OIDC_PROVIDERS` in the Cloud Run server.
+- `tests/test_router_oidc.py` (13 tests). Mutation checks: turning off the issuer check, the verified-email rule, the per-store prefix reservation, or the provider lookup each makes a test fail.
+- Not done: Google itself still needs the owner's OAuth client id; `deploy.sh` does not forward `HIVEMIND_OIDC_PROVIDERS`; no live provider was exercised.
+
 ## Unreleased — GWAYA-Lite Python code expert as a serving-layer expert
 
 - `src/hivemind/core/serving_experts.py`: `SERVING_EXPERT_SPECS` (first entry `Python_Code_GWAYA`), `route_with_serving_experts` (same `1.0 + 2.5 x keyword hits` scale as `route_domain_query`, over LoRA domains and serving experts) and `load_gwaya_code_expert` (lazy import of the optional `gwaya` package; 7B-only by default).
