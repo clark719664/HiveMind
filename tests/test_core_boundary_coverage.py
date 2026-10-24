@@ -791,5 +791,5 @@ def test_synthetic_cpu_training_preserves_unpaired_reference_tensor(monkeypatch)
     assert math.isfinite(metrics["initial_loss"]) and math.isfinite(metrics["final_loss"])
     assert metrics["final_loss"] < metrics["initial_loss"]
     assert torch.count_nonzero(trained["x.lora_B"]).item() > 0
-    torch.testing.assert_close(trained["extra.reference_weight"], original["extra.reference_weight"].to(torch.float32),
+    torch.testing.assert_close(trained["extra.reference_weight"], original["extra.reference_weight"],
                                rtol=0.0, atol=0.0)
