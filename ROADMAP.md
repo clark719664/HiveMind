@@ -210,6 +210,25 @@ Design of record: [`docs/SECURITY_HARDENING_PHASE.md`](docs/SECURITY_HARDENING_P
 
 ---
 
+## 🪙 3.10 Season 12 (`Wave 11` — "Operation Fair-Market") — the BOINC computing coin and a Nash-equilibrium compute market (owner's brief, 2026-10-24)
+
+Proposal of record: [`docs/COMPUTE_COIN_AND_MARKET.md`](docs/COMPUTE_COIN_AND_MARKET.md); code `hivemind.economy.compute_coin` (pure, torch-free); 12 tests (5 property-based); simulation `scripts/run_compute_market_sim.py`, pre-registered ([`artifacts/economy/compute_market_prereg.json`](artifacts/economy/compute_market_prereg.json)), report [`compute_market_report.json`](artifacts/economy/compute_market_report.json). **Status: proposed, not adopted** — the ledger keeps its block-reward rule until `HM-S12-02` and an owner order.
+
+Model in one paragraph: credit is BOINC's cobblestone (432 GFLOP) granted only for spot-checked, Multi-Krum-admitted work, capped by the class's measured peak and by the canonical replica; $HIVE is minted per verified cobblestone with geometric decay under the existing 21 M cap; consumers pay in $HIVE (80 % workers / 15 % validators / 5 % burned); consumers bid under the Kelly proportional-allocation mechanism (unique Nash equilibrium `x_j = max(0, 1 − W/v_j)`, efficiency ≥ 75 % by the Johari–Tsitsiklis 4/3 bound); workers supply into a proportional-share Tullock contest (unique equilibrium `S = (n−1)P/Σc`, expensive workers excluded by competition); across queues a damped best-response routing equalises marginal returns and returns an ε-Nash certificate instead of a convergence promise.
+
+Pre-registered simulation (seed 2026): Kelly efficiency min 0.800 / median 0.869 over 300 instances (H-M1 supported); 300/300 Tullock equilibria certified, price/cheapest-cost median 2.65 (H-M2 supported); routing 55/60 undamped (H-M3 **refuted** for the undamped iteration, run kept as `compute_market_report_run1_undamped.json`), 60/60 after damping (supported for the damped solver); both controls passed.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S12-01` | the coin measures blocks, not compute; no price signal | proposal, `compute_coin.py`, tests, pre-registered simulation (**delivered**) | — |
+| `HM-S12-02` | simulation only | replay E13/E8 receipts through `verified_credit` + `settle_epoch`; minted $HIVE per verified cobblestone vs the block-reward schedule, both reported; adoption by owner order | G-M1 |
+| `HM-S12-03` | costs are synthetic | `c_i` from measured W/GFLOPS (T4, RTX 2070) × energy price; entry/exit over 100 epochs with emission decay | G-M1 |
+| `HM-S12-04` | consumers cannot bid | queue API in the BOINC coordinator; bids are signed orders (`HM-S11-02`); the firewall's `DELEGATED` receipt is the invoice | G-M2 |
+| `HM-S12-05` | collusion unmodelled | withholding / cartel red team on the market; vectors join the pen-test corpus | G-M2 |
+| `HM-S12-06` | closed forms are only tested | Lean 4: Kelly FOC and Tullock active-set as theorems over ℚ through the independent gate | G-M3 |
+
+---
+
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
 
 If you have a consumer GPU (**NVIDIA GeForce RTX 20/30/40/50-series 6 GB–24 GB**, **AMD Radeon RX 6000/7000 via ROCm**, or **Apple Silicon M1/M2/M3/M4 via MPS**) and are interested in testing how your hardware performs on the HiveMind Sparse MoE + `EF21-DiLoCo` + `ZK-OPoI v4` stack, we provide a safe, opt-in, `< 1.5 GB` peak-VRAM benchmark suite:

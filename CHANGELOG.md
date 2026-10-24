@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.7.0 — 2026-10-24 — Operation Fair-Market: BOINC computing coin and Nash-equilibrium compute market (proposal + code + simulation)
+
+- `hivemind.economy.compute_coin`: BOINC cobblestone credit granted only for verified work (spot-check + Multi-Krum; class-peak and canonical-replica caps); work-backed $HIVE issuance with geometric decay under the 21 M cap and an 80/15/5 fee split with burn; Kelly consumer equilibrium (efficiency ≥ 0.75 by the 4/3 price-of-anarchy bound), Tullock worker equilibrium (closed form, ε-Nash certified), damped best-response routing across queues with a deviation certificate. 12 tests, 5 property-based.
+- Pre-registered simulation (seed 2026): Kelly efficiency min 0.800; 300/300 Tullock certified; routing 55/60 undamped (hypothesis refuted, run kept) → 60/60 damped; controls passed. Status: proposed, not adopted (`HM-S12-02`).
+- ROADMAP §3.10 Season 12 (`HM-S12-01..06`); proposal `docs/COMPUTE_COIN_AND_MARKET.md`.
+
+
 ## v2.6.0 — 2026-10-24 — Operation Hardened-Hive: HiveMindFirewall, chain of command, scripted red team
 
 - `hivemind.security.hivemind_firewall`: keyed-hash identities + Ed25519 delegation certificates rooted at the owner; signed, sequenced, hash-chained orders with nonce burning; deterministic prompt-injection scan (PI-01..07, decoded payloads re-scanned) and data envelopes; pure state machine with QUARANTINED as the default for anything undefined; allow-listed argv sandbox (bubblewrap or BLOCKED); hash-chained audit log. 17 tests (two Hypothesis properties).
