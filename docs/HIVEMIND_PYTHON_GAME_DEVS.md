@@ -112,6 +112,26 @@ print(reply.model_dump().get("hivemind"))   # price per 1k tokens, HMT charged, 
 Errors are OpenAI-shaped: `401` bad key, `402` balance too low or your maximum price is below the market price (nothing
 charged), `429` slow down, `503` no producer is live for that model. `client.models.list()` shows the live ones.
 
+### Verified mode: only keep code that passes your tests
+
+`scripts/hivemind_verified.py` asks the router for code, runs **your** tests on **your** machine in a sandbox, feeds failures back to
+the model (up to 3 repairs) and prints the code only when the tests pass.
+
+```bash
+export HIVEMIND_API_KEY=hm-...
+python scripts/hivemind_verified.py --task "Write clamp(x, lo, hi)" --test "assert clamp(5,0,3)==3" --test "assert clamp(-1,0,3)==0"
+```
+
+- **Measured:** 257 held-out MBPP-sanitized tasks, the 7B `coder` tier through the live router: first attempt 196 (76.3%),
+  with the loop 213 (82.9%), 17 rescued and none lost (exact paired test p = 1.5e-5). Sampling was not controlled, so expect noise;
+  this is one run on one benchmark, not a guarantee for your project.
+- **It runs on your side on purpose.** Routers and GPU producers never execute code a stranger sends. The only code that runs is the
+  answer to your request, against your tests, in the local sandbox (`scripts/e15_gate.py`: Linux user namespaces, no network, empty
+  environment). Without that sandbox the result is `BLOCKED`, never "verified".
+- Exit status 0 = verified, 1 = no candidate passed (the first attempt is printed only with `--allow-unverified`), 2 = blocked / no code /
+  request failed. "Verified" means your tests passed, not that the code is correct for cases your tests do not cover.
+- Each repair is another request, so it costs more points: the 257-task run cost about 192 HMT.
+
 ## 3. Share your GPU and earn points
 
 ### Step 1: choose a model for your card
