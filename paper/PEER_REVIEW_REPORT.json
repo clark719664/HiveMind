@@ -1,11 +1,11 @@
 {
   "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "is_peer_review": false,
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-23T20:59:26Z",
+  "timestamp_utc": "2026-10-24T01:13:49Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -764,8 +764,8 @@
     "tier_a_machine_checked": true
   },
   "manuscript_provenance_audit": {
-    "total_checks": 33,
-    "passed_checks": 33,
+    "total_checks": 34,
+    "passed_checks": 34,
     "failed_check_ids": [],
     "all_passed": true,
     "checks": [
@@ -1059,6 +1059,16 @@
         "passed": true
       },
       {
+        "check_id": "PROV-34",
+        "metric_name": "E12 bf16-autocast replay divergence against an fp32 reference (L-inf after 50 steps)",
+        "expected_tokens": [
+          "3.3\\cdot 10^{-3}",
+          "3.35\\cdot 10^{-3}"
+        ],
+        "source_artifact": "artifacts/experiments/E12_pilot_report.json",
+        "passed": true
+      },
+      {
         "check_id": "PROV-28",
         "metric_name": "E10 E8/Z8 relative-MSE ratio at 1 bit/dim (EF off)",
         "expected_tokens": [
@@ -1138,7 +1148,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Programmatically verified 33/33 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Programmatically verified 34/34 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
         "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
       ]
     },
@@ -1175,7 +1185,7 @@
     "architecture_receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
     "experiments_v3_receipt_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
     "champion_miner": "CyberValkyrie_FR",
-    "champion_points": 66879
+    "champion_points": 60711
   },
   "referee_reviews": [
     {

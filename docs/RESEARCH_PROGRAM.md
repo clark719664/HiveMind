@@ -252,8 +252,18 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   of 4) diverges to 2.6e-4 / 2.5e-4 > ε = 1e-4 (P12b **refuted**); the TPU-VM CPU host (other CPU, torch build,
   library versions, same 4 threads) diverges to 1.5e-4, above ε but *less* than the thread cells (P12c refuted
   as stated: reduction order, not the host, dominates); tampered control 1.25e-3 with 96/96 tensors above ε vs
-  3–5/96 for honest divergence. bf16 cell (P12d) still running at the time of writing. Decision applied: the
+  3–5/96 for honest divergence. Decision applied: the
   spot-check rule is re-specified as execution-class matched (accelerator class, build, dtype, thread count /
   deterministic-kernel flags) with a per-class ε and a tensor-count term; GPU classes remain `HM-S10-08`.
 - **Merge authority**: `scripts/pr_gatekeeper.py` runs hourly (owner-only automatic merges, PR text is data);
   branch protection on `main` blocks forced pushes and deletions and requires the two CI jobs.
+
+### 2026-10-24 — E12 pilot complete: bf16 cell (P12d)
+
+- **P12d supported**: the bf16-autocast cell (same host, build and 4 threads; fp32 master adapter weights) replayed
+  against the fp32 reference diverges from step 0 to **3.3e-3** with 96/96 tensors above ε and a max loss difference
+  of 1.7e-2 — 13× the honest fp32 divergence and **2.7× the tampered control** (1.25e-3). Both statistics of the
+  re-specified rule (ℓ∞ and tensor count) saturate, so an fp32 validator cannot tell an honest bf16 worker from a
+  tamperer at any ε: dtype is a class boundary; bf16 workers get a bf16 validator and their own ε measured on GPU
+  (`HM-S10-08`, pre-registered consequence). The cell took 19,233 s on CPU (single-threaded bf16 path) vs 3–16 min
+  for fp32 cells; the GPU bf16 class is the one that matters and is not measured here. Paper v3.7.1, PROV-34.

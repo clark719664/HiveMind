@@ -1,6 +1,6 @@
 {
   "schema_version": "hivemind-predictions-ledger/v1.1",
-  "updated_utc": "2026-10-23T20:58:28Z",
+  "updated_utc": "2026-10-24T01:13:28Z",
   "predictions": {
     "P1": {
       "rq": "RQ1",
@@ -584,7 +584,7 @@
       "status_detail": "supported",
       "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
       "artifact": "artifacts/experiments/E12_pilot_report.json",
-      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "receipt_sha256": "5e6095c9f7644d3ef1fba0ec5f4ce752f6edfc9a74b35bb173ab63591d6a6de4",
       "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
       "controls_all_passed": true,
       "evidence": {
@@ -601,7 +601,7 @@
       "status_detail": "refuted",
       "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
       "artifact": "artifacts/experiments/E12_pilot_report.json",
-      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "receipt_sha256": "5e6095c9f7644d3ef1fba0ec5f4ce752f6edfc9a74b35bb173ab63591d6a6de4",
       "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
       "controls_all_passed": true,
       "evidence": {
@@ -619,7 +619,7 @@
       "status_detail": "refuted",
       "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
       "artifact": "artifacts/experiments/E12_pilot_report.json",
-      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "receipt_sha256": "5e6095c9f7644d3ef1fba0ec5f4ce752f6edfc9a74b35bb173ab63591d6a6de4",
       "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
       "controls_all_passed": true,
       "evidence": {
@@ -634,25 +634,25 @@
       "rq": "RQ11",
       "claim": "bf16 autocast (the consumer-GPU precision class) exceeds eps",
       "decided_by": "E12-pilot",
-      "status": "untested",
-      "status_detail": "not run",
+      "status": "supported",
+      "status_detail": "supported",
       "scale": "Qwen2.5-0.5B LoRA, one 50-step segment, CPU classes only (E12-pilot)",
       "artifact": "artifacts/experiments/E12_pilot_report.json",
-      "receipt_sha256": "5b7679e1e295a1a09b0cefba10b4a033fa7008cb7991fcc099e84d02c6cf42f4",
+      "receipt_sha256": "5e6095c9f7644d3ef1fba0ec5f4ce752f6edfc9a74b35bb173ab63591d6a6de4",
       "prereg_sha256": "1cc44c9ed62d4a8b242e8342ad7c6922bfe067041eac8399dbac86242e4c6bd4",
       "controls_all_passed": true,
       "evidence": {
-        "bf16_autocast": NaN,
-        "status": "not run"
+        "bf16_autocast": 0.0033470490016043186,
+        "status": "supported"
       },
       "note": "CPU pilot; GPU classes remain HM-S10-08"
     }
   },
   "status_counts": {
-    "untested": 6,
+    "untested": 5,
     "refuted": 5,
     "inconclusive": 2,
-    "supported": 3
+    "supported": 4
   },
-  "receipt_sha256": "c0e7de9fe76c1bd19eeeadbf96b16360e76c1f8eae36e82444e5c831ace62767"
+  "receipt_sha256": "1787d753c6a661e4a7c201d074428c118cdc14f73d294799e9c8f684236fee63"
 }
