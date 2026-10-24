@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>HiveMind Swarm Lab</title>
+<meta name="description" content="An interactive, GPU-free toy of a DiLoCo-style swarm (quorum policies, stragglers, non-IID data) next to what the real HiveMind experiments measured.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="wrap">
+    <span class="brand">HiveMind Swarm Lab</span>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="#about">About</a></li>
+        <li><a href="#lab">Swarm Lab</a></li>
+        <li><a href="game.html">Quorum Quest (game)</a></li>
+        <li><a href="#real">Real experiments</a></li>
+        <li><a href="#contribute">Contribute</a></li>
+      </ul>
+    </nav>
+    <button type="button" id="theme-toggle" aria-pressed="false" aria-label="Toggle dark theme">Dark theme: off</button>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+
+  <div id="status-banner" class="banner" role="note" aria-label="Honest status">
+    <strong>Honest status.</strong>
+    This page is an <strong>educational toy</strong>: an analogy of effects that were measured in the real E13/E14 experiments, not a reproduction of them.
+    The toy's defaults were chosen to make the effect visible, so its numbers must never be quoted as results about real LLM training.
+    The real measurements (section "What the real experiments measured") are small, single-machine runs on one time-shared GPU; the core E13 and E14 experiments were registered in the repository before they were run, the rotating-straggler and M=2 runs are labelled diagnostics, and everything is assessed by the project itself.
+    No peer review of record exists for the project. Nothing on this page needs a network, an account or a GPU.
+  </div>
+
+  <section id="about" class="hero" aria-labelledby="about-h">
+    <h1 id="about-h">HiveMind: training together on ordinary GPUs</h1>
+    <p>HiveMind is an open-source research project on training and serving mixture-of-experts language models across many consumer GPUs, using DiLoCo-style training in which each worker takes many local steps and only occasionally sends the change it made (its delta) to a coordinator.</p>
+    <p>A coordinator has to decide whom to wait for: waiting for every worker is slow, but merging only the first few can starve the data domain of a slow worker, and the project measures when that happens and which admission rules help.</p>
+    <p>This page lets you play with a tiny, deterministic toy of that one question, shows the numbers from the real experiments next to it with their sources, and invites you to extend the toy or the experiments.</p>
+  </section>
+
+  <section id="lab" aria-labelledby="lab-h">
+    <h2 id="lab-h">Swarm Lab</h2>
+    <p class="lead">Each of M workers owns one data domain (a quadratic loss with its own optimum). Every round they take noisy local steps, report a delta, and the coordinator waits for the K-th arrival plus a grace window, then merges what it has. <em>Retention</em> is the share of the synchronous improvement that the swarm keeps: 1 means as good as waiting for everyone, 0 means nothing learned. Toy model, 16 parameters, deterministic (the same JavaScript engine matches the Python simulator to 1e-9).</p>
+
+    <div class="grid2">
+      <form id="lab-form" aria-label="Swarm Lab controls" autocomplete="off">
+        <fieldset>
+          <legend>Scenario</legend>
+          <label for="lab-preset">Preset</label>
+          <select id="lab-preset"></select>
+          <label for="lab-M">Workers M (2 to 6)</label>
+          <input id="lab-M" type="number" min="2" max="6" step="1" value="4" inputmode="numeric">
+          <label for="lab-K">Quorum K (wait for the K-th arrival)</label>
+          <select id="lab-K"></select>
+          <label for="lab-policy">Late-delta policy</label>
+          <select id="lab-policy">
+            <option value="discard">discard: drop late deltas</option>
+            <option value="fair">fair: wait for a worker excluded last round</option>
+            <option value="deferred">deferred: merge late deltas next round, down-weighted</option>
+          </select>
+          <p class="hint">fair is like E14's S6, deferred like E14's S7 (see the real results below).</p>
+        </fieldset>
+        <fieldset>
+          <legend>Stragglers and churn</legend>
+          <label for="lab-straggle">Straggle mode</label>
+          <select id="lab-straggle">
+            <option value="none">none</option>
+            <option value="persistent">persistent: the last worker is always slow</option>
+            <option value="rotating">rotating: a different worker (never worker 0) each time</option>
+          </select>
+          <label for="lab-every">Straggle every N-th round (1 = every round)</label>
+          <input id="lab-every" type="number" min="1" max="50" step="1" value="1" inputmode="numeric">
+          <div class="row2">
+            <div><label for="lab-churn-start">Worker 1 leaves at round</label><input id="lab-churn-start" type="number" min="0" max="50" step="1" value="0" inputmode="numeric"></div>
+            <div><label for="lab-churn-end">...and is back after round</label><input id="lab-churn-end" type="number" min="0" max="50" step="1" value="0" inputmode="numeric"></div>
+          </div>
+          <p class="hint">Both 0 = no churn. Needs 1 &le; start &le; end &le; rounds.</p>
+        </fieldset>
+        <fieldset>
+          <legend>Merge and run</legend>
+          <label for="lab-merge">Merge mode</label>
+          <select id="lab-merge">
+            <option value="direct">direct: plain weighted mean</option>
+            <option value="rda">rda: mean rescaled by sum|D| / |sum D| (erratic in this toy)</option>
+          </select>
+          <label for="lab-grace">Grace window (fraction of the K-th arrival time)</label>
+          <input id="lab-grace" type="number" min="0" max="2" step="0.05" value="0.1" inputmode="decimal">
+          <div class="row2">
+            <div><label for="lab-rounds">Rounds</label><input id="lab-rounds" type="number" min="1" max="60" step="1" value="12" inputmode="numeric"></div>
+            <div><label for="lab-seed">Seed</label><input id="lab-seed" type="number" min="0" step="1" value="1" inputmode="numeric"></div>
+          </div>
+          <p><button type="button" id="lab-random-seed">Random seed</button></p>
+        </fieldset>
+        <p id="lab-error" class="banner" role="alert" hidden></p>
+      </form>
+
+      <div>
+        <p id="lab-summary" class="lead" role="status" aria-live="polite"></p>
+        <div class="stats" aria-label="Key numbers">
+          <div class="stat"><div class="v" id="stat-retention">-</div><div class="k">retention (1 = synchronous)</div></div>
+          <div class="stat"><div class="v" id="stat-loss">-</div><div class="k">global loss, start &rarr; end</div></div>
+          <div class="stat"><div class="v" id="stat-time">-</div><div class="k">simulated total time</div></div>
+          <div class="stat"><div class="v" id="stat-late">-</div><div class="k">late deltas (all rounds)</div></div>
+        </div>
+        <h3>Global loss per round</h3>
+        <div id="lab-chart"></div>
+        <div id="lab-legend"></div>
+        <h3>Final loss per data domain</h3>
+        <div id="lab-domains"></div>
+        <div id="lab-domain-legend"></div>
+        <p class="hint">A domain whose worker is repeatedly left out ends far above the synchronous reference: that is the starvation the real E13 experiment measured.</p>
+        <h3>Who was admitted, round by round</h3>
+        <div id="lab-strip"></div>
+      </div>
+    </div>
+
+    <h3>The three policies, side by side</h3>
+    <div id="lab-compare" class="tablewrap panel"></div>
+    <p class="hint">Same scenario and seed, only the policy changes. Single seed: use several seeds before concluding anything (the toy is noisy). The cost of waiting shows up in the simulated total time.</p>
+
+    <details>
+      <summary>Per-round data (table)</summary>
+      <div id="lab-rounds-table" class="tablewrap"></div>
+    </details>
+    <details>
+      <summary>Reproduce this run with the Python simulator</summary>
+      <p>The JavaScript engine and the Python simulator follow the same contract, so this command prints the same numbers (digest <code id="lab-digest">-</code>).</p>
+      <pre id="lab-cli"></pre>
+      <p>Scenario as JSON (the same field names as the Python flags):</p>
+      <pre id="lab-json"></pre>
+    </details>
+    <p><a class="btn primary" href="game.html">Play Quorum Quest, the coordinator game</a></p>
+    <noscript><p class="banner">The simulator and the results panel need JavaScript. Everything runs locally in your browser; nothing is sent anywhere.</p></noscript>
+  </section>
+
+  <section id="real" aria-labelledby="real-h">
+    <h2 id="real-h">What the real experiments measured</h2>
+    <p class="lead">These panels are generated from the experiment reports in <code>artifacts/experiments/</code> (see <code>scripts/build_site_data.py</code>). Every block carries the file it came from and the first 12 characters of that file's receipt hash. Status words (supported, refuted, inconclusive, descriptive, invalid) are copied from the registered analysis files; where a wording comes from the campaign report instead, or was derived from a report field by a registered rule, the block says so. The toy above is an analogy of these results, not a model fitted to them.</p>
+    <div id="real-results" aria-live="polite"></div>
+    <noscript><p class="banner">The results panel needs JavaScript. The raw reports are in the repository under artifacts/experiments/.</p></noscript>
+    <p class="hint">More detail: <a href="../benchmarks/T4_10h_campaign_report.md">the 10-hour T4 campaign report</a> and <a href="../RESEARCH_PROGRAM.md">the research program</a> (relative links work when this folder is opened from a repository checkout).</p>
+  </section>
+
+  <section id="contribute" aria-labelledby="contribute-h">
+    <h2 id="contribute-h">Contribute</h2>
+    <p>Everything here is small and runs on a laptop CPU. Repository: <a href="https://github.com/xaviercallens/HiveMind">github.com/xaviercallens/HiveMind</a>.</p>
+    <ul>
+      <li>How to contribute: <a href="../../CONTRIBUTING.md">CONTRIBUTING.md</a> (<a href="https://github.com/xaviercallens/HiveMind/blob/main/CONTRIBUTING.md">on GitHub</a>).</li>
+      <li>The Swarm Lab guide, with contribution ideas (a new policy, a new straggle pattern, a codec-noise option, a port): <a href="../community/SWARM_LAB.md">docs/community/SWARM_LAB.md</a> (<a href="https://github.com/xaviercallens/HiveMind/blob/main/docs/community/SWARM_LAB.md">on GitHub</a>).</li>
+      <li>The task list: <a href="../CONTRIBUTOR_TASKS_AND_BOUNTIES.md">docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md</a> (<a href="https://github.com/xaviercallens/HiveMind/blob/main/docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md">on GitHub</a>).</li>
+      <li>This site: <a href="README.md">docs/site/README.md</a> explains how to run it, regenerate <code>data.js</code> and add a policy or a game level.</li>
+    </ul>
+    <p>Run the Python simulator (standard library only, no GPU):</p>
+    <pre>python3 scripts/swarm_lab.py simulate --preset persistent-straggler
+python3 scripts/swarm_lab.py compare --preset persistent-straggler
+python3 scripts/swarm_lab.py play --auto</pre>
+    <p>Check that your change keeps the JavaScript and Python engines identical: <code>python3 -m pytest tests/test_swarm_lab.py tests/test_swarm_lab_js_parity.py</code>.</p>
+    <div class="notice" id="nonmonetary-notice">
+      <strong>Notice.</strong> All references to $HIVE and "Points" (PTS) refer exclusively to internal, non-monetary, non-transferable accounting units measuring contributed and reciprocal computing power.
+      NO MONEY, FIAT CURRENCY, CRYPTOCURRENCY, FINANCIAL INSTRUMENT, SECURITY, WAGE, OR MONETARY PAYMENT OF ANY KIND IS OR WILL EVER BE INVOLVED, PROMISED, OWED, OR PAID.
+      (See <a href="../../LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md">LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md</a>.)
+      The game's score is a "learning score": a teaching number, not PTS or $HIVE.
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <p>HiveMind Swarm Lab: an educational toy, not a reproduction of the real experiments. Runs entirely in your browser: no network requests, no cookies, no accounts. Theme and last scenario are kept in local storage only if your browser allows it.</p>
+    <p>$HIVE and "Points" (PTS) are internal, non-monetary, non-transferable accounting units measuring contributed and reciprocal computing power; see LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md.</p>
+  </div>
+</footer>
+
+<script src="swarm_lab.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

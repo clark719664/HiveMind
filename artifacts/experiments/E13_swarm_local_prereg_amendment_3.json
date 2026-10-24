@@ -1,0 +1,27 @@
+{
+  "experiment_id": "E13-swarm-local",
+  "amends": "E13_swarm_local_prereg.json + amendments 1-2 (unchanged)",
+  "amendment": 3,
+  "registered_utc": "2026-10-24T07:50:00Z",
+  "status": "exploratory diagnostic (E13c); decides no prediction and changes no registered result",
+  "when": "after the qwen0.5b E13 result (P13b refuted, P13d: the K<M quorum is the harmful mechanism, no-quorum retention 0.94), before any E13c run",
+  "question": "In the registered S2 the straggler is always worker M-1 (the GSM8K domain). Is the loss of the swarm caused by that persistent straggler starving one non-IID domain, or by K=2 of 4 itself?",
+  "hypothesis_recorded_before_the_run": "If domain starvation is the cause, rotating the straggler across workers (so no domain is systematically excluded) will raise the retention of S2 well above the registered value of -0.05; if K=2 of 4 itself is the cause, the retention will stay near it. No threshold is set; the three per-seed retentions and their mean are reported.",
+  "design": {
+    "model": "qwen0.5b, M=4, thread-hosted peers as in the registered run (memory preflight)",
+    "cells": [
+      "S0",
+      "S2"
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "straggle": "3:1:2.0;2:3:2.0;1:5:2.0 (worker 3 delayed in round 1, worker 2 in round 3, worker 1 in round 5; factor 2.0 as registered)",
+    "churn": "default (worker 1 killed after round 2, re-spawned before round 4)",
+    "everything_else": "identical to the registered S2 (K=2, adaptive grace, RDA, E8@2+EF)",
+    "outputs": "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_rotstraggle.json and E13_swarm_local_report_rotstraggle.json"
+  },
+  "analysis": "retention rho_s = (L_round0 - L_S2,s) / (L_round0 - L_S0,s) per seed with the registered formula, compared descriptively with the registered S2 retentions; the admitted-worker sets per round are reported"
+}

@@ -647,6 +647,8 @@ class ComputeVisibleSparseLoCoCompressor:
         lattice_scale: Optional[float] = None,
         error_feedback: bool = False,
         adapt_scale_per_round: bool = True,
+        value_codec: str = "lut",
+        lattice_rate_bits: float = 2.0,
     ) -> None:
         if not (0.0 < topk_ratio <= 1.0):
             raise ValueError("topk_ratio must be in (0, 1]")
@@ -655,10 +657,15 @@ class ComputeVisibleSparseLoCoCompressor:
         valid_codecs = ("centroid_2bit", "E8", "Z", "sign")
         if codec not in valid_codecs:
             raise ValueError(f"codec must be one of {valid_codecs}, got {codec!r}")
+        if value_codec not in ("lut", "Z", "E8"):
+            raise ValueError("value_codec must be 'lut' (default), 'Z' or 'E8'")  # E10b: lattice option, HM-S10-01
         if target_bits_per_dim <= 0.0 or not math.isfinite(target_bits_per_dim):
             raise ValueError("target_bits_per_dim must be positive and finite")
         if lattice_scale is not None and (lattice_scale <= 0.0 or not math.isfinite(lattice_scale)):
             raise ValueError("lattice_scale must be positive and finite when specified")
+        self.value_codec = value_codec
+        self.lattice_scale = None if lattice_scale is None else float(lattice_scale)
+        self.lattice_rate_bits = float(lattice_rate_bits)
         self.topk_ratio = float(topk_ratio)
         self.n_bins = int(n_bins)
         self.range_in_sigmas = float(range_in_sigmas)
@@ -812,6 +819,33 @@ class ComputeVisibleSparseLoCoCompressor:
         # Deterministic sorted top-k index selection (Golden Invariant #2)
         _, idx = torch.topk(gated_flat.abs(), k=k, largest=True, sorted=True)
         selected = gated_flat[idx]
+
+        if self.value_codec != "lut":
+            # Lattice option (E10b): the k selected values are quantised blockwise on scale * {Z^8, E8}; the scale is
+            # either fixed or calibrated so the measured factorised rate of this payload hits `lattice_rate_bits`.
+            from hivemind.compress.lattice_quantizer import LatticeDeltaQuantizer, calibrate_scale_for_rate
+
+            lat_scale = self.lattice_scale
+            if lat_scale is None:
+                lat_scale, _ = calibrate_scale_for_rate(self.value_codec, selected, self.lattice_rate_bits)
+            q = LatticeDeltaQuantizer(self.value_codec, lat_scale).quantize(selected)
+            reconstructed = torch.zeros_like(flat)
+            reconstructed.index_copy_(0, idx, q.dequantized)
+            reconstructed = reconstructed.reshape(delta.shape).to(device=delta.device, dtype=delta.dtype)
+            wire = int(math.ceil(k * q.rate_bits_per_dim / 8.0) + k * 2 + 16)
+            return reconstructed, {
+                "strategy_id": "SI-09B-PULSE-SPARSELOCO-LATTICE",
+                "numel": numel,
+                "k_transmitted": k,
+                "value_codec": self.value_codec,
+                "lattice_scale": float(lat_scale),
+                "measured_rate_bits_per_value": q.rate_bits_per_dim,
+                "relative_mse": q.relative_mse,
+                "compute_invisible_fraction": round(invisible_fraction, 6),
+                "raw_bf16_bytes": numel * 2,
+                "compressed_wire_bytes": wire,
+                "wire_compression_ratio_x": round(numel * 2 / max(1, wire), 2),
+            }
 
         shift = float(selected.mean().item())
         centered = selected - shift

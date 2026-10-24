@@ -117,7 +117,7 @@ two-sided brute-force check, and the ℤ⁸/E₈ arms must realise the same rate
 Pre-registration: `artifacts/experiments/E10_lattice_prereg.json`; code:
 `src/hivemind/compress/lattice_quantizer.py` (decoders ported from OptimalEnergyAI with attribution).
 
-### E11 — Lattice KV-cache codecs for the inference ring (added 2026-10-23; decides RQ10; pre-registration still to be written)
+### E11 — Lattice KV-cache codecs for the inference ring (added 2026-10-23; decides RQ10; pre-registered in `artifacts/experiments/E11_kv_lattice_prereg.json` + amendment 1, run 2026-10-23/24 — see the status log)
 
 Real `Qwen2.5-0.5B` KV tensors captured with OptimalEnergyAI's `poc2_crystallized_attention/extract.py`
 (`capture_kv`, `rope_planes`), WikiText ΔNLL as the metric. Factors: codec ∈ {FP8 per-page absmax (current
@@ -130,7 +130,7 @@ E8 amendment (from the external review of v3.5.0): the WAN factorial must includ
 against *each-mechanism-off* cells (NF4, 2-bit DCT+EF21, Skip-Token, Skip-Attention, PA-CGAD, fixed-point
 exits) so that interactions between approximations, not only main effects, are detectable.
 
-### E12 — Spot-check replay divergence across hardware (added 2026-10-23; decides RQ11; pre-registration still to be written)
+### E12 — Spot-check replay divergence across hardware (added 2026-10-23; decides RQ11; pre-registered in `artifacts/experiments/E12_replay_divergence_prereg.json`, run 2026-10-24 on the T4 and this host's CPU only — see the status log)
 
 One honest worker's 50-step segment (Qwen2.5-0.5B LoRA, the PoC configuration) replayed on the T4 of this
 workstation, the RTX 2070 of the PoC and the CPU of the TPU VM; metric `‖Δθ‖∞` per pair, 3 segments × 3
@@ -285,3 +285,61 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
 - **Compute economy (owner's brief)**: BOINC-credit coin and Nash-equilibrium market proposed (`docs/COMPUTE_COIN_AND_MARKET.md`);
   pre-registered simulation: Kelly efficiency ≥ 0.80, 300/300 Tullock certified, routing 55/60 undamped → 60/60 damped (run 1 kept).
   Proposed, not adopted (`HM-S12-02`); Season 12 in ROADMAP §3.10.
+
+### 2026-10-24 — 10-hour T4 campaign: E11, E12, E10b decided as registered; E11b exploratory sweep
+
+Report: `docs/benchmarks/T4_10h_campaign_report.md` (generated from the receipts by `scripts/write_t4_benchmark_report.py`).
+Ledger: `artifacts/predictions_ledger.json` (P11a, P11b, P12-* added; E10b attached to P10a–c as an invalid decision).
+
+- **E11 (RQ10)** on real KV tensors of Qwen2.5-0.5B-Instruct (fp16), Qwen2.5-Coder-7B-Instruct (fp16, embeddings on
+  CPU) and Gemma-4-E4B (bf16, per-layer embeddings on CPU), WikiText-2, 1024-token windows, 3 seeds:
+  **P11a 'refuted' on all three models under the registered rule** (no detectable gain of A₂ per RoPE plane over
+  entropy-coded scalar at any rate-matched R) — Gemma has 3 matched rates, both Qwen models only R = 4 (Qwen-7B: 5/18
+  lattice cells matched), so the Qwen verdicts are weak and 3 seeds give low power; **P11b refuted** on Gemma (E₈
+  already beats ℤ without the KLT; inconclusive on 0.5B; 'supported' on 7B by one matched KLT cell and one matched
+  no-transform cell). Consequence: the KV ring stays on FP8 (`HM-S10-05` keeps the pluggable codec,
+  adopts none). Amendment 1 (per-layer calibration rate) was made after the first 0.5B execution and before any 7B /
+  Gemma result; the A₂@8-vs-FP8 negative control fails on both Qwen models because e4m3 keeps 3 mantissa bits (a
+  design error, kept as registered). Many 7B cells missed the matched-rate band; Qwen-7B is extremely KV-sensitive
+  (FP8 ΔNLL +0.47 nats).
+- **E12 (RQ11)**: **P12-same supported** (same T4, separate process: ‖Δθ‖∞ = 0.0 in 9/9), **P12-cross supported** (T4 vs
+  x86 CPU, fp32: 2.0e-4–6.3e-4 > ε in 9/9), controls pass. The fp64 + 2⁻²⁰ snapping proxy does not reduce the
+  cross-device divergence, which sits near the inner lr from step 10 on — consistent with Adam's sign-like early steps
+  turning any tiny gradient difference into an ≈lr step (interpretation). RTX 2070 / TPU cells and the fixed-point
+  clause remain open. `HM-S10-08`: validators are assigned by accelerator class; cross-class replays are 'not comparable'.
+- **E10b (RQ9 at 0.5B)**: first execution aborted by the lead after one cell (0.72 s/step vs 0.12 assumed; the
+  E12-style LoRA init made the testbed diverge — confirmed by a CPU diagnostic); amendment 2 (PEFT-scale init, 5 arms,
+  R = 6, H = 20, registered fail-fast rule). The amended run is **invalid**: its positive control failed (sign without
+  EF did not hurt in seed 3; all arms end within ~1e-3 nats). Descriptive: relMSE(E₈)/relMSE(ℤ⁸) = 0.869 ± 0.003 at 1
+  bit/dim on real LoRA deltas (Gaussian prediction 0.86). P10a–c keep their E10 (toy) statuses.
+- **E11b** (exploratory, decides nothing): planned for the same codecs on fineweb-edu, code and GSM8K and at 4096 tokens.
+  Correction (2026-10-24, day): only the three fineweb-edu 1024-token configurations ran; the other sweeps were stopped
+  on purpose and never re-queued, so no E11b aggregate report exists (see the campaign report, sections 1b and 5).
+- Code delivered on the way (Sonnet / Haiku subagents, reviewed by the lead): GPU lattice codecs with A₂
+  (`hivemind.compress.kv_lattice`), pluggable KV page codecs, validator assignment, E10b runner, E11b aggregator, a
+  lazy `peft` import in `hivemind.core.quantization` (the replay path no longer needs peft), 60+ CPU tests.
+
+### 2026-10-24 (day) - E13d, E14, E15, E16 and the GWAYA-Lite deployment
+
+Report: `docs/benchmarks/T4_10h_campaign_report.md` (sections 6-10, extension-queue timeline in 1b; generated by `scripts/write_t4_benchmark_report.py`).
+Ledger: `artifacts/predictions_ledger.json` now carries P13a-c, P14a-b, P15a-e and P16a-f (per-model / per-tier decisions under `decisions`, `per_model`, `per_tier`; `mixed` = the per-group statuses disagree, `descriptive` = registered without a status).
+Statuses of E14 / E15 are computed from the receipted reports by the registered rules in `scripts/analyze_E14_E15_hypotheses.py` (`E14_hypotheses.json`, `E15_hypotheses.json`). No peer review of record exists for any of this; PTS / $HIVE are non-monetary and no reward is attached.
+
+- **E13 (registered, earlier on 2026-10-24; first logged here)**, localhost swarm over real HTTP on one T4, no WAN claim: P13a **supported** (S1 equals S0 bit-identically on Qwen2.5-0.5B, Granite-3.1-1B, Granite-3B; also with two real OS processes at M = 2), P13c **supported** (upload 0.09 of raw fp32 on all three models), P13b **refuted** on Qwen2.5-0.5B (retention -0.051 +- 0.350 against the 0.5 bar) and on Granite-1B (-0.658 +- 0.665); Granite-3B has one seed (descriptive, -0.698). Each-off cells (Qwen): without the quorum (K = M) retention is 0.942, without the codec 0.114, without RDA 0.264. E13c (rotating straggler, exploratory): retention +0.402 +- 0.304, so starvation of the persistent-straggler domain explains part of the loss and K < M itself the rest.
+- **E13d (six non-IID domains, six workers, exploratory replication, amendment 6)**: P13a **supported**, P13c **supported**, P13b **inconclusive** (retention +0.290 +- 0.391, interval [-0.100, +0.681] includes the 0.5 bar); K = M keeps 0.942. The registered refutation at M = 4 is therefore not replicated as a refutation, and not confirmed either; three seeds, thread-hosted peers.
+- **E14 (fair quorum S6 and deferred carry S7 against the plain K < M swarm S2; exploratory, 3 seeds, two hypotheses per model, no correction)**: dense Qwen2.5-0.5B: **H14a supported** (S2 - S6 = +0.124 +- 0.055 nats; retention 0.879 +- 0.079 against -0.051 +- 0.350 for S2; round latency 1.28x S2) and **H14b supported** (S2 - S7 = +0.077 +- 0.066; retention 0.528 +- 0.184). Granite-3.1-1B-A400M MoE: **H14a inconclusive** (+0.016 +- 0.026; retention -0.080), **H14b inconclusive** (-0.016 +- 0.034; retention S7 -0.665, S2 -0.371). The dense-model support does not transfer clearly to the MoE at this size. Decision consequence (as registered): S6/S7 are candidate admission policies for the multi-host gameday (`HM-S9-07`) and stay opt-in (`HM-S10-09`), to be confirmed with more seeds, on MoE and on the WAN; the constants (MAX_EXCLUSION 1, MAX_STALENESS 2) were not tuned.
+- **E15 (GWAYA-gated RFT of Qwen2.5-Coder-1.5B-Instruct, 7.5 GiB cap on the T4; MBPP-sanitized n = 257, HumanEval n = 164)**: **H15b supported** (the GWAYA inference loop C1 - C0 = +7.0 points, 19 problems gained and 1 lost, McNemar p = 4.0e-05); **H15a inconclusive** (RFT-tuned greedy C2 - C0 = +0.8 points, p = 0.85: no detected gain from the fine-tuning; HumanEval C2h - C0h = +0.6 points, p = 1.0, descriptive); **H15d supported** (peak reserved 4.47 GiB at most); stacking C3 - C1 = +1.2 points (p = 0.66), C3 - C0 = +8.2 points (descriptive). RFT yield: 359 of 462 train problems gave at least one accepted sample, 673 kept pairs. One training seed, one model size; the loop costs about 4.4x the GPU seconds of greedy decoding. Decision consequence (as registered): the inference-time gate alone is the efficient path; training needs more verified data before it is worth recommending.
+- **E16 (GWAYA draft PR #21 P1/P2 measured on the T4, Qwen2.5-Coder 1.5B/3B/7B Q4_K_M via Ollama, MBPP n = 257)**: H16a **supported** (7B: 5483 MiB at num_ctx 4096 and 6387 MiB at 8192, both under 6656 MiB), H16b **adequate** (all measured/estimated VRAM ratios in 0.93-1.21), H16c **supported** on all tiers (the loop never lowers pass@1), H16d **supported** for 1.5B (+8.6 points) and 3B (+7.4) but **inconclusive** for 7B (+3.9 points, p = 0.002, below the +5.0 bar), H16e **supported** (precision of VERIFIED 92.6 % / 92.8 % / 94.8 %, so 5-7 % of VERIFIED solutions still fail the hidden tests), H16f met (7B decode 28.5 tok/s). Descriptive: the 1.5B -> 3B -> 7B ladder reaches 85.2 % against 85.6 % for the 7B loop alone at 78 % of its model time. Run valid (idle GPU, gate, unload).
+- **GWAYA-Lite deployment**: `scripts/gwaya_lite.py` (CLI + localhost OpenAI-compatible gateway, loopback only) runs on the T4 at port 8099; the live check (`artifacts/gwaya_lite_live_check.json`) shows 3 of 3 small tasks VERIFIED (the ladder escalated to 3B for fizzbuzz), a request without tests answered AUDITED, SSE streaming, foreign Host / Origin rejected with 403, 1639 MiB of GPU memory in use afterwards (qwen2.5-coder:1.5b resident, 1514 MiB). Three small tasks are a smoke check, not a benchmark; the editor-integration examples are untested in real editors.
+- Also delivered: the Swarm Lab (`HM-S10-10`), campaign checkpointing for Spot VMs (`scripts/checkpoint_state.py`, `HM-S10-12`) and a local staging script for the campaign package (`scripts/publish_campaign_to_gcs.py`); the public upload of the package is pending the owner's permission and has not been done.
+
+Caveats that bound every statement above:
+
+- **Thread-hosting caveat.** Where the memory preflight did not allow separate OS processes (Qwen2.5-0.5B with 4-6 workers: 15 cells of the registered E13 run, the E13d and E14 Qwen cells; the Granite runs by choice), the peers are threads of one process sharing one frozen model, talking over the same real localhost HTTP protocol. Round latencies are GPU time-sharing artefacts; the exact-identity control was repeated with two real OS processes only at M = 2. Nothing here is evidence about WAN, NAT, volunteer churn or throughput (RQ1 stays untested).
+- **Sandbox caveat.** The E15 / E16 / GWAYA-Lite gate is the vendored GWAYA zero-stub auditor (unmodified, pinned commit) plus our own user/mount/net/pid-namespace sandbox with rlimits: no seccomp, no cgroups, shared kernel, not GWAYA's Bubblewrap oracle. Results are labelled GWAYA-style and it is not a defence against adversarial code.
+- **Timestamp note (unresolved).** The `registered_utc` stamps of several pre-registration files are later than the stage timestamps of the runs they claim to precede (E15 prereg 13:00Z and amendment 1 14:30Z against a baseline stage written 08:24Z; E16 prereg 16:00Z against a preflight at 10:07Z; E14 prereg 11:00Z against a job started about 07:06Z; E13 amendment 6 at 10:15Z against the E13d start at 07:33Z; amendment 4 at 09:00Z against a Granite-1B run of the first queue), while the file modification times place every pre-registration before its run. The stamps are probably hand-typed or in a different clock; "registered before the run" therefore rests on the file modification times (the commit history was not checked here), not on the stamps. Not corrected here (the files are receipts).
+- Statistics: 3 seeds (df = 2 intervals) for E13/E14, one training seed for E15, one seed set for E16; E14 is exploratory and uncorrected for two hypotheses per model.
+
+Still open: the multi-host WAN GameDay (E8, `HM-S9-07`); E14 with more seeds, a larger MoE and on the WAN, and a data-leasing alternative if the quorum problem persists; E15 with several training seeds or more verified data; E16 on other runtimes and GPUs; the E11b sweeps (only fineweb-edu ran), E12 on an RTX 2070 / TPU-VM CPU and the fixed-point replay clause; a longer E10b; a real-editor test of the GWAYA-Lite gateway; publication of the campaign package and of anything on the GWAYA repository or its PR is left to the owner.
+
+**Provenance note on pre-registration timestamps (2026-10-24).** The `registered_utc` fields inside the E13 amendments 4 and 6 and the E14, E15 and E16 preregistrations are later than some runs they precede and must not be read as registration times. The git history is the authority: the E14 prereg was committed at 06:23Z (report 07:33Z), the E15 prereg at 07:28Z (report 10:07Z) and the E16 prereg at 08:27Z (report 11:21Z), each before its result. The E15 baseline stage began after the prereg commit. Fields are left as written.

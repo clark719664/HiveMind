@@ -9,13 +9,16 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
-from peft import LoraConfig, PeftModel, TaskType, get_peft_model
 from transformers import AutoModelForCausalLM, Qwen2Config, Qwen2ForCausalLM
 
 from hivemind.config import HardwareProfile, configure_deterministic_runtime
+
+if TYPE_CHECKING:  # peft is needed only to attach adapters; the hashing / state-dict helpers must import without it
+    from peft import LoraConfig, PeftModel
 
 QWEN_ALL_LINEAR_MODULES = [
     "q_proj",
@@ -176,6 +179,8 @@ def create_lora_config(
     lora_dropout: float = 0.0,
 ) -> LoraConfig:
     """Create Rank-r LoRA configuration targeting all 7 Transformer linear projections."""
+    from peft import LoraConfig, TaskType
+
     return LoraConfig(
         r=rank_r,
         lora_alpha=lora_alpha,
@@ -281,6 +286,8 @@ def attach_qlora_adapters(
         target_modules=target_modules or QWEN_ALL_LINEAR_MODULES,
         lora_dropout=0.0,
     )
+    from peft import get_peft_model
+
     peft_model = get_peft_model(base_model, lora_cfg)
     peft_model.to(device)
 

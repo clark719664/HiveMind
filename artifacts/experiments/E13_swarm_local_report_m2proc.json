@@ -1,0 +1,225 @@
+{
+  "schema_version": "hivemind-experiment-E13/v1.0",
+  "experiment_id": "E13-swarm-local",
+  "design_sha256": "2b522d3eac0c29a43260928256f0fb01d2c56bb6f50f789f82e10fccade246fe",
+  "models": {
+    "qwen0.5b": {
+      "cells": {
+        "S0": {
+          "name": "sync_baseline",
+          "status": "ok",
+          "failed_seeds": [],
+          "seeds": [
+            1
+          ],
+          "final_loss_per_seed": [
+            2.3666575253009796
+          ],
+          "initial_loss_per_seed": [
+            2.3953794687986374
+          ],
+          "per_domain_final_mean": {
+            "code": 2.03640216588974,
+            "wiki-fr": 2.6969128847122192
+          },
+          "wire": {
+            "up_bytes_mean_per_run": 0.0,
+            "down_bytes_mean_per_run": 0.0,
+            "raw_fp32_delta_bytes_total": 0,
+            "ideal_entropy_coded_bytes_total": 0.0,
+            "actual_up_bytes_total": 0,
+            "compression_ratio_actual": null,
+            "compression_ratio_ideal": null,
+            "int16_posts_total": 0,
+            "runs_needing_int16": []
+          },
+          "admitted_fraction_mean": 1.0,
+          "late_discards_total": 0,
+          "hosting_fallback_seeds": [],
+          "round_latency_s": {
+            "p50": 9.9006868150027,
+            "p95": 10.166514321997965,
+            "p99": 10.191516612396663,
+            "n": 6,
+            "note": "descriptive only: one GPU, time-shared"
+          },
+          "mean_measured_rate_bits_per_dim": null
+        },
+        "S1": {
+          "name": "swarm_identity",
+          "status": "ok",
+          "failed_seeds": [],
+          "seeds": [
+            1
+          ],
+          "final_loss_per_seed": [
+            2.3666575253009796
+          ],
+          "initial_loss_per_seed": [
+            2.3953794687986374
+          ],
+          "per_domain_final_mean": {
+            "code": 2.03640216588974,
+            "wiki-fr": 2.6969128847122192
+          },
+          "wire": {
+            "up_bytes_mean_per_run": 25952256.0,
+            "down_bytes_mean_per_run": 30277632.0,
+            "raw_fp32_delta_bytes_total": 25952256,
+            "ideal_entropy_coded_bytes_total": 25952256.0,
+            "actual_up_bytes_total": 25952256,
+            "compression_ratio_actual": 1.0,
+            "compression_ratio_ideal": 1.0,
+            "int16_posts_total": 0,
+            "runs_needing_int16": []
+          },
+          "admitted_fraction_mean": 1.0,
+          "late_discards_total": 0,
+          "hosting_fallback_seeds": [],
+          "round_latency_s": {
+            "p50": 10.96778321649981,
+            "p95": 11.682362181250937,
+            "p99": 11.68529395305086,
+            "n": 6,
+            "note": "descriptive only: one GPU, time-shared"
+          },
+          "mean_measured_rate_bits_per_dim": null
+        }
+      },
+      "failed_cells": [],
+      "paired_vs_S0": {
+        "S1": {
+          "status": "needs exactly 3 paired seeds (have 1)",
+          "seeds": [
+            1
+          ]
+        },
+        "S2": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        },
+        "S3": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        },
+        "S4": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        },
+        "S5": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        },
+        "S1t": {
+          "status": "needs exactly 3 paired seeds (have 0)",
+          "seeds": []
+        }
+      },
+      "controls": {
+        "s1_equals_s0": {
+          "rows": [
+            {
+              "available": true,
+              "max_abs_diff": 0.0,
+              "tolerance": 1e-06,
+              "passed": true,
+              "bit_identical": true,
+              "identity_noise_floor": {
+                "available": true,
+                "max_abs_diff": 0.0,
+                "bit_identical": true,
+                "twin_final_loss": 2.3666575253009796,
+                "note": "diagnostic only; the identity rule stays S1 vs S0 <= 1e-6"
+              }
+            }
+          ],
+          "tolerance": 1e-06,
+          "passed": true
+        },
+        "s0_learns": {
+          "rows": [
+            {
+              "seed": 1,
+              "initial": 2.3953794687986374,
+              "final": 2.3666575253009796
+            }
+          ],
+          "passed": true
+        },
+        "raw_wire_bytes_exact": {
+          "passed": true,
+          "note": "codec 'none': every POSTed body is exactly 4 x n_coords bytes"
+        },
+        "codec_rate_on_target": {
+          "passed": null,
+          "tolerance": 0.05
+        },
+        "workers_start_identical": {
+          "passed": true
+        },
+        "no_failed_cells": {
+          "passed": true,
+          "failed": []
+        }
+      },
+      "controls_all_passed": false,
+      "hosting_fallback_cells": [],
+      "not_included": [
+        "NF4",
+        "Skip-Token",
+        "Skip-Attention",
+        "PA-CGAD",
+        "fixed-point exits"
+      ],
+      "scope": "localhost negative control (E8): single GPU, time-shared; NOT evidence for any WAN / volunteer claim"
+    }
+  },
+  "controls_all_passed": false,
+  "receipt_sha256": "7a39ae2de97ce2da644b3b21dfa60c119f8eedfa0a9fe4d90f65b1e7e7259aab",
+  "smoke": false,
+  "hardware": {
+    "device": "cuda",
+    "gpu": "Tesla T4",
+    "cpu": "x86_64",
+    "torch": "2.7.1+cu118"
+  },
+  "elapsed_seconds": 227.12,
+  "estimate": {
+    "model": "qwen0.5b",
+    "cells": [
+      "S0",
+      "S1"
+    ],
+    "seeds": [
+      1
+    ],
+    "cfg": {
+      "rounds": 6,
+      "workers": 2,
+      "inner": 20,
+      "seq_len": 256,
+      "micro_batch": 4,
+      "eval_seqs": 16,
+      "eval_batch": 4,
+      "smoke": false
+    },
+    "runs": 2,
+    "inner_steps_per_run": 240,
+    "inner_steps_total": 480,
+    "rounds_per_run": 6,
+    "tokens_per_worker_per_run": 122880,
+    "assumed_sec_per_inner_step": 0.45,
+    "assumed_sec_per_eval": 3.0,
+    "assumed_sec_process_start": 20.0,
+    "breakdown_s": {
+      "inner_steps_s": 216.0,
+      "eval_s": 18.0,
+      "process_start_s": 30.0,
+      "data_prep_once_s": 120.0,
+      "straggler_wait_K_eq_M_s": 0.0,
+      "diagnostic_twin_S0b_s": 127.0
+    },
+    "total_s": 511.0,
+    "total_hours": 0.14
+  }
+}

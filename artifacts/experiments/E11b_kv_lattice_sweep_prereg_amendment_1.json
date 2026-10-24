@@ -1,0 +1,16 @@
+{
+  "experiment_id": "E11b-kv-lattice-sweep",
+  "amends": "E11b_kv_lattice_sweep_prereg.json (unchanged)",
+  "amendment": 1,
+  "registered_utc": "2026-10-24T05:10:00Z",
+  "when": "during the T4 campaign, at the user's request for more datasets; before any run on the datasets below",
+  "status": "exploratory - decides no prediction (unchanged)",
+  "added_data": {
+    "news": "abisee/cnn_dailymail 3.0.0: calibration = validation articles 0-39, evaluation = test articles 0-699",
+    "fiction": "EleutherAI/lambada_openai en test (BookCorpus-style narrative passages): calibration = passages 0-299, evaluation = passages 1000-4499",
+    "pubmed": "ccdv/pubmed-summarization section: calibration = validation articles 0-9, evaluation = test articles 0-159",
+    "wiki-fr": "wikimedia/wikipedia 20231101.fr train-00000-of-00017, row group 0: calibration = articles 0-19, evaluation = articles 100-249 (French; tests tokenizer/language shift)"
+  },
+  "added_grid": "qwen0.5b and qwen7b on the four datasets at window 1024 (8 windows per seed, 3 seeds), queued before the remaining Gemma GSM8K and 4096-token jobs; gemma4-e4b on the four datasets only in a follow-up queue if time remains (52 min per Gemma job on the T4)",
+  "unchanged": "codecs including the exploratory kltc transform, calibration rule (E11 amendment 1), controls, statistics, aggregation and the rule that E11b changes no prediction status"
+}

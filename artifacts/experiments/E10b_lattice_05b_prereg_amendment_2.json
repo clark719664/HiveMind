@@ -1,0 +1,57 @@
+{
+  "experiment_id": "E10b-lattice-05b",
+  "amends": "E10b_lattice_05b_prereg.json (registered; NOT edited, its sha256 is recorded in every report)",
+  "amendment": 2,
+  "made_utc_date": "2026-10-24",
+  "timing": "made after the first GPU execution and before any amended run",
+  "first_execution": {
+    "what_happened": "the first execution (artifacts/experiments/E10b_first_execution_partial.json) completed one cell, arm 'none', seed 1, under the registered design (12 rounds x 40 inner steps, E12-style LoRA init A ~ N(0,1)/sqrt(r))",
+    "measured": {"wall_seconds": 1384.91, "inner_steps": 1920, "sec_per_inner_step": 0.72, "registered_assumption_sec_per_inner_step": 0.12, "held_out_loss_round_0": 2.993338730186224, "held_out_loss_round_12": 3.0703048519790173, "loss_curve": {"0": 2.993338730186224, "3": 3.0516486391425133, "6": 3.0625732503831387, "9": 3.0686832554638386, "12": 3.0703048519790173}},
+    "how_it_ended": "the execution was aborted by the lead after this one cell. That abort was NOT a rule registered in the prereg; the registered design had no fail-fast rule. This amendment adds one (below). No result of the first execution is used for any decision about P10a-P10c",
+    "reasons_for_amendment": [
+      "the 'none' baseline did not learn: held-out loss ROSE from 2.993 to 3.070, which would have invalidated the testbed (the registered 'none_arm_learns' control) and every contrast built on it",
+      "the step time is 6x the registered assumption, so the registered 24-run design would take about 11 h instead of 1.92 h"
+    ]
+  },
+  "diagnostic": {
+    "kind": "CPU diagnostic after the first execution: one learner, 30 inner steps, seq 128, micro-batch 2, AdamW lr 5e-4, betas 0.9/0.95, grad-clip 1.0, held-out loss on 16 held-out sequences",
+    "results": [
+      {"init": "E12-style A ~ N(0,1)/sqrt(r) (std 0.354), B = 0", "lr": 5e-4, "heldout_change": 0.346, "verdict": "diverges"},
+      {"init": "PEFT default kaiming_uniform(a = sqrt 5), A ~ U(-1/sqrt(fan_in), 1/sqrt(fan_in)) (std 0.0195), B = 0", "lr": 5e-4, "heldout_change": -0.036, "verdict": "learns"},
+      {"init": "same PEFT-default init", "lr": 2e-4, "heldout_change": -0.029, "verdict": "learns"}
+    ],
+    "caveat": "one learner, 30 steps, 16 sequences, one seed: it identifies the init scale as the cause, it is not evidence about any codec"
+  },
+  "changes": {
+    "1_lora_init": "reset_lora draws A ~ U(-1/sqrt(fan_in), 1/sqrt(fan_in)) from the seed's generator (q then v per layer, as before), B = 0; every run starts from reset_lora, which overwrites the E12 init that run_experiment_E12_replay_divergence.build_model / LoRALinear draw (E12 itself is untouched and keeps its registered init). Inner lr stays 5e-4; the per-run mean std of lora_A is recorded in the report (lora_A_std). Everything else in the testbed (model, data slices, optimiser, outer Nesterov lr 0.7 / momentum 0.9, held-out set, calibration rule) is as registered",
+    "2_arms": {"kept": ["none", "Z8@1+EF", "E8@1+EF", "sign (positive control, EF off)", "E8@6 (negative control, EF off)"], "dropped": ["sign+EF", "Z8@2+EF", "E8@2+EF"], "why": "time budget at the measured step time"},
+    "3_sizing": {"M": 4, "R": 6, "H": 20, "seq": 256, "micro_batch": 4, "eval_rounds": [0, 3, 6], "eval_sequences": 128, "seeds": [1, 2, 3]},
+    "4_decisions": "P10a (EF on) and P10b are decided at R = 1 only. P10c is unchanged (loss(E8@1+EF) - loss(none)); its context-only list is Z8@1+EF. The matched-rate control is Z8@1+EF vs E8@1+EF (within 0.1 bit/dim). The positive control (sign without EF > none in every seed), negative control 1 (E8@6 within 5e-3 of none), negative control 2 (brute-force and torch-port decoder checks) and the 'none arm learns' control are unchanged. The R = 2 and sign+EF statements of the registered prereg no longer apply",
+    "5_fail_fast": {
+      "where": "inside the first cell of the run: arm 'none', seed 1",
+      "rule_a": "after its round-3 held-out evaluation, if held-out(round 3) >= held-out(round 0), stop",
+      "rule_b": "if the mean wall seconds per inner step over its first 40 inner steps (CUDA-synchronised, includes data movement and the optimiser step) exceeds 0.72 x 1.3 = 0.936, stop",
+      "on_stop": "the report is written with status 'aborted by registered fail-fast rule: <reason>', P10a, P10b and P10c all 'invalid', controls_all_passed false, and the process exits with code 3",
+      "note": "rule (a) is the registered 'none_arm_learns' control moved forward in time so that a non-learning testbed costs minutes, not hours"
+    },
+    "6_execution_guards": "the full run refuses to start unless BOTH E10b_lattice_05b_prereg.json and this amendment file exist. The partial file now carries design_sha256 = sha256(sha256(prereg) + sha256(amendment)); --resume ignores a partial written under a different design hash or in the old list format. The report records prereg_sha256, amendment_2_sha256 and design_sha256"
+  },
+  "sizing": {
+    "arms": 5,
+    "seeds": 3,
+    "runs": 15,
+    "inner_steps_per_run": 480,
+    "inner_steps_total": 7200,
+    "tokens_per_learner_per_run": 122880,
+    "lattice_codec_calls": 216,
+    "eval_passes": 45,
+    "assumptions": {"sec_per_inner_step": 0.72, "basis_step": "MEASURED in the first execution on the T4 (1384.91 s / 1920 steps, whole cell)", "sec_per_lattice_codec_call": 1.5, "basis_codec": "still an unmeasured assumption (torch float64 decode + entropy rate on 540,672 coordinates, ~14 evaluations per call)", "sec_per_eval_pass": 7.8, "basis_eval": "the old 1.3 s scaled by the same 6x factor, unmeasured", "sec_setup_and_controls": 150},
+    "estimate_s": {"inner_steps": 5184.0, "lattice_codec": 324.0, "eval": 351.0, "setup_and_controls": 150.0, "total": 6009.0},
+    "estimated_hours": 1.67,
+    "inner_steps_only_hours": 1.44,
+    "reproduce": "python3 scripts/run_experiment_E10b_lattice_05b.py --estimate"
+  },
+  "expected_power": "P10b will very likely come out INCONCLUSIVE at this size: 6 rounds x 20 steps, three seeds that vary only init and batch order, df = 2 interval (t = 4.30). Only a loss difference between Z8@1+EF and E8@1+EF that is large relative to the seed-to-seed spread of the paired differences can be detected. 'Inconclusive' is the expected outcome for a small true effect and must be reported as such, not as support or as refutation. P10a (a distortion statistic, far less noisy than loss) is the contrast this size can resolve",
+  "decision_consequences": "unchanged from the registered prereg for R = 1; the clauses about R = 2 are void. If the fail-fast rule fires, no decision is drawn and the cause is analysed in a further amendment before any new execution",
+  "scope": "as registered, with the smaller size above: 0.5B model, rank-8 LoRA deltas (~0.54M coordinates), 120 inner steps per learner, M = 4 simulated learners, disjoint web-text slices, three seeds varying init and batch order only"
+}

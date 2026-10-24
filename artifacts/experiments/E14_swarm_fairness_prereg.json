@@ -1,0 +1,72 @@
+{
+  "experiment_id": "E14-swarm-fairness",
+  "registered_utc": "2026-10-24T11:00:00Z",
+  "registered_before_run": true,
+  "status": "exploratory follow-up of E13 (decides no registered E13 prediction); written after the E13 result and the E13c diagnostic, before any S6/S7 run",
+  "motivation": "E13 (qwen0.5b, 3 seeds): the all-on swarm with K=2 of 4 and a persistent straggler on one non-IID domain keeps -0.05 +- 0.35 of the synchronous improvement (P13b refuted), K=M keeps 0.94, and rotating the straggler (E13c) recovers 0.40 +- 0.30: starvation of one domain explains part of it, K<M itself the rest.",
+  "mechanisms": {
+    "S6_fair_quorum": "bounded exclusion: an alive worker excluded from MAX_EXCLUSION=1 consecutive closed rounds must be in the next quorum; the round closes only after K-quorum + grace AND every such worker has posted (that delta is then admitted); dead workers never block; the extra wait is capped at 0.5 x the stall-watchdog limit (900 s in round 1), after which the round closes with what is there (fair_wait_timeouts recorded); counters reset on admission and on a new incarnation",
+    "S7_deferred_carry": "a late or outside-grace delta is queued instead of discarded and merged into the NEXT round as an extra arrival (merge mode of the cell: RDA) with weight token_weight / (1 + s), s = current version - base version; deltas with s > MAX_STALENESS=2 are discarded and counted; dead or stale-incarnation posts are rejected at arrival; carried deltas do not count toward K or the grace window",
+    "both": "identical to S2 otherwise: K=ceil(M/2), adaptive grace, RDA, E8@2+EF, the registered straggler (worker M-1 delayed 2x in rounds 1,3,5) and churn (worker 1 killed after round 2, re-spawned before round 4)"
+  },
+  "grid": {
+    "qwen0.5b": {
+      "workers": 4,
+      "domains": [
+        "code",
+        "wiki-fr",
+        "pubmed",
+        "gsm8k"
+      ],
+      "cells": [
+        "S0",
+        "S2",
+        "S6",
+        "S7"
+      ],
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "hosting": "thread (memory preflight)",
+      "outputs": "artifacts/experiments/E14_raw_qwen0.5b.json, E14_report_qwen0.5b.json"
+    },
+    "granite1b": {
+      "workers": 3,
+      "domains": [
+        "code",
+        "wiki-fr",
+        "pubmed"
+      ],
+      "cells": [
+        "S0",
+        "S2",
+        "S6",
+        "S7"
+      ],
+      "seeds": [
+        1,
+        2,
+        3
+      ],
+      "experts_impl": "grouped_mm",
+      "grad_ckpt": false,
+      "hosting": "thread",
+      "outputs": "artifacts/experiments/E14_raw_granite1b.json, E14_report_granite1b.json",
+      "note": "pretrained MoE (32 experts, top-8); the first MoE test of the fairness mechanisms"
+    },
+    "rounds_inner_optimizer_data_heldout": "exactly as E13 (6 rounds x 20 inner steps, micro-batch 4 x 256, PEFT-scale LoRA init, stride-sampled held-out sequences per domain)",
+    "S2_note": "S2 is re-run in the same invocation so that S2, S6 and S7 are paired seed by seed under identical code; it also replicates the registered E13 S2 retention (scheduling nondeterminism differs between runs and is reported)"
+  },
+  "hypotheses_and_rules": {
+    "H14a": "S6 keeps more of the synchronous improvement than S2: per-seed paired difference loss(S2) - loss(S6); df=2 95% t-interval (t = 4.302652729911275); supported if the interval is above 0, refuted if it is below 0, inconclusive if it includes 0",
+    "H14b": "the same for S7",
+    "H14c_descriptive": "registered retention rho = (L_round0 - L_cell)/(L_round0 - L_S0) per seed for S2, S6, S7 against the 0.5 viability bar of P13b and the K=M value (0.94 on qwen0.5b in E13); round-latency increase of S6, carried deltas / staleness histogram of S7, upload bytes",
+    "no_multiple_comparison_correction": "two hypotheses per model, stated as exploratory"
+  },
+  "controls": "S0 learns (final < initial); S0 twin bit-identical; no failed cells; mean measured codec rate within 0.05 of 2.0 bit/dim; hosting recorded; the registered fail-fast gates (learning 0.05 nats at round 3, --max-hours 3.0) apply",
+  "decision_consequences": "H14a and/or H14b supported on a model: the mechanism is a candidate admission policy for the multi-host gameday (HM-S9-07) and a new roadmap item (HM-S10-09), to be confirmed with more seeds and on the WAN; both refuted: the quorum problem needs data leasing (HM-S9-06) or K=M with a longer grace; this experiment cannot change the E13 verdicts",
+  "scope": "one GPU, thread-hosted peers, 3 seeds, 2 models, 6 rounds; no WAN claim; fixed constants (MAX_EXCLUSION 1, MAX_STALENESS 2) not tuned",
+  "sizing": "qwen0.5b: 13 runs (including the S0b twin) of 480 inner steps at about 0.3 s/step, about 1 h; granite1b: 13 runs of 360 steps at about 1.1 s/step, about 1.4 h"
+}
