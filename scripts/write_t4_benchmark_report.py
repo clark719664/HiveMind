@@ -114,8 +114,21 @@ def e10b_section(r: Optional[Dict[str, Any]]) -> List[str]:
     if not r:
         return ["E10b report not found (not run, not finished, or cut by the deadline; a partial file may exist)."]
     an = r.get("analysis", {})
-    lines = [f"**Decision (pre-registered):** " + "; ".join(f"{k} **{v.get('status')}**" for k, v in an.items() if isinstance(v, dict)) +
-             f". Controls all passed: {r.get('controls_all_passed')}.", ""]
+    ok = r.get("controls_all_passed")
+    failed = [k for k, v in r.get("controls", {}).items() if isinstance(v, dict) and v.get("passed") is False]
+
+    def st(v: Dict[str, Any]) -> str:
+        s = v.get("computed_status", v.get("status"))
+        # the registered rule 'run_is_valid_iff all controls pass' (the receipted report predates the runner applying it)
+        return s if ok else f"invalid (controls failed: {', '.join(failed)}); computed: {s}"
+
+    lines = [f"**Decision (pre-registered, amendment 2):** " + "; ".join(f"{k} **{st(v)}**" for k, v in an.items() if isinstance(v, dict)) +
+             f". Controls all passed: {ok}.", ""]
+    p10a = an.get("P10a", {}).get("cells", {}).get("R=1.0|EF=on")
+    if p10a:
+        lines += [f"Distortion on real 0.5B LoRA deltas (descriptive whatever the validity): relMSE(E₈)/relMSE(ℤ⁸) = "
+                  f"{p10a['ratio_mean']:.3f} ± {p10a['ci95']:.3f} per seed {[round(x, 4) for x in p10a['per_seed']]} "
+                  f"(Gaussian prediction 0.86; E10 toy 0.81).", ""]
     cells = r.get("cells", {})
     if cells:
         lines += ["| arm | final held-out loss | rel. MSE | rate (bits/dim) |", "| :-- | :-- | --: | --: |"]

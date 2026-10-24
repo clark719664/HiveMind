@@ -511,8 +511,14 @@ def analyse(results: List[Dict[str, Any]], seeds: Sequence[int], run_brute_force
                 "negative_decoders": {**neg2, "passed": neg2_ok},
                 "negative_matched_rate": {**neg3, "valid_rates": valid, "passed": neg3_ok},
                 "none_arm_learns": {"rows": learns_rows, "passed": learns_ok}}
-    return {"cells": cells, "analysis": {"P10a": {"cells": p10a_cells, "status": p10a_status}, "P10b": {"cells": p10b, "status": p10b_status}, "P10c": p10c},
-            "controls": controls, "controls_all_passed": bool(pos_ok and neg1_ok and neg2_ok and neg3_ok and learns_ok)}
+    all_ok = bool(pos_ok and neg1_ok and neg2_ok and neg3_ok and learns_ok)
+    analysis = {"P10a": {"cells": p10a_cells, "status": p10a_status}, "P10b": {"cells": p10b, "status": p10b_status}, "P10c": p10c}
+    if not all_ok:  # registered rule 'run_is_valid_iff': report the computed status, but the prediction is invalid
+        failed = [k for k, v in controls.items() if not v["passed"]]
+        for v in analysis.values():
+            v["computed_status"] = v["status"]
+            v["status"] = f"invalid (controls failed: {', '.join(failed)})"
+    return {"cells": cells, "analysis": analysis, "controls": controls, "controls_all_passed": all_ok}
 
 
 # ---------------------------------------------------------------- main

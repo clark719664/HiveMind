@@ -281,12 +281,40 @@
     "  \"controls_all_passed\": true",
     "}"
    ]
+  },
+  {
+   "name": "E10b_amended",
+   "argv": [
+    "scripts/run_experiment_E10b_lattice_05b.py"
+   ],
+   "start_unix": 1792801440.2799761,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 5528.6,
+   "log_tail": [
+    "seed 2 E8@6     final 2.9455 (init 2.9933) relMSE 0.0003 rate 6.014 368.91s",
+    "seed 3 none     final 2.9467 (init 2.9933) relMSE 0.0000 rate 32.000 365.91s",
+    "seed 3 Z8@1+EF  final 2.9465 (init 2.9933) relMSE 0.5145 rate 0.992 368.18s",
+    "seed 3 E8@1+EF  final 2.9463 (init 2.9933) relMSE 0.4477 rate 1.001 368.76s",
+    "seed 3 sign     final 2.9449 (init 2.9933) relMSE 0.3551 rate 1.000 366.74s",
+    "seed 3 E8@6     final 2.9467 (init 2.9933) relMSE 0.0003 rate 6.014 368.42s",
+    "{",
+    "  \"P10a\": \"supported\",",
+    "  \"P10b\": \"inconclusive (CI includes 0)\",",
+    "  \"P10c\": \"supported\",",
+    "  \"controls_all_passed\": false,",
+    "  \"runs\": 15,",
+    "  \"elapsed_s\": 5524.81,",
+    "  \"receipt\": \"712fb41a75ede9b3762e68840085c8ff02cf03767550557b5a1e8178e043a109\"",
+    "}"
+   ]
   }
  ],
- "gpu_samples": 427,
- "gpu_util_mean_pct": 48.0,
+ "gpu_samples": 612,
+ "gpu_util_mean_pct": 63.3,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
+  "E10b_amended": 98.5,
   "E12_replay": 0.0,
   "E11_qwen0.5b_retry": 72.9,
   "E11_gemma4-e4b_retry": 97.7,
@@ -1046,6 +1074,328 @@
    "util_pct": 0,
    "mem_used_gib": 0.74,
    "power_w": 28.5
+  },
+  {
+   "t": 1792801474.1,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.19,
+   "power_w": 67.3
+  },
+  {
+   "t": 1792801594.1,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.7
+  },
+  {
+   "t": 1792801714.1,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 65.6
+  },
+  {
+   "t": 1792801834.1,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.0
+  },
+  {
+   "t": 1792801954.2,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792802074.2,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 68.3
+  },
+  {
+   "t": 1792802194.2,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792802314.2,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792802434.3,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.1
+  },
+  {
+   "t": 1792802554.3,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792802674.3,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.1
+  },
+  {
+   "t": 1792802794.3,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792802914.4,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792803034.4,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792803154.4,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792803274.4,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792803394.5,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 67.3
+  },
+  {
+   "t": 1792803514.5,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792803634.5,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792803754.5,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792803874.6,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.6
+  },
+  {
+   "t": 1792803994.6,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792804114.6,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792804234.6,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.7
+  },
+  {
+   "t": 1792804354.7,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792804474.7,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792804594.7,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 68.0
+  },
+  {
+   "t": 1792804714.8,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792804834.8,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792804954.8,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 65.7
+  },
+  {
+   "t": 1792805074.8,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 66.3
+  },
+  {
+   "t": 1792805194.9,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 68.0
+  },
+  {
+   "t": 1792805314.9,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 67.7
+  },
+  {
+   "t": 1792805434.9,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792805554.9,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 68.0
+  },
+  {
+   "t": 1792805675.0,
+   "job": "E10b_amended",
+   "util_pct": 99,
+   "mem_used_gib": 7.2,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792805795.0,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792805915.0,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792806035.1,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.3
+  },
+  {
+   "t": 1792806155.1,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 65.7
+  },
+  {
+   "t": 1792806275.1,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 68.4
+  },
+  {
+   "t": 1792806395.1,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792806515.2,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 65.3
+  },
+  {
+   "t": 1792806635.2,
+   "job": "E10b_amended",
+   "util_pct": 95,
+   "mem_used_gib": 7.2,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792806755.2,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 66.4
+  },
+  {
+   "t": 1792806875.2,
+   "job": "E10b_amended",
+   "util_pct": 100,
+   "mem_used_gib": 7.2,
+   "power_w": 67.0
   }
  ]
 }
