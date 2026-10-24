@@ -41,12 +41,17 @@ fi
 
 mkdir -p "$ROOT_DIR/artifacts"
 echo ""
-echo "[Step 1/2] Running the 8-Domain Hugging Face & 128-Expert Multi-MoE Campaign for @${HANDLE}..."
+echo "[Step 1/3] Running the 8-Domain Hugging Face & 128-Expert Multi-MoE Campaign for @${HANDLE}..."
 PYTHONPATH="$ROOT_DIR/src" "$PYTHON_BIN" "$ROOT_DIR/scripts/run_multi_moe_hf_campaign.py" \
     --contributor-handle "$HANDLE" \
     --tier standard | tee "$ROOT_DIR/artifacts/latest_user_campaign_summary.md"
 
 echo ""
-echo "[Step 2/2] SUCCESS! Copy the Markdown receipt above (or from artifacts/latest_user_campaign_summary.md)"
-echo "and paste it into the Community Campaign Hub:"
+echo "[Step 2/3] Running the Season 9 & Season 10 GPU + HiveMind Swarm Campaigns (CAMP-S9/S10 1..4)..."
+PYTHONPATH="$ROOT_DIR/src" "$PYTHON_BIN" "$ROOT_DIR/scripts/run_season9_10_gpu_swarm_campaigns.py" \
+    --contributor-handle "$HANDLE" | tee -a "$ROOT_DIR/artifacts/latest_user_campaign_summary.md"
+
+echo ""
+echo "[Step 3/3] SUCCESS! Copy the Markdown receipts above (or from artifacts/latest_user_campaign_summary.md)"
+echo "and paste them into the Community Campaign Hub:"
 echo "  👉 https://github.com/xaviercallens/HiveMind/discussions/86"
