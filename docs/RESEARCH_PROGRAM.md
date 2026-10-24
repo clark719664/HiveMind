@@ -282,3 +282,6 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   bypassed the gate; gatekeeper retries merges of ACCEPTed heads (PR #125).
 - **Hardening (owner's brief)**: `HiveMindFirewall` delivered with a 59-vector scripted red team (first run 47/49, two defects
   fixed, second 49/49, 0 false positives); Season 11 tasks in ROADMAP §3.9; design `docs/SECURITY_HARDENING_PHASE.md`.
+- **Compute economy (owner's brief)**: BOINC-credit coin and Nash-equilibrium market proposed (`docs/COMPUTE_COIN_AND_MARKET.md`);
+  pre-registered simulation: Kelly efficiency ≥ 0.80, 300/300 Tullock certified, routing 55/60 undamped → 60/60 damped (run 1 kept).
+  Proposed, not adopted (`HM-S12-02`); Season 12 in ROADMAP §3.10.
