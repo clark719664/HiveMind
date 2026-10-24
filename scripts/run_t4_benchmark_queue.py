@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import signal
 import statistics
 import subprocess
 import sys
@@ -113,11 +114,14 @@ def main() -> int:
         print(f"[queue] start {job['name']} ({(deadline - time.time()) / 3600:.2f} h left)", flush=True)
         log_file = logs / f"{job['name']}.log"
         with open(log_file, "w", encoding="utf-8") as fh:
-            proc = subprocess.Popen([sys.executable] + job["argv"], cwd=PROJECT_ROOT, stdout=fh, stderr=subprocess.STDOUT)
+            proc = subprocess.Popen([sys.executable] + job["argv"], cwd=PROJECT_ROOT, stdout=fh, stderr=subprocess.STDOUT, start_new_session=True)  # own session: killpg reaches child workers
             while proc.poll() is None and time.time() < deadline:
                 time.sleep(5)
             if proc.poll() is None:
-                proc.kill()
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)  # the job and every worker it spawned
+                except ProcessLookupError:
+                    proc.kill()
                 proc.wait()
                 entry["status"] = "killed at deadline"
             else:
