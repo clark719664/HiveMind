@@ -59,3 +59,17 @@ def test_portal_and_playground_endpoints(tmp_path: pytest.TempPathFactory) -> No
     # HEAD /health and /healthz
     assert client.head("/health").status_code == 200
     assert client.head("/healthz").status_code == 200
+
+
+def test_portal_snippets_cover_the_documented_editors_and_keep_the_output_limit() -> None:
+    html = render_portal_page(None, "n")
+    for tab in ("opencode", "continue", "cline", "zed", "jetbrains", "aider", "env", "python", "curl"):
+        assert f'data-tab="{tab}"' in html, tab  # every button has a snippet below
+        assert f"  {tab}: `" in html, tab
+    # the OpenCode snippet must carry the output limit, or a small balance is refused (observed on the live gateway)
+    opencode = html.split("  opencode: `", 1)[1].split("`,", 1)[0]
+    assert '"limit": { "context": 8192, "output": 700 }' in opencode
+    # Continue now shows the YAML format the docs use, not the retired JSON "models" list
+    assert "roles: [chat, edit, apply]" in html and '"title": "HiveMind Coder (7B)"' not in html
+    # only tiers that can be served today are shown as ready snippets
+    assert "hivemind/coder-plus" not in html.split("// Model ID:", 1)[1].split("\n", 1)[0]

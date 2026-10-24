@@ -604,32 +604,63 @@ response = client.chat.completions.create(
 )
 for chunk in response:
     print(chunk.choices[0].delta.content or "", end="", flush=True)`,
-  continue: `{
-  "models": [
-    {
-      "title": "HiveMind Coder (7B)",
-      "provider": "openai",
-      "model": "hivemind/coder",
-      "apiBase": "${window.location.origin}/v1",
-      "apiKey": "YOUR_HIVEMIND_API_KEY"
-    },
-    {
-      "title": "HiveMind MoE Coder (30B)",
-      "provider": "openai",
-      "model": "hivemind/moe-coder",
-      "apiBase": "${window.location.origin}/v1",
-      "apiKey": "YOUR_HIVEMIND_API_KEY"
+  opencode: `// opencode.json (project root or ~/.config/opencode/opencode.json)
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "hivemind": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "HiveMind OpenRouter",
+      "options": { "baseURL": "${window.location.origin}/v1", "apiKey": "YOUR_HIVEMIND_API_KEY" },
+      "models": {
+        "hivemind/coder": { "name": "HiveMind coder", "limit": { "context": 8192, "output": 700 } }
+      }
     }
-  ]
-}`,
+  }
+}
+// Keep "limit": without it a small balance is refused. 7B models often write tool calls as plain text:
+// use them for chat-style help, or turn tools off for this provider.`,
+  continue: `# Continue (VS Code / JetBrains): config.yaml
+models:
+  - name: HiveMind coder
+    provider: openai
+    model: hivemind/coder
+    apiBase: ${window.location.origin}/v1
+    apiKey: YOUR_HIVEMIND_API_KEY
+    roles: [chat, edit, apply]
+    defaultCompletionOptions:
+      maxTokens: 700
+# Not for autocomplete: there is no inline-completion endpoint yet.`,
   cline: `// In Cline / Roo-Code Provider Settings:
 // Provider: OpenAI Compatible
 // Base URL: ${window.location.origin}/v1
 // API Key:  YOUR_HIVEMIND_API_KEY
-// Model ID: hivemind/coder-plus`,
+// Model ID: hivemind/coder
+// Max output tokens: 700 (if offered). Cline relies on tool calls, which 7B models often write as plain text.`,
   aider: `aider --openai-api-base ${window.location.origin}/v1 \\
       --openai-api-key YOUR_HIVEMIND_API_KEY \\
       --model openai/hivemind/coder`,
+  zed: `// Zed settings.json (enter the key in Zed's provider settings)
+{
+  "language_models": {
+    "openai_compatible": {
+      "HiveMind": {
+        "api_url": "${window.location.origin}/v1",
+        "available_models": [
+          { "name": "hivemind/coder", "display_name": "HiveMind coder", "max_tokens": 32768, "max_output_tokens": 700 }
+        ]
+      }
+    }
+  }
+}`,
+  jetbrains: `PyCharm / IntelliJ: install the Continue plugin and use the "VS Code Continue" tab, or add an
+OpenAI-compatible provider in Settings > Tools > AI Assistant > Models:
+  URL   : ${window.location.origin}/v1
+  Key   : YOUR_HIVEMIND_API_KEY
+  Model : hivemind/coder`,
+  env: `export OPENAI_BASE_URL=${window.location.origin}/v1
+export OPENAI_API_KEY=YOUR_HIVEMIND_API_KEY
+# then any tool that reads the standard OpenAI variables works, with model hivemind/coder`,
   curl: `curl -X POST "${window.location.origin}/v1/chat/completions" \\
   -H "Authorization: Bearer YOUR_HIVEMIND_API_KEY" \\
   -H "Content-Type: application/json" \\
@@ -826,13 +857,22 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
 
       <div class="tab-row">
         <button type="button" class="tab-btn active" data-tab="python">Python (OpenAI SDK)</button>
+        <button type="button" class="tab-btn" data-tab="opencode">OpenCode</button>
         <button type="button" class="tab-btn" data-tab="continue">VS Code Continue</button>
         <button type="button" class="tab-btn" data-tab="cline">Cline / Roo-Code</button>
+        <button type="button" class="tab-btn" data-tab="zed">Zed</button>
+        <button type="button" class="tab-btn" data-tab="jetbrains">JetBrains</button>
         <button type="button" class="tab-btn" data-tab="aider">Aider Terminal</button>
+        <button type="button" class="tab-btn" data-tab="env">Env variables</button>
         <button type="button" class="tab-btn" data-tab="curl">cURL</button>
       </div>
 
       <pre id="snippetCode" class="code-box"></pre>
+      <p style="font-size:0.78rem;color:var(--text-dim);margin-top:0.75rem;">
+        Only the live models in <code>/v1/models</code> answer; the larger tiers have no producer yet. Tested live: OpenCode, Python, cURL.
+        The other tabs are format-checked but not yet run against a real editor. Full guide:
+        <a href="https://github.com/xaviercallens/HiveMind/blob/main/docs/HIVEMIND_CONNECT_IDE.md" rel="noopener noreferrer">docs/HIVEMIND_CONNECT_IDE.md</a>.
+      </p>
     </section>
 
     <!-- Producer Quickstart for Gamers -->
