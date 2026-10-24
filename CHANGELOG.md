@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — GWAYA Level B: sandbox-gated acceptance of LoRA / DiLoCo updates
+
+- `src/hivemind/swarm/verified_update_gate.py`: `decide` (exact paired McNemar gate on held-out sandbox outcomes: same tasks, minimum n, UNVERIFIED never a pass and too much of it blocks, net-loss and significant-regression rejection, optional required improvement, sealed receipt), `evaluate_tasks` (generator plus injected sandbox gate such as `e15_gate.gate`) and `gate_update`.
+- `docs/community/GWAYA_LEVEL_B_UPDATE_GATE.md`: rules, limits and use.
+- **No LoRA was trained or evaluated and no pass-rate number is claimed.** The gate is not yet wired into the DiLoCo merge or the E14 admission policies.
+- `tests/test_verified_update_gate.py`: 17 tests (exact-p closed forms, better/regressed/identical controls, UNVERIFIED-heavy refusal, Hypothesis properties, evaluator with a mocked sandbox, and one real `e15_gate` sandbox run when the host allows it). Mutation checks: scoring an unverified baseline as a fail, an unverified candidate as a pass, or switching off the net-loss rule each fail a test.
 ## Unreleased — Improvements recorded from the live T4 runs
 
 - `scripts/hivemind_connect.py`: the OpenCode snippet now carries a model output limit (`limit.output` = the chosen max tokens) and a context hint, and explains how to turn tools off when a 7B model writes tool calls as text. The docs already claimed snippets set 2,048; the OpenCode one did not.
