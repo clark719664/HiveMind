@@ -15,10 +15,10 @@
     {
       "block_height": 1,
       "prev_block_hash": "e7860bc27753719be8f03c4df7fd01a2337828a12545cbaea58270e36bf2a0c6",
-      "timestamp": 1792759758.7890055,
+      "timestamp": 1792864405.5187535,
       "outer_step": 1,
       "expert_cid": "cid://sha256/expert-kepler_exoplanet_transit_classifier-6305ecde43b046bb9a5a185e",
-      "merkle_root": "91a2f9422fff53e7c2636be8afc9e8419427b9183eb94fbf709ec23b4516959a",
+      "merkle_root": "457ea7b4914088e9c956d2940b840fa25e3f052b1432d63660d243f257425358",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c01": 20.0,
@@ -29,15 +29,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c01"
       ],
-      "block_hash": "c460adb76174c9648ef26e13c3d5471a1ef1a5c50f0ac90394f17b3f005f5248"
+      "block_hash": "ca47c9abb2970c67a9141247e32180a2c0d9bf11cacd55e496fd9291fccca4b9"
     },
     {
       "block_height": 2,
-      "prev_block_hash": "c460adb76174c9648ef26e13c3d5471a1ef1a5c50f0ac90394f17b3f005f5248",
-      "timestamp": 1792759764.6425693,
+      "prev_block_hash": "ca47c9abb2970c67a9141247e32180a2c0d9bf11cacd55e496fd9291fccca4b9",
+      "timestamp": 1792864410.58522,
       "outer_step": 2,
-      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-a0907a77a1b8889a6fc26299",
-      "merkle_root": "9cba03460cef5f27157473c5483d1ceb154ece535b21725a03848b23fa7846d9",
+      "expert_cid": "cid://sha256/expert-nasa_exoplanet_taxonomy_classifier-a8e683b3bb67218ee7ce37f8",
+      "merkle_root": "c26aa35f9032b4df52f11a7c6353e72e099dc536c87f8dc0440e56e877174fbe",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c02": 20.0,
@@ -48,15 +48,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c02"
       ],
-      "block_hash": "c72b77b2d5a478c3ffc030b2a13c47b2d4da62b2ad38a74863b3f2f9653ba787"
+      "block_hash": "fb2461a28791d806766720235f222d18df8614074c591541c4eb0b08ae6f2b44"
     },
     {
       "block_height": 3,
-      "prev_block_hash": "c72b77b2d5a478c3ffc030b2a13c47b2d4da62b2ad38a74863b3f2f9653ba787",
-      "timestamp": 1792759770.3306704,
+      "prev_block_hash": "fb2461a28791d806766720235f222d18df8614074c591541c4eb0b08ae6f2b44",
+      "timestamp": 1792864415.5753093,
       "outer_step": 3,
       "expert_cid": "cid://sha256/expert-sdss_stellar_mk_spectral_classifier-aed59b7c49020da150f5ca63",
-      "merkle_root": "fe467f4243b763dd19bd95ea6f2279293fee2f7cb673cb43ad7d97f8a3a10d96",
+      "merkle_root": "431dea2ac49c380568b47d7b50e457fa9c8b771b4fbdb5529a8ef53d5c95f4d9",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c03": 20.0,
@@ -67,15 +67,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c03"
       ],
-      "block_hash": "6070f6b6ad3f7d35aa800073eab7dd1cb92116975ca7c93af86a723fb12bf115"
+      "block_hash": "48abb26ae24b0123a675c424229aade6af49d306b1c4531e20240ae7536e8077"
     },
     {
       "block_height": 4,
-      "prev_block_hash": "6070f6b6ad3f7d35aa800073eab7dd1cb92116975ca7c93af86a723fb12bf115",
-      "timestamp": 1792759776.018607,
+      "prev_block_hash": "48abb26ae24b0123a675c424229aade6af49d306b1c4531e20240ae7536e8077",
+      "timestamp": 1792864420.489051,
       "outer_step": 4,
       "expert_cid": "cid://sha256/expert-jwst_atmosphere_biosignature_classifier-20ccbb6d896569f5a7daaabd",
-      "merkle_root": "2be4ee8bddd20d1e2e0cb68d7afabf0792957cc1455b6032fb9cf079d75ecb34",
+      "merkle_root": "c6c8b05f5eae23b909551fbc1196a204e0942ed91ea95aa6774066d983d1f2ec",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c04": 20.0,
@@ -86,15 +86,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c04"
       ],
-      "block_hash": "34aae5f44f23855d15558dbdd71b8bfcbc9eac69c75184e50ba3bb250b559529"
+      "block_hash": "7835d3ab6753271771deec8847855f0499a8a3fe626ac9c62599ea6d19a43002"
     },
     {
       "block_height": 5,
-      "prev_block_hash": "34aae5f44f23855d15558dbdd71b8bfcbc9eac69c75184e50ba3bb250b559529",
-      "timestamp": 1792759781.8096933,
+      "prev_block_hash": "7835d3ab6753271771deec8847855f0499a8a3fe626ac9c62599ea6d19a43002",
+      "timestamp": 1792864425.5497267,
       "outer_step": 5,
       "expert_cid": "cid://sha256/expert-sdss_desi_cosmology_redshift_bao_analyzer-e36048e3b68c0d0ac872f7fc",
-      "merkle_root": "f3e081bff3407eb5b06c07e547bc8c415379fd766974028501b3997389f674e4",
+      "merkle_root": "cc23e1ee4a75c7c87ca62d6d9a696950ad3c2d593b0cb257bd40a53d6a25bebf",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c05": 20.0,
@@ -105,15 +105,15 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c05"
       ],
-      "block_hash": "42a774b65aa6c60f709e2e83283dc3464056ecd40f81141631afa694f041d8ca"
+      "block_hash": "13d8ab5e23837e2e2f771791ecbc9ce95a211c0b2232e9063e6b2ce23c38e3d3"
     },
     {
       "block_height": 6,
-      "prev_block_hash": "42a774b65aa6c60f709e2e83283dc3464056ecd40f81141631afa694f041d8ca",
-      "timestamp": 1792759787.4520597,
+      "prev_block_hash": "13d8ab5e23837e2e2f771791ecbc9ce95a211c0b2232e9063e6b2ce23c38e3d3",
+      "timestamp": 1792864430.4671888,
       "outer_step": 6,
       "expert_cid": "cid://sha256/expert-pantheon_typeia_supernova_darkenergy_probe-3d771341db834fb317ce562e",
-      "merkle_root": "057862f419ef788b6f1bbfdd99f5231ebe8250c30db82cc6322529d6637cddd5",
+      "merkle_root": "c88cdaab0b9d863edd06540222b73bc86456ae98dd6350846e269b4fa7169c5c",
       "total_block_reward": 50.0,
       "reward_allocations": {
         "boinc-rtx2070-miner-alpha-c06": 20.0,
@@ -124,7 +124,7 @@
       "slashed_nodes": [
         "boinc-byzantine-poisoner-c06"
       ],
-      "block_hash": "76bae2f6b9c98fa3c3b5b79894affb91d85b50df47c868039cdf5e4020d81f19"
+      "block_hash": "cbac10974715b46d564b3d4df3e19870f06610658185db691a2fe2a117d6dc1c"
     }
   ],
   "balances": {

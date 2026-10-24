@@ -28,8 +28,9 @@ Season 5 (`HM-S5-02`) adds the **64-Expert 2-Level Hierarchical Sparse MoE**:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 import torch
 import torch.nn as nn
@@ -85,6 +86,49 @@ SEASON_3_DOMAIN_EXPERT_SPECS: Dict[str, Dict[str, Any]] = {
         "description": "Machine-checked Lean 4 formal verification with zero sorrys and zero custom axioms.",
     },
 }
+
+
+def _keyword_hit(keyword: str, text_lower: str) -> bool:
+    """True when ``keyword`` occurs in ``text_lower`` as a whole word or phrase (no match inside a longer word)."""
+    kw = keyword.strip().lower()
+    if not kw:
+        return False
+    head = r"(?<![a-z0-9_])" if (kw[0].isalnum() or kw[0] == "_") else ""
+    tail = r"(?![a-z0-9_])" if (kw[-1].isalnum() or kw[-1] == "_") else ""
+    return re.search(head + re.escape(kw) + tail, text_lower) is not None
+
+
+def keyword_route(
+    prompt: str,
+    spec_tables: Sequence[Dict[str, Dict[str, Any]]],
+    top_k: int = 2,
+    min_weight: float = 0.0,
+) -> Tuple[List[str], Dict[str, float]]:
+    """Whole-word keyword routing over one or more spec tables, on the scale ``1.0 + 2.5 * hits``.
+
+    Differences from plain substring scoring: a keyword inside a longer word does not count, and a prompt with no
+    keyword hit at all abstains (``([], {})``) instead of returning the first dict entries on a tie. Ties are broken by
+    domain name. ``min_weight`` drops secondary experts whose normalised weight is below it (the best expert is kept).
+    """
+    low = prompt.lower()
+    raw: Dict[str, float] = {}
+    any_hit = False
+    for table in spec_tables:
+        for domain, spec in table.items():
+            hits = sum(1 for kw in spec["keywords"] if _keyword_hit(kw, low))
+            any_hit = any_hit or hits > 0
+            raw[domain] = 1.0 + 2.5 * hits
+    if not any_hit:
+        return [], {}
+    ranked = sorted(raw.items(), key=lambda kv: (-kv[1], kv[0]))[: max(1, int(top_k))]
+    total = sum(score for _, score in ranked) or 1.0
+    weights = {dom: round(score / total, 4) for dom, score in ranked}
+    if min_weight > 0.0:
+        kept = [dom for dom, _ in ranked if weights[dom] >= min_weight] or [ranked[0][0]]
+        total = sum(raw[d] for d in kept)
+        weights = {d: round(raw[d] / total, 4) for d in kept}
+        return kept, weights
+    return [dom for dom, _ in ranked], weights
 
 
 @dataclass
@@ -283,19 +327,14 @@ class Season3DomainExpertRegistry:
             "active_branch_names": list(moe_model.expert_domains),
         }
 
-    def route_domain_query(self, prompt: str, top_k: int = 2) -> Tuple[List[str], Dict[str, float]]:
-        """Scores a prompt against Season 3 domain keyword signatures and returns Top-k expert weights."""
-        p_low = prompt.lower()
-        raw_scores: Dict[str, float] = {}
-        for domain, spec in SEASON_3_DOMAIN_EXPERT_SPECS.items():
-            hits = sum(1 for kw in spec["keywords"] if kw in p_low)
-            raw_scores[domain] = 1.0 + hits * 2.5
+    def route_domain_query(
+        self, prompt: str, top_k: int = 2, min_weight: float = 0.0
+    ) -> Tuple[List[str], Dict[str, float]]:
+        """Scores a prompt against Season 3 domain keyword signatures and returns Top-k expert weights.
 
-        ranked = sorted(raw_scores.items(), key=lambda kv: kv[1], reverse=True)
-        selected = ranked[: max(1, int(top_k))]
-        total = sum(score for _, score in selected) or 1.0
-        weights = {dom: round(score / total, 4) for dom, score in selected}
-        return [dom for dom, _ in selected], weights
+        Returns ``([], {})`` when no domain keyword occurs in the prompt (the caller should use the base model).
+        """
+        return keyword_route(prompt, (SEASON_3_DOMAIN_EXPERT_SPECS,), top_k=top_k, min_weight=min_weight)
 
 
 

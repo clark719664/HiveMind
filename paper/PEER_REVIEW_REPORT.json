@@ -5,7 +5,7 @@
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-24T14:57:32Z",
+  "timestamp_utc": "2026-10-24T17:51:08Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -1709,7 +1709,7 @@
     "architecture_receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
     "experiments_v3_receipt_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
     "champion_miner": "CyberValkyrie_FR",
-    "champion_points": 60711
+    "champion_points": 66879
   },
   "referee_reviews": [
     {
