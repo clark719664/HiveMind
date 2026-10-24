@@ -1,0 +1,21 @@
+{
+  "experiment_id": "E17-router-7b-rft",
+  "amendment": 1,
+  "registered_utc": "2026-10-24T16:53:32Z",
+  "registered_before_evaluation": true,
+  "reason": "Two facts found after registration and before any evaluation or training: (1) the VM's Ollama (0.34.1) refuses LoRA adapters ('LoRA adapters are no longer supported'), so a tuned adapter cannot be attached to the Ollama base; (2) Ollama at temperature 0 with a fixed seed was not deterministic on 1 of 3 repeated requests (parallel batching).",
+  "changes": {
+    "serving_and_evaluation_engine": "All four conditions (B0, B1, T0, T1) are run through ONE engine: llama.cpp's llama-server (the build in ~/gwaya-lite, used read-only), one slot, temperature 0, fixed seed, base = the Q4_K_M GGUF blob of Ollama's qwen2.5-coder:7b-instruct (same weights the router serves). B uses no adapter; T uses the same server with --lora <adapter>.gguf (adapter converted with llama.cpp's convert_lora_to_gguf.py). This replaces 'Ollama native API' for B0/B1/T0/T1. Rejection SAMPLING for training data stays on Ollama (already running, registered conditions unchanged).",
+    "determinism_control": "the determinism check is repeated on llama-server (first 30 problems twice); if still not identical the report states the noise level and gives paired counts only",
+    "serving_if_accepted": "the tuned adapter is served by llama-server with --lora behind the producer shield (not by Ollama); Ollama keeps serving the base as the rollback"
+  },
+  "unchanged": [
+    "hypotheses H17a-c and thresholds",
+    "train/eval splits and leakage assertion",
+    "training recipe",
+    "gate and judging with ALL tests",
+    "serving rule (needs Level B ACCEPT)",
+    "other controls"
+  ],
+  "evidence": "adapter_is_applied mechanism verified beforehand on a 1.5B stand-in with a random LoRA: llama-server output changed with --lora and not without it (no quality claim from that probe)"
+}
