@@ -1,0 +1,112 @@
+{
+ "started_unix": 1792824645.8937912,
+ "deadline_unix": 1792857045.8937912,
+ "hours": 9.0,
+ "jobs": [
+  {
+   "name": "E13_granite1b_v2",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--experts-impl",
+    "grouped_mm",
+    "--no-grad-ckpt",
+    "--peer-hosting",
+    "thread",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1,2,3",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_granite1b.json",
+    "--resume"
+   ],
+   "start_unix": 1792824645.89489,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 938.7,
+   "log_tail": [
+    "[E13 hb] granite1b S1 seed 3 t=180s round 4/6 admitted-so-far [1, 2] of effective K 3, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 0",
+    "[E13 hb] granite1b S1 seed 3 t=240s round 6/6 admitted-so-far [] of effective K 3, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 0",
+    "seed 3 S1 swarm_identity final 2.1182 (init 2.1690) admitted/round [3, 3, 3, 3, 3, 3] late 0 up 49545216B 300.66s",
+    "[E13 hb] granite1b S2 seed 3 t=60s round 2/6 admitted-so-far [] of effective K 2, alive [0, 1, 2], evals [] of [0, 3, 6], late 0",
+    "[E13 hb] granite1b S2 seed 3 t=120s round 3/6 admitted-so-far [0] of effective K 2, alive [0, 2], evals [0] of [0, 3, 6], late 2",
+    "[E13 hb] granite1b S2 seed 3 t=180s round 4/6 admitted-so-far [0] of effective K 2, alive [0, 1, 2], evals [0] of [0, 3, 6], late 2",
+    "[E13 hb] granite1b S2 seed 3 t=240s round 5/6 admitted-so-far [1] of effective K 2, alive [0, 1, 2], evals [0, 3] of [0, 3, 6], late 3",
+    "seed 3 S2 swarm_all_on   final 2.2178 (init 2.1690) admitted/round [2, 2, 2, 2, 2, 2] late 5 up 4261665B 318.22s",
+    "{",
+    "  \"controls_all_passed\": true,",
+    "  \"runs\": 9,",
+    "  \"elapsed_s\": 934.82,",
+    "  \"receipt\": \"46737aad48c791fabd60a3c2d7c44aa2f03325fbe60c74f166155f3cd9347ef2\"",
+    "}",
+    "E13 DONE model=granite1b cells_ok=9 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_granite1b.json"
+   ]
+  }
+ ],
+ "gpu_samples": 32,
+ "gpu_util_mean_pct": 50.2,
+ "gpu_util_by_job": {
+  "E13_granite1b_v2": 50.2
+ },
+ "gpu_mem_peak_gib": 6.63,
+ "gpu_trace": [
+  {
+   "t": 1792824647.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 9,
+   "mem_used_gib": 0.44,
+   "power_w": 31.4
+  },
+  {
+   "t": 1792824767.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 52,
+   "mem_used_gib": 6.36,
+   "power_w": 76.7
+  },
+  {
+   "t": 1792824887.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 52,
+   "mem_used_gib": 6.36,
+   "power_w": 69.7
+  },
+  {
+   "t": 1792825007.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 68.5
+  },
+  {
+   "t": 1792825127.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 51,
+   "mem_used_gib": 6.63,
+   "power_w": 63.3
+  },
+  {
+   "t": 1792825247.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 60,
+   "mem_used_gib": 6.63,
+   "power_w": 56.0
+  },
+  {
+   "t": 1792825367.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 50,
+   "mem_used_gib": 6.63,
+   "power_w": 63.5
+  },
+  {
+   "t": 1792825487.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 70.3
+  }
+ ]
+}

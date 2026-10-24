@@ -178,6 +178,27 @@ def e11b_section(r: Optional[Dict[str, Any]]) -> List[str]:
     return lines
 
 
+def routing_table(model: str) -> List[str]:
+    """Descriptive MoE routing statistics of the final global model (from the raw E13 file; only MoE models have them)."""
+    p = EXP / f"E13_swarm_local_raw_{model}.json"
+    if not p.exists():
+        return []
+    runs = [x for x in json.loads(p.read_text(encoding="utf-8")).get("runs", []) if x.get("routing", {}).get("available")]
+    if not runs:
+        return []
+    by: Dict[Any, List[Any]] = {}
+    for x in runs:
+        for d, v in x["routing"]["per_domain"].items():
+            by.setdefault((x["cell"], d), []).append((v["mean_norm_entropy"], v["mean_load_imbalance"], v["mean_top25pct_expert_share"]))
+    avg = lambda vs, i: sum(z[i] for z in vs) / len(vs)  # noqa: E731
+    lines = ["MoE routing of the final global model on each domain's held-out tokens (descriptive; mean over seeds; "
+             "entropy = normalised expert-usage entropy per layer, imbalance = max/mean expert load, top-25% = share of routed assignments on the 25% most-used experts):", "",
+             "| cell | domain | seeds | entropy | load imbalance | top-25% share |", "| :-- | :-- | --: | --: | --: | --: |"]
+    for (c, d), v in sorted(by.items()):
+        lines.append(f"| {c} | {d} | {len(v)} | {avg(v, 0):.3f} | {avg(v, 1):.2f} | {avg(v, 2):.3f} |")
+    return lines + [""]
+
+
 def e13_section(rep: Optional[Dict[str, Any]], pred: Optional[Dict[str, Any]], rot: Optional[Dict[str, Any]], m2: Optional[Dict[str, Any]]) -> List[str]:
     if not rep:
         return ["E13 report not found (not run or not finished)."]
@@ -203,6 +224,7 @@ def e13_section(rep: Optional[Dict[str, Any]], pred: Optional[Dict[str, Any]], r
             lines += ["", "Each mechanism off (descriptive; retention = share of the synchronous improvement kept):", "", "| cell | mean retention | admitted | late |", "| :-- | --: | --: | --: |"]
             for c, v in d.items():
                 lines.append(f"| {c} {v['name']} | {v['mean_retention']:.3f} | {v['admitted_fraction_mean']:.2f} | {v['late_discards_total']} |")
+        lines += routing_table(name)
         lines.append("")
     if rot:
         try:

@@ -145,6 +145,32 @@ Each mechanism off (descriptive; retention = share of the synchronous improvemen
 | S4 no_rda | 0.264 | 0.50 | 26 |
 | S5 no_quorum | 0.942 | 0.96 | 0 |
 
+### granite1b
+
+Controls all passed: True; failed controls: []; cells failed: []. Hosting fallback cells: 0.
+
+| cell | seeds | final held-out loss (per seed) | admitted | late | upload ratio (actual / ideal) | round latency p50 (s) |
+| :-- | --: | :-- | --: | --: | :-- | --: |
+| S0 sync_baseline | 3 | 2.1122, 2.1125, 2.1182 | 1.00 | 0 | - | 46.6 |
+| S1 swarm_identity | 3 | 2.1122, 2.1125, 2.1182 | 1.00 | 0 | 1.00x / 1.00x | 47.0 |
+| S2 swarm_all_on | 3 | 2.1946, 2.2008, 2.2178 | 0.67 | 15 | 10.97x / 16.04x | 42.7 |
+
+Registered predictions: P13a **supported**; P13b **refuted** (retention -0.658 ± 0.665, bar 0.5); P13c **supported** (upload 0.0912 of raw, ideal 0.0623, bar 0.30).
+MoE routing of the final global model on each domain's held-out tokens (descriptive; mean over seeds; entropy = normalised expert-usage entropy per layer, imbalance = max/mean expert load, top-25% = share of routed assignments on the 25% most-used experts):
+
+| cell | domain | seeds | entropy | load imbalance | top-25% share |
+| :-- | :-- | --: | --: | --: | --: |
+| S0 | code | 3 | 0.913 | 3.00 | 0.516 |
+| S0 | pubmed | 3 | 0.946 | 2.63 | 0.455 |
+| S0 | wiki-fr | 3 | 0.930 | 3.02 | 0.499 |
+| S1 | code | 3 | 0.913 | 3.00 | 0.516 |
+| S1 | pubmed | 3 | 0.946 | 2.63 | 0.455 |
+| S1 | wiki-fr | 3 | 0.930 | 3.02 | 0.499 |
+| S2 | code | 3 | 0.913 | 2.99 | 0.517 |
+| S2 | pubmed | 3 | 0.946 | 2.65 | 0.458 |
+| S2 | wiki-fr | 3 | 0.929 | 3.03 | 0.501 |
+
+
 ### granite3b
 
 Controls all passed: True; failed controls: []; cells failed: []. Hosting fallback cells: 0.
@@ -156,6 +182,23 @@ Controls all passed: True; failed controls: []; cells failed: []. Hosting fallba
 | S2 swarm_all_on | 1 | 1.8934 | 0.50 | 8 | 11.04x / 16.03x | 153.0 |
 
 Registered predictions: P13a **supported**; P13b **descriptive (n=1)** (per seed {'1': -0.6975575286211182}); P13c **supported** (upload 0.0906 of raw, ideal 0.0624, bar 0.30).
+MoE routing of the final global model on each domain's held-out tokens (descriptive; mean over seeds; entropy = normalised expert-usage entropy per layer, imbalance = max/mean expert load, top-25% = share of routed assignments on the 25% most-used experts):
+
+| cell | domain | seeds | entropy | load imbalance | top-25% share |
+| :-- | :-- | --: | --: | --: | --: |
+| S0 | code | 1 | 0.890 | 3.69 | 0.583 |
+| S0 | gsm8k | 1 | 0.904 | 3.66 | 0.557 |
+| S0 | pubmed | 1 | 0.927 | 3.36 | 0.504 |
+| S0 | wiki-fr | 1 | 0.916 | 3.58 | 0.529 |
+| S1 | code | 1 | 0.890 | 3.69 | 0.583 |
+| S1 | gsm8k | 1 | 0.904 | 3.66 | 0.557 |
+| S1 | pubmed | 1 | 0.927 | 3.36 | 0.504 |
+| S1 | wiki-fr | 1 | 0.916 | 3.58 | 0.529 |
+| S2 | code | 1 | 0.887 | 3.76 | 0.589 |
+| S2 | gsm8k | 1 | 0.903 | 3.70 | 0.561 |
+| S2 | pubmed | 1 | 0.926 | 3.42 | 0.507 |
+| S2 | wiki-fr | 1 | 0.915 | 3.63 | 0.533 |
+
 
 ### E13c — rotating straggler (exploratory diagnostic, decides nothing)
 
@@ -183,6 +226,6 @@ S1 (2 OS processes over HTTP) equals its S0: passed = True, rows = [{'available'
 | `E13_swarm_local_prereg_amendment_1.json` | `9e9ae076864a` |
 | `E13_swarm_local_prereg_amendment_2.json` | `820e6ba8a24c` |
 | `E13_swarm_local_prereg_amendment_3.json` | `5ed406d70bd4` |
-| `E13_swarm_local_report.json` | `8fe42e241e55` |
-| `E13_swarm_local_predictions.json` | `b1cbb42e336d` |
+| `E13_swarm_local_report.json` | `6e412186ff05` |
+| `E13_swarm_local_predictions.json` | `6dc1cd833bad` |
 | `T4_benchmark_queue_log.json` | `a98d675de634` |
