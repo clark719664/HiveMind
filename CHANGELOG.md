@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.10.0 — 2026-10-24 — Easy registration: Sign in with Google
+
+- `hivemind.router.google_auth`: ID-token verification with the standard library plus `cryptography` only. RS256 is pinned (no `none`, no HS256-with-public-key confusion), keys come only from Google's published set (cached, refetched at most once a minute on an unknown key id), audience must be our client id, issuer Google, token fresh and unexpired, e-mail verified, and each token works once. 33 tests, one negative control per rule; three reintroduced bugs (no audience check, any algorithm, no signature check) each made a test fail.
+- `POST /v1/hivemind/register/google` and the `/signup` page (strict content-security policy with a per-request nonce, text written with `textContent` only). The store keeps a keyed hash of Google's `sub`, never the e-mail; a returning user keeps account, balance and role and gets a fresh key (old key retired). `google.` handles are reserved against squatting. Optional `HIVEMIND_OPEN_REGISTRATION=0` closes handle-only registration.
+- Off until the operator creates an OAuth web client in the Google Cloud console and sets `HIVEMIND_GOOGLE_CLIENT_ID` (steps in `docs/HIVEMIND_OPENROUTER.md`). Not exercised against real Google yet: tests use a fake key set.
+- Also: `uv.lock` refreshed for the dev extra (PR #143).
+
 ## v2.9.0 — 2026-10-24 — Open-Router for Python and game coders: tiers, GPU presets, producer shield, editor connector
 
 - Capability tiers (`hivemind.router.catalog`, served publicly at `/v1/hivemind/catalog`): `coder-lite` (3B), `coder` (7B), `coder-plus` (14B) and two mixture-of-experts tiers, `moe-general` (gpt-oss 20B, 16 GB) and `moe-coder` (Qwen3-Coder 30B, 24 GB). One market per tier keeps liquidity deep; the tier id is a claim until `HM-S13-13`.

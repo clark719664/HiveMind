@@ -250,6 +250,7 @@ Evidence: 144 router tests (Hypothesis properties on the certificate, ledger con
 | `HM-S13-11` | new accounts hold 0 HMT | owner-decided welcome-grant policy, signed through the firewall (`HM-S11-02`), with a per-identity cap | G-R1 |
 | `HM-S13-12` | a gamer's GPU is needed for gaming | game mode: the agent pauses while the GPU is busy with something else and resumes after | G-R2 |
 | `HM-S13-13` | a tier id is only a claim | probe producers with fixed prompts to check the model behind a tier, slash on a mismatch (extends `HM-S13-05`) | G-R2 |
+| `HM-S13-15` | registration by handle is anonymous and bare | "Sign in with Google": `/signup` page, token verifier with one test per rule, key rotation on re-login, reserved `google.` handles, optional closing of handle registration (**delivered**; needs the operator's OAuth client id) | G-R1 |
 | `HM-S13-14` | the MoE tiers have no producer yet | seed producers for `moe-general` (16 GB) and `moe-coder` (24 GB), for example the owner's 16 GB card behind the shield | G-R1 |
 
 ---

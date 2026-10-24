@@ -187,6 +187,30 @@ in [`HIVEMIND_PYTHON_GAME_DEVS.md`](HIVEMIND_PYTHON_GAME_DEVS.md). The helper sc
 tiers is served at `GET /v1/hivemind/catalog`. A producer may send an `endpoint_token` with its heartbeat; the gateway then
 presents it as `Authorization: Bearer` to the producer's endpoint.
 
+## Sign in with Google (easy registration)
+
+`GET /signup` is a one-page Google sign-in; `POST /v1/hivemind/register/google` takes the Google ID token and returns an
+API key. The gateway checks the token itself (RS256 signature against Google's published keys, issuer, audience, expiry,
+freshness, verified e-mail, single use), keeps only a keyed hash of Google's opaque `sub`, and never stores the e-mail
+address. A returning user keeps account, balance and role; each sign-in replaces the key. Handles starting with `google.`
+are reserved so nobody can squat one by hand. The feature costs nothing to run: no mail service, no passwords, no extra
+Google Cloud product. It is off until the operator provides a client id.
+
+**One-time setup by the operator** (the Google Cloud console is the only place that can create this; there is no
+`gcloud` command for a web sign-in client; verify the menu names against Google's current console):
+
+1. APIs & Services > OAuth consent screen: user type External, app name and support e-mail, scopes `openid`, `email`,
+   `profile` only. Publish the app, otherwise only listed test users can sign in. These are non-sensitive scopes.
+2. APIs & Services > Credentials > Create credentials > OAuth client ID > Web application. Under Authorized JavaScript
+   origins add the gateway origin, `https://hivemind-openrouter-1003063861791.us-central1.run.app`. No redirect URI is needed.
+3. Save the client id (it looks like `123456789012-abc.apps.googleusercontent.com`; it is public, not a secret) to
+   `~/.config/hivemind/google_client_id` and redeploy with `HIVEMIND_GOOGLE_CLIENT_ID` set. Set it on every deploy.
+4. Open `/signup`, sign in, and check `/v1/hivemind/me` with the key shown. When it works you can set
+   `HIVEMIND_OPEN_REGISTRATION=0` to close handle-only registration (the deploy refuses that setting without a client id).
+
+Abuse limits: Google accounts cost a person something to create, tokens are single use and fresh, and sign-ins share the
+registration rate limit. Accounts still start at 0 HMT; a welcome grant is a policy decision (`HM-S13-11`), not automatic.
+
 ## The public deployment
 
 Live since 2026-10-24 on Cloud Run (project `gen-lang-client-0625573011`, `us-central1`, owner-approved public access):

@@ -110,6 +110,16 @@ class DuplicateRequest(ValueError):
     """Raised when a ``request_id`` has already been settled."""
 
 
+# Handles of the form ``<provider>.<keyed hash>`` belong to identity-provider sign-ins; nobody can register one by hand,
+# so a Google account cannot be squatted by typing its handle into the open registration form.
+IDENTITY_PROVIDERS: tuple[str, ...] = ("google",)
+RESERVED_HANDLE_PREFIXES: tuple[str, ...] = tuple(f"{provider}." for provider in IDENTITY_PROVIDERS)
+
+
+class ReservedHandle(ValueError):
+    """The handle belongs to an identity provider and cannot be registered by hand."""
+
+
 class HandleTaken(ValueError):
     """Raised when registering a handle (after normalisation) that already exists."""
 
@@ -274,6 +284,38 @@ class RouterStore:
         if role not in ROLES:
             raise ValueError(f"role must be one of {ROLES}")
         normalised = normalise_identity(handle)
+        if normalised.startswith(RESERVED_HANDLE_PREFIXES):
+            raise ReservedHandle(f"handle prefix is reserved: {normalised}")
+        return self._create_account(normalised, role)
+
+    def sign_in_with_identity(self, provider: str, subject: str, role: str = "prosumer") -> tuple[str, str, bool]:
+        """Create or log in the account that belongs to an identity-provider subject.
+
+        Returns ``(account_id, api_key, created)``. The handle is a keyed hash of ``provider:subject``, so the provider's
+        opaque id is not stored in clear and cannot be guessed. A returning user keeps their account, balance and role;
+        each sign-in issues a NEW key and the previous one stops working, which doubles as lost-key recovery.
+        """
+        if provider not in IDENTITY_PROVIDERS:
+            raise ValueError(f"unknown identity provider {provider!r}")
+        if not isinstance(subject, str) or not subject or len(subject) > 255:
+            raise ValueError("subject must be a non-empty string of at most 255 characters")
+        if role not in ROLES or role == "admin":
+            raise ValueError(f"role must be one of {tuple(r for r in ROLES if r != 'admin')}")
+        handle = f"{provider}.{self._hmac_hex(f'{provider}:{subject}')[:32]}"
+        account_id = self._hmac_hex(handle)[:32]
+        new_key = "hm-" + secrets.token_urlsafe(32)
+        with self._tx() as conn:
+            row = conn.execute("SELECT role FROM accounts WHERE account_id=?", (account_id,)).fetchone()
+            if row is not None:
+                conn.execute("UPDATE accounts SET key_hash=? WHERE account_id=?", (self._hmac_hex(new_key), account_id))
+                return account_id, new_key, False
+            conn.execute(
+                "INSERT INTO accounts VALUES (?,?,?,?,?,?)",
+                (account_id, handle, role, self._hmac_hex(new_key), time.time(), DEFAULT_MAX_PRICE_PER_1K),
+            )
+        return account_id, new_key, True
+
+    def _create_account(self, normalised: str, role: str) -> tuple[str, str]:
         account_id = self._hmac_hex(normalised)[:32]
         api_key = "hm-" + secrets.token_urlsafe(32)
         with self._tx() as conn:
