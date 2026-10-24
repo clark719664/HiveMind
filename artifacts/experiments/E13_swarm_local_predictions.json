@@ -2,7 +2,7 @@
   "schema_version": "hivemind-experiment-E13-predictions/v1.0",
   "experiment_id": "E13-swarm-local",
   "source_report": "E13_swarm_local_report.json",
-  "source_report_receipt": "813f0fdaa542d7e22656aecafcbdd269010c1021710c29b4524399ed8a712f2e",
+  "source_report_receipt": "11bcc44fb16e178e25768de84e22e66dc5461f5f5eed3e64d032fef8504fd072",
   "prereg_sha256": "4e9a2d80020499d0b1c015c828de424ab5ef5fa92b9a74473e473d7921e9f05a",
   "rules": "scripts/analyze_E13_predictions.py docstring = the registered rules",
   "models": {
@@ -106,7 +106,47 @@
           "late_discards_total": 0
         }
       }
+    },
+    "granite3b": {
+      "controls_failed": [],
+      "valid": true,
+      "hosting_fallback": false,
+      "S0_improvement_per_seed": {
+        "1": 0.10302329063415527
+      },
+      "P13a": {
+        "status": "supported",
+        "rows": [
+          {
+            "available": true,
+            "max_abs_diff": 0.0,
+            "tolerance": 1e-06,
+            "passed": true,
+            "bit_identical": true,
+            "identity_noise_floor": {
+              "available": true,
+              "max_abs_diff": 0.0,
+              "bit_identical": true,
+              "twin_final_loss": 1.7185276821255684,
+              "note": "diagnostic only; the identity rule stays S1 vs S0 <= 1e-6"
+            }
+          }
+        ]
+      },
+      "P13b": {
+        "status": "descriptive (n=1)",
+        "per_seed": {
+          "1": -0.6975575286211182
+        }
+      },
+      "P13c": {
+        "status": "supported",
+        "upload_ratio_actual": 0.09059028625488282,
+        "upload_ratio_ideal": 0.06236709994629862,
+        "bar": 0.3,
+        "int16_posts_total": 0
+      }
     }
   },
-  "receipt_sha256": "b195ba3ca83e3ccc5cd3ea839311cafc6d55b36b86dc3a515423b6b837fc02c9"
+  "receipt_sha256": "8989d2808695350637b98f22931b036c60eef8395700cd393187738fe3aeaa8c"
 }
