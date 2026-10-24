@@ -1,0 +1,71 @@
+{
+  "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run End-to-End Verification",
+  "verified_at_epoch": 1792825015.713991,
+  "public_dns_base_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app",
+  "canonical_cloud_run_url": "https://hivemind-at-home-ruche-1003063861791.us-central1.run.app",
+  "gcp_project_id": "gen-lang-client-0625573011",
+  "gcp_region": "us-central1",
+  "cost_optimization": {
+    "min_instances": 0,
+    "max_instances": 2,
+    "cpu_limit": "1000m",
+    "memory_limit": "512Mi",
+    "cpu_throttling": true,
+    "idle_monthly_cost_usd": 0.0,
+    "cost_governance_verdict": "OPTIMAL_SCALE_TO_ZERO_AND_SPOT_ONLY"
+  },
+  "dashboard_html_check": {
+    "http_status": 200,
+    "html_bytes": 50460,
+    "passed": true
+  },
+  "la_ruche_model_retrieval": {
+    "release_id": "RUCHE-MOE-V2_6_0-aadd48b8",
+    "num_domains": 8,
+    "community_moe_bytes": 661688,
+    "community_moe_sha256": "aadd48b8164b440c0eedf63865a2a46a87b07d1609d7e01275e14add7aeeb485",
+    "sha256_verified": true,
+    "deserialized_tensor_count": 299,
+    "embed_tokens_shape": [
+      259,
+      32
+    ],
+    "sample_cell_domain": "code_python",
+    "sample_cell_bytes": 20040,
+    "sample_cell_sha256": "71ce71bf60cd800a87ffabc116ea7b0ac442f8da2128f6742520e0e0e6ae63e1"
+  },
+  "sparse_moe_inference_checks": {
+    "native_inference": {
+      "routed_experts": [
+        "code_python",
+        "formal_lean4"
+      ],
+      "logit_l2_norm": 2.000781,
+      "latency_ms": 19.298,
+      "inference_receipt_sha256": "6b6308e38434661dc05fff10e0e72fbdf9c56e83439f15fd798229e8e6fc81a1"
+    },
+    "openai_chat_completions": {
+      "completion_id": "chatcmpl-ruche-a60eabe464d6",
+      "routed_experts": [
+        "physics_sim",
+        "systems_rust"
+      ],
+      "inference_receipt_sha256": "a60eabe464d65b3d66f586dfa722e745eaac3905aac0d2eb977fa20e1224d3e4"
+    }
+  },
+  "federated_training_checks": {
+    "leased_workunit_id": "WU-S10-CODE_PYTHON-0001",
+    "lease_id": "LEASE-936c1d7e0bdb56a3",
+    "domain_name": "code_python",
+    "submission_status": "ADMITTED_TO_LA_RUCHE_QUORUM",
+    "outer_delta_frob_norm": 0.07637,
+    "svd_spectral_energy_retained": 1.0,
+    "perplexity_reduction_pct": 15.89,
+    "monetary_payout_eur_usd": 0.0,
+    "receipt_sha256": "eccb9d9319f587835eb0d2479d56b8d3595bb78f521ae6a738f5cb306227e65f",
+    "ledger_completed_receipts_count": 1
+  },
+  "total_verification_duration_ms": 2857.35,
+  "all_checks_passed": true,
+  "verification_suite_sha256": "d47b5e1b9504d486cbedbc2163f4c85080ca1de3bbcad35a1b8d927010182366"
+}

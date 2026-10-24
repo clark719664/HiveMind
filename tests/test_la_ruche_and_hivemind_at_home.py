@@ -104,11 +104,19 @@ def test_dataset_mining_campaign_populates_la_ruche_and_dashboard(
     assert "LA RUCHE" in html_text
     assert "gwenlaya-tpu-1" in html_text
 
-    app = create_hivemind_at_home_app(mining_ruche_report_path=mining_report_path)
+    app = create_hivemind_at_home_app(
+        mining_ruche_report_path=mining_report_path,
+        vault_dir=vault_dir,
+    )
     client = TestClient(app)
     r_index = client.get("/")
     assert r_index.status_code == 200
     assert "la-ruche-svg" in r_index.text
+
+    r_health = client.get("/health")
+    assert r_health.status_code == 200
+    assert r_health.json()["status"] == "ok"
+    assert r_health.json()["cost_mode"] == "scale_to_zero_min0_max2"
 
     r_status = client.get("/api/hivemind-at-home/status")
     assert r_status.status_code == 200
@@ -117,6 +125,83 @@ def test_dataset_mining_campaign_populates_la_ruche_and_dashboard(
     r_ruche = client.get("/api/la-ruche/manifest")
     assert r_ruche.status_code == 200
     assert r_ruche.json()["num_domains"] == 8
+
+    # Verify binary download of Community MoE safetensors and individual Honeycomb Cell
+    r_dl_moe = client.get("/api/la-ruche/download/community-moe.safetensors")
+    assert r_dl_moe.status_code == 200
+    assert len(r_dl_moe.content) == manifest["combined_safetensors_bytes"]
+    assert (
+        r_dl_moe.headers["X-Safetensors-SHA256"]
+        == manifest["combined_safetensors_sha256"]
+    )
+
+    r_dl_cell = client.get("/api/la-ruche/download/cell/code_python")
+    assert r_dl_cell.status_code == 200
+    assert len(r_dl_cell.content) > 1000
+    assert r_dl_cell.headers["X-Domain-Name"] == "code_python"
+
+    # Verify live Sparse MoE inference & OpenAI chat completions
+    r_inf = client.post(
+        "/api/v1/moe/inference",
+        json={
+            "prompt": "Optimize PyTorch tensor kernel and prove Lean 4 theorem",
+            "top_k": 2,
+        },
+    )
+    assert r_inf.status_code == 200
+    inf_json = r_inf.json()
+    assert inf_json["top_k_active"] == 2
+    assert len(inf_json["routed_experts"]) == 2
+    assert inf_json["logit_l2_norm"] > 0.0
+
+    r_chat = client.post(
+        "/v1/chat/completions",
+        json={
+            "model": "hivemind-la-ruche-moe-v2.6",
+            "messages": [{"role": "user", "content": "Explain E8 lattice quantization in Rust QUIC"}],
+            "top_k": 2,
+        },
+    )
+    assert r_chat.status_code == 200
+    chat_json = r_chat.json()
+    assert len(chat_json["choices"]) == 1
+    assert len(chat_json["la_ruche_routing"]["routed_experts"]) == 2
+
+    # Verify federated workunit request, outer-delta submission, and ledger
+    r_wu = client.post(
+        "/api/v1/federated/workunit/request",
+        json={
+            "contributor_handle": "@test-gpu-node",
+            "hardware_device": "NVIDIA RTX 5060",
+            "preferred_domain": "code_python",
+        },
+    )
+    assert r_wu.status_code == 200
+    wu_json = r_wu.json()
+    assert wu_json["domain_name"] == "code_python"
+
+    r_sub = client.post(
+        "/api/v1/federated/workunit/submit",
+        json={
+            "workunit_id": wu_json["workunit_id"],
+            "lease_id": wu_json["lease_id"],
+            "lease_version_tag": wu_json["lease_version_tag"],
+            "contributor_handle": "@test-gpu-node",
+            "domain_name": "code_python",
+            "train_nll_before": 5.55,
+            "train_nll_after": 5.12,
+            "holdout_nll_before": 5.50,
+            "holdout_nll_after": 5.32,
+        },
+    )
+    assert r_sub.status_code == 200
+    sub_json = r_sub.json()
+    assert sub_json["status"] == "ADMITTED_TO_LA_RUCHE_QUORUM"
+    assert sub_json["monetary_payout_eur_usd"] == 0.0
+
+    r_ledger = client.get("/api/v1/federated/ledger")
+    assert r_ledger.status_code == 200
+    assert r_ledger.json()["completed_receipts_count"] == 1
 
     r_shards = client.get("/api/dataset-mining/shards")
     assert r_shards.status_code == 200

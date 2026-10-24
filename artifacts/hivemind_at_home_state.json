@@ -1,7 +1,7 @@
 {
   "portal_title": "HiveMind@home & GCP Cloud + La Ruche Command Deck",
   "version": "2.6.0",
-  "generated_at_epoch": 1792823279.5731905,
+  "generated_at_epoch": 1792824755.9294732,
   "charter": "Strictly Non-Monetary Compute-Reciprocity Charter (0.00 EUR / 0.00 USD). All trained QLoRA experts and Community BTM Sparse MoE weights in La Ruche are open.",
   "formal_verification": {
     "lean4_theorems_verified": 128,
@@ -11,6 +11,33 @@
   },
   "gcp_cloud_fleet": {
     "project_plane": "GCP-HiveMind-Global-Control-Plane",
+    "gcp_project_id": "gen-lang-client-0625573011",
+    "public_cloud_run_gateway": {
+      "service_name": "hivemind-at-home-ruche",
+      "region": "us-central1",
+      "public_dns_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app",
+      "canonical_run_url": "https://hivemind-at-home-ruche-1003063861791.us-central1.run.app",
+      "min_instances": 0,
+      "max_instances": 2,
+      "cpu_limit": "1000m",
+      "memory_limit": "512Mi",
+      "cpu_throttling": true,
+      "idle_monthly_cost_usd": 0.0,
+      "cost_tier": "GCP Cloud Run Scale-to-Zero Always-Free Tier Eligible",
+      "status": "SERVING_HTTPS"
+    },
+    "cost_optimization_audit": {
+      "cloud_run_services_total": 30,
+      "cloud_run_scale_to_zero_count": 30,
+      "terminated_vms_zero_compute_cost": [
+        "xavuntu-desktop-1791007070 (us-central1-c, TERMINATED)",
+        "instance-20260624-120009 (us-east4-c, TERMINATED)"
+      ],
+      "spot_preemptible_gpu_nodes": [
+        "socreateai-agora-hermes-node1 (us-east4-b, SPOT n1-standard-8 + Tesla T4)"
+      ],
+      "cost_governance_verdict": "OPTIMAL_SCALE_TO_ZERO_AND_SPOT_ONLY"
+    },
     "primary_tpu_vm": {
       "node_id": "gwenlaya-tpu-1",
       "zone": "us-west4-a",
@@ -417,6 +444,12 @@
     "combined_safetensors_path": "community_moe_release/hivemind_la_ruche_community_moe.safetensors",
     "combined_safetensors_sha256": "aadd48b8164b440c0eedf63865a2a46a87b07d1609d7e01275e14add7aeeb485",
     "combined_safetensors_bytes": 661688,
+    "download_endpoint": "/api/la-ruche/download/community-moe.safetensors",
+    "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/community-moe.safetensors",
+    "inference_endpoint": "/api/v1/moe/inference",
+    "openai_chat_endpoint": "/v1/chat/completions",
+    "federated_workunit_request_endpoint": "/api/v1/federated/workunit/request",
+    "federated_workunit_submit_endpoint": "/api/v1/federated/workunit/submit",
     "mean_holdout_perplexity_before": 251.619,
     "mean_holdout_perplexity_after": 222.2175,
     "mean_perplexity_reduction_pct": 11.67,
@@ -453,7 +486,9 @@
         "perplexity_reduction_pct": 11.59,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823118.923001,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/code_python",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/code_python"
       },
       {
         "cell_id": "ALVEOLE-02-MATH-REASONING",
@@ -481,7 +516,9 @@
         "perplexity_reduction_pct": 13.46,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823119.6232533,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/math_reasoning",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/math_reasoning"
       },
       {
         "cell_id": "ALVEOLE-03-PHYSICS-SIM",
@@ -509,7 +546,9 @@
         "perplexity_reduction_pct": 12.13,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823120.3940802,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/physics_sim",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/physics_sim"
       },
       {
         "cell_id": "ALVEOLE-04-SYSTEMS-RUST",
@@ -537,7 +576,9 @@
         "perplexity_reduction_pct": 8.83,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823121.3726032,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/systems_rust",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/systems_rust"
       },
       {
         "cell_id": "ALVEOLE-05-CYBER-SEC",
@@ -565,7 +606,9 @@
         "perplexity_reduction_pct": 12.23,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823122.090846,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/cyber_sec",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/cyber_sec"
       },
       {
         "cell_id": "ALVEOLE-06-BIO-MED",
@@ -593,7 +636,9 @@
         "perplexity_reduction_pct": 12.98,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823122.7944179,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/bio_med",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/bio_med"
       },
       {
         "cell_id": "ALVEOLE-07-GENERAL-CHAT",
@@ -621,7 +666,9 @@
         "perplexity_reduction_pct": 12.34,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823123.740529,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/general_chat",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/general_chat"
       },
       {
         "cell_id": "ALVEOLE-08-FORMAL-LEAN4",
@@ -649,9 +696,11 @@
         "perplexity_reduction_pct": 9.82,
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823124.4291117,
-        "verified": true
+        "verified": true,
+        "download_endpoint": "/api/la-ruche/download/cell/formal_lean4",
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/formal_lean4"
       }
     ]
   },
-  "dashboard_state_sha256": "0ddf27897e5f3ac3f70551ac3d59d41034b62c8ad55809d97f13eff3654b3f0f"
+  "dashboard_state_sha256": "072c8cc1c8fd4583cc3fb8a5015dde2919f70f3548e5d4e5aadb860f6d3a876d"
 }
