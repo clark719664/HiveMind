@@ -8,12 +8,14 @@ adds no result. Run: python3 scripts/write_t4_benchmark_report.py
 from __future__ import annotations
 
 import datetime as dt
+import sys
 import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 EXP = ROOT / "artifacts" / "experiments"
 OUT = ROOT / "docs" / "benchmarks" / "T4_10h_campaign_report.md"
 
@@ -156,9 +158,54 @@ def e11b_section(r: Optional[Dict[str, Any]]) -> List[str]:
     return lines
 
 
+def e13_section(rep: Optional[Dict[str, Any]], pred: Optional[Dict[str, Any]], rot: Optional[Dict[str, Any]], m2: Optional[Dict[str, Any]]) -> List[str]:
+    if not rep:
+        return ["E13 report not found (not run or not finished)."]
+    lines = ["Single-GPU swarm over real localhost HTTP (E8's localhost negative control): **no WAN claim**; latencies are GPU time-sharing artefacts. "
+             "Peers are separate OS processes only where the memory preflight allowed it (see the hosting-fallback count).", ""]
+    for name, m in rep["models"].items():
+        pr = (pred or {}).get("models", {}).get(name, {})
+        lines += [f"### {name}", "",
+                  f"Controls all passed: {m['controls_all_passed']}; failed controls: {pr.get('controls_failed')}; cells failed: {m['failed_cells']}. "
+                  f"Hosting fallback cells: {len(m.get('hosting_fallback_cells', []))}.", "",
+                  "| cell | seeds | final held-out loss (per seed) | admitted | late | upload ratio (actual / ideal) | round latency p50 (s) |", "| :-- | --: | :-- | --: | --: | :-- | --: |"]
+        for k, c in m["cells"].items():
+            w = c["wire"]
+            ratio = "-" if not w.get("compression_ratio_actual") else f"{w['compression_ratio_actual']:.2f}x / {w['compression_ratio_ideal']:.2f}x"
+            lines.append(f"| {k} {c['name']} | {len(c['seeds'])} | {', '.join(f'{x:.4f}' for x in c['final_loss_per_seed'])} | {c['admitted_fraction_mean']:.2f} | {c['late_discards_total']} | {ratio} | {c['round_latency_s']['p50']:.1f} |")
+        lines.append("")
+        b, cw = pr.get("P13b", {}), pr.get("P13c", {})
+        lines.append(f"Registered predictions: P13a **{pr.get('P13a', {}).get('status')}**; P13b **{b.get('status')}**"
+                     + (f" (retention {b['mean']:+.3f} ± {b['half_width']:.3f}, bar 0.5)" if "mean" in b else f" (per seed {b.get('per_seed')})")
+                     + f"; P13c **{cw.get('status')}**" + (f" (upload {cw['upload_ratio_actual']:.4f} of raw, ideal {cw['upload_ratio_ideal']:.4f}, bar 0.30)" if "upload_ratio_actual" in cw else "") + ".")
+        d = pr.get("P13d")
+        if d:
+            lines += ["", "Each mechanism off (descriptive; retention = share of the synchronous improvement kept):", "", "| cell | mean retention | admitted | late |", "| :-- | --: | --: | --: |"]
+            for c, v in d.items():
+                lines.append(f"| {c} {v['name']} | {v['mean_retention']:.3f} | {v['admitted_fraction_mean']:.2f} | {v['late_discards_total']} |")
+        lines.append("")
+    if rot:
+        try:
+            import analyze_E13_predictions as an  # noqa: PLC0415
+
+            r = an.analyse_model(rot["models"]["qwen0.5b"])
+            b = r.get("P13b", {})
+            lines += ["### E13c — rotating straggler (exploratory diagnostic, decides nothing)", "",
+                      "Same as S2 but the delayed worker rotates (3, 2, 1) instead of always being the GSM8K worker. Retention of the synchronous improvement: "
+                      + (f"{b['mean']:+.3f} ± {b['half_width']:.3f}" if "mean" in b else str(b.get("per_seed"))) + f" (per seed {b.get('per_seed')}), "
+                      "against the registered persistent-straggler value in the table above.", ""]
+        except Exception as exc:  # an optional section must not break report generation
+            lines += [f"E13c report present but not analysable: {exc!r}", ""]
+    if m2:
+        c = m2["models"]["qwen0.5b"]["controls"]["s1_equals_s0"]
+        lines += ["### E13 with M=2 separate OS processes (identity control only)", "", f"S1 (2 OS processes over HTTP) equals its S0: passed = {c.get('passed')}, rows = {c.get('rows')}.", ""]
+    return lines
+
+
 def main() -> int:
     q = load("T4_benchmark_queue_log.json")
     e11, e12, e10b, e11b = load("E11_kv_lattice_report.json"), load("E12_replay_divergence_report.json"), load("E10b_lattice_05b_report.json"), load("E11b_kv_lattice_sweep_report.json")
+    e13, e13p, e13r, e13m2 = load("E13_swarm_local_report.json"), load("E13_swarm_local_predictions.json"), load("E13_swarm_local_report_rotstraggle.json"), load("E13_swarm_local_report_m2proc.json")
     hw = (e11 or {}).get("hardware", {})
     md = [
         "# HiveMind — 10-hour T4 benchmark campaign (2026-10-23/24)",
@@ -176,12 +223,13 @@ def main() -> int:
         "## 3. E12 — spot-check replay divergence across hardware (RQ11, HM-S10-08)", "", *e12_section(e12), "",
         "## 4. E10b — lattice outer-delta codec at 0.5B (RQ9, HM-S10-01)", "", *e10b_section(e10b), "",
         "## 5. E11b — exploratory sweep over Hugging Face domains and context length", "", *e11b_section(e11b), "",
-        "## 6. Receipts", "",
+        "## 6. E13 — single-GPU swarm simulation (Qwen2.5-0.5B dense; Granite-3.1 MoE 1B and 3B)", "", *e13_section(e13, e13p, e13r, e13m2), "",
+        "## 7. Receipts", "",
         "| artifact | sha256 (first 12) |", "| :-- | :-- |",
     ]
     for n in ("E11_kv_lattice_prereg.json", "E11_kv_lattice_prereg_amendment_1.json", "E11_kv_lattice_report.json", "E12_replay_divergence_prereg.json",
               "E12_replay_divergence_report.json", "E10b_lattice_05b_prereg.json", "E10b_lattice_05b_report.json", "E11b_kv_lattice_sweep_prereg.json",
-              "E11b_kv_lattice_sweep_report.json", "T4_benchmark_queue_log.json"):
+              "E11b_kv_lattice_sweep_report.json", "E13_swarm_local_prereg.json", "E13_swarm_local_prereg_amendment_1.json", "E13_swarm_local_prereg_amendment_2.json", "E13_swarm_local_prereg_amendment_3.json", "E13_swarm_local_report.json", "E13_swarm_local_predictions.json", "T4_benchmark_queue_log.json"):
         md.append(f"| `{n}` | `{sha(n)}` |")
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(md) + "\n", encoding="utf-8")
