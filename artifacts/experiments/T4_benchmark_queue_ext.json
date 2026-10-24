@@ -75,6 +75,18 @@
    "output": null
   },
   {
+   "name": "E16_gwaya_lite_t4",
+   "argv": [
+    "scripts/run_experiment_E16_gwaya_lite_t4.py",
+    "--resume",
+    "--out",
+    "artifacts/experiments/E16",
+    "--report",
+    "artifacts/experiments/E16_gwaya_lite_t4_report.json"
+   ],
+   "output": null
+  },
+  {
    "name": "E14_granite1b",
    "argv": [
     "scripts/run_experiment_E13_swarm_local.py",
