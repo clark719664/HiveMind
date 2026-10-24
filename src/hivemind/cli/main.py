@@ -341,7 +341,17 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to write 4-panel Cosmology & JWST discovery PNG",
     )
 
+    p_lab = sub.add_parser(
+        "swarm-lab",
+        help="HiveMind Swarm Lab: GPU-free qualitative toy of quorum policy x stragglers x non-IID data (simulate | compare | presets | play)",
+    )
+    p_lab.add_argument("lab_args", nargs=argparse.REMAINDER, help="arguments of the lab CLI, e.g. `simulate --preset churn` (use `-h` after the lab command for help)")
+
     args = parser.parse_args(argv)
+    if args.command == "swarm-lab":
+        from hivemind.lab.swarm_lab import main as swarm_lab_main
+
+        return swarm_lab_main(args.lab_args)
     if args.command == "hardware-check":
         return cmd_hardware_check()
     if args.command == "simulate-e2e":
