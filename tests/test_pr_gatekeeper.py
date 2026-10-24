@@ -91,3 +91,13 @@ def test_retry_merge_never_calls_gh_for_a_held_or_dry_run_head(monkeypatch) -> N
     live = g.retry_merge(pr, "ACCEPT", merge=True, dry_run=False)
     assert live["merged"] is True and live["merge_retry"] is True
     assert calls == [["gh", "pr", "merge", "7", "--merge", "--admin"]]
+
+
+def test_signature_policy_can_only_withdraw_trust_never_grant_it() -> None:
+    signed = [{"sha": "a" * 10, "verified": True}, {"sha": "b" * 10, "verified": True}]
+    mixed = [{"sha": "a" * 10, "verified": True}, {"sha": "b" * 10, "verified": False}]
+    assert g.signature_policy_ok(True, signed, require_signed=True) is True
+    assert g.signature_policy_ok(True, mixed, require_signed=True) is False
+    assert g.signature_policy_ok(True, [], require_signed=True) is False  # no commits, nothing to trust
+    assert g.signature_policy_ok(True, mixed, require_signed=False) is True  # policy off: e-mail claim stands (recorded as a warning)
+    assert g.signature_policy_ok(False, signed, require_signed=False) is False  # a stranger's signed commits grant nothing

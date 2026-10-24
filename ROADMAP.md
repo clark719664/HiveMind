@@ -191,6 +191,25 @@ Formal side-note: the paper's RDA-multiplier Proposition is now machine-checked 
 
 ---
 
+## 🛡️ 3.9 Season 11 (`Wave 10` — "Operation Hardened-Hive") — HiveMindFirewall, chain of command, scripted red team (owner's brief, 2026-10-24)
+
+Design of record: [`docs/SECURITY_HARDENING_PHASE.md`](docs/SECURITY_HARDENING_PHASE.md). Delivered in the first PR of the season: `hivemind.security.hivemind_firewall` (keyed-hash identities + Ed25519 delegation certificates rooted at the owner; signed, sequenced, hash-chained orders; deterministic prompt-injection scan PI-01..PI-07 with decoded-payload re-scan; pure state machine `RECEIVED → IDENTIFIED → SCANNED → AUTHORIZED → SANDBOXED → EXECUTED | DELEGATED`, any other path `REFUSED`/`QUARANTINED`; allow-listed argv sandbox, bubblewrap or BLOCKED), the red-team corpus (59 vectors) and campaign `scripts/run_firewall_pentest_campaign.py` (first run 47/49 blocked, two real defects fixed, second run 49/49 blocked, 0 false positives, controls passed: [`artifacts/security/firewall_pentest_report.json`](artifacts/security/firewall_pentest_report.json), prereg [`firewall_pentest_prereg.json`](artifacts/security/firewall_pentest_prereg.json)). Principle: **text never carries authority; a non-deterministic model can only propose.**
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S11-01` | keys exist only in tests | key ceremony: owner key + domain secret (0600) under `~/.config/hivemind/`; bootstrap script; certificates for the scientific-lead session and the coordinator (public parts committed) | G-H2 |
+| `HM-S11-02` | the gatekeeper merges on checks, not on orders | `pr_gatekeeper.py --merge` requires a signed `gatekeeper_tick`; each merge is a `merge_pr` order; receipts in `artifacts/pr_gatekeeper/` | G-H2 |
+| `HM-S11-03` | the coordinator acts on its own judgement | `community_orchestrator.py` opens PRs only after an `open_pr` order; replies pass through `propose_from_text` and are posted as data envelopes | G-H2 |
+| `HM-S11-04` | commit e-mail is the only authority signal (forged 2026-10-24) | signed commits required on `main`; gatekeeper verifies the owner's registered key, not the e-mail | G-H4 |
+| `HM-S11-05` | swarm peers run unsandboxed | E13/E8 peers under the sandbox profile with coordinator-only egress; overhead measured (prereg first) | G-H5 |
+| `HM-S11-06` | corpus is static | every injection pattern seen in the wild enters `firewall_pentest_corpus.py` with its expected verdict in the fixing PR; campaign runs in CI | G-H1 (regression) |
+| `HM-S11-07` | the red team is the author | external red team: two contributors attack from the published code; bounty only for a vector that passed before the fix | G-H3 |
+| `HM-S11-08` | software key custody | hardware-backed owner key (FIDO2 Ed25519); rotation and revocation drill rehearsed with receipts | G-H4 |
+
+**Campaign calendar (pen-test):** `HM-S11-PT-1` scripted red team on every PR (CI, from this season); `HM-S11-PT-2` external red team week after `HM-S11-02` lands; `HM-S11-PT-3` live-fire on the E13 harness after `HM-S11-05` (a hostile peer tries to inject orders through the HTTP transport; expected outcome: every attempt ends `REFUSED`/`QUARANTINED` with a receipt). Each campaign is pre-registered (vector list and expected verdicts) before it runs, and a campaign that blocks everything *and* a campaign that finds nothing are both reported as what they are.
+
+---
+
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
 
 If you have a consumer GPU (**NVIDIA GeForce RTX 20/30/40/50-series 6 GB–24 GB**, **AMD Radeon RX 6000/7000 via ROCm**, or **Apple Silicon M1/M2/M3/M4 via MPS**) and are interested in testing how your hardware performs on the HiveMind Sparse MoE + `EF21-DiLoCo` + `ZK-OPoI v4` stack, we provide a safe, opt-in, `< 1.5 GB` peak-VRAM benchmark suite:
