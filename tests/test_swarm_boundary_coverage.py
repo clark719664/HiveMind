@@ -146,6 +146,42 @@ def test_async_fresh_then_stale_same_learner_combines_at_round_close():
     assert report["token_conservation_holds"]
 
 
+def test_async_drop_policy_discards_late_tokens_after_full_quorum():
+    coordinator = decoupled.ContinuousAsyncLearnerCoordinator(
+        3, 2, straggler_mode="drop", merge_mode="direct"
+    )
+    for learner_id, arrival, delta, tokens in [
+        ("a", 0.0, [2.0, 0.0], 100),
+        ("b", 1.0, [2.0, 0.0], 200),
+        ("c", 5.0, [7.0, 0.0], 300),
+    ]:
+        coordinator.submit_learner_delta(
+            learner_id, 0, torch.tensor(delta), tokens, 1, arrival_time_s=arrival
+        )
+    initial = torch.zeros(2)
+    updated, report = coordinator.close_quorum_round(
+        initial, outer_lr=0.5, grace_window_s=0.0
+    )
+    torch.testing.assert_close(updated, torch.tensor([-1.0, 0.0]))
+    torch.testing.assert_close(initial, torch.zeros(2))
+    assert report["admitted_learners"] == ["a", "b"]
+    assert report["deferred_learners"] == ["c"]
+    assert report["merged_tokens"] == 300
+    assert report["dropped_tokens"] == 300
+    assert report["total_submitted_tokens"] == 600
+    assert report["pending_tokens"] == 0
+    assert report["token_conservation_holds"] is True
+
+
+def test_campaign_delta_analysis_rejects_single_learner_without_a_pair():
+    base = {"w": torch.zeros(2)}
+    branch = {"w": torch.tensor([1.0, 2.0])}
+    with pytest.raises(ValueError, match="at least 2 learner branches are required"):
+        decoupled.analyze_campaign_rda_and_delta_cosine(base, {"only": branch})
+    torch.testing.assert_close(base["w"], torch.zeros(2))
+    torch.testing.assert_close(branch["w"], torch.tensor([1.0, 2.0]))
+
+
 def test_campaign_delta_analysis_matches_orthogonal_equal_norm_vectors():
     report = decoupled.analyze_campaign_rda_and_delta_cosine(
         {"w": torch.zeros(2)},

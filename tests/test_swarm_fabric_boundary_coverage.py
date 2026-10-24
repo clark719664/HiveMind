@@ -1,6 +1,8 @@
 """Device-adapter unit contracts; mocks do not claim to verify GPU kernel execution."""
 
 from contextlib import nullcontext
+import importlib.util
+import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, Mock, sentinel
 
@@ -104,3 +106,76 @@ def test_skip_attention_prefetch_requires_a_name_for_every_expert():
         streamer.prefetch_and_route_skip_attention_car(
             torch.zeros(1, 2), torch.zeros(1, 2), torch.ones(2), torch.zeros(2, 2), ["only-one"]
         )
+
+
+def test_fused_dispatch_cuda_event_adapter_preserves_cpu_reference(monkeypatch):
+    """Verify event/copy orchestration with real CPU math, without GPU allocation."""
+    hidden = torch.tensor([[1.0, 0.0]])
+    router = torch.eye(2)
+    experts = [torch.eye(2), 2 * torch.eye(2)]
+    reference = fabric.fused_top2_moe_fp8_dispatch(hidden, router, experts)
+    packet = fabric.compress_hidden_states_fp8(hidden)
+    decoded = fabric.decompress_hidden_states_fp8(packet)
+    device = torch.device("cuda:0")
+    copy_requests = []
+
+    class DeviceCopyAdapter:
+        """Record device requests while retaining actual tensors on the CPU."""
+
+        def __init__(self, tensor, name):
+            self.tensor = tensor
+            self.name = name
+            self.device = device
+            self.dtype = tensor.dtype
+
+        def to(self, *args, **kwargs):
+            copy_requests.append((self.name, args, dict(kwargs)))
+            cpu_kwargs = {key: value for key, value in kwargs.items() if key != "device"}
+            return self.tensor.to(*args, **cpu_kwargs)
+
+    order = []
+    start, end = Mock(), Mock()
+    start.record.side_effect = lambda: order.append("start")
+    end.record.side_effect = lambda: order.append("end")
+    start.elapsed_time.side_effect = lambda other: order.append("elapsed") or 2.75
+    event = Mock(side_effect=[start, end])
+    synchronize = Mock(side_effect=lambda target: order.append("synchronize"))
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "Event", event)
+    monkeypatch.setattr(torch.cuda, "synchronize", synchronize)
+    monkeypatch.setattr(fabric, "compress_hidden_states_fp8", lambda value: packet)
+    monkeypatch.setattr(fabric, "decompress_hidden_states_fp8", lambda value: DeviceCopyAdapter(decoded, "decoded"))
+
+    result = fabric.fused_top2_moe_fp8_dispatch(
+        DeviceCopyAdapter(hidden, "hidden"),
+        DeviceCopyAdapter(router, "router"),
+        [DeviceCopyAdapter(weight, f"expert-{i}") for i, weight in enumerate(experts)],
+    )
+
+    torch.testing.assert_close(result["output"], reference["output"])
+    torch.testing.assert_close(result["top_k_weights"], reference["top_k_weights"])
+    assert result["kernel_latency_ms"] == 2.75
+    assert order == ["start", "end", "synchronize", "elapsed"]
+    assert event.call_args_list[0].kwargs == event.call_args_list[1].kwargs == {"enable_timing": True}
+    synchronize.assert_called_once_with(device)
+    start.elapsed_time.assert_called_once_with(end)
+    for name in ("router", "decoded", "expert-0", "expert-1"):
+        requests = [kwargs for item, _, kwargs in copy_requests if item == name]
+        assert requests == [{"device": device, "dtype": torch.float32}]
+
+
+def test_fabric_remains_usable_when_optional_triton_is_absent(monkeypatch):
+    name = "hivemind.swarm._fabric_without_optional_triton_test"
+    monkeypatch.setitem(sys.modules, "triton", None)
+    spec = importlib.util.spec_from_file_location(name, fabric.__file__)
+    assert spec is not None and spec.loader is not None
+    isolated = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, isolated)
+    spec.loader.exec_module(isolated)
+    assert isolated._HAS_TRITON is False
+    values = torch.tensor([[1.0, -1.0, 0.0]])
+    packet = isolated.compress_hidden_states_fp8(values)
+    restored = isolated.decompress_hidden_states_fp8(packet, target_dtype=torch.float32)
+    torch.testing.assert_close(restored, values, atol=0.01, rtol=0)
+    assert packet.original_shape == (1, 3)
+    assert packet.fp8_data.device.type == "cpu"

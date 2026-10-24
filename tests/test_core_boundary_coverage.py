@@ -533,3 +533,263 @@ def test_training_evaluation_cli_prints_selected_report_fields(monkeypatch, tmp_
     captured = capsys.readouterr()
     assert json.loads(captured.out) == {"report": str(tmp_path / "report.json"), **report}
     assert captured.err == ""
+
+
+class _TorchCudaAdapter(SimpleNamespace):
+    """Replace CUDA adapter calls while delegating tensor work to real CPU PyTorch."""
+
+    def __getattr__(self, name):
+        return getattr(torch, name)
+
+
+@pytest.fixture
+def cpu_work_with_cuda_cleanup(monkeypatch):
+    # Real PyTorch/optimizer internals must never query a driver. Only the modules'
+    # cleanup adapter sees CUDA as available, a valid case even for CPU workloads.
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    cuda = Mock(spec=["is_available", "empty_cache"])
+    cuda.is_available.return_value = True
+    adapter = _TorchCudaAdapter(cuda=cuda)
+    monkeypatch.setattr(diloco_inner, "torch", adapter)
+    monkeypatch.setattr(quantization, "torch", adapter)
+    monkeypatch.setattr(diloco_inner, "configure_deterministic_runtime", lambda *args, **kwargs: None)
+    return cuda, adapter
+
+
+@pytest.mark.parametrize("allocated,ceiling,fits", [
+    (0.25, 0.5, True),
+    (0.5, 0.5, False),
+    (0.75, 0.5, False),
+])
+def test_footprint_report_uses_available_device_telemetry_and_strict_ceiling(
+    monkeypatch, allocated, ceiling, fits,
+):
+    # Mock the device/measurement interface, without changing any CPU tensor's device.
+    parameter_handle = SimpleNamespace(device=torch.device("cuda:2"))
+    model = SimpleNamespace(parameters=Mock(side_effect=lambda: iter([parameter_handle])))
+    measure = Mock(return_value={"total_gb": 0.125, "cuda_allocated_gb": allocated})
+    cuda = Mock(spec=["is_available"])
+    cuda.is_available.return_value = True
+    monkeypatch.setattr(btm_moe, "torch", _TorchCudaAdapter(cuda=cuda))
+    monkeypatch.setattr(btm_moe, "measure_moe_vram_footprint_gb", measure)
+
+    report = btm_moe._footprint_report(model, ceiling)
+
+    assert report == {
+        "parameter_footprint_gb": 0.125,
+        "vram_ceiling_gb": ceiling,
+        "vram_measured_gb": allocated,
+        "fits_under_vram_ceiling": fits,
+        "vram_measurement": "measured: torch.cuda.memory_allocated on the model device",
+    }
+    measure.assert_called_once_with(model)
+    model.parameters.assert_called_once_with()
+    cuda.is_available.assert_called_once_with()
+
+
+def test_lora_export_detaches_then_transfers_cuda_handle_and_converts_cpu_values():
+    source = torch.tensor([-2.5, 7.25], dtype=torch.float64)
+    parameter = Mock(spec=["device", "requires_grad", "detach"])
+    parameter.device = torch.device("cuda:3")
+    parameter.requires_grad = False
+    parameter.detach.return_value.cpu.return_value = source
+    frozen = Mock(spec=["requires_grad", "detach"])
+    frozen.requires_grad = False
+    model = SimpleNamespace(named_parameters=Mock(return_value=[
+        ("layer.lora_A", parameter), ("frozen.weight", frozen),
+    ]))
+
+    state = quantization.extract_lora_state_dict(model)
+
+    assert set(state) == {"layer.lora_A"}
+    assert parameter.mock_calls == [call.detach(), call.detach().cpu()]
+    frozen.detach.assert_not_called()
+    model.named_parameters.assert_called_once_with()
+    exported = state["layer.lora_A"]
+    assert exported.device == torch.device("cpu")
+    assert exported.dtype == torch.float32
+    assert exported.requires_grad is False
+    torch.testing.assert_close(exported, torch.tensor([-2.5, 7.25]))
+    exported.zero_()
+    torch.testing.assert_close(source, torch.tensor([-2.5, 7.25], dtype=torch.float64))
+
+
+def test_inner_preemption_saves_checkpoint_before_cleaning_cuda_cache_twice(
+    monkeypatch, tmp_path, cpu_work_with_cuda_cleanup,
+):
+    cuda, adapter = cpu_work_with_cuda_cleanup
+    model = _QuadraticAdapter()
+    breaker = GPUExecutionCircuitBreaker()
+    evaluate = Mock(return_value=SimpleNamespace(should_preempt=False, should_throttle=False))
+    monkeypatch.setattr(breaker, "evaluate", evaluate)
+    events = []
+    build_optimizer = diloco_inner.build_inner_optimizer
+
+    def tracked_optimizer(**kwargs):
+        optimizer = build_optimizer(**kwargs)
+        step = optimizer.step
+
+        def tracked_step(*args, **step_kwargs):
+            result = step(*args, **step_kwargs)
+            events.append("optimizer_step")
+            return result
+
+        monkeypatch.setattr(optimizer, "step", tracked_step)
+        return optimizer
+
+    def save_checkpoint(*args, **kwargs):
+        torch.save(*args, **kwargs)
+        events.append("checkpoint_saved")
+
+    def release_cache():
+        assert model.lora_weight.grad is None
+        events.append("empty_cache")
+
+    monkeypatch.setattr(diloco_inner, "build_inner_optimizer", tracked_optimizer)
+    adapter.save = save_checkpoint
+    cuda.empty_cache.side_effect = release_cache
+    with torch.random.fork_rng(devices=[]):
+        result = diloco_inner.run_diloco_inner_loop(
+            model=model, token_sequences=torch.tensor([[1, 2, 3, 4]]), worker_id="cleanup-worker",
+            branch_name="Code", inner_steps_H=3, checkpoint_interval_s=2, lr=0.01,
+            weight_decay=0.0, should_preempt_fn=Mock(side_effect=[False, True]),
+            circuit_breaker=breaker, emergency_checkpoint_dir=tmp_path,
+        )
+
+    assert events == ["optimizer_step", "checkpoint_saved", "empty_cache", "empty_cache"]
+    assert cuda.mock_calls == [call.is_available(), call.empty_cache(),
+                               call.is_available(), call.empty_cache()]
+    assert result.steps_completed == 1
+    assert result.preempted_by_daemon is True
+    assert result.emergency_dump_path == tmp_path / "emergency_cleanup-worker_step1.pt"
+    saved = torch.load(result.emergency_dump_path, weights_only=True)
+    assert saved["step"] == 1
+    assert saved["worker_id"] == "cleanup-worker"
+    assert saved["branch_name"] == "Code"
+    assert saved["optimizer_state"]["state"]
+    torch.testing.assert_close(saved["lora_state"]["lora_weight"], result.theta_final["lora_weight"])
+    torch.testing.assert_close(result.theta_final["lora_weight"], model.lora_weight.detach())
+    assert torch.all(result.theta_final["lora_weight"] < result.theta_init["lora_weight"])
+    torch.testing.assert_close(result.raw_delta["lora_weight"],
+                               result.theta_init["lora_weight"] - result.theta_final["lora_weight"])
+
+
+def test_inner_completion_and_replay_clean_cache_and_produce_identical_cpu_updates(
+    monkeypatch, cpu_work_with_cuda_cleanup,
+):
+    cuda, _ = cpu_work_with_cuda_cleanup
+    model, replay_model = _QuadraticAdapter(), _QuadraticAdapter()
+    breaker = GPUExecutionCircuitBreaker()
+    monkeypatch.setattr(breaker, "evaluate", Mock(return_value=SimpleNamespace(
+        should_preempt=False, should_throttle=False,
+    )))
+    initial = {"lora_weight": model.lora_weight.detach().clone()}
+    tokens = torch.tensor([[1, 2, 3, 4]])
+    phases = []
+    current = model
+
+    def release_cache():
+        assert current.lora_weight.grad is None
+        phases.append("train" if current is model else "replay")
+
+    cuda.empty_cache.side_effect = release_cache
+    with torch.random.fork_rng(devices=[]):
+        trained = diloco_inner.run_diloco_inner_loop(
+            model=model, token_sequences=tokens, worker_id="cleanup-worker", branch_name="Code",
+            inner_steps_H=1, checkpoint_interval_s=1, lr=0.01, weight_decay=0.0,
+            circuit_breaker=breaker,
+        )
+        current = replay_model
+        replayed = diloco_inner.replay_inner_segment(
+            model=replay_model, start_lora_state=initial, token_sequences=tokens,
+            start_step=0, end_step=1, lr=0.01, weight_decay=0.0,
+        )
+
+    assert phases == ["train", "replay"]
+    assert cuda.mock_calls == [call.is_available(), call.empty_cache(),
+                               call.is_available(), call.empty_cache()]
+    assert trained.steps_completed == 1
+    assert trained.preempted_by_daemon is False
+    assert set(trained.micro_checkpoints) == {0, 1}
+    torch.testing.assert_close(trained.theta_final["lora_weight"], torch.tensor([0.99, 1.99]))
+    torch.testing.assert_close(replayed, trained.theta_final)
+    torch.testing.assert_close(replay_model.lora_weight.detach(), trained.theta_final["lora_weight"])
+
+
+def test_stream_loader_cleans_cuda_cache_after_loading_and_freezing_real_cpu_weights(
+    monkeypatch, tmp_path, cpu_work_with_cuda_cleanup,
+):
+    import huggingface_hub
+    from safetensors.torch import save_file
+    from transformers import AutoConfig
+
+    cuda, _ = cpu_work_with_cuda_cleanup
+    cfg = quantization.Qwen2Config(
+        vocab_size=16, hidden_size=8, intermediate_size=16, num_hidden_layers=1,
+        num_attention_heads=2, num_key_value_heads=1, max_position_embeddings=16,
+        tie_word_embeddings=False,
+    )
+    checkpoint = tmp_path / "tiny.safetensors"
+    construct = quantization.Qwen2ForCausalLM
+    created = []
+
+    def record_construction(config):
+        model = construct(config)
+        created.append(model)
+        return model
+
+    def release_cache():
+        model, = created
+        assert all(param.device.type == "cpu" and not param.requires_grad for param in model.parameters())
+
+    configuration = Mock(return_value=cfg)
+    download = Mock(return_value=str(checkpoint))
+    monkeypatch.setattr(AutoConfig, "from_pretrained", configuration)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", download)
+    cuda.empty_cache.side_effect = release_cache
+    with torch.random.fork_rng(devices=[]):
+        torch.default_generator.manual_seed(19)
+        reference = construct(cfg)
+        saved = {key: value.detach().cpu().clone() for key, value in reference.state_dict().items()}
+        save_file(saved, str(checkpoint))
+        monkeypatch.setattr(quantization, "Qwen2ForCausalLM", record_construction)
+        loaded, is_nf4, compressed_mb = quantization.stream_load_hf_causal_lm(
+            model_id="fixture/tiny-cpu", device=torch.device("cpu"),
+            compute_dtype=torch.float32, apply_nf4=False,
+        )
+
+    assert loaded is created[0]
+    torch.testing.assert_close(loaded.state_dict(), saved)
+    assert is_nf4 is False
+    assert compressed_mb == loaded._nf4_compressed_mb == 0.0
+    assert cuda.mock_calls == [call.is_available(), call.empty_cache()]
+    configuration.assert_called_once_with("fixture/tiny-cpu", token=None)
+    download.assert_called_once_with(repo_id="fixture/tiny-cpu", filename="model.safetensors", token=None)
+
+
+def test_synthetic_cpu_training_preserves_unpaired_reference_tensor(monkeypatch):
+    from hivemind.data.hf_real_trainer import train_single_domain_lora_adapter
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    reference = {
+        "x.lora_A": torch.zeros(4, 8, dtype=torch.float16),
+        "x.lora_B": torch.zeros(8, 4, dtype=torch.float16),
+        "extra.reference_weight": torch.tensor([[0.5, -0.5], [1.0, -1.0]], dtype=torch.float16),
+    }
+    original = {key: value.clone() for key, value in reference.items()}
+    with torch.random.fork_rng(devices=[]):
+        trained, metrics = train_single_domain_lora_adapter(
+            "Rust_Systems_Security", reference, lora_rank_r=4, lora_alpha=8,
+            inner_steps=4, lr=0.11, topk_ratio=1.0,
+        )
+
+    assert set(trained) == set(original)
+    for key, value in reference.items():
+        torch.testing.assert_close(value, original[key], rtol=0.0, atol=0.0)
+    assert metrics["measurement_kind"] == "synthetic_regression"
+    assert metrics["inner_steps"] == metrics["requested_inner_steps"] == 4
+    assert math.isfinite(metrics["initial_loss"]) and math.isfinite(metrics["final_loss"])
+    assert metrics["final_loss"] < metrics["initial_loss"]
+    assert torch.count_nonzero(trained["x.lora_B"]).item() > 0
+    torch.testing.assert_close(trained["extra.reference_weight"], original["extra.reference_weight"].to(torch.float32),
+                               rtol=0.0, atol=0.0)
