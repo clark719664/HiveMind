@@ -6,6 +6,12 @@
 - `POST /v1/hivemind/register/oidc/{provider}` and public `GET /v1/hivemind/signin/providers`; `RouterStore.allow_identity_provider` reserves each provider's handle prefix (refused if a handle already uses it); `HIVEMIND_OIDC_PROVIDERS` in the Cloud Run server.
 - `tests/test_router_oidc.py` (13 tests). Mutation checks: turning off the issuer check, the verified-email rule, the per-store prefix reservation, or the provider lookup each makes a test fail.
 - Not done: Google itself still needs the owner's OAuth client id; `deploy.sh` does not forward `HIVEMIND_OIDC_PROVIDERS`; no live provider was exercised.
+## Unreleased — Verified mode for coding requests (client side)
+
+- `scripts/hivemind_verified.py`: generate through the router, judge with the caller's own tests in the local fail-closed sandbox, repair with the failure text (<= 3 repairs), return the first passing candidate; otherwise the first attempt flagged `UNVERIFIED_FALLBACK`; no sandbox means `BLOCKED`. Library functions `verified_solve`, `sandbox_judge`, `router_ask`.
+- Measured on the live router and the T4 (MBPP-sanitized, n=257, 7B `coder`): 76.3% first attempt, 82.9% with the loop, 17 rescued / 0 lost, exact McNemar p = 1.5e-5; ~192 HMT. Sampling uncontrolled (Ollama ignores temperature/seed on /v1). One benchmark, one run.
+- Deliberately NOT in the gateway or the producers: they would have to execute code supplied by strangers. A server-side version needs a separate isolated verifier service; not built.
+- `tests/test_hivemind_verified.py` (9 tests). Mutation checks: first-attempt fallback, blocked sandbox, always-accept and withheld feedback each fail tests.
 
 ## Unreleased — GWAYA-Lite Python code expert as a serving-layer expert
 
