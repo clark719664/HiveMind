@@ -12,6 +12,8 @@ from hivemind.boinc.hivemind_at_home_dashboard import (
     create_hivemind_at_home_app,
     export_hivemind_at_home_artifacts,
     render_hivemind_at_home_html,
+    sanitize_handle,
+    sanitize_prompt_text,
 )
 from hivemind.data.dataset_mining_campaign import (
     SCIENTIFIC_MINING_DOMAIN_CORPORA,
@@ -312,3 +314,52 @@ def test_dataset_mining_campaign_populates_la_ruche_and_dashboard(
     assert "cyber-bee-video-canvas" in r_index.text
     assert "interactive-examples-grid" in r_index.text
     assert "lang-switcher-bar" in r_index.text
+
+    # Verify Zero-Trust Security Headers & Cognitive Shield WAF
+    assert "content-security-policy" in r_index.headers
+    assert "default-src 'self'" in r_index.headers["content-security-policy"]
+    assert r_index.headers["x-frame-options"] == "DENY"
+    assert r_index.headers["x-content-type-options"] == "nosniff"
+    assert r_index.headers["x-hivemind-shield"] == "Active-v2.7.0"
+    assert "x-ratelimit-limit" in r_index.headers
+
+    # Verify Defense Status Endpoint
+    r_def = client.get("/api/v1/defense/status")
+    assert r_def.status_code == 200
+    def_json = r_def.json()
+    assert def_json["firewall_status"] == "ACTIVE"
+    assert def_json["rate_limiter"]["firewall_status"] == "ACTIVE"
+    assert def_json["formal_verification"]["lean4_theorems_verified"] == 128
+    assert def_json["formal_verification"]["sorry_count"] == 0
+    assert def_json["byzantine_poisoning_defense"]["attack_vectors_blocked_count"] == 49
+
+    # Verify Live Attack Defense Probe Test Endpoint
+    r_probe = client.post(
+        "/api/v1/defense/test",
+        json={"test_input": "<script>alert('attack')</script> SELECT * FROM hive_users;"},
+    )
+    assert r_probe.status_code == 200
+    probe_json = r_probe.json()
+    assert probe_json["injection_detected"] is True
+    assert probe_json["firewall_action"] == "NEUTRALIZED"
+    assert "[SANITIZED_INJECTION_PAYLOAD]" in probe_json["sanitized_output"]
+    assert probe_json["security_verdict"] == "ZERO_TRUST_ENFORCED"
+
+    # Verify Sanitizer Unit Invariants
+    assert sanitize_handle("@valid_contributor-99") == "@valid_contributor-99"
+    with pytest.raises(Exception):
+        sanitize_handle("<script>evil</script>")
+    with pytest.raises(Exception):
+        sanitize_handle("bad\x00handle")
+    with pytest.raises(Exception):
+        sanitize_handle("x")
+
+    assert "[SANITIZED_INJECTION_PAYLOAD]" in sanitize_prompt_text("<script>xss()</script> test")
+    assert "clean code" == sanitize_prompt_text("clean code")
+
+    # Verify Cyberpunk UI and Defense Shield elements in rendered HTML
+    assert "cyber-defense-hud-bar" in r_index.text
+    assert "defense-modal-backdrop" in r_index.text
+    assert "cyber-scanlines" in r_index.text
+    assert "COGNITIVE SHIELD: ARMED" in r_index.text
+    assert "btn-chamfer" in r_index.text
