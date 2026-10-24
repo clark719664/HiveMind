@@ -43,12 +43,51 @@
     "}",
     "E13 DONE model=granite1b cells_ok=9 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_granite1b.json"
    ]
+  },
+  {
+   "name": "E14_qwen0.5b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--cells",
+    "S0,S2,S6,S7",
+    "--seeds",
+    "1,2,3",
+    "--out",
+    "artifacts/experiments/E14_raw_qwen0.5b.json",
+    "--report",
+    "artifacts/experiments/E14_report_qwen0.5b.json",
+    "--resume"
+   ],
+   "start_unix": 1792825584.6422336,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 1626.5,
+   "log_tail": [
+    "seed 3 S2 swarm_all_on   final 2.3506 (init 2.3653) admitted/round [2, 2, 2, 2, 2, 2] late 8 up 3926489B 113.62s",
+    "[E13] memory preflight: process hosting needs 20.09 GiB (M=4 x (4.57 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.07 GiB)",
+    "[E13 hb] qwen0.5b S6 seed 3 t=60s round 4/6 admitted-so-far [] of effective K 2, alive [0, 1, 2, 3], evals [0] of [0, 3, 6], late 4, fair-exclusion counters {0: 0, 1: 0, 2: 0, 3: 1} (max 1)",
+    "[E13 hb] qwen0.5b S6 seed 3 t=120s round 6/6 admitted-so-far [0, 1, 2] of effective K 2, alive [0, 1, 2, 3], evals [0, 3] of [0, 3, 6], late 7, fair-exclusion counters {0: 1, 1: 0, 2: 0, 3: 1} (max 1)",
+    "seed 3 S6 fair_quorum    final 2.2518 (init 2.3653) admitted/round [2, 3, 2, 3, 2, 4] late 7 up 4518359B 131.97s",
+    "[E13] memory preflight: process hosting needs 20.09 GiB (M=4 x (4.57 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.07 GiB)",
+    "[E13 hb] qwen0.5b S7 seed 3 t=60s round 4/6 admitted-so-far [2] of effective K 2, alive [0, 1, 2, 3], evals [0] of [0, 3, 6], late 0, carry queue 0",
+    "seed 3 S7 deferred_carry final 2.3039 (init 2.3653) admitted/round [2, 2, 2, 2, 2, 2] late 2 up 3926654B 113.56s",
+    "{",
+    "  \"controls_all_passed\": false,",
+    "  \"runs\": 12,",
+    "  \"elapsed_s\": 1618.57,",
+    "  \"receipt\": \"975d81b7b503e8e21004ba15332ab5908a5029895c60e393594ac9458b46ef5f\"",
+    "}",
+    "E13 DONE model=qwen0.5b cells_ok=12 cells_failed=0 report=artifacts/experiments/E14_report_qwen0.5b.json"
+   ]
   }
  ],
- "gpu_samples": 32,
- "gpu_util_mean_pct": 50.2,
+ "gpu_samples": 86,
+ "gpu_util_mean_pct": 74.5,
  "gpu_util_by_job": {
-  "E13_granite1b_v2": 50.2
+  "E13_granite1b_v2": 50.2,
+  "E14_qwen0.5b": 88.8
  },
  "gpu_mem_peak_gib": 6.63,
  "gpu_trace": [
@@ -107,6 +146,104 @@
    "util_pct": 59,
    "mem_used_gib": 6.63,
    "power_w": 70.3
+  },
+  {
+   "t": 1792825607.5,
+   "job": "E14_qwen0.5b",
+   "util_pct": 0,
+   "mem_used_gib": 0.44,
+   "power_w": 10.8
+  },
+  {
+   "t": 1792825727.6,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 5.18,
+   "power_w": 66.5
+  },
+  {
+   "t": 1792825847.6,
+   "job": "E14_qwen0.5b",
+   "util_pct": 95,
+   "mem_used_gib": 5.2,
+   "power_w": 73.0
+  },
+  {
+   "t": 1792825967.6,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 66.2
+  },
+  {
+   "t": 1792826087.7,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 60.6
+  },
+  {
+   "t": 1792826207.7,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 58.2
+  },
+  {
+   "t": 1792826327.7,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 5.2,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792826447.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 96,
+   "mem_used_gib": 6.33,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792826567.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 68.2
+  },
+  {
+   "t": 1792826687.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 74.1
+  },
+  {
+   "t": 1792826807.8,
+   "job": "E14_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 5.2,
+   "power_w": 67.3
+  },
+  {
+   "t": 1792826927.9,
+   "job": "E14_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 65.3
+  },
+  {
+   "t": 1792827047.9,
+   "job": "E14_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 6.33,
+   "power_w": 68.6
+  },
+  {
+   "t": 1792827168.0,
+   "job": "E14_qwen0.5b",
+   "util_pct": 100,
+   "mem_used_gib": 6.33,
+   "power_w": 65.6
   }
  ]
 }
