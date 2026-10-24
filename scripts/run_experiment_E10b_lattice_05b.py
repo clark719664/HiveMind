@@ -253,7 +253,8 @@ def tiny_model(device: str) -> torch.nn.Module:
     torch.manual_seed(0)
     cfg = Qwen2Config(vocab_size=256, hidden_size=64, intermediate_size=128, num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=2,
                       max_position_embeddings=64, tie_word_embeddings=True)
-    m = Qwen2ForCausalLM(cfg).to(device).eval()
+    m = Qwen2ForCausalLM(cfg).to(device)
+    m.train(False)
     attach_lora(m, 1)
     return m
 

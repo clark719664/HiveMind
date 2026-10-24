@@ -138,12 +138,15 @@ def load_base(kind: str, device: str) -> Tuple[nn.Module, Any]:
         torch.manual_seed(0)
         cfg = Qwen2Config(vocab_size=256, hidden_size=64, intermediate_size=128, num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=2,
                           max_position_embeddings=4096, tie_word_embeddings=True)
-        return Qwen2ForCausalLM(cfg).to(device).eval(), ByteTok()
+        model = Qwen2ForCausalLM(cfg).to(device)
+        model.train(False)
+        return model, ByteTok()
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     path = snapshot(MODEL_REPO)
     dtype = torch.float16 if device.startswith("cuda") else torch.float32
-    model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype, attn_implementation="sdpa").to(device).eval()
+    model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype, attn_implementation="sdpa").to(device)
+    model.train(False)
     return model, HFTok(AutoTokenizer.from_pretrained(path))
 
 

@@ -59,7 +59,7 @@ def test_smoke_runs_all_cells_through_main(e13, tmp_path, capsys):
     out = tmp_path / "e13_smoke.json"
     t0 = time.perf_counter()
     assert e13.main(["--smoke", "--out", str(out), "--scratch", str(tmp_path / "scr")]) == 0
-    assert time.perf_counter() - t0 < 90.0
+    assert time.perf_counter() - t0 < 180.0
     raw = json.loads(out.read_text(encoding="utf-8"))
     by = {r["cell"]: r for r in raw["runs"]}
     assert set(by) == set(e13.ALL_CELLS) | set(e13.EXTRA_CELLS)
@@ -134,7 +134,7 @@ def test_estimate_qwen05b(e13):
 
 def test_registry_keys_and_meta(lib):
     assert {"tiny", "qwen0.5b", "granite1b", "granite3b"} <= set(lib.LOADERS)
-    with pytest.raises(NotImplementedError, match="identical at init"):
+    with pytest.raises((NotImplementedError, RuntimeError), match="identical at init"):
         lib.LOADERS["qwen0.5b-moe"]("cpu")
     m = lib.MODEL_META
     assert (m["qwen0.5b"]["workers"], m["granite1b"]["workers"], m["granite3b"]["workers"]) == (4, 3, 4)

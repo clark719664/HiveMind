@@ -136,10 +136,13 @@ def per_seed_dnll_mean(raw: Dict[str, Any], cell: str) -> float:
 
 
 def plot(fig_rows: Dict[str, Any], fig_dir: Path) -> List[Path]:
-    import matplotlib
+    try:
+        import matplotlib
 
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return []
 
     models = sorted({k.split("|")[0] for k in fig_rows})
     if not models:

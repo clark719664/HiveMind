@@ -213,7 +213,9 @@ def load_tiny(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Modul
     torch.manual_seed(0)
     cfg = Qwen2Config(vocab_size=SMOKE_VOCAB, hidden_size=64, intermediate_size=128, num_hidden_layers=2, num_attention_heads=4, num_key_value_heads=2,
                       max_position_embeddings=64, tie_word_embeddings=True)
-    return Qwen2ForCausalLM(cfg).to(device).eval(), None, LORA_TARGETS
+    model = Qwen2ForCausalLM(cfg).to(device)
+    model.train(False)
+    return model, None, LORA_TARGETS
 
 
 def load_qwen05(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Module, Any, Tuple[str, ...]]:
@@ -222,7 +224,8 @@ def load_qwen05(device: str, experts_impl: Optional[str] = None) -> Tuple[nn.Mod
 
     path = _snapshot(MODEL_META["qwen0.5b"]["repo"])
     dtype = torch.float16 if device.startswith("cuda") else torch.float32
-    model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype, attn_implementation="sdpa").to(device).eval()
+    model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype, attn_implementation="sdpa").to(device)
+    model.train(False)
     return model, AutoTokenizer.from_pretrained(path), LORA_TARGETS
 
 
@@ -256,7 +259,8 @@ def _load_hf_lm(key: str) -> Callable[..., Tuple[nn.Module, Any, Tuple[str, ...]
                 LOAD_INFO["experts_impl_error"] = f"{type(exc).__name__}: {exc}"
         if model is None:
             model = AutoModelForCausalLM.from_pretrained(path, dtype=dtype)
-        model = model.to(device).eval()
+        model = model.to(device)
+        model.train(False)
         return model, AutoTokenizer.from_pretrained(path), LORA_TARGETS
 
     loader.__name__ = f"load_{key.replace('.', '_')}"
