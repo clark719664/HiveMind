@@ -87,6 +87,7 @@ def test_unverified_when_sandbox_disabled(fake_factory, capsys):
     assert "UNVERIFIED" in out and "verdict: VERIFIED" not in out
 
 
+@needs_sandbox
 def test_failed_after_whole_ladder(fake_factory, capsys):
     f = fake_factory(ability={"1.5b": 0, "3b": 0, "7b": 0}, repair_ability=0, wrong="stub")
     r = asst(f).solve(PROMPT, [T1])
@@ -131,6 +132,7 @@ def test_repair_round_fixes_and_zero_rounds_option(fake_factory):
     assert r0.verdict == G.FAILED and r0.candidates == 3 and r0.repair_rounds == 0
 
 
+@needs_sandbox
 def test_candidate_protocol_matches_e16(fake_factory):
     f = fake_factory(ability={"1.5b": 0}, repair_ability=0, wrong="stub")
     asst(f, ladder=("1.5b",)).solve(PROMPT, [T1])
@@ -197,6 +199,7 @@ def test_residency_refuses_when_unload_cannot_be_verified(fake_factory):
 
 
 # ---------------------------------------------------------------- unload on exit
+@needs_sandbox
 def test_ask_unloads_after_run_and_keep_warm_does_not(fake_factory, capsys):
     f = fake_factory(ability={"1.5b": 1.0})
     run_main(["ask", PROMPT, "--test", T1], f)
@@ -480,6 +483,7 @@ def test_json_output_and_exit_0(fake_factory, capsys):
     assert "artifacts/experiments/E16_gwaya_lite_t4_report.json" in d["caveat"]
 
 
+@needs_sandbox
 def test_provenance_block_has_required_fields(fake_factory, capsys):
     f = fake_factory(ability={"1.5b": 0}, repair_ability=0, wrong="stub")
     run_main(["ask", PROMPT, "--test", T1, "--ladder", "1.5b"], f)
