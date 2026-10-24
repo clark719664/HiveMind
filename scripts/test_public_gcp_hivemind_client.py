@@ -189,7 +189,20 @@ def run_public_gcp_e2e_verification(
     )
     ledger = _http_get_json(f"{base}/api/v1/federated/ledger")
 
-    # 8. Direct SocrateAI GCP Low-Cost Cloud Storage (gs://socrateai-hivemind-la-ruche-vault) Loader Check
+    # 8. Compute Points Redemption Check (GWAYA Python Coding & Astrophysics Exoplanet)
+    redeem_resp = _http_post_json(
+        f"{base}/api/v1/compute-points/redeem",
+        {
+            "contributor_handle": "@e2e-public-gcp-verifier",
+            "service_id": "python_coding_gwaya",
+            "prompt": "Write a vectorized E8 lattice quantizer kernel in Python.",
+            "points_balance_before": 1250,
+        },
+    )
+    if redeem_resp.get("status") != "COMPUTE_POINTS_REDEEMED":
+        raise RuntimeError(f"Compute points redemption check failed: {redeem_resp}")
+
+    # 9. Direct SocrateAI GCP Low-Cost Cloud Storage (gs://socrateai-hivemind-la-ruche-vault) Loader Check
     import torch
     from hivemind.swarm.la_ruche_vault import (
         SOCRATEAI_GCS_DATALAKE_BUCKET,
@@ -287,6 +300,14 @@ def run_public_gcp_e2e_verification(
             "monetary_payout_eur_usd": fed_receipt["monetary_payout_eur_usd"],
             "receipt_sha256": fed_receipt["receipt_sha256"],
             "ledger_completed_receipts_count": ledger["completed_receipts_count"],
+        },
+        "compute_points_redemption_check": {
+            "service_id": redeem_resp["service_id"],
+            "specialist_bee_invoked": redeem_resp["specialist_bee_invoked"],
+            "points_spent": redeem_resp["points_spent"],
+            "points_balance_after": redeem_resp["points_balance_after"],
+            "monetary_cost_eur_usd": redeem_resp["monetary_cost_eur_usd"],
+            "redemption_receipt_sha256": redeem_resp["redemption_receipt_sha256"],
         },
         "total_verification_duration_ms": round(total_elapsed_ms, 2),
         "all_checks_passed": True,

@@ -206,3 +206,36 @@ def test_dataset_mining_campaign_populates_la_ruche_and_dashboard(
     r_shards = client.get("/api/dataset-mining/shards")
     assert r_shards.status_code == 200
     assert r_shards.json()["completed_shard_leases"] == 8
+
+    # Verify the 5 Cyber-Bee Screens, Pretrained MoE Bees, Results Carousel & Leaderboard
+    for screen_id in (
+        "screen-overview",
+        "screen-join-points",
+        "screen-moe-bees",
+        "screen-results-carousel",
+        "screen-tech-leaderboard",
+    ):
+        assert screen_id in r_index.text
+    assert "GWAYA-Code-Bee-v2.6" in r_index.text
+    assert "Gwen-Qwen2.5-MoE-Bee-v2.6" in r_index.text
+    assert "Astro-Exoplanet-SETI-Bee-v2.6" in r_index.text
+    assert len(state["community_results_carousel"]) == 6
+    assert len(state["contributor_leaderboard"]) >= 4
+
+    # Verify Compute Points redemption endpoint across GWAYA Python coding & Astrophysics
+    r_redeem = client.post(
+        "/api/v1/compute-points/redeem",
+        json={
+            "contributor_handle": "@test-gpu-node",
+            "service_id": "python_coding_gwaya",
+            "prompt": "Write a vectorized E8 lattice quantizer in Python.",
+            "points_balance_before": 1250,
+        },
+    )
+    assert r_redeem.status_code == 200
+    redeem_json = r_redeem.json()
+    assert redeem_json["status"] == "COMPUTE_POINTS_REDEEMED"
+    assert redeem_json["points_spent"] == 50
+    assert redeem_json["points_balance_after"] == 1200
+    assert redeem_json["monetary_cost_eur_usd"] == 0.0
+    assert "quantize_e8_coset_2bit" in redeem_json["domain_output"]

@@ -1,8 +1,10 @@
 {
-  "portal_title": "HiveMind@home & GCP Cloud + La Ruche Command Deck",
+  "portal_title": "HiveMind@home \u2022 Cyber-Bee & La Ruche Community Supercomputer",
   "version": "2.6.0",
-  "generated_at_epoch": 1792826030.1512797,
-  "charter": "Strictly Non-Monetary Compute-Reciprocity Charter (0.00 EUR / 0.00 USD). All trained QLoRA experts and Community BTM Sparse MoE weights in La Ruche are open.",
+  "generated_at_epoch": 1792828701.616902,
+  "github_pages_site_url": "https://xaviercallens.github.io/HiveMindatHome.github.io/",
+  "github_pages_repo_url": "https://github.com/xaviercallens/HiveMindatHome.github.io",
+  "charter": "Strictly Non-Monetary Compute-Reciprocity Charter (0.00 EUR / 0.00 USD). Share idle GPU when not gaming -> Earn HiveMind Compute Points -> Spend them on Coding, Astrophysics, Visuals & Open MoE Models.",
   "formal_verification": {
     "lean4_theorems_verified": 128,
     "sorry_count": 0,
@@ -435,6 +437,255 @@
       }
     ]
   },
+  "community_results_carousel": [
+    {
+      "slide_id": "SLIDE-01-SETI-ASTRO",
+      "season_badge": "SEASONS 3\u20136 \u2022 ASTROPHYSICS & SETI@HOME",
+      "title": "128,450+ Real-Sky SETI L-Band Spectrograms & Exoplanet Transit Discovery",
+      "headline_metric": "0.1494 Hz/s Drift \u2022 r = 0.9994 Consensus",
+      "summary": "Distributed consumer GPUs analyzed Breakthrough Listen Green Bank Telescope L-Band cadence observations (HIP 67092) and Kepler/TESS exoplanet light-curves, isolating narrowband Doppler drift candidates with 99.94% cross-node correlation.",
+      "kpis": [
+        {
+          "label": "Spectrograms Processed",
+          "value": "128,450+"
+        },
+        {
+          "label": "Top Drift Candidate",
+          "value": "0.1494 Hz/s (SNR 4.30)"
+        },
+        {
+          "label": "Cross-GPU Consensus",
+          "value": "r = 0.9994"
+        },
+        {
+          "label": "Symplectic Orbit Drift",
+          "value": "|dH/H0| < 1e-6"
+        }
+      ],
+      "accent_color": "#00f0ff"
+    },
+    {
+      "slide_id": "SLIDE-02-LA-RUCHE-MOE",
+      "season_badge": "SEASON 10 \u2022 LA RUCHE SPARSE MOE VAULT",
+      "title": "8-Domain Pretrained Sparse MoE Built by Community GPUs (GWAYA, Gwen MoE & Astro)",
+      "headline_metric": "-45.67% Holdout Perplexity \u2022 +87.65% Loss Reduction",
+      "summary": "8 hexagonal Honeycomb Alveoles trained across 240 curated scientific corpus shards and merged via Branch-Train-Merge into hivemind_la_ruche_community_moe.safetensors on SocrateAI GCP Low-Cost Cloud Storage.",
+      "kpis": [
+        {
+          "label": "Specialist Honeycomb Bees",
+          "value": "8 Domains (Top-2 Active)"
+        },
+        {
+          "label": "Mean Holdout PPL",
+          "value": "248.46 -> 135.00 (-45.67%)"
+        },
+        {
+          "label": "SVD Spectral Energy",
+          "value": "99.4% Retained (Rank-4)"
+        },
+        {
+          "label": "SocrateAI GCS Vault",
+          "value": "$0.00/mo Free Tier"
+        }
+      ],
+      "accent_color": "#f59e0b"
+    },
+    {
+      "slide_id": "SLIDE-03-E8-LATTICE-WAN",
+      "season_badge": "SEASONS 7 & 10 \u2022 GOSSET E8 LATTICE QUANTIZATION",
+      "title": "30.89x WAN Bandwidth Compression for Home Internet Connections",
+      "headline_metric": "16.0 -> 0.518 bits/param \u2022 12.66 dB SQNR",
+      "summary": "Conway-Sloane E8 (8D Gosset root lattice) and A2 hexagonal wire codecs compress outer DiLoCo gradients by 30.89x with statistically significant superiority over scalar quantization (exact permutation p = 9.77e-04).",
+      "kpis": [
+        {
+          "label": "WAN Compression Ratio",
+          "value": "30.89x"
+        },
+        {
+          "label": "Effective Wire Rate",
+          "value": "0.518 bits/param"
+        },
+        {
+          "label": "E8 2-Bit Wire SQNR",
+          "value": "12.66 dB (MSE 0.000175)"
+        },
+        {
+          "label": "Statistical Proof",
+          "value": "p = 9.77e-04"
+        }
+      ],
+      "accent_color": "#a855f7"
+    },
+    {
+      "slide_id": "SLIDE-04-CONSUMER-GPU-CAMPAIGNS",
+      "season_badge": "SEASONS 9 & 10 \u2022 CONSUMER 8GB GPU CAMPAIGNS",
+      "title": "4.54x VRAM Compression, 3.50x Hetero Speedup & <1.5s Game Preemption",
+      "headline_metric": "17.14 MiB Peak Campaign VRAM / 6,656 MiB Ceiling",
+      "summary": "Combining GaLore rank-64 projection, 8-bit optimizer states, and activation checkpointing slashes training memory by 4.54x while the WDDM/NVML circuit-breaker yields 100% of the GPU in <1.5s the instant a game launches.",
+      "kpis": [
+        {
+          "label": "VRAM Footprint Reduction",
+          "value": "4.54x (<6,656 MiB Cap)"
+        },
+        {
+          "label": "Async Quorum Speedup",
+          "value": "1.19x vs Stragglers"
+        },
+        {
+          "label": "Hetero Batch Speedup",
+          "value": "3.50x Zero-Drop"
+        },
+        {
+          "label": "Game Preemption Latency",
+          "value": "0.42s (<1.5s SLA)"
+        }
+      ],
+      "accent_color": "#10b981"
+    },
+    {
+      "slide_id": "SLIDE-05-BYZANTINE-FIREWALL",
+      "season_badge": "SEASONS 8\u201311 \u2022 OPERATION HARDENED-HIVE",
+      "title": "100% Poison Rejection (37.5% Attackers) & 49/49 Firewall Red-Team Block Rate",
+      "headline_metric": "95.36% Verifier Compute Saved \u2022 0 False Positives",
+      "summary": "Multi-Krum geometric filtering, Execution-Class Two-Statistic Spot-Check (5% replay), and the deterministic Ed25519 HiveMindFirewall state machine block all 49 red-team prompt-injection, replay, and privilege-escalation vectors.",
+      "kpis": [
+        {
+          "label": "Byzantine Tolerance",
+          "value": "37.5% Poisoned Peers"
+        },
+        {
+          "label": "Firewall Red-Team",
+          "value": "49/49 Blocked (10/10 Benign)"
+        },
+        {
+          "label": "Spot-Check Savings",
+          "value": "95.36% Compute Saved"
+        },
+        {
+          "label": "Live UDP Swarm (E13)",
+          "value": "p = 0.0078 (8 OS Peers)"
+        }
+      ],
+      "accent_color": "#f43f5e"
+    },
+    {
+      "slide_id": "SLIDE-06-LEAN4-PROOFS",
+      "season_badge": "SEASONS 4\u201310 \u2022 FORMAL MATHEMATICAL SOUNDNESS",
+      "title": "128 / 128 Machine-Checked Lean 4 Theorems with Zero Sorry Axioms",
+      "headline_metric": "128 Verified Theorems \u2022 0 sorry \u2022 0 Custom Axioms",
+      "summary": "Every core mathematical invariant of HiveMind\u2014Decoupled DiLoCo quorum admission, RDA variance scaling, E8 lattice coset bounds, and autopoietic hot-swapping\u2014is formally proved and verified under lake build.",
+      "kpis": [
+        {
+          "label": "Lean 4 Theorems",
+          "value": "128 / 128 Compiled"
+        },
+        {
+          "label": "Unproved sorry Count",
+          "value": "0"
+        },
+        {
+          "label": "Custom Untrusted Axioms",
+          "value": "0"
+        },
+        {
+          "label": "Verification Gate",
+          "value": "lake build PASS"
+        }
+      ],
+      "accent_color": "#38bdf8"
+    }
+  ],
+  "contributor_leaderboard": [
+    {
+      "rank": 1,
+      "handle": "@xaviercallens",
+      "role": "Swarm Architect & Lead GPU Node",
+      "hardware": "NVIDIA GeForce RTX 5060 (8GB CUDA) + GCP TPU v5e",
+      "alveoles_trained": "code_python (GWAYA) & formal_lean4",
+      "workunits_completed": 142,
+      "idle_gpu_hours_shared": 318.5,
+      "compute_points_earned": 35500,
+      "badge": "\ud83d\udc51 QUEEN-HIVE FOUNDER"
+    },
+    {
+      "rank": 2,
+      "handle": "@clark719664",
+      "role": "Core Swarm & Security Systems Contributor",
+      "hardware": "NVIDIA RTX Consumer GPU Node (CUDA FP16)",
+      "alveoles_trained": "math_reasoning (E8) & cyber_sec (Firewall)",
+      "workunits_completed": 96,
+      "idle_gpu_hours_shared": 214.0,
+      "compute_points_earned": 24000,
+      "badge": "\ud83d\udc1d GOLDEN FORAGER BEE"
+    },
+    {
+      "rank": 3,
+      "handle": "@radialmonster",
+      "role": "Physics, Rust QUIC & MoE Kernel Contributor",
+      "hardware": "Multi-Stream Consumer CUDA GPU Node",
+      "alveoles_trained": "physics_sim (Astro) & systems_rust (QUIC)",
+      "workunits_completed": 84,
+      "idle_gpu_hours_shared": 186.5,
+      "compute_points_earned": 21000,
+      "badge": "\ud83e\ude90 ASTRO-SWARM PIONEER"
+    },
+    {
+      "rank": 4,
+      "handle": "@pedromineo",
+      "role": "Biomedicine & Gwen/Qwen MoE Specialist Contributor",
+      "hardware": "Consumer RTX GPU + WSL2 Worker Bee",
+      "alveoles_trained": "bio_med (Proteins) & general_chat (Gwen MoE)",
+      "workunits_completed": 72,
+      "idle_gpu_hours_shared": 159.0,
+      "compute_points_earned": 18000,
+      "badge": "\ud83e\uddec BIOMED & MOE BEE"
+    },
+    {
+      "rank": 5,
+      "handle": "@socrateai-agora-hermes-t4",
+      "role": "GCP Spot Preemptible Relay & Verification Bee",
+      "hardware": "NVIDIA Tesla T4 (16GB Spot us-east4-b)",
+      "alveoles_trained": "5% Execution-Class Spot-Check Verifier",
+      "workunits_completed": 64,
+      "idle_gpu_hours_shared": 140.0,
+      "compute_points_earned": 16000,
+      "badge": "\u26a1 SPOT-CHECK GUARDIAN"
+    }
+  ],
+  "compute_points_services": [
+    {
+      "service_id": "python_coding_gwaya",
+      "title": "\ud83d\udc0d Python, PyTorch & Rust Coding (GWAYA + Gwen MoE)",
+      "cost_points": 50,
+      "routed_domain": "code_python",
+      "description": "Generate AST-verified Python/PyTorch GPU kernels or Rust async systems code using the GWAYA Coding Bee.",
+      "default_prompt": "Write a vectorized Python & PyTorch E8 lattice quantizer kernel with unit tests under 6,656 MiB VRAM."
+    },
+    {
+      "service_id": "astrophysics_exoplanet",
+      "title": "\ud83e\ude90 Astrophysics Exoplanet Transit & SETI Signal Analysis",
+      "cost_points": 50,
+      "routed_domain": "physics_sim",
+      "description": "Analyze Kepler/TESS exoplanet transit light-curves, orbital radii, and Green Bank L-Band SETI drift.",
+      "default_prompt": "Analyze Kepler-186f exoplanet transit dip depth (dF/F = 0.00042) and L-Band SETI drift at 1420.405 MHz."
+    },
+    {
+      "service_id": "image_spectrogram_synthesis",
+      "title": "\ud83c\udfa8 Cyber-Bee & Exoplanet Spectrogram Visual Generator",
+      "cost_points": 75,
+      "routed_domain": "physics_sim",
+      "description": "Synthesize a high-resolution procedural Exoplanet Transit + Cyber-Hive SETI Waterfall Artwork in your browser.",
+      "default_prompt": "Generate a glowing Cyber-Bee Nebula & Habitable Exoplanet Transit Spectrogram (1420 MHz H-I Line)."
+    },
+    {
+      "service_id": "lean4_formal_proof",
+      "title": "\ud83d\udcd0 Formal Mathematics & Lean 4 Theorem Prover",
+      "cost_points": 50,
+      "routed_domain": "formal_lean4",
+      "description": "Synthesize a machine-checked Lean 4 proof sketch for distributed quorum, lattice bounds, or dynamical systems.",
+      "default_prompt": "Prove in Lean 4 that k-of-N decoupled DiLoCo quorum admission bounds staleness with zero sorry."
+    }
+  ],
   "la_ruche_vault": {
     "release_id": "RUCHE-MOE-V2_6_0-aadd48b8",
     "base_architecture": "HiveMind-BTM-UpcycledSparseMoE-8xQLoRA",
@@ -452,6 +703,7 @@
     "download_endpoint": "/api/la-ruche/download/community-moe.safetensors",
     "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/community-moe.safetensors",
     "inference_endpoint": "/api/v1/moe/inference",
+    "compute_points_redeem_endpoint": "/api/v1/compute-points/redeem",
     "openai_chat_endpoint": "/v1/chat/completions",
     "federated_workunit_request_endpoint": "/api/v1/federated/workunit/request",
     "federated_workunit_submit_endpoint": "/api/v1/federated/workunit/submit",
@@ -492,6 +744,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823118.923001,
         "verified": true,
+        "bee_codename": "GWAYA-Code-Bee-v2.6",
+        "bee_name": "GWAYA Python, PyTorch & Systems Coding Bee",
+        "bee_badge": "FLAGSHIP CODING BEE",
+        "bee_icon": "\ud83d\udc0d",
+        "bee_specialty": "Zero-trust AST-verified Python, PyTorch GPU kernels, Triton & algorithmic optimization",
+        "sample_prompt": "Write a vectorized Python & PyTorch E8 lattice quantizer kernel under the 6,656 MiB VRAM ceiling.",
         "download_endpoint": "/api/la-ruche/download/cell/code_python",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/code_python",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/code_python/alveole_code_python_71ce71bf60cd.safetensors",
@@ -524,6 +782,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823119.6232533,
         "verified": true,
+        "bee_codename": "Gosset-E8-Math-Bee-v2.6",
+        "bee_name": "Conway-Sloane E8 Lattice & Spectral Math Bee",
+        "bee_badge": "30.89x WAN COMPRESSION",
+        "bee_icon": "\ud83d\udca0",
+        "bee_specialty": "E8 & A2 root-lattice quantization, SVD spectral energy bounds & Riemannian geometry",
+        "sample_prompt": "Derive the Conway-Sloane E8 lattice nearest-coset decoder and prove 12.66 dB SQNR at 2 bits/dim.",
         "download_endpoint": "/api/la-ruche/download/cell/math_reasoning",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/math_reasoning",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/math_reasoning/alveole_math_reasoning_b32b6df5ba79.safetensors",
@@ -556,6 +820,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823120.3940802,
         "verified": true,
+        "bee_codename": "Astro-Exoplanet-SETI-Bee-v2.6",
+        "bee_name": "Astrophysics Exoplanet Detection & SETI Signal Bee",
+        "bee_badge": "EXOPLANET & SETI HUNTER",
+        "bee_icon": "\ud83e\ude90",
+        "bee_specialty": "Kepler/TESS exoplanet transit light-curve detection, Green Bank L-Band SETI drift & symplectic orbits",
+        "sample_prompt": "Detect exoplanet transit depth and orbital period in Kepler/TESS light-curves with symplectic Hamiltonian conservation.",
         "download_endpoint": "/api/la-ruche/download/cell/physics_sim",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/physics_sim",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/physics_sim/alveole_physics_sim_930d8f765b79.safetensors",
@@ -588,6 +858,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823121.3726032,
         "verified": true,
+        "bee_codename": "Rust-QUIC-Swarm-Bee-v2.6",
+        "bee_name": "Rust Zero-Copy QUIC & P2P Transport Bee",
+        "bee_badge": "NAT-PUNCHING SWARM TRANSPORT",
+        "bee_icon": "\ud83e\udd80",
+        "bee_specialty": "Async Tokio/QUIC datagrams, STUN/TURN hole punching & HeartbeatDataLeaseManager",
+        "sample_prompt": "Implement a zero-copy Rust QUIC datagram transport with monotonic CAS lease version tags.",
         "download_endpoint": "/api/la-ruche/download/cell/systems_rust",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/systems_rust",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/systems_rust/alveole_systems_rust_a2c9f0c00905.safetensors",
@@ -620,6 +896,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823122.090846,
         "verified": true,
+        "bee_codename": "Hardened-Hive-Firewall-Bee-v2.6",
+        "bee_name": "HiveMindFirewall & Byzantine Defense Bee",
+        "bee_badge": "49/49 RED-TEAM BLOCK RATE",
+        "bee_icon": "\ud83d\udee1\ufe0f",
+        "bee_specialty": "Ed25519 chain-of-command firewall, prompt-injection quarantine, Multi-Krum & 5% spot-check",
+        "sample_prompt": "Verify Multi-Krum Byzantine gradient filtering and HiveMindFirewall Ed25519 signed order state machine.",
         "download_endpoint": "/api/la-ruche/download/cell/cyber_sec",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/cyber_sec",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/cyber_sec/alveole_cyber_sec_30bfd6cc97a1.safetensors",
@@ -652,6 +934,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823122.7944179,
         "verified": true,
+        "bee_codename": "AlphaBio-Protein-Bee-v2.6",
+        "bee_name": "Biomedicine, Genomics & Protein Folding Bee",
+        "bee_badge": "STRUCTURAL BIOLOGY BEE",
+        "bee_icon": "\ud83e\uddec",
+        "bee_specialty": "Protein contact potentials, pLDDT structural confidence & genomic variant impact analysis",
+        "sample_prompt": "Analyze protein sequence-to-structure contact potentials and genomic variant pathogenicity scores.",
         "download_endpoint": "/api/la-ruche/download/cell/bio_med",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/bio_med",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/bio_med/alveole_bio_med_845ed8212ac0.safetensors",
@@ -684,6 +972,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823123.740529,
         "verified": true,
+        "bee_codename": "Gwen-Qwen2.5-MoE-Bee-v2.6",
+        "bee_name": "Gwen / Qwen-2.5 MoE Pretrained Foundation Bee",
+        "bee_badge": "PRETRAINED FOUNDATION MOE",
+        "bee_icon": "\ud83d\udc1d",
+        "bee_specialty": "Branch-Train-Merge Sparse MoE foundation reasoning with Top-2 Sigma-MoE Peri-LN routing",
+        "sample_prompt": "Explain how HiveMind@home and La Ruche combine consumer GPUs into a Sparse MoE supercomputer.",
         "download_endpoint": "/api/la-ruche/download/cell/general_chat",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/general_chat",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/general_chat/alveole_general_chat_127df97240fb.safetensors",
@@ -716,6 +1010,12 @@
         "wire_codec": "e8_2bit",
         "deposited_at_epoch": 1792823124.4291117,
         "verified": true,
+        "bee_codename": "Lean4-Formal-Prover-Bee-v2.6",
+        "bee_name": "Formal Lean 4 Mathematical Prover Bee",
+        "bee_badge": "128/128 ZERO-SORRY PROOFS",
+        "bee_icon": "\ud83d\udcd0",
+        "bee_specialty": "Machine-checked Lean 4 theorems for quorum admission, RDA variance scaling & Banach fixed points",
+        "sample_prompt": "Prove in Lean 4 that k-of-N decoupled DiLoCo quorum preserves bounded staleness and zero sorry axioms.",
         "download_endpoint": "/api/la-ruche/download/cell/formal_lean4",
         "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/formal_lean4",
         "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/formal_lean4/alveole_formal_lean4_7cc32f4443c9.safetensors",
@@ -723,5 +1023,5 @@
       }
     ]
   },
-  "dashboard_state_sha256": "675599ac8f625249a06518d2748789c302c32c0a780306962d74cad1ab0317d2"
+  "dashboard_state_sha256": "f461d9160bb8b57a1b81d6c8e198fb95772d18176fe075a9d78077dce29f64aa"
 }
