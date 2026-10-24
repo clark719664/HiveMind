@@ -17,6 +17,14 @@ from hivemind.security import (
 )
 
 
+def test_diff_comment_filter_ignores_sink_lookalikes() -> None:
+    scanner = PRSecurityScanner()
+    findings = scanner._scan_added_python_diff_lines("src/fixture.py", "exec(payload)")
+    assert len(findings) == 1
+    assert findings[0].rule_id == "SEC-01"
+    assert scanner._scan_added_python_diff_lines("src/fixture.py", "\n# exec(payload)\n") == []
+
+
 def test_clean_functional_pr_passes() -> None:
     scanner = PRSecurityScanner()
     result = scanner.audit_pull_request(
