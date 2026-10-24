@@ -45,6 +45,10 @@ Welcome to the official **Project HiveMind** Wiki! This knowledgebase is synchro
 10. **[📅 10. Non-Technical 1-Click User Guide & Synchronized Quorum Calendar](User-Guide-and-Quorum-Calendar)**
    - 60-Second 1-Click Launcher (`scripts/Join_HiveMind_Campaign_Windows.bat` & `scripts/join_hivemind_campaign.sh`) for gamers and citizen scientists with zero coding skills
    - Synchronized Campaign Calendar (`EVT-S7-01`..`EVT-S7-05` + **`EVT-S9-01`, `EVT-S9-02`, `EVT-S10-01`, `EVT-S10-02`** + downloadable `.ics` calendar) & Byzantine Quorum Tiers (`Tier 1 >= 5 nodes`, `Tier 2 >= 8 nodes`, `Tier 3 >= 16 nodes`)
+11. **[📡 11. HiveMind@home, GCP Cloud Command Deck & 🐝 La Ruche Community MoE Model Vault (`v2.6.0`)](HiveMind-at-Home-GCP-Dashboard-and-La-Ruche-Vault)**
+   - Distributed Scientific Dataset Mining Campaign (`CAMP-S10-RUCHE-DATASET-MINING` / `src/hivemind/data/dataset_mining_campaign.py`) with Heartbeat-Backed CAS Shard Leasing (`HM-S9-06`)
+   - **`La Ruche` ("The Beehive")** Community MoE Model Vault (`src/hivemind/swarm/la_ruche_vault.py`): 8 Hexagonal Honeycomb Cells (`Alvéoles`), QLoRA holdout perplexity gatekeeper, and 1-line community MoE loader (`load_community_moe_from_ruche`)
+   - **`HiveMind@home`** SETI-Style 60 FPS Spectrum Analyzer, GCP Cloud TPU (`gwenlaya-tpu-1`) + Local CUDA GPU Command Deck (`src/hivemind/boinc/hivemind_at_home_dashboard.py`)
 
 ---
 
