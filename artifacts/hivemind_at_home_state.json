@@ -1,7 +1,7 @@
 {
   "portal_title": "HiveMind@home & GCP Cloud + La Ruche Command Deck",
   "version": "2.6.0",
-  "generated_at_epoch": 1792824755.9294732,
+  "generated_at_epoch": 1792826030.1512797,
   "charter": "Strictly Non-Monetary Compute-Reciprocity Charter (0.00 EUR / 0.00 USD). All trained QLoRA experts and Community BTM Sparse MoE weights in La Ruche are open.",
   "formal_verification": {
     "lean4_theorems_verified": 128,
@@ -444,6 +444,11 @@
     "combined_safetensors_path": "community_moe_release/hivemind_la_ruche_community_moe.safetensors",
     "combined_safetensors_sha256": "aadd48b8164b440c0eedf63865a2a46a87b07d1609d7e01275e14add7aeeb485",
     "combined_safetensors_bytes": 661688,
+    "socrateai_gcs_bucket_uri": "gs://socrateai-hivemind-la-ruche-vault",
+    "socrateai_datalake_mirror_uri": "gs://socrateai-datalake-gen-lang-client-0625573011/hivemind_la_ruche_vault",
+    "gcs_combined_safetensors_uri": "gs://socrateai-hivemind-la-ruche-vault/community_moe_release/hivemind_la_ruche_community_moe.safetensors",
+    "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/community_moe_release/hivemind_la_ruche_community_moe.safetensors",
+    "gcs_manifest_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/community_moe_release/ruche_manifest.json",
     "download_endpoint": "/api/la-ruche/download/community-moe.safetensors",
     "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/community-moe.safetensors",
     "inference_endpoint": "/api/v1/moe/inference",
@@ -488,7 +493,9 @@
         "deposited_at_epoch": 1792823118.923001,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/code_python",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/code_python"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/code_python",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/code_python/alveole_code_python_71ce71bf60cd.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/code_python/alveole_code_python_71ce71bf60cd.safetensors"
       },
       {
         "cell_id": "ALVEOLE-02-MATH-REASONING",
@@ -518,7 +525,9 @@
         "deposited_at_epoch": 1792823119.6232533,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/math_reasoning",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/math_reasoning"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/math_reasoning",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/math_reasoning/alveole_math_reasoning_b32b6df5ba79.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/math_reasoning/alveole_math_reasoning_b32b6df5ba79.safetensors"
       },
       {
         "cell_id": "ALVEOLE-03-PHYSICS-SIM",
@@ -548,7 +557,9 @@
         "deposited_at_epoch": 1792823120.3940802,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/physics_sim",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/physics_sim"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/physics_sim",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/physics_sim/alveole_physics_sim_930d8f765b79.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/physics_sim/alveole_physics_sim_930d8f765b79.safetensors"
       },
       {
         "cell_id": "ALVEOLE-04-SYSTEMS-RUST",
@@ -578,7 +589,9 @@
         "deposited_at_epoch": 1792823121.3726032,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/systems_rust",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/systems_rust"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/systems_rust",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/systems_rust/alveole_systems_rust_a2c9f0c00905.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/systems_rust/alveole_systems_rust_a2c9f0c00905.safetensors"
       },
       {
         "cell_id": "ALVEOLE-05-CYBER-SEC",
@@ -608,7 +621,9 @@
         "deposited_at_epoch": 1792823122.090846,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/cyber_sec",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/cyber_sec"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/cyber_sec",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/cyber_sec/alveole_cyber_sec_30bfd6cc97a1.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/cyber_sec/alveole_cyber_sec_30bfd6cc97a1.safetensors"
       },
       {
         "cell_id": "ALVEOLE-06-BIO-MED",
@@ -638,7 +653,9 @@
         "deposited_at_epoch": 1792823122.7944179,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/bio_med",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/bio_med"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/bio_med",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/bio_med/alveole_bio_med_845ed8212ac0.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/bio_med/alveole_bio_med_845ed8212ac0.safetensors"
       },
       {
         "cell_id": "ALVEOLE-07-GENERAL-CHAT",
@@ -668,7 +685,9 @@
         "deposited_at_epoch": 1792823123.740529,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/general_chat",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/general_chat"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/general_chat",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/general_chat/alveole_general_chat_127df97240fb.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/general_chat/alveole_general_chat_127df97240fb.safetensors"
       },
       {
         "cell_id": "ALVEOLE-08-FORMAL-LEAN4",
@@ -698,9 +717,11 @@
         "deposited_at_epoch": 1792823124.4291117,
         "verified": true,
         "download_endpoint": "/api/la-ruche/download/cell/formal_lean4",
-        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/formal_lean4"
+        "public_download_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app/api/la-ruche/download/cell/formal_lean4",
+        "gcs_uri": "gs://socrateai-hivemind-la-ruche-vault/cells/formal_lean4/alveole_formal_lean4_7cc32f4443c9.safetensors",
+        "gcs_public_https_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/cells/formal_lean4/alveole_formal_lean4_7cc32f4443c9.safetensors"
       }
     ]
   },
-  "dashboard_state_sha256": "072c8cc1c8fd4583cc3fb8a5015dde2919f70f3548e5d4e5aadb860f6d3a876d"
+  "dashboard_state_sha256": "675599ac8f625249a06518d2748789c302c32c0a780306962d74cad1ab0317d2"
 }

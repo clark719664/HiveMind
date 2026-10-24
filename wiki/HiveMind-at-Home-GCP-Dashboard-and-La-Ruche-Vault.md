@@ -11,6 +11,11 @@
 
 - **Primary Public HTTPS DNS URL:** [`https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app`](https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app)
 - **Canonical Regional Cloud Run DNS URL:** [`https://hivemind-at-home-ruche-1003063861791.us-central1.run.app`](https://hivemind-at-home-ruche-1003063861791.us-central1.run.app)
+- **SocrateAI GCP Low-Cost Cloud Storage (`La Ruche` Pretrained MoE Buckets):**
+  - **Public `La Ruche` GCS Bucket (`us-central1` Standard Always-Free Tier):** `gs://socrateai-hivemind-la-ruche-vault`
+  - **Direct Public HTTPS GCS Model URL:** [`https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/community_moe_release/hivemind_la_ruche_community_moe.safetensors`](https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/community_moe_release/hivemind_la_ruche_community_moe.safetensors)
+  - **Direct Public HTTPS GCS Manifest URL:** [`https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/community_moe_release/ruche_manifest.json`](https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault/community_moe_release/ruche_manifest.json)
+  - **SocrateAI DataLake Mirror URI:** `gs://socrateai-datalake-gen-lang-client-0625573011/hivemind_la_ruche_vault`
 - **Scale-to-Zero Cost Optimization (`OPTIMAL_SCALE_TO_ZERO_AND_SPOT_ONLY`):**
   - `--min-instances=0 --max-instances=2 --cpu=1 --memory=512Mi --cpu-throttling`
   - **Idle Monthly Cost:** **`$0.00 USD / month`** (scales to `0` containers when idle; CPU is throttled outside active HTTP requests and covered by the GCP Cloud Run Always-Free Tier of 2M requests / 180,000 vCPU-s / 360,000 GiB-s per month).

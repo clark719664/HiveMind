@@ -565,3 +565,69 @@ def load_community_moe_from_ruche(
             current_sd[k] = tensors[saved_key]
     moe_model.load_state_dict(current_sd, strict=False)
     return moe_model, manifest
+
+
+SOCRATEAI_GCS_LA_RUCHE_BUCKET = "gs://socrateai-hivemind-la-ruche-vault"
+SOCRATEAI_GCS_DATALAKE_BUCKET = (
+    "gs://socrateai-datalake-gen-lang-client-0625573011/hivemind_la_ruche_vault"
+)
+SOCRATEAI_GCS_PUBLIC_BASE_URL = (
+    "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault"
+)
+
+
+def load_community_moe_from_gcs_or_https(
+    cache_dir: Path | str = Path("/tmp/hivemind_la_ruche_gcs_cache"),
+    gcs_public_base_url: str = SOCRATEAI_GCS_PUBLIC_BASE_URL,
+    seed: int = 20261024,
+) -> Tuple[UpcycledSparseMoEModel, Dict[str, Any]]:
+    """Download the Community BTM Sparse MoE model from SocrateAI GCP Cloud Storage (`La Ruche`) and instantiate it."""
+    import urllib.request
+
+    cache_path = Path(cache_dir)
+    release_dir = cache_path / "community_moe_release"
+    release_dir.mkdir(parents=True, exist_ok=True)
+
+    base = gcs_public_base_url.rstrip("/")
+    manifest_url = f"{base}/community_moe_release/ruche_manifest.json"
+    req_m = urllib.request.Request(
+        manifest_url, headers={"User-Agent": "HiveMind-LaRuche-GCS-Loader/2.6.0"}
+    )
+    with urllib.request.urlopen(req_m, timeout=30.0) as resp_m:
+        manifest_bytes = resp_m.read()
+
+    manifest = json.loads(manifest_bytes.decode("utf-8"))
+    manifest_file = release_dir / "ruche_manifest.json"
+    manifest_file.write_bytes(manifest_bytes)
+
+    rel_st_path = str(
+        manifest.get(
+            "combined_safetensors_path",
+            "community_moe_release/hivemind_la_ruche_community_moe.safetensors",
+        )
+    )
+    st_file = cache_path / rel_st_path
+    st_file.parent.mkdir(parents=True, exist_ok=True)
+
+    expected_sha256 = str(manifest["combined_safetensors_sha256"])
+    need_download = True
+    if st_file.exists():
+        existing_sha256 = hashlib.sha256(st_file.read_bytes()).hexdigest()
+        if existing_sha256 == expected_sha256:
+            need_download = False
+
+    if need_download:
+        st_url = f"{base}/{rel_st_path}"
+        req_st = urllib.request.Request(
+            st_url, headers={"User-Agent": "HiveMind-LaRuche-GCS-Loader/2.6.0"}
+        )
+        with urllib.request.urlopen(req_st, timeout=60.0) as resp_st:
+            raw_bytes = resp_st.read()
+        dl_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+        if dl_sha256 != expected_sha256:
+            raise ValueError(
+                f"SocrateAI GCS La Ruche safetensors SHA-256 mismatch: expected {expected_sha256}, got {dl_sha256}"
+            )
+        st_file.write_bytes(raw_bytes)
+
+    return load_community_moe_from_ruche(cache_path, seed=seed)

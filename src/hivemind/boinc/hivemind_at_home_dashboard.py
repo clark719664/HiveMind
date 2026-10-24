@@ -432,16 +432,25 @@ def build_hivemind_at_home_state(
             },
         ]
 
-    # Enrich each Honeycomb Cell with its public HTTPS download path
+    # Enrich each Honeycomb Cell with its public HTTPS & SocrateAI GCS download paths
+    gcs_public_base = "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault"
     enriched_cells = []
     for cell in cells:
         c_copy = dict(cell)
         dom = c_copy.get("domain_name", "")
+        rel_st = c_copy.get("safetensors_rel_path", "")
         c_copy["download_endpoint"] = f"/api/la-ruche/download/cell/{dom}"
         c_copy["public_download_url"] = (
             f"{PUBLIC_GCP_CLOUD_RUN_URL}/api/la-ruche/download/cell/{dom}"
         )
+        c_copy["gcs_uri"] = f"gs://socrateai-hivemind-la-ruche-vault/{rel_st}"
+        c_copy["gcs_public_https_url"] = f"{gcs_public_base}/{rel_st}"
         enriched_cells.append(c_copy)
+
+    combined_rel = la_ruche_release.get(
+        "combined_safetensors_path",
+        "community_moe_release/hivemind_la_ruche_community_moe.safetensors",
+    )
 
     state_payload: Dict[str, Any] = {
         "portal_title": "HiveMind@home & GCP Cloud + La Ruche Command Deck",
@@ -493,15 +502,23 @@ def build_hivemind_at_home_state(
             ),
             "num_domains": int(la_ruche_release.get("num_domains", len(enriched_cells))),
             "top_k_active": int(la_ruche_release.get("top_k_active", 2)),
-            "combined_safetensors_path": la_ruche_release.get(
-                "combined_safetensors_path",
-                "community_moe_release/hivemind_la_ruche_community_moe.safetensors",
-            ),
+            "combined_safetensors_path": combined_rel,
             "combined_safetensors_sha256": la_ruche_release.get(
                 "combined_safetensors_sha256", ""
             ),
             "combined_safetensors_bytes": int(
                 la_ruche_release.get("combined_safetensors_bytes", 0)
+            ),
+            "socrateai_gcs_bucket_uri": "gs://socrateai-hivemind-la-ruche-vault",
+            "socrateai_datalake_mirror_uri": (
+                "gs://socrateai-datalake-gen-lang-client-0625573011/hivemind_la_ruche_vault"
+            ),
+            "gcs_combined_safetensors_uri": (
+                f"gs://socrateai-hivemind-la-ruche-vault/{combined_rel}"
+            ),
+            "gcs_public_https_url": f"{gcs_public_base}/{combined_rel}",
+            "gcs_manifest_https_url": (
+                f"{gcs_public_base}/community_moe_release/ruche_manifest.json"
             ),
             "download_endpoint": "/api/la-ruche/download/community-moe.safetensors",
             "public_download_url": (

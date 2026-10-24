@@ -1,10 +1,23 @@
 {
-  "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run End-to-End Verification",
-  "verified_at_epoch": 1792825015.713991,
+  "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run & SocrateAI GCS End-to-End Verification",
+  "verified_at_epoch": 1792826059.9258358,
   "public_dns_base_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app",
   "canonical_cloud_run_url": "https://hivemind-at-home-ruche-1003063861791.us-central1.run.app",
   "gcp_project_id": "gen-lang-client-0625573011",
   "gcp_region": "us-central1",
+  "socrateai_gcs_la_ruche_storage": {
+    "primary_gcs_bucket": "gs://socrateai-hivemind-la-ruche-vault",
+    "datalake_mirror_bucket": "gs://socrateai-datalake-gen-lang-client-0625573011/hivemind_la_ruche_vault",
+    "public_https_base_url": "https://storage.googleapis.com/socrateai-hivemind-la-ruche-vault",
+    "release_id": "RUCHE-MOE-V2_6_0-aadd48b8",
+    "combined_safetensors_sha256": "aadd48b8164b440c0eedf63865a2a46a87b07d1609d7e01275e14add7aeeb485",
+    "pytorch_moe_loaded_and_verified": true,
+    "forward_logits_shape": [
+      1,
+      8,
+      259
+    ]
+  },
   "cost_optimization": {
     "min_instances": 0,
     "max_instances": 2,
@@ -16,7 +29,7 @@
   },
   "dashboard_html_check": {
     "http_status": 200,
-    "html_bytes": 50460,
+    "html_bytes": 50459,
     "passed": true
   },
   "la_ruche_model_retrieval": {
@@ -41,31 +54,31 @@
         "formal_lean4"
       ],
       "logit_l2_norm": 2.000781,
-      "latency_ms": 19.298,
-      "inference_receipt_sha256": "6b6308e38434661dc05fff10e0e72fbdf9c56e83439f15fd798229e8e6fc81a1"
+      "latency_ms": 4.22,
+      "inference_receipt_sha256": "7985a4044d4952cbcc4009e4dc0dd7a53bd925f8895772dedb1458ed255faac9"
     },
     "openai_chat_completions": {
-      "completion_id": "chatcmpl-ruche-a60eabe464d6",
+      "completion_id": "chatcmpl-ruche-6f24e63ca8a4",
       "routed_experts": [
         "physics_sim",
         "systems_rust"
       ],
-      "inference_receipt_sha256": "a60eabe464d65b3d66f586dfa722e745eaac3905aac0d2eb977fa20e1224d3e4"
+      "inference_receipt_sha256": "6f24e63ca8a4a877a5bbca1feb8b165a0291c238306869a8249e7a38390ad259"
     }
   },
   "federated_training_checks": {
-    "leased_workunit_id": "WU-S10-CODE_PYTHON-0001",
-    "lease_id": "LEASE-936c1d7e0bdb56a3",
+    "leased_workunit_id": "WU-S10-CODE_PYTHON-0002",
+    "lease_id": "LEASE-f4c558d078019c3c",
     "domain_name": "code_python",
     "submission_status": "ADMITTED_TO_LA_RUCHE_QUORUM",
     "outer_delta_frob_norm": 0.07637,
     "svd_spectral_energy_retained": 1.0,
     "perplexity_reduction_pct": 15.89,
     "monetary_payout_eur_usd": 0.0,
-    "receipt_sha256": "eccb9d9319f587835eb0d2479d56b8d3595bb78f521ae6a738f5cb306227e65f",
-    "ledger_completed_receipts_count": 1
+    "receipt_sha256": "dec7326e0c1bdebcfbcdd952f8a22b0773cd4c2371a46d4c60e1cf83f605d85e",
+    "ledger_completed_receipts_count": 2
   },
-  "total_verification_duration_ms": 2857.35,
+  "total_verification_duration_ms": 28160.16,
   "all_checks_passed": true,
-  "verification_suite_sha256": "d47b5e1b9504d486cbedbc2163f4c85080ca1de3bbcad35a1b8d927010182366"
+  "verification_suite_sha256": "1c1cbdec14de11c024b29929a6b40cc0ea177bd202ae4582dce4fa85bca2893c"
 }

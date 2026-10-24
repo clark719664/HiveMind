@@ -189,14 +189,45 @@ def run_public_gcp_e2e_verification(
     )
     ledger = _http_get_json(f"{base}/api/v1/federated/ledger")
 
+    # 8. Direct SocrateAI GCP Low-Cost Cloud Storage (gs://socrateai-hivemind-la-ruche-vault) Loader Check
+    import torch
+    from hivemind.swarm.la_ruche_vault import (
+        SOCRATEAI_GCS_DATALAKE_BUCKET,
+        SOCRATEAI_GCS_LA_RUCHE_BUCKET,
+        SOCRATEAI_GCS_PUBLIC_BASE_URL,
+        load_community_moe_from_gcs_or_https,
+    )
+
+    gcs_moe_model, gcs_manifest = load_community_moe_from_gcs_or_https(
+        cache_dir=dl_dir / "gcs_ruche_cache",
+        gcs_public_base_url=SOCRATEAI_GCS_PUBLIC_BASE_URL,
+    )
+    sample_tokens = torch.tensor([[2, 5, 9, 14, 21, 33, 44, 55]], dtype=torch.long)
+    gcs_out = gcs_moe_model(input_ids=sample_tokens)
+    gcs_logits_shape = list(gcs_out.logits.shape)
+    gcs_finite = bool(torch.isfinite(gcs_out.logits).all())
+    if not gcs_finite or gcs_logits_shape != [1, 8, 259]:
+        raise RuntimeError(
+            f"GCS-loaded Community MoE forward check failed: shape={gcs_logits_shape}, finite={gcs_finite}"
+        )
+
     total_elapsed_ms = (time.perf_counter() - t0) * 1000.0
     report: Dict[str, Any] = {
-        "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run End-to-End Verification",
+        "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run & SocrateAI GCS End-to-End Verification",
         "verified_at_epoch": time.time(),
         "public_dns_base_url": base,
         "canonical_cloud_run_url": gateway_info.get("canonical_run_url", ""),
         "gcp_project_id": gcp_fleet.get("gcp_project_id", "gen-lang-client-0625573011"),
         "gcp_region": gateway_info.get("region", "us-central1"),
+        "socrateai_gcs_la_ruche_storage": {
+            "primary_gcs_bucket": SOCRATEAI_GCS_LA_RUCHE_BUCKET,
+            "datalake_mirror_bucket": SOCRATEAI_GCS_DATALAKE_BUCKET,
+            "public_https_base_url": SOCRATEAI_GCS_PUBLIC_BASE_URL,
+            "release_id": gcs_manifest["release_id"],
+            "combined_safetensors_sha256": gcs_manifest["combined_safetensors_sha256"],
+            "pytorch_moe_loaded_and_verified": gcs_finite,
+            "forward_logits_shape": gcs_logits_shape,
+        },
         "cost_optimization": {
             "min_instances": gateway_info.get("min_instances", 0),
             "max_instances": gateway_info.get("max_instances", 2),
