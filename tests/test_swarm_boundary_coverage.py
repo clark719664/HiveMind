@@ -690,7 +690,11 @@ def test_wan_relay_discards_non_envelope_before_counting_delivery(monkeypatch):
     sender, receiver = Mock(), Mock()
     peer = ("192.0.2.1", 5000)
     valid = link.FrameEnvelope(0, 100.0, b"data").encode()
-    receiver.recv_from.side_effect = [(peer, b"not an envelope"), (peer, valid)]
+    # There is no magic marker: arbitrary text can be a valid timestamp header.
+    truncated = valid[: link.ENVELOPE_HEADER.size - 1]
+    with pytest.raises(link.LinkProtocolError, match="truncated frame envelope"):
+        link.FrameEnvelope.decode(truncated)
+    receiver.recv_from.side_effect = [(peer, truncated), (peer, valid)]
     monkeypatch.setattr(wan, "_envelope_frames", Mock(return_value=[valid]))
     monkeypatch.setattr(wan, "time", SimpleNamespace(monotonic=lambda: 0.0, time=lambda: 100.025))
     assert wan._relay_frames(sender, receiver, peer, _fault_scenario(), timeout=1.0) == pytest.approx([25.0])
