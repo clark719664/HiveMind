@@ -1,6 +1,6 @@
 {
   "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run & SocrateAI GCS End-to-End Verification",
-  "verified_at_epoch": 1792826059.9258358,
+  "verified_at_epoch": 1792828935.1192117,
   "public_dns_base_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app",
   "canonical_cloud_run_url": "https://hivemind-at-home-ruche-1003063861791.us-central1.run.app",
   "gcp_project_id": "gen-lang-client-0625573011",
@@ -29,7 +29,7 @@
   },
   "dashboard_html_check": {
     "http_status": 200,
-    "html_bytes": 50459,
+    "html_bytes": 126448,
     "passed": true
   },
   "la_ruche_model_retrieval": {
@@ -54,31 +54,39 @@
         "formal_lean4"
       ],
       "logit_l2_norm": 2.000781,
-      "latency_ms": 4.22,
-      "inference_receipt_sha256": "7985a4044d4952cbcc4009e4dc0dd7a53bd925f8895772dedb1458ed255faac9"
+      "latency_ms": 53.587,
+      "inference_receipt_sha256": "ceb146c8a26843a367ffce033d67312f7eaa61db52bc2f87c807f1436ab60e48"
     },
     "openai_chat_completions": {
-      "completion_id": "chatcmpl-ruche-6f24e63ca8a4",
+      "completion_id": "chatcmpl-ruche-f2e3d8d01dc2",
       "routed_experts": [
         "physics_sim",
         "systems_rust"
       ],
-      "inference_receipt_sha256": "6f24e63ca8a4a877a5bbca1feb8b165a0291c238306869a8249e7a38390ad259"
+      "inference_receipt_sha256": "f2e3d8d01dc277431ec7a5595bfdbd4d6aedbb69208d4d8ab5c539a99b65188e"
     }
   },
   "federated_training_checks": {
-    "leased_workunit_id": "WU-S10-CODE_PYTHON-0002",
-    "lease_id": "LEASE-f4c558d078019c3c",
+    "leased_workunit_id": "WU-S10-CODE_PYTHON-0001",
+    "lease_id": "LEASE-06e284ffbe20c717",
     "domain_name": "code_python",
     "submission_status": "ADMITTED_TO_LA_RUCHE_QUORUM",
     "outer_delta_frob_norm": 0.07637,
     "svd_spectral_energy_retained": 1.0,
     "perplexity_reduction_pct": 15.89,
     "monetary_payout_eur_usd": 0.0,
-    "receipt_sha256": "dec7326e0c1bdebcfbcdd952f8a22b0773cd4c2371a46d4c60e1cf83f605d85e",
-    "ledger_completed_receipts_count": 2
+    "receipt_sha256": "c9b5a0d2e4cf22d5248a6c8d1294a2bea9233af630c80854545092190912bf43",
+    "ledger_completed_receipts_count": 1
   },
-  "total_verification_duration_ms": 28160.16,
+  "compute_points_redemption_check": {
+    "service_id": "python_coding_gwaya",
+    "specialist_bee_invoked": "GWAYA-Code-Bee-v2.6 + Gwen-Qwen2.5-MoE-Bee-v2.6",
+    "points_spent": 50,
+    "points_balance_after": 1200,
+    "monetary_cost_eur_usd": 0.0,
+    "redemption_receipt_sha256": "d27d309d0f4640171ca3ed7609e5beb713e4bcb25336abd74c5c81cdda830f9a"
+  },
+  "total_verification_duration_ms": 20071.18,
   "all_checks_passed": true,
-  "verification_suite_sha256": "1c1cbdec14de11c024b29929a6b40cc0ea177bd202ae4582dce4fa85bca2893c"
+  "verification_suite_sha256": "8ffb989aa9d7e6d7b446509e92782a18ae0d47e6aa4711b04a6609d7556deacb"
 }
