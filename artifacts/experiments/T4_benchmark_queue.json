@@ -126,6 +126,46 @@
    "output": "artifacts/experiments/E11b_raw_gemma4-e4b_fineweb-edu_w1024.json"
   },
   {
+   "name": "E13_qwen0.5b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--seeds",
+    "1,2,3",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
+   "name": "E13_granite1b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1,2,3",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
+   "name": "E13_granite3b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite3b",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
    "name": "E11b_qwen0.5b_code_w1024",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",
