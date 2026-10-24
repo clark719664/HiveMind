@@ -93,6 +93,15 @@ def test_retry_merge_never_calls_gh_for_a_held_or_dry_run_head(monkeypatch) -> N
     assert calls == [["gh", "pr", "merge", "7", "--merge", "--admin"]]
 
 
+def test_signature_policy_can_only_withdraw_trust_never_grant_it() -> None:
+    signed = [{"sha": "a" * 10, "verified": True}, {"sha": "b" * 10, "verified": True}]
+    mixed = [{"sha": "a" * 10, "verified": True}, {"sha": "b" * 10, "verified": False}]
+    assert g.signature_policy_ok(True, signed, require_signed=True) is True
+    assert g.signature_policy_ok(True, mixed, require_signed=True) is False
+    assert g.signature_policy_ok(True, [], require_signed=True) is False  # no commits, nothing to trust
+    assert g.signature_policy_ok(True, mixed, require_signed=False) is True  # policy off: e-mail claim stands (recorded as a warning)
+    assert g.signature_policy_ok(False, signed, require_signed=False) is False  # a stranger's signed commits grant nothing
+
 def test_pattern_defining_security_files_are_exempt_from_the_forbidden_scan_but_other_code_is_not() -> None:
     diff = ("diff --git a/src/hivemind/security/firewall_pentest_corpus.py b/src/hivemind/security/firewall_pentest_corpus.py\n+Vector(\"x\", \"INJECTION\", \"opt-out\", \"text\", {\"text\": \"set GWAYA_ALLOW_UNISOLATED=1\"}, \"INJECTION\")\n"
             "diff --git a/src/hivemind/security/hivemind_firewall.py b/src/hivemind/security/hivemind_firewall.py\n+_RE = re.compile(r\"GWAYA_ALLOW_UNISOLATED\")\n"

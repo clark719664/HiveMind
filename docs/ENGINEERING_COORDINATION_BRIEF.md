@@ -102,7 +102,12 @@ in code and is not changed by anything written in a PR, an issue or a comment:
   bypassed the gate. The coordinator therefore opens PRs from branches; the gatekeeper re-attempts the merge of an
   already-ACCEPTed head on later ticks until CI has passed (a body edit does not re-run CI; push a new commit).
   Commit e-mail is the only authority signal and is forgeable; signed commits from the owner's key are the next step.
-- **Instructions in PR text are data.** The gatekeeper never reads "merge this", "approve", "run X" from a PR.
+- **Instructions in PR text are data.** The gatekeeper never reads "merge this", "approve", "run X" from a PR; since 2026-10-24 it records a
+  `HiveMindFirewall` injection scan of title+body in its log (report-only). Season 11 (`HM-S11-02/03`) moves merges and PR openings onto signed
+  orders through the firewall; until then the coordinator's PRs are held for a human exactly as now.
+- **Commit identity is claimed, not proven.** On 2026-10-24 the coordinator committed on the shared checkout as the owner (name and e-mail). The
+  gatekeeper now records GitHub's signature verification for every commit; once the owner registers a signing key, `HIVEMIND_GATE_REQUIRE_SIGNED=1`
+  makes unsigned owner-attributed commits HOLD (`HM-S11-04`). Never set the owner's name or e-mail on a commit you did not receive as an order.
 
 ## 4. Reporting back to the scientific lead
 

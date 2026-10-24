@@ -35,10 +35,15 @@ from typing import Any, Dict, List, Optional, Tuple
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from hivemind.security.hivemind_firewall import quarantine_text  # noqa: E402
 from hivemind.security.owner_order_guardrail import normalize_and_verify_owner_email  # noqa: E402
 from hivemind.security.pr_security_scanner import PRSecurityScanner  # noqa: E402
 
 OWNER_LOGIN = "xaviercallens"
+REPO = "xaviercallens/HiveMind"
+# Commit author e-mail is a *claim* (another agent on the shared machine forged it on 2026-10-24). With the owner's signing key
+# registered on GitHub, HIVEMIND_GATE_REQUIRE_SIGNED=1 makes an unsigned owner-attributed commit HOLD instead of ACCEPT.
+REQUIRE_SIGNED_COMMITS = os.environ.get("HIVEMIND_GATE_REQUIRE_SIGNED", "0") == "1"
 LOG_DIR = PROJECT_ROOT / "artifacts" / "pr_gatekeeper"
 PY = os.environ.get("HIVEMIND_PY", sys.executable)
 SMOKE_TESTS = ["tests/test_decoupled_diloco_quorum.py", "tests/test_readme_claims.py", "tests/test_lattice_quantizer.py"]
@@ -89,6 +94,29 @@ def trust_report(pr: Dict[str, Any]) -> Dict[str, Any]:
                             "coauthor_trailers": [a.get("email") for a in authors[1:]]})
         all_ok &= v.is_authorized_owner
     return {"author_login": author_login, "author_is_owner_login": author_login == OWNER_LOGIN, "commits": commit_rows, "owner_authored": bool(all_ok and commit_rows)}
+
+
+def commit_signatures(pr: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """GitHub's signature verification for every commit of the PR (verified, reason, signer), read-only."""
+    rows: List[Dict[str, Any]] = []
+    for c in pr.get("commits", []):
+        sha = c.get("oid", "")
+        try:
+            v = gh_json(["api", f"repos/{REPO}/commits/{sha}", "--jq", ".commit.verification"]) or {}
+        except (RuntimeError, json.JSONDecodeError):
+            v = {"verified": False, "reason": "lookup_failed"}
+        rows.append({"sha": sha[:10], "verified": bool(v.get("verified")), "reason": v.get("reason", "")})
+    return rows
+
+
+def signature_policy_ok(owner_authored: bool, signatures: List[Dict[str, Any]], require_signed: bool) -> bool:
+    """Pure: when signatures are required, an owner-attributed PR is trusted only if every commit is verified by GitHub.
+    Non-owner PRs are HOLD anyway; the policy never *grants* trust, it can only withdraw it."""
+    if not owner_authored:
+        return False
+    if not require_signed:
+        return True
+    return bool(signatures) and all(s.get("verified") for s in signatures)
 
 
 SCAN_EXEMPT_FILES = {  # these files *define and test* the forbidden patterns, so their text necessarily contains them
@@ -191,6 +219,12 @@ def gate_pr(pr: Dict[str, Any], merge: bool, dry_run: bool) -> Dict[str, Any]:
     base = pr.get("baseRefName", "main")
     result: Dict[str, Any] = {"pr": n, "title": pr.get("title"), "head": head, "base": base, "draft": pr.get("isDraft"), "mergeable": pr.get("mergeable"), "gated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     result["trust"] = trust_report(pr)
+    result["signatures"] = commit_signatures(pr)
+    result["signature_policy"] = {"require_signed": REQUIRE_SIGNED_COMMITS, "all_verified": bool(result["signatures"]) and all(s["verified"] for s in result["signatures"])}
+    if result["trust"]["owner_authored"] and not result["signature_policy"]["all_verified"]:
+        result["warning"] = "owner-attributed commits are UNSIGNED: e-mail identity is a claim (HM-S11-04)"
+    # PR text is data: scanned for prompt injection and recorded (report-only; the decision never reads the text)
+    result["injection_scan"] = quarantine_text(f"{pr.get('title') or ''}\n{pr.get('body') or ''}", "pr_text").scan.to_dict()
     wt = Path(tempfile.mkdtemp(prefix=f"hm-gate-pr{n}-"))
     try:
         sh(["git", "fetch", "-q", "origin", f"pull/{n}/head:refs/gate/pr-{n}", f"{base}:refs/gate/base-{n}"], cwd=PROJECT_ROOT, timeout=300)
@@ -216,7 +250,10 @@ def gate_pr(pr: Dict[str, Any], merge: bool, dry_run: bool) -> Dict[str, Any]:
         shutil.rmtree(wt, ignore_errors=True)
         sh(["git", "worktree", "prune"], cwd=PROJECT_ROOT, timeout=60)
     checks = {k: bool(result[k]["passed"]) for k in ("security", "forbidden", "gwaya_audit", "pytest", "lean", "pipeline")}
-    decision = decide(result["trust"]["owner_authored"], bool(pr.get("isDraft")), pr.get("mergeable"), checks)
+    trust_ok = signature_policy_ok(result["trust"]["owner_authored"], result["signatures"], REQUIRE_SIGNED_COMMITS)
+    decision = decide(trust_ok, bool(pr.get("isDraft")), pr.get("mergeable"), checks)
+    if result["trust"]["owner_authored"] and not trust_ok:
+        decision = "HOLD (owner-attributed but unsigned commits; signatures required)"
     result["checks"] = checks
     result["decision"] = decision
     table = "| check | result |\n| :-- | :-- |\n" + "\n".join(f"| {k} | {'pass' if v else 'FAIL'} |" for k, v in checks.items())

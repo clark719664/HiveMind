@@ -280,3 +280,5 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   the headline of v3.8.0 once the branch is rebased (11 conflicts) and gated.
 - **Governance**: `main` requires a PR and enforces admins after two coordinator commits with the owner's e-mail
   bypassed the gate; gatekeeper retries merges of ACCEPTed heads (PR #125).
+- **Hardening (owner's brief)**: `HiveMindFirewall` delivered with a 59-vector scripted red team (first run 47/49, two defects
+  fixed, second 49/49, 0 false positives); Season 11 tasks in ROADMAP §3.9; design `docs/SECURITY_HARDENING_PHASE.md`.

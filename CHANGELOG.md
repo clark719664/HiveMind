@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.6.0 — 2026-10-24 — Operation Hardened-Hive: HiveMindFirewall, chain of command, scripted red team
+
+- `hivemind.security.hivemind_firewall`: keyed-hash identities + Ed25519 delegation certificates rooted at the owner; signed, sequenced, hash-chained orders with nonce burning; deterministic prompt-injection scan (PI-01..07, decoded payloads re-scanned) and data envelopes; pure state machine with QUARANTINED as the default for anything undefined; allow-listed argv sandbox (bubblewrap or BLOCKED); hash-chained audit log. 17 tests (two Hypothesis properties).
+- Scripted red team `scripts/run_firewall_pentest_campaign.py` over 59 pre-registered vectors: first run 47/49 attacks blocked (two real defects: percent-encoding threshold, owner-delegation rule order), second run 49/49, 0 false positives, controls passed.
+- Gatekeeper records a report-only injection scan of PR text and the GitHub signature-verification status of every commit; policy switch to require signed owner commits. ROADMAP §3.9 Season 11 (`HM-S11-01..08`, campaigns `HM-S11-PT-1..3`); SECURITY.md §5; design in `docs/SECURITY_HARDENING_PHASE.md`.
+
+
 ## v2.5.2 — 2026-10-24 — preprint v3.7.2 (not yet deposited): Lean gate at 128; T4 branch review; main locked to PRs
 
 - Independent Lean gate re-run on the 128-theorem `HiveMindSpec.lean` that reached `main` by direct push (4474802): 128/128, 0 sorry, 0 untrusted axioms; Theorems 125 and 127 flagged as not constraining their mechanism (`HM-S10-09`). Paper inventory table, limitations and README updated to 128.
