@@ -146,9 +146,10 @@ def test_async_fresh_then_stale_same_learner_combines_at_round_close():
     assert report["token_conservation_holds"]
 
 
-def test_async_drop_policy_discards_late_tokens_after_full_quorum():
+@pytest.mark.parametrize("straggler_mode", decoupled.ContinuousAsyncLearnerCoordinator.STRAGGLER_MODES)
+def test_async_full_quorum_defers_or_drops_late_tokens(straggler_mode):
     coordinator = decoupled.ContinuousAsyncLearnerCoordinator(
-        3, 2, straggler_mode="drop", merge_mode="direct"
+        3, 2, straggler_mode=straggler_mode, merge_mode="direct"
     )
     for learner_id, arrival, delta, tokens in [
         ("a", 0.0, [2.0, 0.0], 100),
@@ -167,10 +168,18 @@ def test_async_drop_policy_discards_late_tokens_after_full_quorum():
     assert report["admitted_learners"] == ["a", "b"]
     assert report["deferred_learners"] == ["c"]
     assert report["merged_tokens"] == 300
-    assert report["dropped_tokens"] == 300
+    assert report["dropped_tokens"] == (300 if straggler_mode == "drop" else 0)
     assert report["total_submitted_tokens"] == 600
-    assert report["pending_tokens"] == 0
+    assert report["pending_tokens"] == (0 if straggler_mode == "drop" else 300)
     assert report["token_conservation_holds"] is True
+    if straggler_mode != "drop":
+        coordinator.submit_learner_delta("a", 1, torch.tensor([1.0, 0.0]), 300, 1)
+        carried, next_report = coordinator.close_quorum_round(updated, outer_lr=0.5)
+        torch.testing.assert_close(carried, torch.tensor([-3.0, 0.0]))
+        assert set(next_report["admitted_learners"]) == {"a", "c"}
+        assert next_report["merged_tokens"] == next_report["total_submitted_tokens"] == 900
+        assert next_report["pending_tokens"] == next_report["dropped_tokens"] == 0
+        assert next_report["token_conservation_holds"] is True
 
 
 def test_campaign_delta_analysis_rejects_single_learner_without_a_pair():

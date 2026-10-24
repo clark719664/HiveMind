@@ -11,7 +11,8 @@ Policy (fixed in code, not configurable from PR text):
     ``lake build`` with no ``sorryAx`` when ``lean4/`` changed, and the paper provenance pipeline when the
     manuscript changed. Any failure -> REFUSE (comment with the table; never merged).
   * Decisions are posted as a PR comment and logged to ``artifacts/pr_gatekeeper/``; a PR whose head SHA was
-    already gated with the same outcome is not re-run.
+    already gated with the same outcome is not re-run; an ACCEPTed head that is still open is only
+    re-merged (branch protection may have refused the first merge while CI was pending).
 
 Usage:  PYTHONPATH=src python scripts/pr_gatekeeper.py [--merge] [--dry-run] [--pr N]
 """
@@ -164,6 +165,23 @@ def decide(trust_ok: bool, draft: bool, mergeable: Optional[str], checks: Dict[s
     return "REFUSE (" + ", ".join(k for k, v in checks.items() if not v) + ")"
 
 
+def pending_accept(decision: Optional[str]) -> bool:
+    """True iff an earlier run ACCEPTed this head: the PR is eligible for a merge retry (never re-gated, never re-decided)."""
+    return decision == "ACCEPT"
+
+
+def retry_merge(pr: Dict[str, Any], decision: str, merge: bool, dry_run: bool) -> Dict[str, Any]:
+    """Re-attempt the merge of a head already ACCEPTed by a previous run; the decision itself is not revisited."""
+    n = pr["number"]
+    result: Dict[str, Any] = {"pr": n, "head": pr["headRefOid"], "decision": decision, "skipped": "already gated at this head", "merged": False}
+    if merge and not dry_run and pending_accept(decision):
+        rc, out = sh(["gh", "pr", "merge", str(n), "--merge", "--admin"], cwd=PROJECT_ROOT, timeout=300)
+        result["merged"] = rc == 0
+        result["merge_output"] = out[-300:]
+        result["merge_retry"] = True
+    return result
+
+
 def gate_pr(pr: Dict[str, Any], merge: bool, dry_run: bool) -> Dict[str, Any]:
     n = pr["number"]
     head = pr["headRefOid"]
@@ -241,7 +259,7 @@ def main() -> int:
     for pr in prs:
         key = f"{pr['number']}@{pr['headRefOid']}"
         if key in gated and not args.pr:
-            run["results"].append({"pr": pr["number"], "head": pr["headRefOid"], "decision": gated[key], "skipped": "already gated at this head"})
+            run["results"].append(retry_merge(pr, gated[key], merge=args.merge, dry_run=args.dry_run))
             continue
         try:
             res = gate_pr(pr, merge=args.merge, dry_run=args.dry_run)
