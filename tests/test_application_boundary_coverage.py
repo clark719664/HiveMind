@@ -603,3 +603,247 @@ def test_cli_module_help_exits_cleanly_without_live_operations(monkeypatch, caps
 
     assert exc.value.code == 0
     assert "usage:" in capsys.readouterr().out
+
+
+def _cuda_startup_boundary(monkeypatch):
+    """Record adapter calls and stop before any real CUDA initialization/work."""
+    calls = Mock()
+    calls.boundary.side_effect = _BeforeModelLoad
+    monkeypatch.setattr(torch.cuda, "is_available", Mock(return_value=True))
+    monkeypatch.setattr(torch.cuda, "reset_peak_memory_stats", calls.reset_peak_memory_stats)
+    monkeypatch.setattr(torch.cuda, "empty_cache", calls.empty_cache)
+    monkeypatch.setattr(
+        torch.cuda, "_lazy_init",
+        Mock(side_effect=AssertionError("Unexpected CUDA initialization at application boundary")),
+    )
+    monkeypatch.setattr(torch, "manual_seed", Mock())
+    return calls
+
+
+def test_local_boinc_resets_cuda_telemetry_before_forwarding_backbone_options(monkeypatch):
+    module = importlib.import_module("hivemind.boinc.local_astrophysics_boinc")
+    calls = _cuda_startup_boundary(monkeypatch)
+    configure = Mock()
+    monkeypatch.setattr(module, "configure_deterministic_runtime", configure)
+    monkeypatch.setattr(module, "detect_local_hardware", Mock(return_value={}))
+    monkeypatch.setattr(module, "build_local_qwen2_backbone", calls.boundary)
+
+    with pytest.raises(_BeforeModelLoad):
+        module.run_local_boinc_astrophysics_campaign(vocab_size=32)
+
+    configure.assert_called_once_with(42)
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with(
+        seed=42, vocab_size=32, hidden_size=256, intermediate_size=768,
+        num_hidden_layers=4, num_attention_heads=4, num_key_value_heads=2,
+        device=torch.device("cuda:0"), use_4bit_nf4_if_cuda=True,
+    )
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
+
+
+def test_24h_campaign_resets_cuda_telemetry_before_requesting_signed_shards(monkeypatch, tmp_path):
+    module = importlib.import_module("hivemind.boinc.astrophysics_24h_campaign")
+    calls = _cuda_startup_boundary(monkeypatch)
+    configure = Mock()
+    monkeypatch.setattr(module, "configure_deterministic_runtime", configure)
+    monkeypatch.setattr(module, "detect_local_hardware", Mock(return_value={}))
+    monkeypatch.setattr(module, "ARTIFACTS_ROOT", tmp_path)
+    monkeypatch.setattr(module, "create_signed_6domain_parquet_shard", calls.boundary)
+
+    with pytest.raises(_BeforeModelLoad):
+        module.run_24h_astrophysics_gpu_campaign(num_sequences=3, seq_len=8, vocab_size=32)
+
+    branch, spec = next(iter(module.ASTROPHYSICS_AND_COSMOLOGY_6_SPECS.items()))
+    shard = tmp_path / "boinc_astro_24h_shards" / f"shard_1_{branch.lower()}.parquet"
+    configure.assert_called_once_with(2026)
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with(
+        shard_path=shard, branch_name=branch, dataset_id=str(spec["dataset_id"]),
+        rng_seed=404000, num_sequences=3, seq_len=8, vocab_size=32,
+    )
+    assert shard.parent.is_dir()
+    assert not shard.exists()
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
+
+
+def test_steam_stress_suite_clears_then_resets_cuda_before_first_backbone(monkeypatch):
+    module = importlib.import_module("hivemind.game.rtx_steam_tool_deployer")
+    calls = _cuda_startup_boundary(monkeypatch)
+    monkeypatch.setattr(module, "detect_local_hardware", Mock(return_value={"gpu_name": "adapter fixture"}))
+    monkeypatch.setattr(module, "console", Mock())
+    monkeypatch.setattr(module, "build_local_qwen2_backbone", calls.boundary)
+
+    with pytest.raises(_BeforeModelLoad):
+        module.run_intense_rtx_stress_suite(vram_cycles=1)
+
+    calls.empty_cache.assert_called_once_with()
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with(
+        seed=100, vocab_size=2048, hidden_size=256, intermediate_size=768,
+        num_hidden_layers=4, num_attention_heads=4, num_key_value_heads=2,
+        device=torch.device("cuda:0"), use_4bit_nf4_if_cuda=True,
+    )
+    assert [entry[0] for entry in calls.mock_calls] == [
+        "empty_cache", "reset_peak_memory_stats", "boundary",
+    ]
+
+
+def test_benchmark_resets_selected_cuda_device_before_token_evaluation(monkeypatch, tmp_path):
+    calls = _cuda_startup_boundary(monkeypatch)
+    detect = Mock(return_value={"device": "cuda:0"})
+    monkeypatch.setattr(benchmark, "detect_community_accelerator", detect)
+    monkeypatch.setattr(benchmark, "run_token_training_evaluation", calls.boundary)
+    output = tmp_path / "benchmark.json"
+
+    with pytest.raises(_BeforeModelLoad):
+        benchmark.run_community_gpu_benchmark(
+            preferred_device="cuda", token_steps=3, seed=19, output_path=output,
+        )
+
+    detect.assert_called_once_with(preferred_device="cuda")
+    torch.manual_seed.assert_called_once_with(19)
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once()
+    evaluation_dir, = calls.boundary.call_args.args
+    assert isinstance(evaluation_dir, Path)
+    assert evaluation_dir.name == "token_eval"
+    assert calls.boundary.call_args.kwargs == {"steps": 3, "seed": 19}
+    assert not evaluation_dir.parent.exists()
+    assert not output.exists()
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
+
+
+def test_multi_campaign_resets_cuda_before_loading_domain_fixture(monkeypatch):
+    calls = _cuda_startup_boundary(monkeypatch)
+    detect = Mock(return_value={"device": "cuda:0"})
+    monkeypatch.setattr(multi, "detect_community_accelerator", detect)
+    monkeypatch.setattr(multi, "load_polyglot_8domain_fixture", calls.boundary)
+
+    with pytest.raises(_BeforeModelLoad):
+        multi.run_multi_moe_hf_campaign(
+            preferred_device="cuda", domain_limit=2, steps_per_domain=2, seed=27,
+        )
+
+    detect.assert_called_once_with(preferred_device="cuda")
+    torch.manual_seed.assert_called_once_with(27)
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with()
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
+
+
+def test_season_campaign_resets_cuda_before_forwarding_training_options(monkeypatch):
+    calls = _cuda_startup_boundary(monkeypatch)
+    detect = Mock(return_value={"device": "cuda:0"})
+    monkeypatch.setattr(seasons, "detect_community_accelerator", detect)
+    monkeypatch.setattr(seasons, "_build_and_train_domain_branches", calls.boundary)
+
+    with pytest.raises(_BeforeModelLoad):
+        seasons.run_season9_10_gpu_swarm_campaigns(
+            preferred_device="cuda", num_domains=3, inner_steps=2, seed=31,
+        )
+
+    detect.assert_called_once_with(preferred_device="cuda")
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with(
+        dev=torch.device("cuda:0"), num_domains=3, inner_steps=2, seed=31,
+    )
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
+
+
+@pytest.mark.parametrize("profile_name,expected_rank,expected_alpha,expected_targets", [
+    ("custom", 8, 24, ["q_proj"]),
+    ("missing", 64, 128, ["q_proj", "v_proj"]),
+])
+def test_vram_cli_resets_cuda_and_forwards_selected_or_fallback_profile(
+    monkeypatch, profile_name, expected_rank, expected_alpha, expected_targets,
+):
+    module = importlib.import_module("hivemind.cli.main")
+    calls = _cuda_startup_boundary(monkeypatch)
+    config = SimpleNamespace(profiles={
+        "custom": SimpleNamespace(lora_rank_r=8, lora_alpha=24, lora_target_modules=["q_proj"]),
+        "rtx2070_7b_worker": SimpleNamespace(
+            lora_rank_r=64, lora_alpha=128, lora_target_modules=["q_proj", "v_proj"],
+        ),
+    })
+    load_config = Mock(return_value=config)
+    monkeypatch.setattr(module.HiveMindConfig, "from_yaml", load_config)
+    base = object()
+    calls.build.return_value = (base, "fixture-sha", None)
+    calls.measure.return_value = {}
+    monkeypatch.setattr(module, "build_local_qwen2_backbone", calls.build)
+    monkeypatch.setattr(module, "measure_vram_footprint", calls.measure)
+    monkeypatch.setattr(module, "attach_qlora_adapters", calls.boundary)
+
+    with pytest.raises(_BeforeModelLoad):
+        module.cmd_benchmark_vram(profile_name)
+
+    load_config.assert_called_once_with()
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.build.assert_called_once_with(
+        seed=42, vocab_size=8192, hidden_size=1024, intermediate_size=2816,
+        num_hidden_layers=8, num_attention_heads=8, num_key_value_heads=4,
+        device=torch.device("cuda:0"), use_4bit_nf4_if_cuda=True,
+    )
+    calls.measure.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with(
+        base_model=base, rank_r=expected_rank, lora_alpha=expected_alpha,
+        target_modules=expected_targets, gradient_checkpointing=True, seed=42,
+    )
+    assert [entry[0] for entry in calls.mock_calls] == [
+        "reset_peak_memory_stats", "build", "measure", "boundary",
+    ]
+
+
+@pytest.mark.parametrize("astrophysics,store_name", [
+    (False, "swarm_store"), (True, "swarm_store_astrophysics"),
+])
+def test_demo_resets_cuda_before_opening_the_configured_swarm_store(
+    monkeypatch, tmp_path, astrophysics, store_name,
+):
+    calls = _cuda_startup_boundary(monkeypatch)
+    ensure_caches = Mock()
+    configure = Mock()
+    resolve_dtype = Mock(return_value=torch.float16)
+    monkeypatch.setattr(demo, "CACHE_ROOT", tmp_path)
+    monkeypatch.setattr(demo, "ensure_local_drive_caches", ensure_caches)
+    monkeypatch.setattr(demo, "configure_deterministic_runtime", configure)
+    monkeypatch.setattr(demo, "get_hf_token", Mock(return_value=None))
+    monkeypatch.setattr(demo, "detect_local_hardware", Mock(return_value={}))
+    monkeypatch.setattr(demo, "resolve_compute_dtype", resolve_dtype)
+    monkeypatch.setattr(demo, "ContentAddressedSwarmStore", calls.boundary)
+    run = demo.run_astrophysics_hf_swarm_experiments if astrophysics else demo.run_three_hf_swarm_experiments
+
+    with pytest.raises(_BeforeModelLoad):
+        run(model_id="fixture/model")
+
+    ensure_caches.assert_called_once_with()
+    configure.assert_called_once_with(seed=42)
+    resolve_dtype.assert_called_once_with("float16", torch.device("cuda:0"))
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with(tmp_path / store_name)
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
+
+
+def test_poc_resets_cuda_before_forwarding_tokenizer_model_and_auth(monkeypatch):
+    module = importlib.import_module("hivemind.cli.poc_rtx2070")
+    calls = _cuda_startup_boundary(monkeypatch)
+    monkeypatch.setattr(module.HiveMindConfig, "from_yaml", Mock(return_value=SimpleNamespace()))
+    monkeypatch.setattr(module, "detect_local_hardware", Mock(return_value={
+        "gpu_name": "adapter fixture", "vram_free_gb": 4.0, "vram_total_gb": 8.0,
+    }))
+    monkeypatch.setattr(module, "get_hf_token", Mock(return_value="fixture-token"))
+    resolve_dtype = Mock(return_value=torch.float16)
+    monkeypatch.setattr(module, "resolve_compute_dtype", resolve_dtype)
+    monkeypatch.setattr(module, "console", Mock())
+    monkeypatch.setattr(module.AutoTokenizer, "from_pretrained", calls.boundary)
+    model_load = Mock(side_effect=AssertionError("Model loading must follow tokenizer initialization"))
+    monkeypatch.setattr(module, "stream_load_hf_causal_lm", model_load)
+
+    with pytest.raises(_BeforeModelLoad):
+        module.run_huggingface_rtx2070_poc(model_id="fixture/model")
+
+    resolve_dtype.assert_called_once_with("float16", torch.device("cuda:0"))
+    calls.reset_peak_memory_stats.assert_called_once_with(torch.device("cuda:0"))
+    calls.boundary.assert_called_once_with("fixture/model", token="fixture-token")
+    model_load.assert_not_called()
+    assert [entry[0] for entry in calls.mock_calls] == ["reset_peak_memory_stats", "boundary"]
