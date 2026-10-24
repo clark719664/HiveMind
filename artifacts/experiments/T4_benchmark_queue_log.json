@@ -607,10 +607,54 @@
     "}",
     "E13 DONE model=qwen0.5b cells_ok=6 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_rotstraggle.json"
    ]
+  },
+  {
+   "name": "E13_qwen0.5b_m2proc_v2",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--workers",
+    "2",
+    "--peer-hosting",
+    "process",
+    "--cells",
+    "S0,S1",
+    "--seeds",
+    "1",
+    "--learning-gate",
+    "0.0",
+    "--out",
+    "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_m2proc.json",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_m2proc.json",
+    "--resume"
+   ],
+   "start_unix": 1792821934.820976,
+   "status": "exit 1",
+   "returncode": 1,
+   "seconds": 231.0,
+   "log_tail": [
+    "Loading weights:  18%|\u2588\u258a        | 53/290 [00:00<00:00, 514.61it/s]",
+    "Loading weights:  40%|\u2588\u2588\u2588\u2588      | 117/290 [00:00<00:00, 563.53it/s]",
+    "Loading weights:  62%|\u2588\u2588\u2588\u2588\u2588\u2588\u258f   | 179/290 [00:00<00:00, 576.22it/s]",
+    "Loading weights:  82%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f | 237/290 [00:00<00:00, 570.17it/s]",
+    "Loading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 290/290 [00:00<00:00, 588.66it/s]",
+    "seed 1 S0b identity noise floor {'available': True, 'max_abs_diff': 0.0, 'bit_identical': True, 'twin_final_loss': 2.3666575253009796, 'note': 'diagnostic only; the identity rule stays S1 vs S0 <= 1e-6'}",
+    "[E13 hb] qwen0.5b S1 seed 1 t=60s round 6/6 admitted-so-far [] of effective K 2, alive [0, 1], evals [0, 3] of [0, 3, 6], late 0",
+    "seed 1 S1 swarm_identity final 2.3667 (init 2.3954) admitted/round [2, 2, 2, 2, 2, 2] late 0 up 25952256B 77.72s",
+    "{",
+    "  \"controls_all_passed\": false,",
+    "  \"runs\": 2,",
+    "  \"elapsed_s\": 227.12,",
+    "  \"receipt\": \"7a39ae2de97ce2da644b3b21dfa60c119f8eedfa0a9fe4d90f65b1e7e7259aab\"",
+    "}",
+    "E13 DONE model=qwen0.5b cells_ok=2 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_m2proc.json"
+   ]
   }
  ],
- "gpu_samples": 1110,
- "gpu_util_mean_pct": 65.5,
+ "gpu_samples": 1118,
+ "gpu_util_mean_pct": 65.6,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E11_qwen0.5b": 26.0,
@@ -618,6 +662,7 @@
   "E13c_qwen0.5b_rotstraggle": 89.7,
   "E11b_qwen7b_fineweb-edu_w1024": 76.6,
   "E11b_qwen0.5b_fineweb-edu_w1024": 64.5,
+  "E13_qwen0.5b_m2proc_v2": 72.4,
   "E10b_amended": 98.5,
   "E11_qwen0.5b_retry": 72.9,
   "E13_granite1b": 28.4,
@@ -2579,6 +2624,20 @@
    "util_pct": 95,
    "mem_used_gib": 6.33,
    "power_w": 67.3
+  },
+  {
+   "t": 1792822000.3,
+   "job": "E13_qwen0.5b_m2proc_v2",
+   "util_pct": 98,
+   "mem_used_gib": 5.18,
+   "power_w": 69.9
+  },
+  {
+   "t": 1792822120.3,
+   "job": "E13_qwen0.5b_m2proc_v2",
+   "util_pct": 100,
+   "mem_used_gib": 10.63,
+   "power_w": 69.5
   }
  ]
 }
