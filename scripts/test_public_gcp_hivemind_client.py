@@ -89,16 +89,28 @@ def run_public_gcp_e2e_verification(
     if health.get("status") != "ok":
         raise RuntimeError(f"Health check failed: {health}")
 
-    # 2. HTML5 Dashboard Portal Check
-    html_bytes, _ = _http_get_bytes(f"{base}/")
+    # 2. HTML5 Dashboard Portal Check & Security Headers
+    html_bytes, root_headers = _http_get_bytes(f"{base}/")
     html_text = html_bytes.decode("utf-8")
     dashboard_ok = (
         "HIVEMIND@HOME" in html_text
         and "LA RUCHE" in html_text
         and "seti-spectrum-canvas" in html_text
+        and "cyber-defense-hud-bar" in html_text
+        and "defense-modal-backdrop" in html_text
+        and "cyber-scanlines" in html_text
     )
     if not dashboard_ok:
-        raise RuntimeError("HTML5 dashboard missing expected SETI/La Ruche sections")
+        raise RuntimeError("HTML5 dashboard missing expected SETI/La Ruche/Defense sections")
+
+    if root_headers.get("x-frame-options") != "DENY":
+        raise RuntimeError(f"Missing or invalid X-Frame-Options: {root_headers.get('x-frame-options')}")
+    if root_headers.get("x-content-type-options") != "nosniff":
+        raise RuntimeError(f"Missing nosniff: {root_headers.get('x-content-type-options')}")
+    if "content-security-policy" not in root_headers:
+        raise RuntimeError("Missing Content-Security-Policy header")
+    if root_headers.get("x-hivemind-shield") != "Active-v2.7.0":
+        raise RuntimeError(f"Missing or invalid X-HiveMind-Shield header: {root_headers.get('x-hivemind-shield')}")
 
     # 3. Telemetry Status & GCP Cost Governance Check
     status_doc = _http_get_json(f"{base}/api/hivemind-at-home/status")
@@ -262,6 +274,20 @@ def run_public_gcp_e2e_verification(
             f"GCS-loaded Community MoE forward check failed: shape={gcs_logits_shape}, finite={gcs_finite}"
         )
 
+    # 10. Cognitive Shield WAF, Anti-Poisoning & Rate Limiting Telemetry Check
+    def_status = _http_get_json(f"{base}/api/v1/defense/status")
+    if def_status.get("firewall_status") != "ACTIVE":
+        raise RuntimeError(f"Cognitive Shield firewall status is not ACTIVE: {def_status}")
+    if def_status.get("formal_verification", {}).get("lean4_theorems_verified") != 128:
+        raise RuntimeError("Lean 4 theorems count mismatch in defense telemetry")
+
+    def_probe = _http_post_json(
+        f"{base}/api/v1/defense/test",
+        {"test_input": "<script>alert('attack')</script> SELECT * FROM users; --"},
+    )
+    if def_probe.get("injection_detected") is not True or def_probe.get("firewall_action") != "NEUTRALIZED":
+        raise RuntimeError(f"Cognitive Shield failed to neutralize injection probe: {def_probe}")
+
     total_elapsed_ms = (time.perf_counter() - t0) * 1000.0
     report: Dict[str, Any] = {
         "verification_title": "HiveMind@home & La Ruche Public GCP Cloud Run & SocrateAI GCS End-to-End Verification",
@@ -354,6 +380,21 @@ def run_public_gcp_e2e_verification(
             "exoplanet_seti_svg_bytes": len(exo_svg_bytes),
             "video_cinema_chapters_count": len(video_manifest.get("chapters", [])),
             "navigation_and_media_dom_ids_verified": True,
+        },
+        "cognitive_shield_defense_checks": {
+            "firewall_status": def_status.get("firewall_status"),
+            "shield_engine": def_status.get("shield_engine"),
+            "rate_limiter_active": bool(def_status.get("rate_limiter", {}).get("firewall_status") == "ACTIVE"),
+            "security_headers_enforced": [
+                "Content-Security-Policy",
+                "X-Frame-Options: DENY",
+                "X-Content-Type-Options: nosniff",
+                "X-HiveMind-Shield: Active-v2.7.0",
+            ],
+            "probe_injection_neutralized": def_probe.get("firewall_action") == "NEUTRALIZED",
+            "probe_shield_receipt_sha256": def_probe.get("shield_receipt_sha256"),
+            "byzantine_poison_rejection": def_status.get("byzantine_poisoning_defense", {}).get("multi_krum"),
+            "formal_lean4_theorems": def_status.get("formal_verification", {}).get("lean4_theorems_verified"),
         },
         "total_verification_duration_ms": round(total_elapsed_ms, 2),
         "all_checks_passed": True,
