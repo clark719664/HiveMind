@@ -55,6 +55,15 @@ def load_jobs() -> List[Dict[str, Any]]:
     return json.loads(QUEUE_PATH.read_text(encoding="utf-8"))["jobs"]
 
 
+def _set_paths(queue: str | None, log: str | None) -> None:
+    """Optional second campaign: another job file and log, same runner."""
+    global QUEUE_PATH, LOG_PATH
+    if queue:
+        QUEUE_PATH = PROJECT_ROOT / queue
+    if log:
+        LOG_PATH = PROJECT_ROOT / log
+
+
 def write_log(log: Dict[str, Any], sampler: GPUSampler) -> None:
     s = [x for x in sampler.samples if "util_pct" in x]
     log["gpu_samples"] = len(s)
@@ -69,7 +78,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=float, default=10.0)
     ap.add_argument("--logs", default=str(Path(os.environ.get("CLAUDE_JOB_DIR", "/tmp")) / "tmp" / "queue_logs"))
+    ap.add_argument("--queue", help="job file relative to the repo root (default artifacts/experiments/T4_benchmark_queue.json)")
+    ap.add_argument("--log", help="log file relative to the repo root (default artifacts/experiments/T4_benchmark_queue_log.json)")
     a = ap.parse_args()
+    _set_paths(a.queue, a.log)
     logs = Path(a.logs)
     logs.mkdir(parents=True, exist_ok=True)
     start = time.time()
