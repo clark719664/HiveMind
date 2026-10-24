@@ -1,6 +1,6 @@
 {
   "schema_version": "hivemind-predictions-ledger/v1.1",
-  "updated_utc": "2026-10-24T01:57:33Z",
+  "updated_utc": "2026-10-24T12:52:13Z",
   "predictions": {
     "P1": {
       "rq": "RQ1",
@@ -857,13 +857,1298 @@
       },
       "basis": null,
       "note": "RTX 2070, TPU-VM CPU and a second T4 were not run; the LoRA init is ~18x PEFT's default, which may inflate cross-class magnitudes"
+    },
+    "P13a": {
+      "rq": "E13",
+      "claim": "protocol correctness: the final global LoRA of S1 (swarm identity) equals S0 within max|diff| <= 1e-6",
+      "decided_by": "E13",
+      "status": "supported",
+      "status_detail": "qwen0.5b: supported; granite1b: supported; granite3b: supported",
+      "per_model": {
+        "qwen0.5b": "supported",
+        "granite1b": "supported",
+        "granite3b": "supported"
+      },
+      "scale": "Qwen2.5-0.5B (M = 4) and Granite-3.1-1B-A400M (M = 3) LoRA, peers over real localhost HTTP on one Tesla T4, 3 seeds; Granite-3B 1 seed (E13); no WAN claim",
+      "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+      "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+      "prereg_sha256": "4e9a2d80020499d0b1c015c828de424ab5ef5fa92b9a74473e473d7921e9f05a",
+      "controls_all_passed": true,
+      "evidence": {
+        "qwen0.5b": {
+          "status": "supported"
+        },
+        "granite1b": {
+          "status": "supported"
+        },
+        "granite3b": {
+          "status": "supported"
+        }
+      },
+      "note": "decided per model by the registered rules (scripts/analyze_E13_predictions.py); a model with fewer than 3 seeds is descriptive and does not enter the headline; no WAN claim",
+      "decisions": [
+        {
+          "experiment": "E13-qwen0.5b",
+          "status": "supported",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "supported"
+          }
+        },
+        {
+          "experiment": "E13-granite1b",
+          "status": "supported",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "supported"
+          }
+        },
+        {
+          "experiment": "E13-granite3b",
+          "status": "supported",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "supported"
+          }
+        },
+        {
+          "experiment": "E13d-qwen0.5b-M6-replication",
+          "status": "supported",
+          "scale": "Qwen2.5-0.5B, 6 workers on 6 Hugging Face domains, thread-hosted, 3 seeds (E13d, amendment 6: exploratory replication, changes no registered result)",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions_m6.json",
+          "receipt_sha256": "80782618640bcc2f64d60899ee70e0fb4fa46900275aa640f70e4c8b453ec097",
+          "evidence": {
+            "status": "supported"
+          }
+        }
+      ]
+    },
+    "P13b": {
+      "rq": "E13",
+      "claim": "swarm viability: the all-on swarm (K = ceil(M/2), persistent straggler, churn) keeps >= 0.5 of the synchronous improvement (lower end of the df = 2 interval)",
+      "decided_by": "E13",
+      "status": "refuted",
+      "status_detail": "qwen0.5b: refuted; granite1b: refuted; granite3b: descriptive (n=1)",
+      "per_model": {
+        "qwen0.5b": "refuted",
+        "granite1b": "refuted",
+        "granite3b": "descriptive (n=1)"
+      },
+      "scale": "Qwen2.5-0.5B (M = 4) and Granite-3.1-1B-A400M (M = 3) LoRA, peers over real localhost HTTP on one Tesla T4, 3 seeds; Granite-3B 1 seed (E13); no WAN claim",
+      "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+      "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+      "prereg_sha256": "4e9a2d80020499d0b1c015c828de424ab5ef5fa92b9a74473e473d7921e9f05a",
+      "controls_all_passed": true,
+      "evidence": {
+        "qwen0.5b": {
+          "status": "refuted",
+          "per_seed": {
+            "1": -0.15357145962480073,
+            "2": -0.11013519903039225,
+            "3": 0.10947696224560427
+          },
+          "mean": -0.05140989880319624,
+          "half_width": 0.3502996533143782,
+          "interval": [
+            -0.4017095521175744,
+            0.29888975451118194
+          ],
+          "bar": 0.5,
+          "meets_strict_bar_0.75": false
+        },
+        "granite1b": {
+          "status": "refuted",
+          "per_seed": {
+            "1": -0.45113639762817764,
+            "2": -0.5629771203782199,
+            "3": -0.9602151191066751
+          },
+          "mean": -0.6581095457043576,
+          "half_width": 0.6646074491474538,
+          "interval": [
+            -1.3227169948518114,
+            0.006497903443096198
+          ],
+          "bar": 0.5,
+          "meets_strict_bar_0.75": false
+        },
+        "granite3b": {
+          "status": "descriptive (n=1)",
+          "per_seed": {
+            "1": -0.6975575286211182
+          }
+        }
+      },
+      "note": "decided per model by the registered rules (scripts/analyze_E13_predictions.py); a model with fewer than 3 seeds is descriptive and does not enter the headline; no WAN claim",
+      "decisions": [
+        {
+          "experiment": "E13-qwen0.5b",
+          "status": "refuted",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "refuted",
+            "per_seed": {
+              "1": -0.15357145962480073,
+              "2": -0.11013519903039225,
+              "3": 0.10947696224560427
+            },
+            "mean": -0.05140989880319624,
+            "half_width": 0.3502996533143782,
+            "interval": [
+              -0.4017095521175744,
+              0.29888975451118194
+            ],
+            "bar": 0.5,
+            "meets_strict_bar_0.75": false
+          }
+        },
+        {
+          "experiment": "E13-granite1b",
+          "status": "refuted",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "refuted",
+            "per_seed": {
+              "1": -0.45113639762817764,
+              "2": -0.5629771203782199,
+              "3": -0.9602151191066751
+            },
+            "mean": -0.6581095457043576,
+            "half_width": 0.6646074491474538,
+            "interval": [
+              -1.3227169948518114,
+              0.006497903443096198
+            ],
+            "bar": 0.5,
+            "meets_strict_bar_0.75": false
+          }
+        },
+        {
+          "experiment": "E13-granite3b",
+          "status": "descriptive (n=1)",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "descriptive (n=1)",
+            "per_seed": {
+              "1": -0.6975575286211182
+            }
+          }
+        },
+        {
+          "experiment": "E13d-qwen0.5b-M6-replication",
+          "status": "inconclusive",
+          "scale": "Qwen2.5-0.5B, 6 workers on 6 Hugging Face domains, thread-hosted, 3 seeds (E13d, amendment 6: exploratory replication, changes no registered result)",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions_m6.json",
+          "receipt_sha256": "80782618640bcc2f64d60899ee70e0fb4fa46900275aa640f70e4c8b453ec097",
+          "evidence": {
+            "status": "inconclusive",
+            "per_seed": {
+              "1": 0.3731407086258331,
+              "2": 0.38849686471154093,
+              "3": 0.10885197660721802
+            },
+            "mean": 0.290163183314864,
+            "half_width": 0.39052563305976545,
+            "interval": [
+              -0.10036244974490144,
+              0.6806888163746294
+            ],
+            "bar": 0.5,
+            "meets_strict_bar_0.75": false
+          }
+        }
+      ]
+    },
+    "P13c": {
+      "rq": "E13",
+      "claim": "wire cost: measured upload bytes of S2 are <= 0.30 of the raw fp32 upload",
+      "decided_by": "E13",
+      "status": "supported",
+      "status_detail": "qwen0.5b: supported; granite1b: supported; granite3b: supported",
+      "per_model": {
+        "qwen0.5b": "supported",
+        "granite1b": "supported",
+        "granite3b": "supported"
+      },
+      "scale": "Qwen2.5-0.5B (M = 4) and Granite-3.1-1B-A400M (M = 3) LoRA, peers over real localhost HTTP on one Tesla T4, 3 seeds; Granite-3B 1 seed (E13); no WAN claim",
+      "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+      "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+      "prereg_sha256": "4e9a2d80020499d0b1c015c828de424ab5ef5fa92b9a74473e473d7921e9f05a",
+      "controls_all_passed": true,
+      "evidence": {
+        "qwen0.5b": {
+          "status": "supported",
+          "upload_ratio_actual": 0.09069108618974342,
+          "upload_ratio_ideal": 0.062295354168547944,
+          "bar": 0.3,
+          "int16_posts_total": 0
+        },
+        "granite1b": {
+          "status": "supported",
+          "upload_ratio_actual": 0.09116496024679402,
+          "upload_ratio_ideal": 0.06232924070399333,
+          "bar": 0.3,
+          "int16_posts_total": 0
+        },
+        "granite3b": {
+          "status": "supported",
+          "upload_ratio_actual": 0.09059028625488282,
+          "upload_ratio_ideal": 0.06236709994629862,
+          "bar": 0.3,
+          "int16_posts_total": 0
+        }
+      },
+      "note": "decided per model by the registered rules (scripts/analyze_E13_predictions.py); a model with fewer than 3 seeds is descriptive and does not enter the headline; no WAN claim",
+      "decisions": [
+        {
+          "experiment": "E13-qwen0.5b",
+          "status": "supported",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "supported",
+            "upload_ratio_actual": 0.09069108618974342,
+            "upload_ratio_ideal": 0.062295354168547944,
+            "bar": 0.3,
+            "int16_posts_total": 0
+          }
+        },
+        {
+          "experiment": "E13-granite1b",
+          "status": "supported",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "supported",
+            "upload_ratio_actual": 0.09116496024679402,
+            "upload_ratio_ideal": 0.06232924070399333,
+            "bar": 0.3,
+            "int16_posts_total": 0
+          }
+        },
+        {
+          "experiment": "E13-granite3b",
+          "status": "supported",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions.json",
+          "receipt_sha256": "d1fad46f42d07a4bd83afc701ef2e8d92903626392d3207a4b513ec0f102f5ff",
+          "evidence": {
+            "status": "supported",
+            "upload_ratio_actual": 0.09059028625488282,
+            "upload_ratio_ideal": 0.06236709994629862,
+            "bar": 0.3,
+            "int16_posts_total": 0
+          }
+        },
+        {
+          "experiment": "E13d-qwen0.5b-M6-replication",
+          "status": "supported",
+          "scale": "Qwen2.5-0.5B, 6 workers on 6 Hugging Face domains, thread-hosted, 3 seeds (E13d, amendment 6: exploratory replication, changes no registered result)",
+          "artifact": "artifacts/experiments/E13_swarm_local_predictions_m6.json",
+          "receipt_sha256": "80782618640bcc2f64d60899ee70e0fb4fa46900275aa640f70e4c8b453ec097",
+          "evidence": {
+            "status": "supported",
+            "upload_ratio_actual": 0.09053904749018885,
+            "upload_ratio_ideal": 0.06225246863694188,
+            "bar": 0.3,
+            "int16_posts_total": 0
+          }
+        }
+      ]
+    },
+    "P14a": {
+      "rq": "E14 (exploratory)",
+      "claim": "fair quorum (S6, bounded exclusion) keeps more of the synchronous improvement than the plain K<M swarm S2: df = 2 interval of loss(S2) - loss(S6) above 0",
+      "decided_by": "E14",
+      "status": "mixed",
+      "status_detail": "qwen0.5b: supported; granite1b: inconclusive",
+      "per_model": {
+        "qwen0.5b": "supported",
+        "granite1b": "inconclusive"
+      },
+      "scale": "Qwen2.5-0.5B (4 workers, 4 domains) and Granite-3.1-1B-A400M MoE (3 workers, 3 domains), 6 rounds x 20 inner steps, thread-hosted peers over localhost HTTP on one Tesla T4, 3 seeds (E14, exploratory, no multiple-comparison correction); no WAN claim",
+      "artifact": "artifacts/experiments/E14_hypotheses.json",
+      "receipt_sha256": "a29dea38cca6f5362c776796f6168a52d1725d7aea7f9c1b127ca6cde6afd628",
+      "prereg_sha256": "42b794fd4c52536faed7c67f8fda09978e530e2defef29e3f94f7c29a4ddd7d1",
+      "controls_all_passed": true,
+      "evidence": {
+        "qwen0.5b": {
+          "cell": "S6",
+          "S2_minus_cell_per_seed": {
+            "1": 0.13980788737535477,
+            "2": 0.1337207406759262,
+            "3": 0.09884945303201675
+          },
+          "mean": 0.12412602702776591,
+          "half_width": 0.054901254993400816,
+          "interval": [
+            0.0692247720343651,
+            0.17902728202116674
+          ],
+          "retention_vs_S0": {
+            "S2": {
+              "per_seed": {
+                "1": -0.15357145962480073,
+                "2": -0.11013519903039225,
+                "3": 0.10947696224560427
+              },
+              "n": 3,
+              "mean": -0.05140989880319624,
+              "half_width": 0.3502996533143782,
+              "interval": [
+                -0.4017095521175744,
+                0.29888975451118194
+              ]
+            },
+            "S6": {
+              "per_seed": {
+                "1": 0.9058960303740373,
+                "2": 0.8870582990326925,
+                "3": 0.8440410849005782
+              },
+              "n": 3,
+              "mean": 0.8789984714357694,
+              "half_width": 0.07876045430658743,
+              "interval": [
+                0.800238017129182,
+                0.9577589257423568
+              ]
+            },
+            "S7": {
+              "per_seed": {
+                "1": 0.5227878678653043,
+                "2": 0.6041759384240851,
+                "3": 0.4565288669407004
+              },
+              "n": 3,
+              "mean": 0.5278308910766966,
+              "half_width": 0.18370846681798142,
+              "interval": [
+                0.34412242425871514,
+                0.711539357894678
+              ]
+            }
+          }
+        },
+        "granite1b": {
+          "cell": "S6",
+          "S2_minus_cell_per_seed": {
+            "1": 0.02541945377985666,
+            "2": 0.005005866289138794,
+            "3": 0.01705828309059143
+          },
+          "mean": 0.015827867719862294,
+          "half_width": 0.025492879146674866,
+          "interval": [
+            -0.009665011426812573,
+            0.04132074686653716
+          ],
+          "retention_vs_S0": {
+            "S2": {
+              "per_seed": {
+                "1": -0.45113639762817764,
+                "2": -0.20249765643587286,
+                "3": -0.45859203399636195
+              },
+              "n": 3,
+              "mean": -0.37074202935347084,
+              "half_width": 0.3620669991636134,
+              "interval": [
+                -0.7328090285170843,
+                -0.008675030189857436
+              ]
+            },
+            "S6": {
+              "per_seed": {
+                "1": -0.003527960680236265,
+                "2": -0.11388851228913857,
+                "3": -0.12306332327872539
+              },
+              "n": 3,
+              "mean": -0.08015993208270007,
+              "half_width": 0.16525376879316592,
+              "interval": [
+                -0.245413700875866,
+                0.08509383671046584
+              ]
+            },
+            "S7": {
+              "per_seed": {
+                "1": -0.45020245365396794,
+                "2": -0.6425668616955096,
+                "3": -0.9034123183298484
+              },
+              "n": 3,
+              "mean": -0.6653938778931087,
+              "half_width": 0.5650558788087447,
+              "interval": [
+                -1.2304497567018533,
+                -0.10033799908436392
+              ]
+            }
+          }
+        }
+      },
+      "note": "exploratory follow-up of E13 (decides no registered E13 prediction); two hypotheses per model, no multiple-comparison correction; the report's own controls_all_passed is false only because the S1 identity and raw-wire controls are not evaluated in the E14 grid",
+      "decisions": [
+        {
+          "experiment": "E14-qwen0.5b",
+          "status": "supported",
+          "scale": "Qwen2.5-0.5B (4 workers, 4 domains) and Granite-3.1-1B-A400M MoE (3 workers, 3 domains), 6 rounds x 20 inner steps, thread-hosted peers over localhost HTTP on one Tesla T4, 3 seeds (E14, exploratory, no multiple-comparison correction); no WAN claim",
+          "artifact": "artifacts/experiments/E14_report_qwen0.5b.json",
+          "receipt_sha256": "975d81b7b503e8e21004ba15332ab5908a5029895c60e393594ac9458b46ef5f",
+          "evidence": {
+            "cell": "S6",
+            "S2_minus_cell_per_seed": {
+              "1": 0.13980788737535477,
+              "2": 0.1337207406759262,
+              "3": 0.09884945303201675
+            },
+            "mean": 0.12412602702776591,
+            "half_width": 0.054901254993400816,
+            "interval": [
+              0.0692247720343651,
+              0.17902728202116674
+            ],
+            "retention_vs_S0": {
+              "S2": {
+                "per_seed": {
+                  "1": -0.15357145962480073,
+                  "2": -0.11013519903039225,
+                  "3": 0.10947696224560427
+                },
+                "n": 3,
+                "mean": -0.05140989880319624,
+                "half_width": 0.3502996533143782,
+                "interval": [
+                  -0.4017095521175744,
+                  0.29888975451118194
+                ]
+              },
+              "S6": {
+                "per_seed": {
+                  "1": 0.9058960303740373,
+                  "2": 0.8870582990326925,
+                  "3": 0.8440410849005782
+                },
+                "n": 3,
+                "mean": 0.8789984714357694,
+                "half_width": 0.07876045430658743,
+                "interval": [
+                  0.800238017129182,
+                  0.9577589257423568
+                ]
+              },
+              "S7": {
+                "per_seed": {
+                  "1": 0.5227878678653043,
+                  "2": 0.6041759384240851,
+                  "3": 0.4565288669407004
+                },
+                "n": 3,
+                "mean": 0.5278308910766966,
+                "half_width": 0.18370846681798142,
+                "interval": [
+                  0.34412242425871514,
+                  0.711539357894678
+                ]
+              }
+            }
+          }
+        },
+        {
+          "experiment": "E14-granite1b",
+          "status": "inconclusive",
+          "scale": "Qwen2.5-0.5B (4 workers, 4 domains) and Granite-3.1-1B-A400M MoE (3 workers, 3 domains), 6 rounds x 20 inner steps, thread-hosted peers over localhost HTTP on one Tesla T4, 3 seeds (E14, exploratory, no multiple-comparison correction); no WAN claim",
+          "artifact": "artifacts/experiments/E14_report_granite1b.json",
+          "receipt_sha256": "5f9eac4939b1333c07769030d76aa67025391712e133026caa983dc902213940",
+          "evidence": {
+            "cell": "S6",
+            "S2_minus_cell_per_seed": {
+              "1": 0.02541945377985666,
+              "2": 0.005005866289138794,
+              "3": 0.01705828309059143
+            },
+            "mean": 0.015827867719862294,
+            "half_width": 0.025492879146674866,
+            "interval": [
+              -0.009665011426812573,
+              0.04132074686653716
+            ],
+            "retention_vs_S0": {
+              "S2": {
+                "per_seed": {
+                  "1": -0.45113639762817764,
+                  "2": -0.20249765643587286,
+                  "3": -0.45859203399636195
+                },
+                "n": 3,
+                "mean": -0.37074202935347084,
+                "half_width": 0.3620669991636134,
+                "interval": [
+                  -0.7328090285170843,
+                  -0.008675030189857436
+                ]
+              },
+              "S6": {
+                "per_seed": {
+                  "1": -0.003527960680236265,
+                  "2": -0.11388851228913857,
+                  "3": -0.12306332327872539
+                },
+                "n": 3,
+                "mean": -0.08015993208270007,
+                "half_width": 0.16525376879316592,
+                "interval": [
+                  -0.245413700875866,
+                  0.08509383671046584
+                ]
+              },
+              "S7": {
+                "per_seed": {
+                  "1": -0.45020245365396794,
+                  "2": -0.6425668616955096,
+                  "3": -0.9034123183298484
+                },
+                "n": 3,
+                "mean": -0.6653938778931087,
+                "half_width": 0.5650558788087447,
+                "interval": [
+                  -1.2304497567018533,
+                  -0.10033799908436392
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "P14b": {
+      "rq": "E14 (exploratory)",
+      "claim": "deferred carry (S7) keeps more of the synchronous improvement than S2: df = 2 interval of loss(S2) - loss(S7) above 0",
+      "decided_by": "E14",
+      "status": "mixed",
+      "status_detail": "qwen0.5b: supported; granite1b: inconclusive",
+      "per_model": {
+        "qwen0.5b": "supported",
+        "granite1b": "inconclusive"
+      },
+      "scale": "Qwen2.5-0.5B (4 workers, 4 domains) and Granite-3.1-1B-A400M MoE (3 workers, 3 domains), 6 rounds x 20 inner steps, thread-hosted peers over localhost HTTP on one Tesla T4, 3 seeds (E14, exploratory, no multiple-comparison correction); no WAN claim",
+      "artifact": "artifacts/experiments/E14_hypotheses.json",
+      "receipt_sha256": "a29dea38cca6f5362c776796f6168a52d1725d7aea7f9c1b127ca6cde6afd628",
+      "prereg_sha256": "42b794fd4c52536faed7c67f8fda09978e530e2defef29e3f94f7c29a4ddd7d1",
+      "controls_all_passed": true,
+      "evidence": {
+        "qwen0.5b": {
+          "cell": "S7",
+          "S2_minus_cell_per_seed": {
+            "1": 0.08925273269414902,
+            "2": 0.09578704088926315,
+            "3": 0.04670237749814987
+          },
+          "mean": 0.07724738369385402,
+          "half_width": 0.0662115836477168,
+          "interval": [
+            0.011035800046137217,
+            0.14345896734157082
+          ],
+          "retention_vs_S0": {
+            "S2": {
+              "per_seed": {
+                "1": -0.15357145962480073,
+                "2": -0.11013519903039225,
+                "3": 0.10947696224560427
+              },
+              "n": 3,
+              "mean": -0.05140989880319624,
+              "half_width": 0.3502996533143782,
+              "interval": [
+                -0.4017095521175744,
+                0.29888975451118194
+              ]
+            },
+            "S6": {
+              "per_seed": {
+                "1": 0.9058960303740373,
+                "2": 0.8870582990326925,
+                "3": 0.8440410849005782
+              },
+              "n": 3,
+              "mean": 0.8789984714357694,
+              "half_width": 0.07876045430658743,
+              "interval": [
+                0.800238017129182,
+                0.9577589257423568
+              ]
+            },
+            "S7": {
+              "per_seed": {
+                "1": 0.5227878678653043,
+                "2": 0.6041759384240851,
+                "3": 0.4565288669407004
+              },
+              "n": 3,
+              "mean": 0.5278308910766966,
+              "half_width": 0.18370846681798142,
+              "interval": [
+                0.34412242425871514,
+                0.711539357894678
+              ]
+            }
+          }
+        },
+        "granite1b": {
+          "cell": "S7",
+          "S2_minus_cell_per_seed": {
+            "1": 5.303819974278312e-05,
+            "2": -0.024861176808674834,
+            "3": -0.02261466781298349
+          },
+          "mean": -0.015807602140638515,
+          "half_width": 0.034235314431427764,
+          "interval": [
+            -0.050042916572066276,
+            0.01842771229078925
+          ],
+          "retention_vs_S0": {
+            "S2": {
+              "per_seed": {
+                "1": -0.45113639762817764,
+                "2": -0.20249765643587286,
+                "3": -0.45859203399636195
+              },
+              "n": 3,
+              "mean": -0.37074202935347084,
+              "half_width": 0.3620669991636134,
+              "interval": [
+                -0.7328090285170843,
+                -0.008675030189857436
+              ]
+            },
+            "S6": {
+              "per_seed": {
+                "1": -0.003527960680236265,
+                "2": -0.11388851228913857,
+                "3": -0.12306332327872539
+              },
+              "n": 3,
+              "mean": -0.08015993208270007,
+              "half_width": 0.16525376879316592,
+              "interval": [
+                -0.245413700875866,
+                0.08509383671046584
+              ]
+            },
+            "S7": {
+              "per_seed": {
+                "1": -0.45020245365396794,
+                "2": -0.6425668616955096,
+                "3": -0.9034123183298484
+              },
+              "n": 3,
+              "mean": -0.6653938778931087,
+              "half_width": 0.5650558788087447,
+              "interval": [
+                -1.2304497567018533,
+                -0.10033799908436392
+              ]
+            }
+          }
+        }
+      },
+      "note": "exploratory follow-up of E13 (decides no registered E13 prediction); two hypotheses per model, no multiple-comparison correction; the report's own controls_all_passed is false only because the S1 identity and raw-wire controls are not evaluated in the E14 grid",
+      "decisions": [
+        {
+          "experiment": "E14-qwen0.5b",
+          "status": "supported",
+          "scale": "Qwen2.5-0.5B (4 workers, 4 domains) and Granite-3.1-1B-A400M MoE (3 workers, 3 domains), 6 rounds x 20 inner steps, thread-hosted peers over localhost HTTP on one Tesla T4, 3 seeds (E14, exploratory, no multiple-comparison correction); no WAN claim",
+          "artifact": "artifacts/experiments/E14_report_qwen0.5b.json",
+          "receipt_sha256": "975d81b7b503e8e21004ba15332ab5908a5029895c60e393594ac9458b46ef5f",
+          "evidence": {
+            "cell": "S7",
+            "S2_minus_cell_per_seed": {
+              "1": 0.08925273269414902,
+              "2": 0.09578704088926315,
+              "3": 0.04670237749814987
+            },
+            "mean": 0.07724738369385402,
+            "half_width": 0.0662115836477168,
+            "interval": [
+              0.011035800046137217,
+              0.14345896734157082
+            ],
+            "retention_vs_S0": {
+              "S2": {
+                "per_seed": {
+                  "1": -0.15357145962480073,
+                  "2": -0.11013519903039225,
+                  "3": 0.10947696224560427
+                },
+                "n": 3,
+                "mean": -0.05140989880319624,
+                "half_width": 0.3502996533143782,
+                "interval": [
+                  -0.4017095521175744,
+                  0.29888975451118194
+                ]
+              },
+              "S6": {
+                "per_seed": {
+                  "1": 0.9058960303740373,
+                  "2": 0.8870582990326925,
+                  "3": 0.8440410849005782
+                },
+                "n": 3,
+                "mean": 0.8789984714357694,
+                "half_width": 0.07876045430658743,
+                "interval": [
+                  0.800238017129182,
+                  0.9577589257423568
+                ]
+              },
+              "S7": {
+                "per_seed": {
+                  "1": 0.5227878678653043,
+                  "2": 0.6041759384240851,
+                  "3": 0.4565288669407004
+                },
+                "n": 3,
+                "mean": 0.5278308910766966,
+                "half_width": 0.18370846681798142,
+                "interval": [
+                  0.34412242425871514,
+                  0.711539357894678
+                ]
+              }
+            }
+          }
+        },
+        {
+          "experiment": "E14-granite1b",
+          "status": "inconclusive",
+          "scale": "Qwen2.5-0.5B (4 workers, 4 domains) and Granite-3.1-1B-A400M MoE (3 workers, 3 domains), 6 rounds x 20 inner steps, thread-hosted peers over localhost HTTP on one Tesla T4, 3 seeds (E14, exploratory, no multiple-comparison correction); no WAN claim",
+          "artifact": "artifacts/experiments/E14_report_granite1b.json",
+          "receipt_sha256": "5f9eac4939b1333c07769030d76aa67025391712e133026caa983dc902213940",
+          "evidence": {
+            "cell": "S7",
+            "S2_minus_cell_per_seed": {
+              "1": 5.303819974278312e-05,
+              "2": -0.024861176808674834,
+              "3": -0.02261466781298349
+            },
+            "mean": -0.015807602140638515,
+            "half_width": 0.034235314431427764,
+            "interval": [
+              -0.050042916572066276,
+              0.01842771229078925
+            ],
+            "retention_vs_S0": {
+              "S2": {
+                "per_seed": {
+                  "1": -0.45113639762817764,
+                  "2": -0.20249765643587286,
+                  "3": -0.45859203399636195
+                },
+                "n": 3,
+                "mean": -0.37074202935347084,
+                "half_width": 0.3620669991636134,
+                "interval": [
+                  -0.7328090285170843,
+                  -0.008675030189857436
+                ]
+              },
+              "S6": {
+                "per_seed": {
+                  "1": -0.003527960680236265,
+                  "2": -0.11388851228913857,
+                  "3": -0.12306332327872539
+                },
+                "n": 3,
+                "mean": -0.08015993208270007,
+                "half_width": 0.16525376879316592,
+                "interval": [
+                  -0.245413700875866,
+                  0.08509383671046584
+                ]
+              },
+              "S7": {
+                "per_seed": {
+                  "1": -0.45020245365396794,
+                  "2": -0.6425668616955096,
+                  "3": -0.9034123183298484
+                },
+                "n": 3,
+                "mean": -0.6653938778931087,
+                "half_width": 0.5650558788087447,
+                "interval": [
+                  -1.2304497567018533,
+                  -0.10033799908436392
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "P15a": {
+      "rq": "E15",
+      "claim": "GWAYA-gated RFT improves greedy pass@1 on MBPP-sanitized: C2 - C0 >= +3.0 points with exact McNemar p < 0.05",
+      "decided_by": "E15",
+      "status": "inconclusive",
+      "status_detail": "inconclusive",
+      "scale": "Qwen2.5-Coder-1.5B-Instruct + rank-16 LoRA RFT on MBPP (train 462, eval n = 257) with HumanEval n = 164 descriptive, one training seed, Tesla T4 with a 7.5 GiB cap; gate = vendored GWAYA zero-stub auditor + namespace sandbox (not GWAYA's own oracle) (E15)",
+      "artifact": "artifacts/experiments/E15_hypotheses.json",
+      "receipt_sha256": "8ef9ce8a24696976f6a6dac7f087b97138739661c46b2c746e9e0faf0781c80e",
+      "prereg_sha256": "a7f601f6b964cc03909f485ef4eb68521beefbfe68ec2df245c71d240bb91eb0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "inconclusive",
+        "computed_status": "inconclusive",
+        "comparison": "C2-C0",
+        "n": 257,
+        "points": 0.7782101167315175,
+        "b_only": 15,
+        "a_only": 13,
+        "mcnemar_p": 0.8505540192127228,
+        "report_mcnemar_p": 0.8505540192127228,
+        "report_diff_points": 0.7782101167315175,
+        "report_agrees": true
+      },
+      "source_report": {
+        "file": "E15_gwaya_rft_report.json",
+        "receipt_sha256": "678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9",
+        "file_sha256": "b44ef54c9d36b28d477d332a9170395c4bbf711b6c10fe2ca9dc1e43dda745b6"
+      },
+      "note": "decided by the registered rules from artifacts/experiments/E15_gwaya_rft_report.json (scripts/analyze_E14_E15_hypotheses.py); one training seed, one model size"
+    },
+    "P15b": {
+      "rq": "E15",
+      "claim": "the GWAYA inference loop improves the base model: C1 - C0 >= +5.0 points with McNemar p < 0.05",
+      "decided_by": "E15",
+      "status": "supported",
+      "status_detail": "supported",
+      "scale": "Qwen2.5-Coder-1.5B-Instruct + rank-16 LoRA RFT on MBPP (train 462, eval n = 257) with HumanEval n = 164 descriptive, one training seed, Tesla T4 with a 7.5 GiB cap; gate = vendored GWAYA zero-stub auditor + namespace sandbox (not GWAYA's own oracle) (E15)",
+      "artifact": "artifacts/experiments/E15_hypotheses.json",
+      "receipt_sha256": "8ef9ce8a24696976f6a6dac7f087b97138739661c46b2c746e9e0faf0781c80e",
+      "prereg_sha256": "a7f601f6b964cc03909f485ef4eb68521beefbfe68ec2df245c71d240bb91eb0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "supported",
+        "computed_status": "supported",
+        "comparison": "C1-C0",
+        "n": 257,
+        "points": 7.003891050583658,
+        "b_only": 19,
+        "a_only": 1,
+        "mcnemar_p": 4.00543212890625e-05,
+        "report_mcnemar_p": 4.00543212890625e-05,
+        "report_diff_points": 7.003891050583658,
+        "report_agrees": true
+      },
+      "source_report": {
+        "file": "E15_gwaya_rft_report.json",
+        "receipt_sha256": "678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9",
+        "file_sha256": "b44ef54c9d36b28d477d332a9170395c4bbf711b6c10fe2ca9dc1e43dda745b6"
+      },
+      "note": "decided by the registered rules from artifacts/experiments/E15_gwaya_rft_report.json (scripts/analyze_E14_E15_hypotheses.py); one training seed, one model size"
+    },
+    "P15c": {
+      "rq": "E15",
+      "claim": "stacking (descriptive): C3 - C1 and C3 - C0 with McNemar p, no status",
+      "decided_by": "E15",
+      "status": "descriptive",
+      "status_detail": "descriptive (no status)",
+      "scale": "Qwen2.5-Coder-1.5B-Instruct + rank-16 LoRA RFT on MBPP (train 462, eval n = 257) with HumanEval n = 164 descriptive, one training seed, Tesla T4 with a 7.5 GiB cap; gate = vendored GWAYA zero-stub auditor + namespace sandbox (not GWAYA's own oracle) (E15)",
+      "artifact": "artifacts/experiments/E15_hypotheses.json",
+      "receipt_sha256": "8ef9ce8a24696976f6a6dac7f087b97138739661c46b2c746e9e0faf0781c80e",
+      "prereg_sha256": "a7f601f6b964cc03909f485ef4eb68521beefbfe68ec2df245c71d240bb91eb0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "descriptive (no status)",
+        "C3_minus_C1": {
+          "comparison": "C3-C1",
+          "n": 257,
+          "points": 1.1673151750972763,
+          "b_only": 12,
+          "a_only": 9,
+          "mcnemar_p": 0.6636238098144531,
+          "report_mcnemar_p": 0.6636238098144531,
+          "report_diff_points": 1.1673151750972763,
+          "report_agrees": true
+        },
+        "C3_minus_C0": {
+          "comparison": "C3-C0",
+          "n": 257,
+          "points": 8.171206225680933,
+          "b_only": 26,
+          "a_only": 5,
+          "mcnemar_p": 0.00019219517707824707,
+          "report_mcnemar_p": 0.00019219517707824707,
+          "report_diff_points": 8.171206225680933,
+          "report_agrees": true
+        }
+      },
+      "source_report": {
+        "file": "E15_gwaya_rft_report.json",
+        "receipt_sha256": "678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9",
+        "file_sha256": "b44ef54c9d36b28d477d332a9170395c4bbf711b6c10fe2ca9dc1e43dda745b6"
+      },
+      "note": "decided by the registered rules from artifacts/experiments/E15_gwaya_rft_report.json (scripts/analyze_E14_E15_hypotheses.py); one training seed, one model size"
+    },
+    "P15d": {
+      "rq": "E15",
+      "claim": "training and every inference stage run to completion with the 7.5 GiB cap enforced (peak reserved <= 8.0 GiB)",
+      "decided_by": "E15",
+      "status": "supported",
+      "status_detail": "supported",
+      "scale": "Qwen2.5-Coder-1.5B-Instruct + rank-16 LoRA RFT on MBPP (train 462, eval n = 257) with HumanEval n = 164 descriptive, one training seed, Tesla T4 with a 7.5 GiB cap; gate = vendored GWAYA zero-stub auditor + namespace sandbox (not GWAYA's own oracle) (E15)",
+      "artifact": "artifacts/experiments/E15_hypotheses.json",
+      "receipt_sha256": "8ef9ce8a24696976f6a6dac7f087b97138739661c46b2c746e9e0faf0781c80e",
+      "prereg_sha256": "a7f601f6b964cc03909f485ef4eb68521beefbfe68ec2df245c71d240bb91eb0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "supported",
+        "computed_status": "supported",
+        "peak_reserved_gib_per_stage": {
+          "baseline": 4.17578125,
+          "loop_base": 4.23828125,
+          "rft": 4.466796875,
+          "train": 4.1484375,
+          "tuned": 4.36328125
+        },
+        "max_peak_reserved_gib": 4.466796875,
+        "limit_gib": 8.0,
+        "stage_status": {
+          "baseline": "ok",
+          "loop_base": "ok",
+          "rft": "ok",
+          "train": "ok",
+          "tuned": "ok",
+          "controls": "ok"
+        }
+      },
+      "source_report": {
+        "file": "E15_gwaya_rft_report.json",
+        "receipt_sha256": "678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9",
+        "file_sha256": "b44ef54c9d36b28d477d332a9170395c4bbf711b6c10fe2ca9dc1e43dda745b6"
+      },
+      "note": "decided by the registered rules from artifacts/experiments/E15_gwaya_rft_report.json (scripts/analyze_E14_E15_hypotheses.py); one training seed, one model size"
+    },
+    "P15e": {
+      "rq": "E15",
+      "claim": "generalisation (descriptive): HumanEval C2 - C0 with McNemar p, no status",
+      "decided_by": "E15",
+      "status": "descriptive",
+      "status_detail": "descriptive (no status)",
+      "scale": "Qwen2.5-Coder-1.5B-Instruct + rank-16 LoRA RFT on MBPP (train 462, eval n = 257) with HumanEval n = 164 descriptive, one training seed, Tesla T4 with a 7.5 GiB cap; gate = vendored GWAYA zero-stub auditor + namespace sandbox (not GWAYA's own oracle) (E15)",
+      "artifact": "artifacts/experiments/E15_hypotheses.json",
+      "receipt_sha256": "8ef9ce8a24696976f6a6dac7f087b97138739661c46b2c746e9e0faf0781c80e",
+      "prereg_sha256": "a7f601f6b964cc03909f485ef4eb68521beefbfe68ec2df245c71d240bb91eb0",
+      "controls_all_passed": true,
+      "evidence": {
+        "status": "descriptive (no status)",
+        "comparison": "C2h-C0h (HumanEval)",
+        "n": 164,
+        "points": 0.6097560975609756,
+        "b_only": 12,
+        "a_only": 11,
+        "mcnemar_p": 1.0,
+        "report_mcnemar_p": 1.0,
+        "report_diff_points": 0.6097560975609756,
+        "report_agrees": true
+      },
+      "source_report": {
+        "file": "E15_gwaya_rft_report.json",
+        "receipt_sha256": "678b5a52b87918c7aab034eb8a701e6ab699d3274c682704b1effb216f6281c9",
+        "file_sha256": "b44ef54c9d36b28d477d332a9170395c4bbf711b6c10fe2ca9dc1e43dda745b6"
+      },
+      "note": "decided by the registered rules from artifacts/experiments/E15_gwaya_rft_report.json (scripts/analyze_E14_E15_hypotheses.py); one training seed, one model size"
+    },
+    "P16a": {
+      "rq": "E16 (GWAYA PR #21 P1)",
+      "claim": "the 7B Q4_K_M tier fits within 6656 MiB of GPU memory at num_ctx 4096 (and 8192)",
+      "decided_by": "E16",
+      "scale": "Qwen2.5-Coder 1.5B / 3B / 7B-Instruct Q4_K_M served by Ollama 0.34.1 on a Tesla T4, MBPP-sanitized n = 257, num_ctx 4096 (VRAM also at 8192), same gate as E15 (E16)",
+      "artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+      "receipt_sha256": "6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1",
+      "controls_all_passed": true,
+      "status": "supported",
+      "status_detail": "num_ctx 4096: supported; num_ctx 8192: supported",
+      "per_ctx": {
+        "num_ctx 4096": "supported",
+        "num_ctx 8192": "supported"
+      },
+      "evidence": {
+        "4096": {
+          "measured_mib": 5483,
+          "threshold_mib": 6656,
+          "status": "supported"
+        },
+        "8192": {
+          "measured_mib": 6387,
+          "threshold_mib": 6656,
+          "status": "supported"
+        }
+      },
+      "note": "threshold 6656 MiB is a Windows WDDM reserve; here it is tested as a threshold on Linux, not as a physical limit"
+    },
+    "P16b": {
+      "rq": "E16 (GWAYA PR #21 P1)",
+      "claim": "estimator adequacy: measured/estimated VRAM ratio within [0.80, 1.25] for every tier x ctx",
+      "decided_by": "E16",
+      "scale": "Qwen2.5-Coder 1.5B / 3B / 7B-Instruct Q4_K_M served by Ollama 0.34.1 on a Tesla T4, MBPP-sanitized n = 257, num_ctx 4096 (VRAM also at 8192), same gate as E15 (E16)",
+      "artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+      "receipt_sha256": "6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1",
+      "controls_all_passed": true,
+      "status": "adequate",
+      "status_detail": "adequate",
+      "evidence": {
+        "status": "adequate",
+        "band": [
+          0.8,
+          1.25
+        ],
+        "rows": [
+          {
+            "tier": "1.5b",
+            "ctx": 4096,
+            "measured_mib": 1651,
+            "estimator_mib": 1782,
+            "ratio": 0.9264870931537598,
+            "in_band": true
+          },
+          {
+            "tier": "1.5b",
+            "ctx": 8192,
+            "measured_mib": 2107,
+            "estimator_mib": 1894,
+            "ratio": 1.1124604012671595,
+            "in_band": true
+          },
+          {
+            "tier": "3b",
+            "ctx": 4096,
+            "measured_mib": 2713,
+            "estimator_mib": 2584,
+            "ratio": 1.049922600619195,
+            "in_band": true
+          },
+          {
+            "tier": "3b",
+            "ctx": 8192,
+            "measured_mib": 3297,
+            "estimator_mib": 2728,
+            "ratio": 1.2085777126099706,
+            "in_band": true
+          },
+          {
+            "tier": "7b",
+            "ctx": 4096,
+            "measured_mib": 5483,
+            "estimator_mib": 5290,
+            "ratio": 1.03648393194707,
+            "in_band": true
+          },
+          {
+            "tier": "7b",
+            "ctx": 8192,
+            "measured_mib": 6387,
+            "estimator_mib": 5514,
+            "ratio": 1.1583242655059847,
+            "in_band": true
+          }
+        ],
+        "complete": true,
+        "discrepancies": []
+      },
+      "note": "the E16 pre-registration defines this prediction's outcomes as 'adequate' (all six ratios in the registered band) or a reported discrepancy; the report's word is stored verbatim"
+    },
+    "P16c": {
+      "rq": "E16 (GWAYA PR #21 P1)",
+      "claim": "the GWAYA loop does not lower pass@1 (refuted if L - R < 0 with exact McNemar p < 0.05), per tier",
+      "decided_by": "E16",
+      "scale": "Qwen2.5-Coder 1.5B / 3B / 7B-Instruct Q4_K_M served by Ollama 0.34.1 on a Tesla T4, MBPP-sanitized n = 257, num_ctx 4096 (VRAM also at 8192), same gate as E15 (E16)",
+      "artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+      "receipt_sha256": "6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1",
+      "controls_all_passed": true,
+      "status": "supported",
+      "status_detail": "1.5b: supported; 3b: supported; 7b: supported",
+      "per_tier": {
+        "1.5b": "supported",
+        "3b": "supported",
+        "7b": "supported"
+      },
+      "evidence": {
+        "1.5b": {
+          "n": 257,
+          "diff": 0.08560311284046693,
+          "b_only": 22,
+          "a_only": 0,
+          "discordant": 22,
+          "mcnemar_p": 4.76837158203125e-07
+        },
+        "3b": {
+          "n": 257,
+          "diff": 0.07392996108949416,
+          "b_only": 19,
+          "a_only": 0,
+          "discordant": 19,
+          "mcnemar_p": 3.814697265625e-06
+        },
+        "7b": {
+          "n": 257,
+          "diff": 0.038910505836575876,
+          "b_only": 10,
+          "a_only": 0,
+          "discordant": 10,
+          "mcnemar_p": 0.001953125
+        }
+      },
+      "note": "decided per tier; the headline word is the common status when all tiers agree, else 'mixed' (see per_tier)"
+    },
+    "P16d": {
+      "rq": "E16",
+      "claim": "the GWAYA loop improves pass@1 by >= +5.0 points with McNemar p < 0.05, per tier",
+      "decided_by": "E16",
+      "scale": "Qwen2.5-Coder 1.5B / 3B / 7B-Instruct Q4_K_M served by Ollama 0.34.1 on a Tesla T4, MBPP-sanitized n = 257, num_ctx 4096 (VRAM also at 8192), same gate as E15 (E16)",
+      "artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+      "receipt_sha256": "6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1",
+      "controls_all_passed": true,
+      "status": "mixed",
+      "status_detail": "1.5b: supported; 3b: supported; 7b: inconclusive",
+      "per_tier": {
+        "1.5b": "supported",
+        "3b": "supported",
+        "7b": "inconclusive"
+      },
+      "evidence": {
+        "1.5b": {
+          "n": 257,
+          "diff": 0.08560311284046693,
+          "b_only": 22,
+          "a_only": 0,
+          "discordant": 22,
+          "mcnemar_p": 4.76837158203125e-07
+        },
+        "3b": {
+          "n": 257,
+          "diff": 0.07392996108949416,
+          "b_only": 19,
+          "a_only": 0,
+          "discordant": 19,
+          "mcnemar_p": 3.814697265625e-06
+        },
+        "7b": {
+          "n": 257,
+          "diff": 0.038910505836575876,
+          "b_only": 10,
+          "a_only": 0,
+          "discordant": 10,
+          "mcnemar_p": 0.001953125
+        }
+      },
+      "note": "decided per tier; the headline word is the common status when all tiers agree, else 'mixed' (see per_tier)"
+    },
+    "P16e": {
+      "rq": "E16 (GWAYA PR #21 P2)",
+      "claim": "precision of VERIFIED verdicts against the hidden tests >= 0.80, per tier",
+      "decided_by": "E16",
+      "scale": "Qwen2.5-Coder 1.5B / 3B / 7B-Instruct Q4_K_M served by Ollama 0.34.1 on a Tesla T4, MBPP-sanitized n = 257, num_ctx 4096 (VRAM also at 8192), same gate as E15 (E16)",
+      "artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+      "receipt_sha256": "6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1",
+      "controls_all_passed": true,
+      "status": "supported",
+      "status_detail": "1.5b: supported; 3b: supported; 7b: supported",
+      "per_tier": {
+        "1.5b": "supported",
+        "3b": "supported",
+        "7b": "supported"
+      },
+      "evidence": {
+        "1.5b": {
+          "candidates": 562,
+          "tp": 188,
+          "fp": 15,
+          "fn": 0,
+          "tn": 359,
+          "verified": 203,
+          "precision": 0.9261083743842364,
+          "precision_wilson95": [
+            0.8816770407169572,
+            0.9547123416938947
+          ],
+          "recall": 1.0,
+          "chosen_verified_problems": 203,
+          "chosen_precision": 0.9261083743842364,
+          "status_H16e": "supported"
+        },
+        "3b": {
+          "candidates": 463,
+          "tp": 206,
+          "fp": 16,
+          "fn": 0,
+          "tn": 241,
+          "verified": 222,
+          "precision": 0.9279279279279279,
+          "precision_wilson95": [
+            0.8861448644616867,
+            0.9551532789002444
+          ],
+          "recall": 1.0,
+          "chosen_verified_problems": 222,
+          "chosen_precision": 0.9279279279279279,
+          "status_H16e": "supported"
+        },
+        "7b": {
+          "candidates": 399,
+          "tp": 220,
+          "fp": 12,
+          "fn": 0,
+          "tn": 167,
+          "verified": 232,
+          "precision": 0.9482758620689655,
+          "precision_wilson95": [
+            0.9117811336943175,
+            0.9701672779212099
+          ],
+          "recall": 1.0,
+          "chosen_verified_problems": 232,
+          "chosen_precision": 0.9482758620689655,
+          "status_H16e": "supported"
+        }
+      },
+      "note": "decided per tier; the headline word is the common status when all tiers agree, else 'mixed' (see per_tier)"
+    },
+    "P16f": {
+      "rq": "E16",
+      "claim": "decode tok/s of the 7B tier at num_ctx 4096 >= 20 (interactive-use bar, descriptive)",
+      "decided_by": "E16",
+      "scale": "Qwen2.5-Coder 1.5B / 3B / 7B-Instruct Q4_K_M served by Ollama 0.34.1 on a Tesla T4, MBPP-sanitized n = 257, num_ctx 4096 (VRAM also at 8192), same gate as E15 (E16)",
+      "artifact": "artifacts/experiments/E16_gwaya_lite_t4_report.json",
+      "receipt_sha256": "6c9e904bcd9b52bcc4ca0b581ea2c52a328a560c7d7b7eb985cb17f6613a24c1",
+      "controls_all_passed": true,
+      "status": "descriptive",
+      "status_detail": "met (28.5 tok/s vs bar 20)",
+      "evidence": {
+        "decode_tps_median": 28.526978902041257,
+        "bar_tps": 20.0,
+        "status": "met"
+      }
     }
   },
   "status_counts": {
     "untested": 6,
-    "refuted": 5,
-    "inconclusive": 2,
-    "supported": 4
+    "refuted": 6,
+    "inconclusive": 3,
+    "supported": 11,
+    "mixed": 3,
+    "descriptive": 3,
+    "adequate": 1
   },
-  "receipt_sha256": "a09499ed6755309dd51ae6629cdebba2a8b4c7fc0b52dcb4bd39b5466c58ba79"
+  "receipt_sha256": "641980771f4a8f6fa80707fd45e7e661de18ed48b52e1d78c17402b576f2f8fb"
 }

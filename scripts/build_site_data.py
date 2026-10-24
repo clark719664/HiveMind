@@ -4,7 +4,10 @@ The site's "What the real experiments measured" panel is fed ONLY by this file. 
 verbatim and never computes a statistic, with labelled exceptions: the registered retention formula applied to the rotating-straggler diagnostic
 (``derived: true``), the E14 hypothesis word mapped from the report's own ``direction`` by the registered rule (``hypothesis_status`` plus its rule), and
 the wording of the two diagnostics, which comes from docs/benchmarks/T4_10h_campaign_report.md (``status_source``) because their JSON has no status. The
-E15 report carries numbers only; no H15 verdict is invented. A missing
+E15 report carries numbers only; the H15 and H14 words come from the analysis files E15_hypotheses.json / E14_hypotheses.json (scripts/analyze_E14_E15_hypotheses.py,
+registered rules, receipt-tagged) and are copied verbatim into ``registered_hypotheses``; the E13d (six-domain replication), E16 (GWAYA-Lite on the T4) and
+GWAYA-Lite live-check blocks (``e13d``, ``e16``, ``gwaya_lite_live``) copy statuses and numbers verbatim from their receipts. The page (docs/site/index.html + app.js)
+does not render ``e13d``, ``e16``, ``gwaya_lite_live`` or ``registered_hypotheses`` yet; they are data only. A missing
 source gives ``{"available": false, ...}``; a present source gives ``{"available": true, "source": <file name>, "receipt12": <first 12 hex chars of its
 receipt_sha256>, "generated_utc": <build time>, ...}``. NaN/Infinity (not valid JSON) become null.
 
@@ -12,7 +15,9 @@ receipt_sha256>, "generated_utc": <build time>, ...}``. NaN/Infinity (not valid 
 
 Sources (all optional): E13_swarm_local_predictions.json, E13_swarm_local_report.json, E13_swarm_local_report_rotstraggle.json,
 E13_swarm_local_report_m2proc.json, E14_report_<model>.json (qwen0.5b, granite1b; same schema as an E13 report with an ``e14`` section),
-E14_swarm_fairness_prereg.json, E15_gwaya_rft_report.json, E15_gwaya_rft_prereg.json.
+E14_swarm_fairness_prereg.json, E14_hypotheses.json, E15_gwaya_rft_report.json, E15_gwaya_rft_prereg.json, E15_hypotheses.json,
+E13_swarm_local_predictions_m6.json + E13_swarm_local_report_m6.json (E13d), E16_gwaya_lite_t4_report.json + E16_gwaya_lite_t4_prereg.json,
+gwaya_lite_live_check.json (in the artifacts directory or its parent).
 """
 
 from __future__ import annotations
@@ -22,8 +27,11 @@ import datetime as _dt
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+os.environ["CUDA_VISIBLE_DEVICES"] = ""  # CPU only
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_ARTIFACTS = ROOT / "artifacts" / "experiments"
@@ -105,8 +113,8 @@ def controls_summary(controls: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------------------------- E13
-def e13_registered(art: Path, utc: str) -> Dict[str, Any]:
-    pred_path, rep_path = art / "E13_swarm_local_predictions.json", art / "E13_swarm_local_report.json"
+def e13_registered(art: Path, utc: str, pred_name: str = "E13_swarm_local_predictions.json", rep_name: str = "E13_swarm_local_report.json") -> Dict[str, Any]:
+    pred_path, rep_path = art / pred_name, art / rep_name
     pred = load(pred_path)
     if pred is None:
         return missing(pred_path, "predictions file not found")
@@ -223,8 +231,20 @@ def build_e14(art: Path, utc: str) -> Dict[str, Any]:
     if not models:
         return {"available": False, "source": "E14_report_<model>.json", "reason": "no E14 report file present yet (registered, not reported)", "prereg": prereg}
     first = sources[0]
-    return {"available": True, "source": [s["source"] for s in sources], "receipt12": [s["receipt12"] for s in sources], "generated_utc": utc,
-            "first_source": first["source"], "models": models, "prereg": prereg}
+    block = {"available": True, "source": [s["source"] for s in sources], "receipt12": [s["receipt12"] for s in sources], "generated_utc": utc,
+             "first_source": first["source"], "models": models, "prereg": prereg}
+    block["registered_hypotheses"] = registered_hypotheses(art, utc, "E14_hypotheses.json", lambda d: {"models": {
+        m: {h: pick(v.get(h), ["cell", "status", "mean", "half_width", "interval", "S2_minus_cell_per_seed"]) for h in ("H14a", "H14b")} for m, v in (d.get("models") or {}).items()}})
+    return block
+
+
+def registered_hypotheses(art: Path, utc: str, fname: str, extract: Any) -> Dict[str, Any]:
+    """Statuses of an analysis file (scripts/analyze_E14_E15_hypotheses.py), copied verbatim with the file's receipt; absent file -> available false."""
+    path = art / fname
+    doc = load(path)
+    if doc is None:
+        return missing(path, "analysis file not found (run scripts/analyze_E14_E15_hypotheses.py)")
+    return {**tag(path, doc, utc), "rules_source": "registered rules of the pre-registration, applied by scripts/analyze_E14_E15_hypotheses.py", **extract(doc)}
 
 
 # ---------------------------------------------------------------------------------------------- E15
@@ -245,9 +265,71 @@ def build_e15(art: Path, utc: str) -> Dict[str, Any]:
     comps = doc.get("paired_comparisons")
     if isinstance(comps, dict):
         block["paired_comparisons"] = {k: pick(v, ["n", "diff", "b_only", "a_only", "discordant", "mcnemar_p"]) for k, v in comps.items() if isinstance(v, dict)}
-    block["verdicts_note"] = "the report carries numbers only; the H15 verdicts (supported / refuted / inconclusive) are not computed here, apply the rules registered in the prereg"
+    block["verdicts_note"] = ("the report carries numbers only; the H15 verdicts (supported / refuted / inconclusive) are not computed here, apply the rules registered in the prereg; "
+                              "the registered statuses, computed from this report by scripts/analyze_E14_E15_hypotheses.py, are copied from E15_hypotheses.json into registered_hypotheses")
+
+    def e15_extract(d: Dict[str, Any]) -> Dict[str, Any]:
+        h = d.get("hypotheses") or {}
+        out: Dict[str, Any] = {"valid": h.get("valid"), "hypotheses": {k: pick(h.get(k), ["status", "points", "mcnemar_p", "b_only", "a_only", "max_peak_reserved_gib", "limit_gib"]) for k in ("H15a", "H15b", "H15d")}}
+        out["descriptive"] = {"H15c_C3_minus_C1": pick((h.get("H15c_descriptive") or {}).get("C3_minus_C1"), ["points", "mcnemar_p"]),
+                              "H15c_C3_minus_C0": pick((h.get("H15c_descriptive") or {}).get("C3_minus_C0"), ["points", "mcnemar_p"]),
+                              "H15e": pick(h.get("H15e_descriptive"), ["points", "mcnemar_p"])}
+        return out
+
+    block["registered_hypotheses"] = registered_hypotheses(art, utc, "E15_hypotheses.json", e15_extract)
+    stages = doc.get("stages")
+    if isinstance(stages, dict):
+        block["stage_meters"] = {k: pick(v.get("meter"), ["wall_s", "peak_reserved_gib", "energy_wh"]) for k, v in stages.items() if isinstance(v, dict) and isinstance(v.get("meter"), dict)}
+        rft = stages.get("rft")
+        if isinstance(rft, dict):
+            block["rft_yield"] = pick(rft, ["problems", "problems_with_accepted", "mean_yield", "kept_pairs", "unverified_samples"])
     block["prereg"] = prereg
     return block
+
+
+# ---------------------------------------------------------------------------------------------- E13d, E16, live check
+def build_e13d(art: Path, utc: str) -> Dict[str, Any]:
+    """E13d: the six-domain, six-worker replication (amendment 6, exploratory); same shape as e13.registered, statuses verbatim from the m6 predictions."""
+    blk = e13_registered(art, utc, "E13_swarm_local_predictions_m6.json", "E13_swarm_local_report_m6.json")
+    if blk.get("available"):
+        blk["status"] = "exploratory replication (E13d, amendment 6); changes no registered E13 result"
+    return blk
+
+
+def build_e16(art: Path, utc: str) -> Dict[str, Any]:
+    prereg = prereg_block(art, "E16_gwaya_lite_t4_prereg.json", ["registered_utc", "title", "hypotheses", "scope"])
+    path = art / "E16_gwaya_lite_t4_report.json"
+    doc = load(path)
+    if doc is None:
+        return {"available": False, "source": path.name, "reason": "no E16 report file present", "prereg": prereg}
+    block = tag(path, doc, utc)
+    an = doc.get("analysis") or {}
+    block.update({"run_status": doc.get("status"), "smoke": doc.get("smoke"), "run_valid": doc.get("run_valid"), "n_problems": doc.get("n_problems"),
+                  "environment": pick(doc.get("environment"), ["ollama_version", "gpu"]), "hypotheses": an.get("H16"), "escalation_ladder": an.get("escalation_ladder")})
+    block["tiers"] = {t: {**{k: pick(v.get(k), ["label", "n", "passes", "pass_at_1", "wilson95", "accepted_gwaya", "model_seconds"]) for k in ("R4096", "L4096", "R8192") if k in v},
+                          "paired_L_minus_R": pick(v.get("paired_L_minus_R"), ["n", "diff", "b_only", "a_only", "mcnemar_p"]),
+                          "p2_gate_calibration": pick(v.get("p2_gate_calibration"), ["precision", "precision_wilson95", "recall", "verified", "status_H16e"]),
+                          "determinism": v.get("determinism")} for t, v in (an.get("tiers") or {}).items() if isinstance(v, dict)}
+    block["probes"] = [pick(p, ["key", "tier", "ctx", "measured_mib", "estimator_mib", "ratio_measured_over_estimate", "decode_tps_median", "prompt_eval_tps_median", "gpu_pct"])
+                       for p in (doc.get("probes") or []) if isinstance(p, dict)]
+    block["controls"] = {k: (v.get("pass") if isinstance(v, dict) else v) for k, v in (doc.get("controls") or {}).items()}
+    block["notes"] = doc.get("notes")
+    block["prereg"] = prereg
+    return block
+
+
+def build_live(art: Path, utc: str) -> Dict[str, Any]:
+    for path in (art / "gwaya_lite_live_check.json", art.parent / "gwaya_lite_live_check.json"):
+        doc = load(path)
+        if doc is not None:
+            block = tag(path, doc, utc)
+            if isinstance(doc.get("url"), str):  # the scheme is dropped: the static-site tests allow no URL other than the repository's
+                block["listen_address"] = doc["url"].split("://", 1)[-1]
+            block.update(pick(doc, ["written_utc", "health", "models", "tasks", "untested_request", "sse", "foreign_host_status", "foreign_origin_status", "listening",
+                                    "gpu_memory_used_mib_after", "ollama_resident_after", "all_ok"]))
+            block["scope"] = "smoke check of three small tasks on loopback, not a benchmark; the sandbox is the E15 sandbox, not GWAYA's own oracle"
+            return block
+    return {"available": False, "source": "gwaya_lite_live_check.json", "reason": "live-check receipt not found"}
 
 
 def build(art: Path, utc: str) -> Dict[str, Any]:
@@ -257,6 +339,9 @@ def build(art: Path, utc: str) -> Dict[str, Any]:
         "e13": {"registered": e13_registered(art, utc), "rotating_straggler": e13_rotating(art, utc), "m2_process_identity": e13_m2(art, utc)},
         "e14": build_e14(art, utc),
         "e15": build_e15(art, utc),
+        "e13d": build_e13d(art, utc),
+        "e16": build_e16(art, utc),
+        "gwaya_lite_live": build_live(art, utc),
     })
 
 
@@ -275,7 +360,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(render(data), encoding="utf-8")
-    for blk in ("e13", "e14", "e15"):
+    for blk in ("e13", "e14", "e15", "e13d", "e16", "gwaya_lite_live"):
         sub = data[blk]
         if blk == "e13":
             print(blk, {k: v.get("available") for k, v in sub.items()})

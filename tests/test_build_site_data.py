@@ -180,3 +180,76 @@ def test_real_artifacts_build_without_inventing_numbers() -> None:
         if "P13b" in m and "mean" in m["P13b"]:
             assert data["models"][name]["P13b"]["mean"] == m["P13b"]["mean"]
             assert data["models"][name]["P13b"]["status"] == m["P13b"]["status"]
+
+
+def test_new_blocks_absent_on_empty_directory(tmp_path: Path) -> None:
+    data = bsd.build(tmp_path / "experiments", UTC)
+    assert data["e13d"]["available"] is False and data["e16"]["available"] is False and data["gwaya_lite_live"]["available"] is False
+    assert data["e16"]["prereg"]["available"] is False
+
+
+def test_e13d_uses_m6_files_and_copies_status(tmp_path: Path) -> None:
+    write(tmp_path, "E13_swarm_local_predictions_m6.json", {"source_report": "E13_swarm_local_report_m6.json", "source_report_receipt": RECEIPT, "receipt_sha256": RECEIPT,
+                                                           "models": {"qwen0.5b": {"valid": True, "P13b": {"status": "inconclusive", "mean": 0.29, "half_width": 0.39, "interval": [-0.1, 0.68], "bar": 0.5}}}})
+    write(tmp_path, "E13_swarm_local_report_m6.json", e13_report({"qwen0.5b": model_with_cells({"S0": cell("sync", [2.6] * 3), "S5": cell("noq", [2.62] * 3)})}))
+    blk = bsd.build(tmp_path, UTC)
+    assert blk["e13"]["registered"]["available"] is False  # the registered E13 files are separate
+    d = blk["e13d"]
+    assert d["available"] and d["models"]["qwen0.5b"]["P13b"]["status"] == "inconclusive" and d["models"]["qwen0.5b"]["P13b"]["mean"] == 0.29
+    assert "replication" in d["status"] and "S5" in d["models"]["qwen0.5b"]["report_cells"]
+
+
+def test_e16_block_copies_statuses_and_numbers_verbatim(tmp_path: Path) -> None:
+    tier = {"R4096": {"label": "R", "n": 10, "passes": 6, "pass_at_1": 0.6, "wilson95": [0.3, 0.8], "accepted_gwaya": 6, "extra": 1},
+            "L4096": {"label": "L", "n": 10, "passes": 8, "pass_at_1": 0.8, "wilson95": [0.5, 0.9], "accepted_gwaya": 8},
+            "paired_L_minus_R": {"n": 10, "diff": 0.2, "b_only": 2, "a_only": 0, "mcnemar_p": 0.5, "x": 1},
+            "p2_gate_calibration": {"precision": 0.9, "precision_wilson95": [0.7, 0.97], "recall": 1.0, "verified": 9, "status_H16e": "supported", "tp": 8},
+            "determinism": {"fraction_identical": 1.0}}
+    h = {"H16a": {"4096": {"measured_mib": 5483, "threshold_mib": 6656, "status": "supported"}}, "H16c": {"7b": "supported"}, "H16d": {"7b": "inconclusive"}}
+    write(tmp_path, "E16_gwaya_lite_t4_report.json", {"receipt_sha256": RECEIPT, "status": "complete", "smoke": False, "run_valid": True, "n_problems": 10,
+                                                      "environment": {"ollama_version": "0.34.1", "python": "x"}, "analysis": {"H16": h, "tiers": {"7b": tier}, "escalation_ladder": {"n": 10}},
+                                                      "probes": [{"key": "7b:4096", "tier": "7b", "ctx": 4096, "measured_mib": 5483, "estimator_mib": 5290, "ratio_measured_over_estimate": 1.04,
+                                                                  "decode_tps_median": 28.5, "prompt_eval_tps_median": 812.0, "gpu_pct": 100.0, "secret": 1}],
+                                                      "controls": {"idle_gpu": {"pass": True, "x": 1}}, "notes": ["Numbers only"]})
+    blk = bsd.build(tmp_path, UTC)["e16"]
+    assert blk["available"] and blk["receipt12"] == RECEIPT[:12] and blk["run_valid"] is True and blk["hypotheses"] == h
+    t = blk["tiers"]["7b"]
+    assert "extra" not in t["R4096"] and t["paired_L_minus_R"] == {"n": 10, "diff": 0.2, "b_only": 2, "a_only": 0, "mcnemar_p": 0.5}
+    assert t["p2_gate_calibration"]["status_H16e"] == "supported" and "tp" not in t["p2_gate_calibration"]
+    assert blk["probes"][0]["measured_mib"] == 5483 and "secret" not in blk["probes"][0] and blk["controls"] == {"idle_gpu": True}
+
+
+def test_live_check_block_found_in_artifacts_dir_or_its_parent(tmp_path: Path) -> None:
+    art = tmp_path / "artifacts" / "experiments"
+    art.mkdir(parents=True)
+    doc = {"receipt_sha256": RECEIPT, "url": "http://127.0.0.1:8099", "all_ok": True, "tasks": [{"task": "t", "verdict": "VERIFIED"}], "untested_request": {"verdict": "AUDITED"}, "other": 1}
+    (tmp_path / "artifacts" / "gwaya_lite_live_check.json").write_text(json.dumps(doc), encoding="utf-8")
+    blk = bsd.build(art, UTC)["gwaya_lite_live"]
+    assert blk["listen_address"] == "127.0.0.1:8099" and "url" not in blk and "http" not in json.dumps(blk)
+    assert blk["available"] and blk["all_ok"] is True and blk["tasks"][0]["verdict"] == "VERIFIED" and blk["untested_request"]["verdict"] == "AUDITED" and "other" not in blk
+    assert blk["receipt12"] == RECEIPT[:12]
+
+
+def test_registered_hypotheses_from_analysis_files(tmp_path: Path) -> None:
+    write(tmp_path, "E14_report_qwen0.5b.json", e13_report({"qwen0.5b": model_with_cells({"S0": cell("sync", [2.0] * 3)}, e14={"cells": ["S6"], "paired_vs_S2": {}})}))
+    write(tmp_path, "E14_hypotheses.json", {"receipt_sha256": RECEIPT, "models": {"qwen0.5b": {"H14a": {"cell": "S6", "status": "supported", "mean": 0.12, "half_width": 0.05, "interval": [0.07, 0.17], "junk": 1},
+                                                                                    "H14b": {"cell": "S7", "status": "inconclusive", "mean": 0.0, "half_width": 0.1, "interval": [-0.1, 0.1]}}}})
+    write(tmp_path, "E15_gwaya_rft_report.json", {"receipt_sha256": RECEIPT, "status": "complete", "stages": {"rft": {"problems": 462, "problems_with_accepted": 359, "mean_yield": 0.54, "kept_pairs": 673,
+                                                                                                            "unverified_samples": 0, "meter": {"wall_s": 1.0, "peak_reserved_gib": 4.4, "energy_wh": 2.0, "x": 1}}}})
+    write(tmp_path, "E15_hypotheses.json", {"receipt_sha256": RECEIPT, "hypotheses": {"valid": True, "H15a": {"status": "inconclusive", "points": 0.78, "mcnemar_p": 0.85, "b_only": 15, "a_only": 13, "z": 1},
+                                                                                     "H15b": {"status": "supported", "points": 7.0, "mcnemar_p": 4e-5}, "H15d": {"status": "supported", "max_peak_reserved_gib": 4.47, "limit_gib": 8.0},
+                                                                                     "H15c_descriptive": {"C3_minus_C1": {"points": 1.2, "mcnemar_p": 0.66}, "C3_minus_C0": {"points": 8.2, "mcnemar_p": 2e-4}},
+                                                                                     "H15e_descriptive": {"points": 0.6, "mcnemar_p": 1.0}}})
+    data = bsd.build(tmp_path, UTC)
+    r14 = data["e14"]["registered_hypotheses"]
+    assert r14["available"] and r14["receipt12"] == RECEIPT[:12] and r14["models"]["qwen0.5b"]["H14a"]["status"] == "supported" and "junk" not in r14["models"]["qwen0.5b"]["H14a"]
+    r15 = data["e15"]["registered_hypotheses"]
+    assert r15["hypotheses"]["H15a"] == {"status": "inconclusive", "points": 0.78, "mcnemar_p": 0.85, "b_only": 15, "a_only": 13} and r15["hypotheses"]["H15b"]["status"] == "supported"
+    assert r15["descriptive"]["H15e"]["points"] == 0.6 and data["e15"]["rft_yield"]["problems_with_accepted"] == 359
+    assert data["e15"]["stage_meters"]["rft"] == {"wall_s": 1.0, "peak_reserved_gib": 4.4, "energy_wh": 2.0}
+    assert "not computed here" in data["e15"]["verdicts_note"]  # the report itself still carries numbers only
+
+
+def test_registered_hypotheses_absent_when_analysis_file_missing(tmp_path: Path) -> None:
+    write(tmp_path, "E15_gwaya_rft_report.json", {"receipt_sha256": RECEIPT, "status": "complete"})
+    assert bsd.build(tmp_path, UTC)["e15"]["registered_hypotheses"]["available"] is False
