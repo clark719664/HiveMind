@@ -433,10 +433,44 @@
     "}",
     "E13 DONE model=qwen0.5b cells_ok=18 cells_failed=0 report=/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/artifacts/experiments/E13_swarm_local_report.json"
    ]
+  },
+  {
+   "name": "E13_granite1b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1,2,3",
+    "--resume"
+   ],
+   "start_unix": 1792815823.7302926,
+   "status": "exit 3",
+   "returncode": 3,
+   "seconds": 231.0,
+   "log_tail": [
+    "Loading weights:  50%|\u2588\u2588\u2588\u2588\u2588     | 110/218 [00:15<00:13,  7.75it/s]",
+    "Loading weights:  55%|\u2588\u2588\u2588\u2588\u2588\u258d    | 119/218 [00:16<00:11,  8.73it/s]",
+    "Loading weights:  59%|\u2588\u2588\u2588\u2588\u2588\u258a    | 128/218 [00:18<00:11,  7.61it/s]",
+    "Loading weights:  63%|\u2588\u2588\u2588\u2588\u2588\u2588\u258e   | 137/218 [00:19<00:09,  8.21it/s]",
+    "Loading weights:  67%|\u2588\u2588\u2588\u2588\u2588\u2588\u258b   | 146/218 [00:20<00:08,  8.17it/s]",
+    "Loading weights:  71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 155/218 [00:21<00:07,  8.07it/s]",
+    "Loading weights:  75%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c  | 164/218 [00:22<00:07,  7.53it/s]",
+    "Loading weights:  79%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589  | 173/218 [00:23<00:04,  9.08it/s]",
+    "Loading weights:  83%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e | 182/218 [00:24<00:04,  7.59it/s]",
+    "Loading weights:  88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 191/218 [00:25<00:02,  9.48it/s]",
+    "Loading weights:  92%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f| 200/218 [00:27<00:02,  7.58it/s]",
+    "Loading weights:  96%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c| 209/218 [00:27<00:00, 10.30it/s]",
+    "Loading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 218/218 [00:27<00:00,  8.00it/s]",
+    "aborted by registered fail-fast rule: projected 3.09 h > --max-hours 3 (measured 2.686 s per inner step, 10 runs planned, margin 1.15)",
+    "E13 DONE model=granite1b cells_ok=0 cells_failed=0 report=/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/artifacts/experiments/E13_swarm_local_report.json status=aborted"
+   ]
   }
  ],
- "gpu_samples": 907,
- "gpu_util_mean_pct": 70.7,
+ "gpu_samples": 914,
+ "gpu_util_mean_pct": 70.4,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E10b_amended": 98.5,
@@ -444,6 +478,7 @@
   "E11_qwen0.5b_retry": 72.9,
   "E13_qwen0.5b": 86.1,
   "E11b_gemma4-e4b_fineweb-edu_w1024": 90.6,
+  "E13_granite1b": 28.4,
   "E11_gemma4-e4b_retry": 97.7,
   "E11_qwen0.5b": 26.0,
   "E11_qwen7b": 31.3,
@@ -2043,6 +2078,20 @@
    "util_pct": 98,
    "mem_used_gib": 6.33,
    "power_w": 63.8
+  },
+  {
+   "t": 1792815879.1,
+   "job": "E13_granite1b",
+   "util_pct": 31,
+   "mem_used_gib": 2.76,
+   "power_w": 30.4
+  },
+  {
+   "t": 1792815999.1,
+   "job": "E13_granite1b",
+   "util_pct": 29,
+   "mem_used_gib": 4.05,
+   "power_w": 32.8
   }
  ]
 }

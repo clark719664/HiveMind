@@ -166,6 +166,13 @@
    "output": null
   },
   {
+   "name": "E13_granite_step_bench",
+   "argv": [
+    "scripts/bench_granite_step.py"
+   ],
+   "output": "artifacts/experiments/E13_granite_step_bench.json"
+  },
+  {
    "name": "E13_qwen0.5b_m2proc",
    "argv": [
     "scripts/run_experiment_E13_swarm_local.py",
