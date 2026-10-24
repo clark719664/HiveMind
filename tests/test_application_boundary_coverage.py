@@ -620,7 +620,16 @@ def _cuda_startup_boundary(monkeypatch):
     return calls
 
 
+def _record_boinc_startup_environment(monkeypatch):
+    for name in ("HF_HUB_DISABLE_XET", "RAYON_NUM_THREADS", "TOKIO_WORKER_THREADS"):
+        present = name in os.environ
+        monkeypatch.setenv(name, os.environ.get(name, ""))
+        if not present:
+            monkeypatch.delenv(name)
+
+
 def test_local_boinc_resets_cuda_telemetry_before_forwarding_backbone_options(monkeypatch):
+    _record_boinc_startup_environment(monkeypatch)
     module = importlib.import_module("hivemind.boinc.local_astrophysics_boinc")
     calls = _cuda_startup_boundary(monkeypatch)
     configure = Mock()
@@ -642,6 +651,7 @@ def test_local_boinc_resets_cuda_telemetry_before_forwarding_backbone_options(mo
 
 
 def test_24h_campaign_resets_cuda_telemetry_before_requesting_signed_shards(monkeypatch, tmp_path):
+    _record_boinc_startup_environment(monkeypatch)
     module = importlib.import_module("hivemind.boinc.astrophysics_24h_campaign")
     calls = _cuda_startup_boundary(monkeypatch)
     configure = Mock()
