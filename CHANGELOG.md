@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — GWAYA-Lite Python code expert as a serving-layer expert
+
+- `src/hivemind/core/serving_experts.py`: `SERVING_EXPERT_SPECS` (first entry `Python_Code_GWAYA`), `route_with_serving_experts` (same `1.0 + 2.5 x keyword hits` scale as `route_domain_query`, over LoRA domains and serving experts) and `load_gwaya_code_expert` (lazy import of the optional `gwaya` package; 7B-only by default).
+- Kept out of `SEASON_3_DOMAIN_EXPERT_SPECS` on purpose: a serving expert has no adapter or dataset, and adding it there would give `train_and_publish_season3_domain_experts` a fifth domain and break the 4-domain Season 3 test.
+- Source and numbers: GWAYA repo PR #21 (T4, MBPP-sanitized, n=257, all tests required): 7B Q4 82.1% raw / 82.9% with the GWAYA loop (+2/0, p=0.5, not significant), 3B Q4 70.8% / 71.6%; a 3B-first cascade did not pay off (83.3% vs 82.9%). Measured by the GWAYA session, not re-run here. "VERIFIED" means the visible tests passed.
+- `tests/test_serving_experts.py`: 5 tests run anywhere; 2 need a GWAYA release with the Code expert and are skipped otherwise (run with `PYTHONPATH=<GWAYA repo>`: 7 passed).
+
 ## v2.10.2 — 2026-10-24 — OpenRouter Interactive Portal, In-Browser Playground & GPU Point Calculator
 
 - `src/hivemind/router/portal_page.py`: interactive OpenRouter portal and AI playground at `/` and `/playground`. Features in-browser chat completion console with streaming token speed (tok/s) and latency metrics, 5 capability tiers matrix, live account inspector (`/v1/hivemind/me`), 1-click editor integration snippets (Python, Continue, Cline, Aider, OpenCode, cURL), and gamer/producer onboarding. Strict CSP with per-request nonces and textContent-only rendering.
