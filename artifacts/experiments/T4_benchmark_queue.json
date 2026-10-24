@@ -166,6 +166,28 @@
    "output": null
   },
   {
+   "name": "E13_qwen0.5b_m2proc",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--workers",
+    "2",
+    "--peer-hosting",
+    "process",
+    "--cells",
+    "S0,S1",
+    "--seeds",
+    "1",
+    "--out",
+    "artifacts/experiments/E13_swarm_local_raw_qwen0.5b_m2proc.json",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_m2proc.json",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
    "name": "E11b_qwen0.5b_code_w1024",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",
