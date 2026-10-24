@@ -278,12 +278,9 @@ def test_community_orchestrator_filters_unauthorized_discussion_orders() -> None
 
 @pytest.fixture
 def isolated_git_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    for key in (
-        "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE",
-        "GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL",
-        "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_TEMPLATE_DIR",
-    ):
-        monkeypatch.delenv(key, raising=False)
+    for key in tuple(os.environ):
+        if key.startswith("GIT_"):
+            monkeypatch.delenv(key)
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
