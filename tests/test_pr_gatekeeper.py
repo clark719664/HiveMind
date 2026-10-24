@@ -72,3 +72,22 @@ def test_scannable_diff_drops_prose_and_the_gatekeeper_itself_but_keeps_code() -
 def test_forbidden_scan_is_clean_on_ordinary_code() -> None:
     diff = "+def f(x: int) -> int:\n+    return x + 1\n+# is_peer_review stays false\n"
     assert g.forbidden_scan(diff) == []
+
+
+def test_only_an_accepted_head_is_eligible_for_a_merge_retry() -> None:
+    assert g.pending_accept("ACCEPT") is True
+    for d in ("REFUSE (pytest)", "HOLD (draft)", "HOLD (not owner-authored: checked, never merged automatically)", None, "accept"):
+        assert g.pending_accept(d) is False
+
+
+def test_retry_merge_never_calls_gh_for_a_held_or_dry_run_head(monkeypatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(g, "sh", lambda cmd, **kw: (calls.append(cmd), (0, "merged"))[1])
+    pr = {"number": 7, "headRefOid": "f" * 40}
+    held = g.retry_merge(pr, "HOLD (not owner-authored: checked, never merged automatically)", merge=True, dry_run=False)
+    assert held["merged"] is False and calls == []
+    dry = g.retry_merge(pr, "ACCEPT", merge=True, dry_run=True)
+    assert dry["merged"] is False and calls == []
+    live = g.retry_merge(pr, "ACCEPT", merge=True, dry_run=False)
+    assert live["merged"] is True and live["merge_retry"] is True
+    assert calls == [["gh", "pr", "merge", "7", "--merge", "--admin"]]
