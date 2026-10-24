@@ -6,6 +6,15 @@
 - `POST /v1/hivemind/register/oidc/{provider}` and public `GET /v1/hivemind/signin/providers`; `RouterStore.allow_identity_provider` reserves each provider's handle prefix (refused if a handle already uses it); `HIVEMIND_OIDC_PROVIDERS` in the Cloud Run server.
 - `tests/test_router_oidc.py` (13 tests). Mutation checks: turning off the issuer check, the verified-email rule, the per-store prefix reservation, or the provider lookup each makes a test fail.
 - Not done: Google itself still needs the owner's OAuth client id; `deploy.sh` does not forward `HIVEMIND_OIDC_PROVIDERS`; no live provider was exercised.
+## Unreleased — Improvements recorded from the live T4 runs
+
+- `scripts/hivemind_connect.py`: the OpenCode snippet now carries a model output limit (`limit.output` = the chosen max tokens) and a context hint, and explains how to turn tools off when a 7B model writes tool calls as text. The docs already claimed snippets set 2,048; the OpenCode one did not.
+- `docs/HIVEMIND_OPENROUTER.md`: new section "Lessons from the first live runs" (producer slots, reserve, tool calls, context, measured quality, determinism, adapters, disk, sandbox boundary).
+- `ROADMAP.md`: HM-S13-16 to HM-S13-20 (isolated verifier service, busy-producer handling, reserve sizing, routing defects reported by the GWAYA session, llama.cpp adapter serving).
+- New `docs/HIVEMIND_CONNECT_IDE.md`: base URL, key, model ids, per-editor settings (OpenCode, VS Code Continue/Cline, JetBrains, Zed, Aider, env), a table of what was tested live versus format-checked only, verified mode, and a troubleshooting table. Linked from the README, the OpenRouter doc and a new wiki page.
+- Portal (`/`): snippet tabs for OpenCode, Zed, JetBrains and env variables; Continue shows the current YAML format; OpenCode carries the output limit; no tab points at a tier that has no producer. A test checks every button has a snippet and the limit is present.
+- Nothing here changes the gateway's behaviour.
+
 ## Unreleased — Verified mode for coding requests (client side)
 
 - `scripts/hivemind_verified.py`: generate through the router, judge with the caller's own tests in the local fail-closed sandbox, repair with the failure text (<= 3 repairs), return the first passing candidate; otherwise the first attempt flagged `UNVERIFIED_FALLBACK`; no sandbox means `BLOCKED`. Library functions `verified_solve`, `sandbox_judge`, `router_ask`.
