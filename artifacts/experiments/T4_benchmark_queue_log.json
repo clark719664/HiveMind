@@ -370,15 +370,80 @@
     "[qwen7b] seed 3 window 613: base NLL 2.0319",
     "[qwen7b] wrote E11b_raw_qwen7b_fineweb-edu_w1024.json in 1302.5s, peak 14.228 GiB"
    ]
+  },
+  {
+   "name": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b",
+    "--dataset",
+    "fineweb-edu"
+   ],
+   "start_unix": 1792808616.0755272,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 4696.9,
+   "log_tail": [
+    "[gemma4-e4b] seed 2 window 185: base NLL 2.6824",
+    "[gemma4-e4b] seed 2 window 265: base NLL 2.3054",
+    "[gemma4-e4b] seed 2 window 345: base NLL 2.1461",
+    "[gemma4-e4b] seed 2 window 424: base NLL 2.5413",
+    "[gemma4-e4b] seed 2 window 504: base NLL 2.3403",
+    "[gemma4-e4b] seed 2 window 583: base NLL 1.9657",
+    "[gemma4-e4b] seed 3 window 53: base NLL 2.1762",
+    "[gemma4-e4b] seed 3 window 132: base NLL 1.8747",
+    "[gemma4-e4b] seed 3 window 212: base NLL 1.9180",
+    "[gemma4-e4b] seed 3 window 291: base NLL 2.8318",
+    "[gemma4-e4b] seed 3 window 371: base NLL 1.7113",
+    "[gemma4-e4b] seed 3 window 451: base NLL 2.1480",
+    "[gemma4-e4b] seed 3 window 530: base NLL 2.3422",
+    "[gemma4-e4b] seed 3 window 610: base NLL 2.2742",
+    "[gemma4-e4b] wrote E11b_raw_gemma4-e4b_fineweb-edu_w1024.json in 4664.6s, peak 9.484 GiB"
+   ]
+  },
+  {
+   "name": "E13_qwen0.5b",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "qwen0.5b",
+    "--seeds",
+    "1,2,3",
+    "--resume"
+   ],
+   "start_unix": 1792813313.0592804,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 2510.7,
+   "log_tail": [
+    "seed 3 S3 no_codec       final 2.3647 (init 2.3653) admitted/round [2, 2, 2, 2, 2, 2] late 9 up 45416448B 119.39s",
+    "[E13] memory preflight: process hosting needs 20.09 GiB (M=4 x (4.57 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.07 GiB)",
+    "[E13 hb] qwen0.5b S4 seed 3 t=60s round 4/6 admitted-so-far [] of effective K 2, alive [0, 1, 2, 3], evals [0] of [0, 3, 6], late 5",
+    "seed 3 S4 no_rda         final 2.3175 (init 2.3653) admitted/round [2, 2, 2, 2, 2, 2] late 9 up 4118879B 122.24s",
+    "[E13] memory preflight: process hosting needs 20.09 GiB (M=4 x (4.57 + 0.45)) > free 13.76 GiB: FALLING BACK to thread hosting (needs 5.07 GiB)",
+    "[E13 hb] qwen0.5b S5 seed 3 t=60s round 3/6 admitted-so-far [0] of effective K 3, alive [0, 2, 3], evals [0] of [0, 3, 6], late 0",
+    "[E13 hb] qwen0.5b S5 seed 3 t=120s round 5/6 admitted-so-far [0, 1, 2] of effective K 4, alive [0, 1, 2, 3], evals [0, 3] of [0, 3, 6], late 0",
+    "seed 3 S5 no_quorum      final 2.2370 (init 2.3653) admitted/round [4, 4, 3, 4, 4, 4] late 0 up 4521236B 163.11s",
+    "{",
+    "  \"controls_all_passed\": true,",
+    "  \"runs\": 18,",
+    "  \"elapsed_s\": 2503.17,",
+    "  \"receipt\": \"813f0fdaa542d7e22656aecafcbdd269010c1021710c29b4524399ed8a712f2e\"",
+    "}",
+    "E13 DONE model=qwen0.5b cells_ok=18 cells_failed=0 report=/home/callensxavier_gmail_com/HiveMind/.claude/worktrees/feat-s10-e11-e12-t4/artifacts/experiments/E13_swarm_local_report.json"
+   ]
   }
  ],
- "gpu_samples": 667,
- "gpu_util_mean_pct": 64.2,
+ "gpu_samples": 907,
+ "gpu_util_mean_pct": 70.7,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E10b_amended": 98.5,
   "E12_replay": 0.0,
   "E11_qwen0.5b_retry": 72.9,
+  "E13_qwen0.5b": 86.1,
+  "E11b_gemma4-e4b_fineweb-edu_w1024": 90.6,
   "E11_gemma4-e4b_retry": 97.7,
   "E11_qwen0.5b": 26.0,
   "E11_qwen7b": 31.3,
@@ -1558,6 +1623,426 @@
    "util_pct": 100,
    "mem_used_gib": 14.81,
    "power_w": 67.9
+  },
+  {
+   "t": 1792808675.6,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 0,
+   "mem_used_gib": 1.8,
+   "power_w": 30.3
+  },
+  {
+   "t": 1792808795.6,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 0,
+   "mem_used_gib": 6.72,
+   "power_w": 30.5
+  },
+  {
+   "t": 1792808915.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 0,
+   "mem_used_gib": 9.21,
+   "power_w": 29.8
+  },
+  {
+   "t": 1792809035.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 64,
+   "mem_used_gib": 9.72,
+   "power_w": 64.4
+  },
+  {
+   "t": 1792809155.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 56.0
+  },
+  {
+   "t": 1792809275.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 68.4
+  },
+  {
+   "t": 1792809395.8,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 69.3
+  },
+  {
+   "t": 1792809517.3,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 0,
+   "mem_used_gib": 10.43,
+   "power_w": 31.1
+  },
+  {
+   "t": 1792809637.6,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 54,
+   "mem_used_gib": 10.43,
+   "power_w": 38.1
+  },
+  {
+   "t": 1792809757.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 70.5
+  },
+  {
+   "t": 1792809877.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 96,
+   "mem_used_gib": 10.43,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792809997.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 65.7
+  },
+  {
+   "t": 1792810117.7,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792810237.8,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 54.9
+  },
+  {
+   "t": 1792810357.8,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.5
+  },
+  {
+   "t": 1792810477.8,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 73.6
+  },
+  {
+   "t": 1792810597.8,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 98,
+   "mem_used_gib": 10.43,
+   "power_w": 73.2
+  },
+  {
+   "t": 1792810717.9,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792810837.9,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792810957.9,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792811078.0,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.8
+  },
+  {
+   "t": 1792811198.0,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 54.7
+  },
+  {
+   "t": 1792811318.0,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 60.2
+  },
+  {
+   "t": 1792811438.1,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 52.1
+  },
+  {
+   "t": 1792811558.1,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 68.5
+  },
+  {
+   "t": 1792811678.1,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 68.7
+  },
+  {
+   "t": 1792811798.2,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792811918.2,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 63.7
+  },
+  {
+   "t": 1792812038.2,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 95,
+   "mem_used_gib": 10.43,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792812158.3,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 64.3
+  },
+  {
+   "t": 1792812278.3,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 68.4
+  },
+  {
+   "t": 1792812398.3,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792812518.3,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 64.8
+  },
+  {
+   "t": 1792812638.4,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 75.2
+  },
+  {
+   "t": 1792812758.4,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 68.0
+  },
+  {
+   "t": 1792812878.4,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 72.7
+  },
+  {
+   "t": 1792812998.4,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 63.5
+  },
+  {
+   "t": 1792813118.5,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 61.8
+  },
+  {
+   "t": 1792813238.5,
+   "job": "E11b_gemma4-e4b_fineweb-edu_w1024",
+   "util_pct": 100,
+   "mem_used_gib": 10.43,
+   "power_w": 64.6
+  },
+  {
+   "t": 1792813358.5,
+   "job": "E13_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 5.18,
+   "power_w": 64.8
+  },
+  {
+   "t": 1792813478.5,
+   "job": "E13_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 5.19,
+   "power_w": 65.9
+  },
+  {
+   "t": 1792813598.6,
+   "job": "E13_qwen0.5b",
+   "util_pct": 0,
+   "mem_used_gib": 1.24,
+   "power_w": 31.5
+  },
+  {
+   "t": 1792813718.6,
+   "job": "E13_qwen0.5b",
+   "util_pct": 95,
+   "mem_used_gib": 6.33,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792813838.6,
+   "job": "E13_qwen0.5b",
+   "util_pct": 93,
+   "mem_used_gib": 6.33,
+   "power_w": 71.0
+  },
+  {
+   "t": 1792813958.7,
+   "job": "E13_qwen0.5b",
+   "util_pct": 96,
+   "mem_used_gib": 6.33,
+   "power_w": 59.0
+  },
+  {
+   "t": 1792814078.7,
+   "job": "E13_qwen0.5b",
+   "util_pct": 94,
+   "mem_used_gib": 6.33,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792814198.7,
+   "job": "E13_qwen0.5b",
+   "util_pct": 96,
+   "mem_used_gib": 6.33,
+   "power_w": 67.8
+  },
+  {
+   "t": 1792814318.7,
+   "job": "E13_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 5.2,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792814438.8,
+   "job": "E13_qwen0.5b",
+   "util_pct": 96,
+   "mem_used_gib": 6.33,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792814558.8,
+   "job": "E13_qwen0.5b",
+   "util_pct": 100,
+   "mem_used_gib": 6.33,
+   "power_w": 60.4
+  },
+  {
+   "t": 1792814678.8,
+   "job": "E13_qwen0.5b",
+   "util_pct": 95,
+   "mem_used_gib": 6.33,
+   "power_w": 66.1
+  },
+  {
+   "t": 1792814798.8,
+   "job": "E13_qwen0.5b",
+   "util_pct": 99,
+   "mem_used_gib": 6.33,
+   "power_w": 66.6
+  },
+  {
+   "t": 1792814918.9,
+   "job": "E13_qwen0.5b",
+   "util_pct": 94,
+   "mem_used_gib": 6.33,
+   "power_w": 69.2
+  },
+  {
+   "t": 1792815038.9,
+   "job": "E13_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 5.19,
+   "power_w": 68.2
+  },
+  {
+   "t": 1792815159.0,
+   "job": "E13_qwen0.5b",
+   "util_pct": 0,
+   "mem_used_gib": 1.24,
+   "power_w": 32.2
+  },
+  {
+   "t": 1792815279.0,
+   "job": "E13_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 6.33,
+   "power_w": 64.2
+  },
+  {
+   "t": 1792815399.0,
+   "job": "E13_qwen0.5b",
+   "util_pct": 96,
+   "mem_used_gib": 6.33,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792815519.0,
+   "job": "E13_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 6.33,
+   "power_w": 65.1
+  },
+  {
+   "t": 1792815639.1,
+   "job": "E13_qwen0.5b",
+   "util_pct": 97,
+   "mem_used_gib": 6.33,
+   "power_w": 68.6
+  },
+  {
+   "t": 1792815759.1,
+   "job": "E13_qwen0.5b",
+   "util_pct": 98,
+   "mem_used_gib": 6.33,
+   "power_w": 63.8
   }
  ]
 }
