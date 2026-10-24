@@ -61,6 +61,20 @@
    "output": null
   },
   {
+   "name": "E15_gwaya_rft",
+   "argv": [
+    "scripts/run_experiment_E15_gwaya_rft.py",
+    "--resume",
+    "--out",
+    "artifacts/experiments/E15",
+    "--report",
+    "artifacts/experiments/E15_gwaya_rft_report.json",
+    "--scratch",
+    "/mnt/disks/disk-socrateai-local-1/e15_scratch"
+   ],
+   "output": null
+  },
+  {
    "name": "E14_granite1b",
    "argv": [
     "scripts/run_experiment_E13_swarm_local.py",
