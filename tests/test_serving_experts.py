@@ -44,9 +44,12 @@ def test_serving_experts_never_enter_the_lora_domain_table() -> None:
 def test_routing_weights_are_a_distribution_over_known_domains(prompt: str, top_k: int) -> None:
     domains, weights = route_with_serving_experts(prompt, top_k=top_k)
     known = set(SEASON_3_DOMAIN_EXPERT_SPECS) | set(SERVING_EXPERT_SPECS)
-    assert 1 <= len(domains) <= min(top_k, len(known))
+    assert len(domains) <= min(top_k, len(known))
     assert set(domains) <= known and set(weights) == set(domains)
-    assert abs(sum(weights.values()) - 1.0) < 1e-3 * len(domains)
+    if domains:  # a prompt without any keyword hit abstains: ([], {})
+        assert abs(sum(weights.values()) - 1.0) < 1e-3 * len(domains)
+    else:
+        assert weights == {}
 
 
 def test_loader_reports_a_missing_gwaya_clearly(monkeypatch: pytest.MonkeyPatch) -> None:

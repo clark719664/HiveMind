@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
 
-from hivemind.core.btm_moe import SEASON_3_DOMAIN_EXPERT_SPECS
+from hivemind.core.btm_moe import SEASON_3_DOMAIN_EXPERT_SPECS, keyword_route
 
 PYTHON_CODE_GWAYA = "Python_Code_GWAYA"
 
@@ -31,20 +31,16 @@ SERVING_EXPERT_SPECS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def route_with_serving_experts(prompt: str, top_k: int = 2) -> Tuple[List[str], Dict[str, float]]:
+def route_with_serving_experts(
+    prompt: str, top_k: int = 2, min_weight: float = 0.0
+) -> Tuple[List[str], Dict[str, float]]:
     """Top-k routing over the LoRA domain experts and the serving experts, on the scale of ``route_domain_query``.
 
-    Each domain scores ``1.0 + 2.5 * keyword hits``; the Top-k scores are normalised to weights that sum to 1. A serving
-    expert is therefore chosen only when its keywords outscore the other domains for this prompt.
+    Each domain scores ``1.0 + 2.5 * whole-word keyword hits``; the Top-k scores are normalised to weights that sum to 1.
+    A serving expert is therefore chosen only when its keywords outscore the other domains for this prompt. A prompt with
+    no keyword hit returns ``([], {})`` (use the base model).
     """
-    low = prompt.lower()
-    raw: Dict[str, float] = {}
-    for table in (SEASON_3_DOMAIN_EXPERT_SPECS, SERVING_EXPERT_SPECS):
-        for domain, spec in table.items():
-            raw[domain] = 1.0 + 2.5 * sum(1 for kw in spec["keywords"] if kw in low)
-    ranked = sorted(raw.items(), key=lambda kv: kv[1], reverse=True)[: max(1, int(top_k))]
-    total = sum(score for _, score in ranked) or 1.0
-    return [dom for dom, _ in ranked], {dom: round(score / total, 4) for dom, score in ranked}
+    return keyword_route(prompt, (SEASON_3_DOMAIN_EXPERT_SPECS, SERVING_EXPERT_SPECS), top_k=top_k, min_weight=min_weight)
 
 
 def load_gwaya_code_expert(large_url: str, large_model: str = "qwen2.5-coder:7b", *, small_url: str | None = None,
