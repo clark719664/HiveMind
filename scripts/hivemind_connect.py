@@ -67,10 +67,15 @@ def render_snippet(tool: str, *, gateway: str, model: str, api_key: str = KEY_PL
             "provider": {"hivemind": {
                 "npm": "@ai-sdk/openai-compatible", "name": "HiveMind OpenRouter",
                 "options": {"baseURL": base, "apiKey": api_key},
-                "models": {mid: {"name": f"HiveMind {model}"}},
+                # Without an output limit OpenCode asks for a very long answer; the gateway then reserves points for all of it
+                # and a small balance is refused ("below the ... reserve"). Ollama's default context is small, so keep prompts short.
+                "models": {mid: {"name": f"HiveMind {model}", "limit": {"context": 8192, "output": max_tokens}}},
             }},
         }
-        return "// OpenCode: opencode.json\n" + json.dumps(config, indent=2) + "\n"
+        return ("// OpenCode: opencode.json\n"
+                "// 7B models often write a tool call as plain text instead of calling the tool. If OpenCode answers with JSON like\n"
+                '// {"name": "write", ...}, turn its tools off for chat-style use: add "tools": {"write": false, "edit": false, "bash": false}.\n'
+                + json.dumps(config, indent=2) + "\n")
     if tool == "aider":
         return (
             "# Aider: environment, then run aider\n"

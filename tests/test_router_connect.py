@@ -30,6 +30,12 @@ def test_json_snippets_are_valid_json_with_the_right_base_url_and_model() -> Non
     options = opencode["provider"]["hivemind"]["options"]  # type: ignore[index]
     assert options["baseURL"] == GATEWAY + "/v1" and options["apiKey"] == connect.KEY_PLACEHOLDER
     assert "hivemind/coder" in opencode["provider"]["hivemind"]["models"]  # type: ignore[index]
+    # an output limit stops the gateway reserving points for a huge answer (a 50-point balance was refused without one)
+    assert opencode["provider"]["hivemind"]["models"]["hivemind/coder"]["limit"]["output"] == connect.DEFAULT_MAX_TOKENS  # type: ignore[index]
+    big = _json_body(connect.render_snippet("opencode", gateway=GATEWAY, model="coder", max_tokens=512))
+    assert big["provider"]["hivemind"]["models"]["hivemind/coder"]["limit"]["output"] == 512  # type: ignore[index]
+    comments = [ln for ln in connect.render_snippet("opencode", gateway=GATEWAY, model="coder").splitlines() if ln.startswith("//")]
+    assert any('"tools"' in ln for ln in comments)  # the plain-text tool-call tip rides in comment lines, so the JSON body stays valid
     zed = _json_body(connect.render_snippet("zed", gateway=GATEWAY, model="hivemind/moe-coder", max_tokens=4096))
     entry = zed["language_models"]["openai_compatible"]["HiveMind"]  # type: ignore[index]
     assert entry["api_url"] == GATEWAY + "/v1" and entry["available_models"][0]["name"] == "hivemind/moe-coder"
