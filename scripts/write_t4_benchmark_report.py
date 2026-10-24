@@ -42,6 +42,26 @@ def pm(m: Optional[float], h: Optional[float], nd: int = 4) -> str:
     return "-" if m is None else f"{m:+.{nd}f} ± {h:.{nd}f}"
 
 
+JOB_NOTES = {
+    "E11_qwen0.5b": "crashed at the end (a code bug: KLT table is a dict); fixed and retried",
+    "E11_qwen7b": "same crash; retried", "E11_gemma4-e4b": "same crash; retried",
+    "E11_qwen0.5b_retry": "registered E11 run (amendment 1)", "E11_gemma4-e4b_retry": "registered E11 run", "E11_qwen7b_retry": "registered E11 run",
+    "E11_aggregate": "report written; exit 1 = a negative control failed on the Qwen models (reported)",
+    "E12_replay": "crashed in 20 s (wrong torch API path); fixed and retried", "E12_replay_retry": "registered E12 run",
+    "E10b_lattice_05b": "first execution, stopped by the lead after one cell (not a registered rule)",
+    "E10b_amended": "amendment-2 run; exit 1 = positive control failed, run INVALID by its registered rule",
+    "E13_qwen0.5b": "registered E13 (Qwen2.5-0.5B, 18 cells); all controls passed",
+    "E13_granite1b": "stopped by the registered time fail-fast (2.69 s/step with eager experts + checkpointing)",
+    "E13_granite3b": "registered E13 feasibility run (Granite-3B, 1 seed)",
+    "E13_granite_step_bench": "Granite step-time microbenchmark (decided amendment 4)",
+    "E13_qwen0.5b_m2proc": "stopped by the learning gate (M=2 learns less); waiver registered (amendment 5)",
+    "E13c_qwen0.5b_rotstraggle": "exploratory diagnostic; exit 1 only because the identity control is absent from its S0+S2 grid",
+    "E13_qwen0.5b_m2proc_v2": "two real OS processes: S1 == S0 bit-identical; exit 1 only because the codec-rate control is n/a",
+    "E13_granite1b_v2": "Granite-1B with grouped_mm (amendment 4); cut by the deadline, resumed in the extension queue",
+    "E11b_qwen0.5b_fineweb-edu_w1024": "E11b exploratory", "E11b_qwen7b_fineweb-edu_w1024": "E11b exploratory", "E11b_gemma4-e4b_fineweb-edu_w1024": "E11b exploratory",
+}
+
+
 def queue_section(q: Optional[Dict[str, Any]]) -> List[str]:
     if not q:
         return ["Queue log not found."]
@@ -49,11 +69,11 @@ def queue_section(q: Optional[Dict[str, Any]]) -> List[str]:
     lines = [f"- Started {start:%Y-%m-%d %H:%M} UTC, budget {q['hours']} h, wall time {q.get('wall_hours', 'running')} h.",
              f"- GPU utilisation (NVML, 30 s samples, {q.get('gpu_samples')} samples): mean {q.get('gpu_util_mean_pct')} %, "
              f"peak memory {q.get('gpu_mem_peak_gib')} GiB.", "",
-             "| job | status | wall (min) | mean GPU util % |", "| :-- | :-- | --: | --: |"]
+             "| job | status | wall (min) | mean GPU util % | what it was |", "| :-- | :-- | --: | --: | :-- |"]
     util = q.get("gpu_util_by_job", {})
     for j in q["jobs"]:
         mins = f"{j['seconds'] / 60:.1f}" if "seconds" in j else "-"
-        lines.append(f"| `{j['name']}` | {j['status']} | {mins} | {util.get(j['name'], '-')} |")
+        lines.append(f"| `{j['name']}` | {j['status']} | {mins} | {util.get(j['name'], '-')} | {JOB_NOTES.get(j['name'], '')} |")
     gpu_h = sum(j.get("seconds", 0) for j in q["jobs"] if j.get("status") == "ok") / 3600
     lines += ["", f"Successful jobs used {gpu_h:.2f} GPU-hours. Failed attempts are listed and explained below; they are not hidden."]
     return lines

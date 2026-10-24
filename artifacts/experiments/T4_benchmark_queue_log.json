@@ -651,10 +651,238 @@
     "}",
     "E13 DONE model=qwen0.5b cells_ok=2 cells_failed=0 report=artifacts/experiments/E13_swarm_local_report_m2proc.json"
    ]
+  },
+  {
+   "name": "E13_granite1b_v2",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--experts-impl",
+    "grouped_mm",
+    "--no-grad-ckpt",
+    "--peer-hosting",
+    "thread",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1,2,3",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_granite1b.json",
+    "--resume"
+   ],
+   "start_unix": 1792822165.7870202,
+   "status": "killed at deadline",
+   "returncode": -9,
+   "seconds": 2465.6,
+   "log_tail": [
+    "",
+    "Loading weights:   0%|          | 0/218 [00:00<?, ?it/s]",
+    "Loading weights:   5%|\u258c         | 11/218 [00:00<00:02, 95.05it/s]",
+    "Loading weights:  13%|\u2588\u258e        | 29/218 [00:00<00:01, 123.28it/s]",
+    "Loading weights:  22%|\u2588\u2588\u258f       | 47/218 [00:00<00:01, 130.58it/s]",
+    "Loading weights:  30%|\u2588\u2588\u2589       | 65/218 [00:00<00:01, 136.96it/s]",
+    "Loading weights:  36%|\u2588\u2588\u2588\u258c      | 79/218 [00:00<00:01, 135.50it/s]",
+    "Loading weights:  46%|\u2588\u2588\u2588\u2588\u258b     | 101/218 [00:00<00:00, 140.25it/s]",
+    "Loading weights:  55%|\u2588\u2588\u2588\u2588\u2588\u258d    | 119/218 [00:00<00:00, 139.46it/s]",
+    "Loading weights:  63%|\u2588\u2588\u2588\u2588\u2588\u2588\u258e   | 137/218 [00:00<00:00, 143.32it/s]",
+    "Loading weights:  71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 155/218 [00:01<00:00, 141.47it/s]",
+    "Loading weights:  79%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589  | 173/218 [00:01<00:00, 141.29it/s]",
+    "Loading weights:  88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 191/218 [00:01<00:00, 138.85it/s]",
+    "Loading weights:  96%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c| 209/218 [00:01<00:00, 146.67it/s]",
+    "Loading weights: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 218/218 [00:01<00:00, 145.34it/s]"
+   ]
+  },
+  {
+   "name": "E11b_qwen0.5b_code_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "code"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen7b_code_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "code"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_gemma4-e4b_code_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b",
+    "--dataset",
+    "code"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen0.5b_gsm8k_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "gsm8k"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen7b_gsm8k_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "gsm8k"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen0.5b_news_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "news"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen7b_news_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "news"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen0.5b_fiction_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "fiction"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen7b_fiction_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "fiction"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen0.5b_pubmed_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "pubmed"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen7b_pubmed_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "pubmed"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen0.5b_wiki-fr_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--dataset",
+    "wiki-fr"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen7b_wiki-fr_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen7b",
+    "--dataset",
+    "wiki-fr"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_gemma4-e4b_gsm8k_w1024",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b",
+    "--dataset",
+    "gsm8k"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_qwen0.5b_wikitext2_w4096",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "qwen0.5b",
+    "--window",
+    "4096",
+    "--windows-per-seed",
+    "4"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_gemma4-e4b_wikitext2_w4096",
+   "argv": [
+    "scripts/run_experiment_E11_kv_lattice.py",
+    "--model",
+    "gemma4-e4b",
+    "--window",
+    "4096",
+    "--windows-per-seed",
+    "4"
+   ],
+   "status": "not started (deadline reached)"
+  },
+  {
+   "name": "E11b_aggregate",
+   "argv": [
+    "scripts/aggregate_E11b_sweep.py"
+   ],
+   "status": "not started (deadline reached)"
   }
  ],
- "gpu_samples": 1118,
- "gpu_util_mean_pct": 65.6,
+ "gpu_samples": 1200,
+ "gpu_util_mean_pct": 64.3,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E11_qwen0.5b": 26.0,
@@ -674,6 +902,7 @@
   "E13_qwen0.5b": 86.1,
   "E11b_gemma4-e4b_fineweb-edu_w1024": 90.6,
   "E11_qwen7b_retry": 73.2,
+  "E13_granite1b_v2": 47.6,
   "E11_qwen7b": 31.3,
   "E13_qwen0.5b_m2proc": 43.5
  },
@@ -2638,6 +2867,148 @@
    "util_pct": 100,
    "mem_used_gib": 10.63,
    "power_w": 69.5
+  },
+  {
+   "t": 1792822240.3,
+   "job": "E13_granite1b_v2",
+   "util_pct": 55,
+   "mem_used_gib": 6.36,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792822360.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 48,
+   "mem_used_gib": 6.36,
+   "power_w": 63.1
+  },
+  {
+   "t": 1792822480.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 56,
+   "mem_used_gib": 6.36,
+   "power_w": 69.4
+  },
+  {
+   "t": 1792822600.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 50,
+   "mem_used_gib": 6.38,
+   "power_w": 68.5
+  },
+  {
+   "t": 1792822720.4,
+   "job": "E13_granite1b_v2",
+   "util_pct": 30,
+   "mem_used_gib": 6.39,
+   "power_w": 36.2
+  },
+  {
+   "t": 1792822840.5,
+   "job": "E13_granite1b_v2",
+   "util_pct": 55,
+   "mem_used_gib": 6.39,
+   "power_w": 76.2
+  },
+  {
+   "t": 1792822960.6,
+   "job": "E13_granite1b_v2",
+   "util_pct": 0,
+   "mem_used_gib": 0.76,
+   "power_w": 31.7
+  },
+  {
+   "t": 1792823080.6,
+   "job": "E13_granite1b_v2",
+   "util_pct": 52,
+   "mem_used_gib": 6.63,
+   "power_w": 67.1
+  },
+  {
+   "t": 1792823200.6,
+   "job": "E13_granite1b_v2",
+   "util_pct": 51,
+   "mem_used_gib": 6.63,
+   "power_w": 68.8
+  },
+  {
+   "t": 1792823320.6,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 72.0
+  },
+  {
+   "t": 1792823440.7,
+   "job": "E13_granite1b_v2",
+   "util_pct": 57,
+   "mem_used_gib": 6.63,
+   "power_w": 57.8
+  },
+  {
+   "t": 1792823560.7,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 60.5
+  },
+  {
+   "t": 1792823680.7,
+   "job": "E13_granite1b_v2",
+   "util_pct": 60,
+   "mem_used_gib": 6.39,
+   "power_w": 63.6
+  },
+  {
+   "t": 1792823800.7,
+   "job": "E13_granite1b_v2",
+   "util_pct": 54,
+   "mem_used_gib": 6.39,
+   "power_w": 67.0
+  },
+  {
+   "t": 1792823920.7,
+   "job": "E13_granite1b_v2",
+   "util_pct": 57,
+   "mem_used_gib": 6.63,
+   "power_w": 65.8
+  },
+  {
+   "t": 1792824040.8,
+   "job": "E13_granite1b_v2",
+   "util_pct": 50,
+   "mem_used_gib": 6.63,
+   "power_w": 60.8
+  },
+  {
+   "t": 1792824160.8,
+   "job": "E13_granite1b_v2",
+   "util_pct": 60,
+   "mem_used_gib": 6.63,
+   "power_w": 72.1
+  },
+  {
+   "t": 1792824280.8,
+   "job": "E13_granite1b_v2",
+   "util_pct": 57,
+   "mem_used_gib": 6.63,
+   "power_w": 72.8
+  },
+  {
+   "t": 1792824400.8,
+   "job": "E13_granite1b_v2",
+   "util_pct": 59,
+   "mem_used_gib": 6.63,
+   "power_w": 66.8
+  },
+  {
+   "t": 1792824520.9,
+   "job": "E13_granite1b_v2",
+   "util_pct": 56,
+   "mem_used_gib": 6.38,
+   "power_w": 65.1
   }
- ]
+ ],
+ "finished_unix": 1792824631.4661875,
+ "wall_hours": 10.0
 }
