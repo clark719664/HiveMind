@@ -119,7 +119,10 @@ def signature_policy_ok(owner_authored: bool, signatures: List[Dict[str, Any]], 
     return bool(signatures) and all(s.get("verified") for s in signatures)
 
 
-SCAN_EXEMPT_FILES = {"scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py"}  # they define and test the patterns
+SCAN_EXEMPT_FILES = {  # these files *define and test* the forbidden patterns, so their text necessarily contains them
+    "scripts/pr_gatekeeper.py", "tests/test_pr_gatekeeper.py",
+    "src/hivemind/security/hivemind_firewall.py", "src/hivemind/security/firewall_pentest_corpus.py", "tests/test_hivemind_firewall.py",
+}
 SCAN_SKIP_SUFFIXES = (".md", ".txt", ".rst", ".tex", ".json", ".jsonl", ".csv")  # prose and data, not executed
 
 
