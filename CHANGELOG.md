@@ -6,6 +6,12 @@
 - `docs/community/GWAYA_LEVEL_B_UPDATE_GATE.md`: rules, limits and use.
 - **No LoRA was trained or evaluated and no pass-rate number is claimed.** The gate is not yet wired into the DiLoCo merge or the E14 admission policies.
 - `tests/test_verified_update_gate.py`: 17 tests (exact-p closed forms, better/regressed/identical controls, UNVERIFIED-heavy refusal, Hypothesis properties, evaluator with a mocked sandbox, and one real `e15_gate` sandbox run when the host allows it). Mutation checks: scoring an unverified baseline as a fail, an unverified candidate as a pass, or switching off the net-loss rule each fail a test.
+## Unreleased — Verified mode for coding requests (client side)
+
+- `scripts/hivemind_verified.py`: generate through the router, judge with the caller's own tests in the local fail-closed sandbox, repair with the failure text (<= 3 repairs), return the first passing candidate; otherwise the first attempt flagged `UNVERIFIED_FALLBACK`; no sandbox means `BLOCKED`. Library functions `verified_solve`, `sandbox_judge`, `router_ask`.
+- Measured on the live router and the T4 (MBPP-sanitized, n=257, 7B `coder`): 76.3% first attempt, 82.9% with the loop, 17 rescued / 0 lost, exact McNemar p = 1.5e-5; ~192 HMT. Sampling uncontrolled (Ollama ignores temperature/seed on /v1). One benchmark, one run.
+- Deliberately NOT in the gateway or the producers: they would have to execute code supplied by strangers. A server-side version needs a separate isolated verifier service; not built.
+- `tests/test_hivemind_verified.py` (9 tests). Mutation checks: first-attempt fallback, blocked sandbox, always-accept and withheld feedback each fail tests.
 
 ## Unreleased — GWAYA-Lite Python code expert as a serving-layer expert
 
