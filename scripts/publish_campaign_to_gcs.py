@@ -44,6 +44,9 @@ REPORT_GLOBS = ("E1[0-6]*.json", "E1[0-6]*_prereg*.json", "E1[0-6]*_report*.json
                 "predictions_ledger.json")
 
 
+SCRUBBED: List[str] = []
+
+
 def sha256(p: Path) -> str:
     h = hashlib.sha256()
     with open(p, "rb") as fh:
@@ -68,6 +71,13 @@ def copy(src: Path, dst: Path, skipped: List[str]) -> None:
         skipped.append(str(src.relative_to(ROOT)) if str(src).startswith(str(ROOT)) else src.name)
         return
     dst.parent.mkdir(parents=True, exist_ok=True)
+    if src.suffix in (".json", ".jsonl", ".md", ".txt", ".log"):  # public copies must not carry the machine username (it is derived from the owner's email)
+        text = src.read_text(encoding="utf-8")
+        scrubbed = text.replace("/home/callensxavier_gmail_com", "/home/<user>").replace("callensxavier_gmail_com", "<user>")
+        if scrubbed != text:
+            SCRUBBED.append(str(dst.name))
+        dst.write_text(scrubbed, encoding="utf-8")
+        return
     shutil.copy2(src, dst)
 
 
@@ -91,6 +101,7 @@ def p1_results_md() -> str:
 
 def stage(stage_dir: Path, include_adapter: bool = False) -> Path:
     out = stage_dir / PKG
+    SCRUBBED.clear()
     if out.exists():
         shutil.rmtree(out)
     skipped: List[str] = []
@@ -111,9 +122,19 @@ def stage(stage_dir: Path, include_adapter: bool = False) -> Path:
             "Load with the hand-rolled LoRALinear of `scripts/e13_swarm_lib.py` / `scripts/e15_lib.py` (no `peft` needed).\n", encoding="utf-8")
     for f in sorted((ROOT / "docs" / "site").rglob("*")):
         copy(f, out / "site" / f.relative_to(ROOT / "docs" / "site"), skipped)
-    for name in ("community/SWARM_LAB.md", "community/GWAYA_CODING_ASSISTANT.md", "community/GWAYA_T4_DEPLOYMENT.md"):
+    for name in ("community/SWARM_LAB.md", "community/GWAYA_CODING_ASSISTANT.md", "community/GWAYA_T4_DEPLOYMENT.md", "community/GWAYA_LITE_ASSISTANT.md"):
         copy(ROOT / "docs" / name, out / "docs" / Path(name).name, skipped)
     copy(ROOT / "docs" / "benchmarks" / "T4_10h_campaign_report.md", out / "benchmarks" / "T4_10h_campaign_report.md", skipped)
+    # runnable GWAYA-Lite assistant (stdlib only; the vendored GWAYA auditor keeps its MIT licence and provenance file)
+    for rel in ("scripts/gwaya_lite.py", "scripts/e15_gate.py", "scripts/e15_data.py", "scripts/e16_ollama.py", "scripts/gwaya_lite_live_check.py",
+                "third_party/gwaya/ast_audit.py", "third_party/gwaya/LICENSE", "third_party/gwaya/PROVENANCE.md"):
+        copy(ROOT / rel, out / "code" / rel, skipped)
+    (out / "code" / "README.md").write_text(
+        "# GWAYA-Lite assistant (runnable bundle)\n\nRequires Python 3.10+, a local Ollama with `qwen2.5-coder:1.5b`, `qwen2.5-coder:3b`, `qwen2.5-coder:7b-instruct` "
+        "and Linux user namespaces (`unshare`). No pip packages.\n\n```\ncd code\npython3 scripts/gwaya_lite.py doctor\npython3 scripts/gwaya_lite.py ask \"Write ...\" --test \"assert f(1) == 2\"\n"
+        "python3 scripts/gwaya_lite.py serve --port 8099   # localhost only\n```\n\nVERIFIED means audit clean and your tests passed in the sandbox, never 'correct' "
+        "(5-7% of VERIFIED solutions failed hidden tests in the T4 measurement). The sandbox is not GWAYA's Bubblewrap oracle and has no seccomp. "
+        "`third_party/gwaya/` is the unmodified GWAYA zero-stub auditor (MIT, see LICENSE and PROVENANCE.md).\n", encoding="utf-8")
     (out / "GWAYA_PR21_P1_RESULTS.md").write_text(p1_results_md(), encoding="utf-8")
     (out / "README.md").write_text(
         f"# HiveMind T4 campaign package ({PKG})\n\nBuilt {time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())} UTC from branch "
@@ -123,8 +144,8 @@ def stage(stage_dir: Path, include_adapter: bool = False) -> Path:
         "as such. No peer review of record exists. PTS / $HIVE carry no cash value (0.00 EUR/USD). See `benchmarks/T4_10h_campaign_report.md`, `reports/` (receipts), "
         "`GWAYA_PR21_P1_RESULTS.md`, `docs/`. `MANIFEST.json` lists the sha256 of every file.\n", encoding="utf-8")
     files: Dict[str, str] = {str(f.relative_to(out)): sha256(f) for f in sorted(out.rglob("*")) if f.is_file() and f.name != "MANIFEST.json"}
-    (out / "MANIFEST.json").write_text(json.dumps({"package": PKG, "files": files, "skipped_secret_like_or_denied": skipped}, indent=1, sort_keys=True), encoding="utf-8")
-    print(json.dumps({"staged": str(out), "files": len(files), "bytes": sum(f.stat().st_size for f in out.rglob('*') if f.is_file()), "skipped": skipped}, indent=1))
+    (out / "MANIFEST.json").write_text(json.dumps({"package": PKG, "files": files, "skipped_secret_like_or_denied": skipped, "username_scrubbed_in": sorted(set(SCRUBBED))}, indent=1, sort_keys=True), encoding="utf-8")
+    print(json.dumps({"staged": str(out), "files": len(files), "bytes": sum(f.stat().st_size for f in out.rglob('*') if f.is_file()), "skipped": skipped, "username_scrubbed_in": sorted(set(SCRUBBED))}, indent=1))
     return out
 
 

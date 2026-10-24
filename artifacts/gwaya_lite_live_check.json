@@ -1,0 +1,71 @@
+{
+  "schema_version": "hivemind-gwaya-lite-live-check/v1.0",
+  "written_utc": "2026-10-24T12:31:02Z",
+  "url": "http://127.0.0.1:8099",
+  "health": [
+    200,
+    "{\"status\": \"ok\", \"service\": \"gwaya-lite\", \"ladder\": [\"1.5b\", \"3b\", \"7b\"], \"ctx\": 4096, \"auth\": false}"
+  ],
+  "models": [
+    200,
+    "{\"object\": \"list\", \"data\": [{\"id\": \"gwaya-lite\", \"object\": \"model\", \"created\": 0, \"owned_by\": \"local\"}]}"
+  ],
+  "tasks": [
+    {
+      "task": "is_palindrome",
+      "tests": 4,
+      "wall_s": 12.38,
+      "verdict": "VERIFIED",
+      "tier": "1.5b",
+      "candidates": 1,
+      "repair_rounds": 0,
+      "generated_tokens": 71,
+      "gate_verdict": "ACCEPTED",
+      "code_sha256": "f4f2367a177b6719"
+    },
+    {
+      "task": "longest_valid_parentheses",
+      "tests": 7,
+      "wall_s": 2.78,
+      "verdict": "VERIFIED",
+      "tier": "1.5b",
+      "candidates": 3,
+      "repair_rounds": 0,
+      "generated_tokens": 341,
+      "gate_verdict": "ACCEPTED",
+      "code_sha256": "ffee9471be0bcd38"
+    },
+    {
+      "task": "fizzbuzz",
+      "tests": 3,
+      "wall_s": 16.12,
+      "verdict": "VERIFIED",
+      "tier": "3b",
+      "candidates": 7,
+      "repair_rounds": 3,
+      "generated_tokens": 397,
+      "gate_verdict": "ACCEPTED",
+      "code_sha256": "b889acd9bf638c3d"
+    }
+  ],
+  "untested_request": {
+    "verdict": "AUDITED",
+    "never_verified_without_tests": true
+  },
+  "sse": {
+    "data_chunks": 13,
+    "done_terminator": true
+  },
+  "foreign_host_status": 403,
+  "foreign_origin_status": 403,
+  "listening": true,
+  "gpu_memory_used_mib_after": "1639",
+  "ollama_resident_after": [
+    [
+      "qwen2.5-coder:1.5b",
+      1514
+    ]
+  ],
+  "all_ok": true,
+  "receipt_sha256": "8a8125a929e2e8948307c0d44e52b292899da330de55932089428a9ffd6c7cab"
+}
