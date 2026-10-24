@@ -7,6 +7,13 @@ RUN curl --fail --location --proto '=https' --tlsv1.2 \
     && echo '48010c7d6264dc992574e9b0e09ece1f9c648e8f5106066b2cdb6834a6a60a6c  /tmp/lean.tar.zst' | sha256sum -c - \
     && mkdir /opt/lean && tar --zstd -xf /tmp/lean.tar.zst -C /opt/lean --strip-components=1 \
     && rm /tmp/lean.tar.zst
+# Pinned official Node binary for upstream's embedded JavaScript syntax checks.
+RUN curl --fail --location --proto '=https' --tlsv1.2 \
+      https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.gz -o /tmp/node.tar.gz \
+    && echo 'b8492284c76a54baf58d61668dd0e41ee0fc98adabf9503d30f05d08f55b4406  /tmp/node.tar.gz' | sha256sum -c - \
+    && tar -xzf /tmp/node.tar.gz -C /usr/local/bin --strip-components=2 node-v22.23.4-linux-x64/bin/node \
+    && rm /tmp/node.tar.gz \
+    && node --version
 RUN python -m pip install --no-cache-dir --only-binary=:all: --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0+cpu'
 COPY requirements.txt /opt/guard/requirements.txt
 RUN python -m pip install --no-cache-dir --only-binary=:all: -r /opt/guard/requirements.txt \
