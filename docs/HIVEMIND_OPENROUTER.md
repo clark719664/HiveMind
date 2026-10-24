@@ -298,3 +298,24 @@ and the connect remains possible; closing it needs an egress proxy (HM-S13-07).
 
 The router secret must not change once accounts exist, because account ids and key hashes depend on it.
 Rotating it orphans every existing account.
+
+## Lessons from the first live runs (2026-10-24)
+
+What running real clients against the live router and one Tesla T4 taught us. Each line was observed, not assumed.
+
+- **Producer slots.** A producer that allows one request at a time answers an overlapping request with 502. OpenCode sends a title
+  request and the real one together, so it stalled. Allow at least 2 (3 worked); Ollama queues the extra work. The shield default is 2.
+- **Reserve.** The gateway reserves points for the whole prompt plus `max_tokens`. OpenCode without an output limit needed about 123
+  points per request and a 50-point account was refused. Set a model output limit (the OpenCode snippet now does) or top up.
+- **Tool calls.** The 7B coder tier often writes an agent tool call as plain JSON text, so editor agents that rely on tool calls do not
+  edit files; chat-style help works. Turn the editor's tools off for these tiers.
+- **Context.** Ollama's default context is 4,096 tokens on the T4; OpenCode's own prompt is about 2,000, so keep project prompts short.
+- **Quality.** On 257 held-out MBPP-sanitized tasks the 7B tier passed 76.3% on the first attempt and 82.9% with the verify-and-repair
+  loop (`scripts/hivemind_verified.py`; 17 rescued, none lost). Complex multi-rule tasks (an expression parser) still failed in 3 rounds.
+- **Determinism.** Ollama at temperature 0 with a fixed seed was not always repeatable (1 of 3 repeated requests differed) and ignores
+  temperature and seed on `/v1`. Benchmarks through it carry noise; compare with paired counts.
+- **Adapters.** Ollama 0.34.1 refuses LoRA adapters ("LoRA adapters are no longer supported"). llama.cpp's `llama-server --lora` applies a
+  converted adapter on the same base file (verified with a stand-in: output changed with the adapter and not without it).
+- **Disk.** Training a 7B on a 16 GB T4 needs the model's 15 GB of weights on disk: check free space on the data disk first (the VM had 41 GB).
+- **Sandbox boundary.** Running a caller's tests is useful but must happen on the caller's side or in a separate isolated service, never
+  inside the gateway or a producer.
