@@ -1,11 +1,11 @@
 {
   "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-  "version": "3.6.0",
+  "version": "3.7.0",
   "is_peer_review": false,
   "disclosure": "This report is produced by a deterministic script. It is NOT a peer review: no language model and no human referee evaluated the manuscript. Verdicts below mean only that the listed artifact checks passed.",
   "lead_peer_review_model": "none (scripted static audit; no language-model call)",
   "co_auditor_model": "none",
-  "timestamp_utc": "2026-10-23T18:43:00Z",
+  "timestamp_utc": "2026-10-24T03:06:18Z",
   "tex_path": "paper/hivemind_foundation_article.tex",
   "pdf_path": "paper/hivemind_foundation_article.pdf",
   "pdf_exists": true,
@@ -717,8 +717,8 @@
     "tier_a_machine_checked": true
   },
   "manuscript_provenance_audit": {
-    "total_checks": 31,
-    "passed_checks": 31,
+    "total_checks": 48,
+    "passed_checks": 48,
     "failed_check_ids": [],
     "all_passed": true,
     "checks": [
@@ -1022,11 +1022,233 @@
         ],
         "source_artifact": "artifacts/experiments/E10_lattice_report.json",
         "passed": true
+      },
+      {
+        "check_id": "PROV-32",
+        "metric_name": "E11 baseline NLL (Qwen-0.5B, Qwen-7B, Gemma-4-E4B)",
+        "expected_tokens": [
+          "2.785",
+          "2.396",
+          "2.092"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-33",
+        "metric_name": "E11 FP8 delta-NLL per model",
+        "expected_tokens": [
+          "+0.0413",
+          "+0.4725",
+          "+0.0017",
+          "0.0095",
+          "0.1975",
+          "0.0013"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-34",
+        "metric_name": "E11 INT4 delta-NLL per model",
+        "expected_tokens": [
+          "+2.410",
+          "+7.707",
+          "+0.026"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-35",
+        "metric_name": "E11 rate-matched lattice cells out of 18, per model",
+        "expected_tokens": [
+          "$16/18$",
+          "$5/18$",
+          "$9/18$"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-36",
+        "metric_name": "E11 number of lattice cells outside the matched-rate band, Qwen-7B (out of 18)",
+        "expected_tokens": [
+          "$13$ of the 18"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-37",
+        "metric_name": "E11 P11a paired differences Z - A2 at matched rate (Qwen-0.5B R=4; Qwen-7B R=4; Gemma R=2,3,4)",
+        "expected_tokens": [
+          "-0.094",
+          "+0.130",
+          "+0.0057",
+          "+0.0039",
+          "+0.0054"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-38",
+        "metric_name": "E11 P11b cells: Qwen-7B matched KLT R=2 and no-transform R=4, Gemma no-transform R=2",
+        "expected_tokens": [
+          "+0.285",
+          "+0.613",
+          "+0.0271"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-39",
+        "metric_name": "E11 failed negative control A2@8 minus FP8 (Qwen-0.5B, Qwen-7B) and passing Gemma value",
+        "expected_tokens": [
+          "-0.0375",
+          "-0.0013",
+          "-0.472"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-40",
+        "metric_name": "E11 positive control INT2 delta-NLL per model",
+        "expected_tokens": [
+          "+6.213",
+          "+8.042",
+          "+2.690"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-41",
+        "metric_name": "E11 descriptive frontier vs FP8 at 4 bits (Gemma A2, E8+KLT; Qwen A2, E8+KLT)",
+        "expected_tokens": [
+          "+0.0012",
+          "+0.0003",
+          "+0.360",
+          "+0.275",
+          "+2.262",
+          "+0.434"
+        ],
+        "source_artifact": "artifacts/experiments/E11_kv_lattice_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-42",
+        "metric_name": "E12 cell C (T4 vs x86 CPU) min and max linf after 50 steps",
+        "expected_tokens": [
+          "2.0\\cdot10^{-4}",
+          "6.3\\cdot10^{-4}"
+        ],
+        "source_artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-43",
+        "metric_name": "E12 cell D (fp64 + 2^-20 snap proxy) min and max linf",
+        "expected_tokens": [
+          "2.0\\cdot10^{-4}",
+          "6.3\\cdot10^{-4}"
+        ],
+        "source_artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-44",
+        "metric_name": "E12 tamper cell min and max linf",
+        "expected_tokens": [
+          "$2.6$",
+          "$3.0$"
+        ],
+        "source_artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-45",
+        "metric_name": "E12 segments above eps per cell (A, B, C, D, E) and P12-same/P12-cross statuses",
+        "expected_tokens": [
+          "$0/9$",
+          "$0/9$",
+          "$9/9$",
+          "$9/9$",
+          "$9/9$",
+          "supported",
+          "supported",
+          "$0.0$"
+        ],
+        "source_artifact": "artifacts/experiments/E12_replay_divergence_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-46",
+        "metric_name": "E10b relMSE(E8)/relMSE(Z8) at 1 bit/dim on real LoRA deltas: mean, half-width, per seed, Gaussian prediction, E10 toy",
+        "expected_tokens": [
+          "0.869",
+          "0.003",
+          "0.8685",
+          "0.8703",
+          "0.86",
+          "0.81"
+        ],
+        "source_artifact": "artifacts/experiments/E10b_lattice_05b_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-47",
+        "metric_name": "E10b invalid by positive control: sign-minus-none per seed (seed 3 negative), mean final loss of the unquantised arm, matched rates",
+        "expected_tokens": [
+          "$4\\cdot10^{-4}$",
+          "$1.4\\cdot10^{-3}$",
+          "it ended below the unquantised arm",
+          "2.9459",
+          "0.991",
+          "1.001",
+          "invalid by its registered rule"
+        ],
+        "source_artifact": "artifacts/experiments/E10b_lattice_05b_report.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
+      },
+      {
+        "check_id": "PROV-48",
+        "metric_name": "E10b first execution: held-out loss 2.993 -> 3.070 and 0.72 s/step vs 0.12 assumed; init std 0.354 vs PEFT 0.0195",
+        "expected_tokens": [
+          "$2.993$",
+          "$3.070$",
+          "$0.72$\\,s",
+          "$0.12$\\,s",
+          "$0.354$",
+          "$0.0195$"
+        ],
+        "source_artifact": "artifacts/experiments/E10b_first_execution_partial.json; artifacts/experiments/E10b_lattice_05b_prereg_amendment_2.json",
+        "match_rule": "all tokens must occur",
+        "passed": true
       }
     ]
   },
   "latex_typography_and_figures_audit": {
-    "figures_verified": 4,
+    "figures_verified": 5,
     "missing_figures": [],
     "bibliography_entries": 47,
     "uncited_bibitems": [],
@@ -1071,7 +1293,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Programmatically verified 31/31 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
+        "Programmatically verified 48/48 exact numerical metrics between the 4 JSON artifacts and paper/hivemind_foundation_article.tex.",
         "Eliminated legacy hardcoded v2.9.2 strings in paper/autoevolve_peer_review_pipeline.py."
       ]
     },
@@ -1093,7 +1315,7 @@
       "co_auditor_model": "none",
       "gate_passed": true,
       "findings_resolved": [
-        "Verified 4/4 vector PDF/PNG figure pairs and 47/47 cited bibliography entries (0 uncited, 0 undefined).",
+        "Verified 5/4 vector PDF/PNG figure pairs and 47/47 cited bibliography entries (0 uncited, 0 undefined).",
         "Eliminated Overfull \\hbox (80.7pt) and fancyhdr headheight warnings via \\path{} line breaking and 21pt header height (0 Overfull \\hbox > 5pt)."
       ]
     }
@@ -1108,7 +1330,7 @@
     "architecture_receipt_sha256": "b427d910a2d3ba4c38c728bcaa7a96a203342059b0114c7d0a7100ac83d9c5b1",
     "experiments_v3_receipt_sha256": "8cba94a46af02f8a676fc1b0ac98ce14011baad66810196f0a6ab06c7ce52f4d",
     "champion_miner": "CyberValkyrie_FR",
-    "champion_points": 66879
+    "champion_points": 60711
   },
   "referee_reviews": [
     {

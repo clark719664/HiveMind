@@ -1,0 +1,7 @@
+{
+  "experiment_id": "E11-kv-lattice",
+  "erratum_to": "E11_kv_lattice_prereg.json (unchanged; its sha256 stays recorded in the raw files)",
+  "registered_utc": "2026-10-24",
+  "text": "The pre-registration states that Gemma-4-E4B runs in bf16 \"because Gemma activations overflow in fp16\". That was an assumption, not a measurement: fp16 was never tried on Gemma-4-E4B. The correct statement is that Gemma ran in bf16, the dtype of its checkpoint, and that fp16 was not tried. The choice of bf16 did not depend on any result.",
+  "affects": "the stated rationale only; no design element, number or decision"
+}

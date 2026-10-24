@@ -281,6 +281,19 @@ def verify_manuscript_data_consistency(
             }
         )
 
+    def _add_check_all(check_id: str, metric_name: str, expected_tokens: List[str], source_artifact: str) -> None:
+        """Like _add_check, but EVERY listed token must occur (used for rows of several numbers)."""
+        checks.append(
+            {
+                "check_id": check_id,
+                "metric_name": metric_name,
+                "expected_tokens": expected_tokens,
+                "source_artifact": source_artifact,
+                "match_rule": "all tokens must occur",
+                "passed": bool(expected_tokens) and all(tok in tex_text for tok in expected_tokens),
+            }
+        )
+
     thm_count = int(lean_audit.get("theorem_count", 0))
     _add_check("PROV-01", "Lean 4 total theorem count", [str(thm_count)], "lean4/HiveMindSpec.lean")
 
@@ -375,6 +388,116 @@ def verify_manuscript_data_consistency(
         _add_check("PROV-29", "E10 Z8-minus-E8 final loss at 1 bit/dim with EF", [f"{e10_lossdiff:+.4f}", f"{e10_lossdiff:.4f}", f"{e10_lossdiff:+.3f}"], "artifacts/experiments/E10_lattice_report.json")
         _add_check("PROV-30", "E10 E8 1-bit EF minus unquantised final loss", [f"{e10_ef:+.4f}", f"{e10_ef:.4f}", f"{e10_ef:+.3f}"], "artifacts/experiments/E10_lattice_report.json")
 
+    # ---- v3.7.0: E11, E12, E10b (T4 campaign of 23/24 October 2026) ----
+    e11 = exp_v3_data.get("__e11__", {})
+    e12 = exp_v3_data.get("__e12__", {})
+    e10b = exp_v3_data.get("__e10b__", {})
+    src11 = "artifacts/experiments/E11_kv_lattice_report.json"
+    src12 = "artifacts/experiments/E12_replay_divergence_report.json"
+    src10b = "artifacts/experiments/E10b_lattice_05b_report.json"
+    if e11.get("models"):
+        m = e11["models"]
+        order = ["qwen0.5b", "qwen7b", "gemma4-e4b"]
+        _add_check_all("PROV-32", "E11 baseline NLL (Qwen-0.5B, Qwen-7B, Gemma-4-E4B)", [f"{m[k]['baseline_nll']:.3f}" for k in order], src11)
+        _add_check_all("PROV-33", "E11 FP8 delta-NLL per model", [f"{m[k]['cells']['fp8']['dnll_mean']:+.4f}" for k in order] + [f"{m[k]['cells']['fp8']['dnll_ci95']:.4f}" for k in order], src11)
+        _add_check_all("PROV-34", "E11 INT4 delta-NLL per model", [f"{m[k]['cells']['int@4']['dnll_mean']:+.3f}" for k in order], src11)
+
+        def _matched(k: str) -> int:
+            return sum(1 for ck, cv in m[k]["cells"].items() if "rate_matched" in cv and ck != "A2@8|none" and cv["rate_matched"])
+
+        _add_check_all("PROV-35", "E11 rate-matched lattice cells out of 18, per model", [f"${_matched(k)}/18$" for k in order], src11)
+        _add_check_all("PROV-36", "E11 number of lattice cells outside the matched-rate band, Qwen-7B (out of 18)", [f"${18 - _matched('qwen7b')}$ of the 18"], src11)
+        pa = {k: m[k]["P11a"]["cells"] for k in order}
+        _add_check_all(
+            "PROV-37",
+            "E11 P11a paired differences Z - A2 at matched rate (Qwen-0.5B R=4; Qwen-7B R=4; Gemma R=2,3,4)",
+            [f"{pa['qwen0.5b']['R=4']['z_minus_a2_mean']:+.3f}", f"{pa['qwen7b']['R=4']['z_minus_a2_mean']:+.3f}"]
+            + [f"{pa['gemma4-e4b'][r]['z_minus_a2_mean']:+.4f}" for r in ("R=2", "R=3", "R=4")],
+            src11,
+        )
+        pb7 = m["qwen7b"]["P11b"]["cells"]
+        pbg = m["gemma4-e4b"]["P11b"]["cells"]
+        _add_check_all(
+            "PROV-38",
+            "E11 P11b cells: Qwen-7B matched KLT R=2 and no-transform R=4, Gemma no-transform R=2",
+            [f"{pb7['R=2|klt']['z_minus_e8_mean']:+.3f}", f"{pb7['R=4|none']['z_minus_e8_mean']:+.3f}", f"{pbg['R=2|none']['z_minus_e8_mean']:+.4f}"],
+            src11,
+        )
+        _add_check_all(
+            "PROV-39",
+            "E11 failed negative control A2@8 minus FP8 (Qwen-0.5B, Qwen-7B) and passing Gemma value",
+            [f"{m[k]['controls']['negative_A2at8_equals_fp8']['diff_mean']:+.4f}" for k in ("qwen0.5b", "gemma4-e4b")]
+            + [f"{m['qwen7b']['controls']['negative_A2at8_equals_fp8']['diff_mean']:+.3f}"],
+            src11,
+        )
+        _add_check_all("PROV-40", "E11 positive control INT2 delta-NLL per model", [f"{m[k]['controls']['positive_int2_raises_dnll']['dnll_mean']:+.3f}" for k in order], src11)
+        fr = {k: m[k]["descriptive_frontier_vs_fp8"] for k in order}
+        _add_check_all(
+            "PROV-41",
+            "E11 descriptive frontier vs FP8 at 4 bits (Gemma A2, E8+KLT; Qwen A2, E8+KLT)",
+            [f"{fr['gemma4-e4b']['A2@4|none']['minus_fp8_mean']:+.4f}", f"{fr['gemma4-e4b']['E8@4|klt']['minus_fp8_mean']:+.4f}"]
+            + [f"{fr[k][c]['minus_fp8_mean']:+.3f}" for k in ("qwen0.5b", "qwen7b") for c in ("A2@4|none", "E8@4|klt")],
+            src11,
+        )
+    else:
+        checks.append({"check_id": "PROV-32", "metric_name": "E11 report missing", "expected_tokens": [], "source_artifact": src11, "passed": False})
+    if e12.get("cells"):
+        sm = e12["summary"]
+
+        def _e4(x: float) -> str:
+            return f"{x * 1e4:.1f}\\cdot10^{{-4}}"
+
+        _add_check_all("PROV-42", "E12 cell C (T4 vs x86 CPU) min and max linf after 50 steps", [_e4(sm["C_cross_T4_vs_cpu"]["min_linf"]), _e4(sm["C_cross_T4_vs_cpu"]["max_linf"])], src12)
+        _add_check_all("PROV-43", "E12 cell D (fp64 + 2^-20 snap proxy) min and max linf", [_e4(sm["D_proxy_fp64_snap_T4_vs_cpu"]["min_linf"]), _e4(sm["D_proxy_fp64_snap_T4_vs_cpu"]["max_linf"])], src12)
+        _add_check_all("PROV-44", "E12 tamper cell min and max linf", [f"${sm['E_tamper']['min_linf']:.1f}$", f"${sm['E_tamper']['max_linf']:.1f}$"], src12)
+        _add_check_all(
+            "PROV-45",
+            "E12 segments above eps per cell (A, B, C, D, E) and P12-same/P12-cross statuses",
+            [f"${sm[c]['n_above_eps']}/{sm[c]['n']}$" for c in ("A_same_process_T4", "B_separate_process_T4", "C_cross_T4_vs_cpu", "D_proxy_fp64_snap_T4_vs_cpu", "E_tamper")]
+            + [f"{e12['analysis']['P12-same']['status']}", f"{e12['analysis']['P12-cross']['status']}"]
+            + (["$0.0$"] if sm["A_same_process_T4"]["max_linf"] == 0.0 and sm["B_separate_process_T4"]["max_linf"] == 0.0 else ["A/B-NOT-EXACT-ZERO"]),
+            src12,
+        )
+    else:
+        checks.append({"check_id": "PROV-42", "metric_name": "E12 report missing", "expected_tokens": [], "source_artifact": src12, "passed": False})
+    if e10b.get("analysis"):
+        p10a = e10b["analysis"]["P10a"]["cells"]["R=1.0|EF=on"]
+        _add_check_all(
+            "PROV-46",
+            "E10b relMSE(E8)/relMSE(Z8) at 1 bit/dim on real LoRA deltas: mean, half-width, per seed, Gaussian prediction, E10 toy",
+            [f"{p10a['ratio_mean']:.3f}", f"{p10a['ci95']:.3f}"] + [f"{x:.4f}" for x in p10a["per_seed"][:1] + p10a["per_seed"][2:]]
+            + [f"{p10a['gaussian_prediction']:.2f}", f"{p10a['e10_toy_ratio_R1']:.2f}"],
+            src10b,
+        )
+        ctr = e10b["controls"]
+        rows = ctr["positive_sign_hurts"]["rows"]
+        diffs = [r["sign_noEF"] - r["none"] for r in rows]
+        finals = [r["final"] for r in ctr["none_arm_learns"]["rows"]]
+        mr = ctr["negative_matched_rate"]["R=1.0"]
+        _add_check_all(
+            "PROV-47",
+            "E10b invalid by positive control: sign-minus-none per seed (seed 3 negative), mean final loss of the unquantised arm, matched rates",
+            [f"${diffs[0] * 1e4:.0f}\\cdot10^{{-4}}$", f"${diffs[1] * 1e3:.1f}\\cdot10^{{-3}}$",
+             "it ended below the unquantised arm" if diffs[2] < 0 else "SEED3-NOT-BELOW",
+             f"{sum(finals) / len(finals):.4f}", f"{mr['z8_rate']:.3f}", f"{mr['e8_rate']:.3f}"]
+            + (["invalid by its registered rule"] if not e10b.get("controls_all_passed", True) and not ctr["positive_sign_hurts"]["passed"] else ["CONTROL-PASSED"]),
+            src10b,
+        )
+        fe = exp_v3_data.get("__e10b_first__", [])
+        fe = fe[0] if isinstance(fe, list) and fe else {}
+        am = exp_v3_data.get("__e10b_amend2__", {}).get("first_execution", {}).get("measured", {})
+        am_diag = exp_v3_data.get("__e10b_amend2__", {}).get("diagnostic", {}).get("results", [])
+        _add_check_all(
+            "PROV-48",
+            "E10b first execution: held-out loss 2.993 -> 3.070 and 0.72 s/step vs 0.12 assumed; init std 0.354 vs PEFT 0.0195",
+            [f"${fe.get('initial_loss', 0):.3f}$", f"${fe.get('final_loss', 0):.3f}$", f"${am.get('sec_per_inner_step', 0):.2f}$\\,s",
+             f"${am.get('registered_assumption_sec_per_inner_step', 0):.2f}$\\,s"]
+            + ([f"${0.354:.3f}$", f"${0.0195:.4f}$"] if len(am_diag) >= 2 and "std 0.354" in am_diag[0].get("init", "") and "std 0.0195" in am_diag[1].get("init", "") else ["DIAG-MISMATCH"]),
+            "artifacts/experiments/E10b_first_execution_partial.json; artifacts/experiments/E10b_lattice_05b_prereg_amendment_2.json",
+        )
+    else:
+        checks.append({"check_id": "PROV-46", "metric_name": "E10b report missing", "expected_tokens": [], "source_artifact": src10b, "passed": False})
+
     failed = [c["check_id"] for c in checks if not c["passed"]]
     return {
         "total_checks": len(checks),
@@ -392,6 +515,7 @@ def verify_latex_typography_and_figures(tex_text: str) -> Dict[str, Any]:
         "fig2_e2_pacgad_staleness_and_spectrum.pdf",
         "fig3_e3_looped_moe_and_subspace_spectra.pdf",
         "fig4_e4_rtx2070_vram_and_fomoe_scaling.pdf",
+        "fig8_e11_kv_lattice.pdf",
     ]
     figures_dir = PAPER_DIR / "figures"
     missing_figures = [
@@ -478,6 +602,15 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
     exp_v3_data["__e5het__"] = json.loads(e5h_report_path.read_text(encoding="utf-8")) if e5h_report_path.exists() else {}
     e10_report_path = PROJECT_ROOT / "artifacts" / "experiments" / "E10_lattice_report.json"
     exp_v3_data["__e10__"] = json.loads(e10_report_path.read_text(encoding="utf-8")) if e10_report_path.exists() else {}
+    for _key, _fname in (
+        ("__e11__", "E11_kv_lattice_report.json"),
+        ("__e12__", "E12_replay_divergence_report.json"),
+        ("__e10b__", "E10b_lattice_05b_report.json"),
+        ("__e10b_first__", "E10b_first_execution_partial.json"),
+        ("__e10b_amend2__", "E10b_lattice_05b_prereg_amendment_2.json"),
+    ):
+        _p = PROJECT_ROOT / "artifacts" / "experiments" / _fname
+        exp_v3_data[_key] = json.loads(_p.read_text(encoding="utf-8")) if _p.exists() else {}
     lean_ind_path = PROJECT_ROOT / "artifacts" / "lean_independent_runner_check.json"
     lean_rda_path = PROJECT_ROOT / "artifacts" / "lean_rda_multiplier_check.json"
     exp_v3_data["__lean_rda__"] = json.loads(lean_rda_path.read_text(encoding="utf-8")) if lean_rda_path.exists() else {}
@@ -611,7 +744,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     peer_review_report = {
         "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-        "version": "3.6.0",
+        "version": "3.7.0",
         "is_peer_review": False,
         "disclosure": AUDIT_DISCLOSURE,
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
@@ -651,7 +784,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-        "version": "3.6.0",
+        "version": "3.7.0",
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
         "workspace_root": ".",
         "artifacts_and_entrypoints": {
