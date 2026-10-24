@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — Prompt-level routing: whole-word keywords and abstention
+
+- `src/hivemind/core/btm_moe.py`: new `keyword_route` (whole-word keyword matching, abstain with `([], {})` when no keyword hits, ties by domain name, optional `min_weight` default 0.0), used by `Season3DomainExpertRegistry.route_domain_query` and `route_with_serving_experts`. Before: with no hit every domain scored 1.0 and the dict order decided, so five of seven probe prompts (python, cardiology, geography, a proof, a pandas traceback) went to Rust + Solidity; keywords matched inside longer words ("arc", "nat", "pub", "by").
+- **Contract change:** a prompt with no keyword hit returns `([], {})`; callers must use the base model. The existing property test now allows the empty result. No code in `src/` calls these functions outside the two modules.
+- Not fixed here: some registry keywords are ordinary English whole words (`by`, `require`, `contract`, `trial`, `proof`), so they can still fire; the labelled routing set must carry them as hard negatives. Patch written by the GWAYA session, read in full and applied; full suite 100% with no failures.
+
 ## Unreleased — Verified mode for coding requests (client side)
 
 - `scripts/hivemind_verified.py`: generate through the router, judge with the caller's own tests in the local fail-closed sandbox, repair with the failure text (<= 3 repairs), return the first passing candidate; otherwise the first attempt flagged `UNVERIFIED_FALLBACK`; no sandbox means `BLOCKED`. Library functions `verified_solve`, `sandbox_judge`, `router_ask`.
