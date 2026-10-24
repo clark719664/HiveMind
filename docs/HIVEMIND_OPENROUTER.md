@@ -178,6 +178,15 @@ A producer runs any OpenAI-compatible server. This example uses Ollama with `qwe
 Choose `--cost-per-1k` honestly. If it is above the market price, no requests reach you. If it is below
 your real cost, you lose money on every token you serve.
 
+## Python and game developers
+
+The getting-started kit for people who write Python and small games, including GPU sharing, model tiers and editor setup, is
+in [`HIVEMIND_PYTHON_GAME_DEVS.md`](HIVEMIND_PYTHON_GAME_DEVS.md). The helper scripts are `scripts/hivemind_connect.py`
+(register, check, editor snippets), `scripts/hivemind_producer_agent.py` (presets, suggestions, preflight) and
+`scripts/hivemind_producer_shield.py` (token-protected proxy for a producer's model server). The public catalog of model
+tiers is served at `GET /v1/hivemind/catalog`. A producer may send an `endpoint_token` with its heartbeat; the gateway then
+presents it as `Authorization: Bearer` to the producer's endpoint.
+
 ## The public deployment
 
 Live since 2026-10-24 on Cloud Run (project `gen-lang-client-0625573011`, `us-central1`, owner-approved public access):

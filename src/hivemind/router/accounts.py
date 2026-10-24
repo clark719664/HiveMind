@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS producers(
     cost_per_1k REAL NOT NULL,
     capacity_1k REAL NOT NULL,
     last_heartbeat_utc REAL NOT NULL,
-    execution_class TEXT NOT NULL
+    execution_class TEXT NOT NULL,
+    endpoint_token TEXT
 );
 CREATE TABLE IF NOT EXISTS usage(
     request_id TEXT PRIMARY KEY,
@@ -142,6 +143,11 @@ class ProducerRecord:
     capacity_1k: float
     last_heartbeat_utc: float
     execution_class: str
+    endpoint_token: str | None = None  # secret the gateway presents to the producer's own server; never serialised
+
+    def __repr__(self) -> str:
+        return (f"ProducerRecord(account_id={self.account_id!r}, endpoint_url={self.endpoint_url!r}, models={self.models!r}, "
+                f"cost_per_1k={self.cost_per_1k!r}, capacity_1k={self.capacity_1k!r}, execution_class={self.execution_class!r})")
 
     def local_name(self, model_id: str) -> str | None:
         """Return the producer's local name for ``model_id`` or ``None`` if it does not serve it."""
@@ -199,6 +205,10 @@ class RouterStore:
             for statement in _SCHEMA.split(";"):
                 if statement.strip():
                     self._conn.execute(statement)
+            # Databases created before the endpoint token existed are upgraded in place (additive, NULL for old rows).
+            columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(producers)")}
+            if "endpoint_token" not in columns:
+                self._conn.execute("ALTER TABLE producers ADD COLUMN endpoint_token TEXT")
             for sys_id in _ESCROW_ACCOUNTS:
                 self._conn.execute(
                     "INSERT OR IGNORE INTO accounts VALUES (?,?,?,?,?,?)",
@@ -529,8 +539,13 @@ class RouterStore:
         capacity_1k: float,
         execution_class: str = "unknown",
         now_utc: float | None = None,
+        endpoint_token: str | None = None,
     ) -> None:
-        """Insert or refresh a producer's advertisement; doubles as the heartbeat."""
+        """Insert or refresh a producer's advertisement; doubles as the heartbeat.
+
+        ``endpoint_token`` is the bearer secret the gateway presents to the producer's own server so that only the
+        gateway can use it; a heartbeat without one clears any earlier token.
+        """
         cost = _finite(cost_per_1k, "cost_per_1k")
         capacity = _finite(capacity_1k, "capacity_1k")
         if cost < 0 or capacity < 0:
@@ -544,11 +559,12 @@ class RouterStore:
             if str(row["role"]) not in PRODUCER_ROLES:
                 raise ValueError("account role cannot produce")
             conn.execute(
-                "INSERT INTO producers VALUES (?,?,?,?,?,?,?) ON CONFLICT(account_id) DO UPDATE SET "
+                "INSERT INTO producers(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
+                "execution_class, endpoint_token) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(account_id) DO UPDATE SET "
                 "endpoint_url=excluded.endpoint_url, models_json=excluded.models_json, cost_per_1k=excluded.cost_per_1k, "
                 "capacity_1k=excluded.capacity_1k, last_heartbeat_utc=excluded.last_heartbeat_utc, "
-                "execution_class=excluded.execution_class",
-                (account_id, endpoint_url, json.dumps(pairs, sort_keys=True), cost, capacity, stamp, execution_class),
+                "execution_class=excluded.execution_class, endpoint_token=excluded.endpoint_token",
+                (account_id, endpoint_url, json.dumps(pairs, sort_keys=True), cost, capacity, stamp, execution_class, endpoint_token),
             )
 
     def active_producers(self, model_id: str, now_utc: float, ttl_s: float = 120) -> list[ProducerRecord]:
@@ -571,6 +587,7 @@ class RouterStore:
                     capacity_1k=float(row["capacity_1k"]),
                     last_heartbeat_utc=float(row["last_heartbeat_utc"]),
                     execution_class=str(row["execution_class"]),
+                    endpoint_token=None if row["endpoint_token"] is None else str(row["endpoint_token"]),
                 )
             )
         return out

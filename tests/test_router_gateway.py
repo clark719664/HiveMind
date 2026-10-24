@@ -1112,3 +1112,47 @@ def test_health_is_served_on_both_paths(world: World) -> None:
     for path in ("/health", "/healthz"):
         response = world.app_client.get(path)
         assert response.status_code == 200 and response.json() == {"status": "ok"}
+
+
+def test_catalog_is_public_and_lists_the_moe_tiers(world: World) -> None:
+    response = world.app_client.get("/v1/hivemind/catalog")  # no key
+    assert response.status_code == 200
+    tiers = {t["tier_id"]: t for t in response.json()["tiers"]}
+    assert tiers["moe-coder"]["moe"] is True and tiers["coder"]["moe"] is False
+    assert tiers["coder-lite"]["min_vram_gb"] < tiers["moe-coder"]["min_vram_gb"]
+
+
+def _beat_with_token(world: World, key: str, host: str, token: str | None) -> httpx.Response:
+    body: dict[str, Any] = {"endpoint_url": f"https://{host}", "models": [{"id": "qwen", "local_name": "q"}], "cost_per_1k": COST, "capacity_1k": 100.0}
+    if token is not None:
+        body["endpoint_token"] = token
+    return world.app_client.post("/v1/hivemind/producer/heartbeat", headers={"Authorization": f"Bearer {key}"}, json=body)
+
+
+def test_endpoint_token_is_presented_to_the_producer_and_never_echoed(world: World) -> None:
+    _, key = world.register("producer")
+    fake = FakeProducer()
+    world.producers["gpu.test"] = fake
+    token = "tok-" + "x" * 30
+    assert _beat_with_token(world, key, "gpu.test", token).status_code == 200
+    _, consumer_key = world.consumer(100.0)
+
+    reply = world.chat(consumer_key)
+
+    assert reply.status_code == 200, reply.text
+    assert fake.calls[0].headers["authorization"] == f"Bearer {token}"
+    me = world.app_client.get("/v1/hivemind/me", headers={"Authorization": f"Bearer {key}"})
+    market = world.app_client.get("/v1/hivemind/market?model=hivemind/qwen", headers={"Authorization": f"Bearer {consumer_key}"})
+    assert token not in reply.text and token not in me.text and token not in market.text
+
+
+def test_no_endpoint_token_means_no_authorization_header_and_short_tokens_are_rejected(world: World) -> None:
+    _, key = world.register("producer")
+    fake = FakeProducer()
+    world.producers["gpu.test"] = fake
+    assert _beat_with_token(world, key, "gpu.test", None).status_code == 200
+    _, consumer_key = world.consumer(100.0)
+    assert world.chat(consumer_key).status_code == 200
+    assert "authorization" not in fake.calls[0].headers
+    assert _beat_with_token(world, key, "gpu.test", "short").status_code in (400, 422)
+    assert _beat_with_token(world, key, "gpu.test", "has space " + "y" * 20).status_code in (400, 422)
