@@ -1,0 +1,128 @@
+{
+  "purpose": "timing only (random tokens), decides the E13 Granite sizing",
+  "micro_batch": 4,
+  "seq_len": 256,
+  "gpu": "Tesla T4",
+  "results": [
+    {
+      "model": "granite1b",
+      "experts_impl": "eager",
+      "grad_ckpt": true,
+      "sec_per_step_median": 2.5427044835014385,
+      "sec_per_step_all": [
+        3.312,
+        2.854,
+        2.549,
+        2.78,
+        2.502,
+        2.695,
+        2.536,
+        2.468
+      ],
+      "load_s": 7.7,
+      "peak_reserved_gib": 3.42,
+      "finite_loss": true,
+      "resolved_experts_impl": "eager"
+    },
+    {
+      "model": "granite1b",
+      "experts_impl": "eager",
+      "grad_ckpt": false,
+      "sec_per_step_median": 1.4522073950029153,
+      "sec_per_step_all": [
+        1.652,
+        1.554,
+        1.524,
+        1.485,
+        1.433,
+        1.391,
+        1.471,
+        1.392
+      ],
+      "load_s": 3.0,
+      "peak_reserved_gib": 5.59,
+      "finite_loss": true,
+      "resolved_experts_impl": "eager"
+    },
+    {
+      "model": "granite1b",
+      "experts_impl": "grouped_mm",
+      "grad_ckpt": false,
+      "sec_per_step_median": 0.7771351060000597,
+      "sec_per_step_all": [
+        0.956,
+        0.839,
+        0.804,
+        0.79,
+        0.773,
+        0.766,
+        0.781,
+        0.762
+      ],
+      "load_s": 3.0,
+      "peak_reserved_gib": 5.76,
+      "finite_loss": true,
+      "resolved_experts_impl": "grouped_mm"
+    },
+    {
+      "model": "granite1b",
+      "experts_impl": "default",
+      "grad_ckpt": false,
+      "sec_per_step_median": 0.7859136834958917,
+      "sec_per_step_all": [
+        0.842,
+        0.778,
+        0.761,
+        0.792,
+        0.786,
+        0.785,
+        0.799,
+        0.786
+      ],
+      "load_s": 2.9,
+      "peak_reserved_gib": 5.76,
+      "finite_loss": true,
+      "resolved_experts_impl": "grouped_mm"
+    },
+    {
+      "model": "granite3b",
+      "experts_impl": "eager",
+      "grad_ckpt": false,
+      "sec_per_step_median": 2.3561367790025542,
+      "sec_per_step_all": [
+        2.687,
+        2.46,
+        2.485,
+        2.42,
+        2.363,
+        2.349,
+        2.304,
+        2.206
+      ],
+      "load_s": 6.4,
+      "peak_reserved_gib": 11.13,
+      "finite_loss": true,
+      "resolved_experts_impl": "eager"
+    },
+    {
+      "model": "granite3b",
+      "experts_impl": "eager",
+      "grad_ckpt": true,
+      "sec_per_step_median": 4.136957054503,
+      "sec_per_step_all": [
+        4.199,
+        4.291,
+        4.262,
+        4.11,
+        4.164,
+        4.198,
+        3.904,
+        4.022
+      ],
+      "load_s": 6.3,
+      "peak_reserved_gib": 7.25,
+      "finite_loss": true,
+      "resolved_experts_impl": "eager"
+    }
+  ]
+}

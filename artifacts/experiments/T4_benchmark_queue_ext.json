@@ -2,6 +2,27 @@
  "campaign": "T4 follow-up (extension) after the 10-hour campaign: jobs cut by its deadline + Gemma on the E11b amendment-1 datasets",
  "jobs": [
   {
+   "name": "E13_granite1b_v2",
+   "argv": [
+    "scripts/run_experiment_E13_swarm_local.py",
+    "--model",
+    "granite1b",
+    "--experts-impl",
+    "grouped_mm",
+    "--no-grad-ckpt",
+    "--peer-hosting",
+    "thread",
+    "--cells",
+    "S0,S1,S2",
+    "--seeds",
+    "1,2,3",
+    "--report",
+    "artifacts/experiments/E13_swarm_local_report_granite1b.json",
+    "--resume"
+   ],
+   "output": null
+  },
+  {
    "name": "E11b_qwen0.5b_fineweb-edu_w1024",
    "argv": [
     "scripts/run_experiment_E11_kv_lattice.py",
