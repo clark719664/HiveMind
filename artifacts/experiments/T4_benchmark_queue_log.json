@@ -254,10 +254,37 @@
     "[E10b] device cuda, 540672 LoRA coordinates, plan: {\"runs\": 24, \"arms\": [\"none\", \"sign+EF\", \"Z8@1+EF\", \"E8@1+EF\", \"Z8@2+EF\", \"E8@2+EF\", \"sign\", \"E8@6\"], \"seeds\": [1, 2, 3], \"inner_steps_per_run\": 1920, \"inner_steps_total\": 46080, \"tokens_per_learner_per_run\": 491520, \"lattice_codec_calls\": 720, \"eval_passes\": 120, \"assumed_sec_per_inner_step\": 0.12, \"assumed_sec_per_lattice_codec_call\": 1.5, \"assumed_sec_per_eval\": 1.3, \"breakdown_s\": {\"inner_steps_s\": 5529.6, \"lattice_codec_s\": 1080.0, \"eval_s\": 156.0, \"setup_and_controls_s\": 150.0}, \"total_s\": 6915.6, \"total_hours\": 1.92}",
     "seed 1 none     final 3.0703 (init 2.9933) relMSE 0.0000 rate 32.000 1384.91s"
    ]
+  },
+  {
+   "name": "E12_replay_retry",
+   "argv": [
+    "scripts/run_experiment_E12_replay_divergence.py"
+   ],
+   "start_unix": 1792794846.8196867,
+   "status": "ok",
+   "returncode": 0,
+   "seconds": 6593.4,
+   "log_tail": [
+    "  \"analysis\": {",
+    "    \"P12-same\": {",
+    "      \"status\": \"supported\",",
+    "      \"basis\": \"cell B (same T4, separate process) - a proxy for same class, not a second T4\"",
+    "    },",
+    "    \"P12-cross\": {",
+    "      \"status\": \"supported\",",
+    "      \"basis\": \"cell C (T4 vs this host's x86 CPU, float32 both)\"",
+    "    },",
+    "    \"P12-fixed-point\": {",
+    "      \"status\": \"not decided (no fixed-point kernel); fp64 + 2^-20 snapping proxy reported in cell D\"",
+    "    }",
+    "  },",
+    "  \"controls_all_passed\": true",
+    "}"
+   ]
   }
  ],
- "gpu_samples": 208,
- "gpu_util_mean_pct": 87.3,
+ "gpu_samples": 427,
+ "gpu_util_mean_pct": 48.0,
  "gpu_util_by_job": {
   "E11_gemma4-e4b": 26.8,
   "E12_replay": 0.0,
@@ -266,7 +293,8 @@
   "E11_qwen0.5b": 26.0,
   "E11_qwen7b": 31.3,
   "E11_qwen7b_retry": 73.2,
-  "E10b_lattice_05b": 99.7
+  "E10b_lattice_05b": 99.7,
+  "E12_replay_retry": 10.6
  },
  "gpu_mem_peak_gib": 14.81,
  "gpu_trace": [
@@ -633,6 +661,391 @@
    "util_pct": 100,
    "mem_used_gib": 7.2,
    "power_w": 67.3
+  },
+  {
+   "t": 1792794873.0,
+   "job": "E12_replay_retry",
+   "util_pct": 52,
+   "mem_used_gib": 3.21,
+   "power_w": 96.9
+  },
+  {
+   "t": 1792794993.0,
+   "job": "E12_replay_retry",
+   "util_pct": 47,
+   "mem_used_gib": 3.22,
+   "power_w": 45.2
+  },
+  {
+   "t": 1792795113.0,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 30.8
+  },
+  {
+   "t": 1792795233.1,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 30.7
+  },
+  {
+   "t": 1792795353.1,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 30.5
+  },
+  {
+   "t": 1792795473.1,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 29.6
+  },
+  {
+   "t": 1792795593.1,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 29.0
+  },
+  {
+   "t": 1792795713.1,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.9
+  },
+  {
+   "t": 1792795833.2,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.8
+  },
+  {
+   "t": 1792795953.2,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792796073.2,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792796193.2,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792796313.2,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792796433.2,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792796553.3,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792796673.3,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792796793.3,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792796913.3,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792797033.3,
+   "job": "E12_replay_retry",
+   "util_pct": 100,
+   "mem_used_gib": 5.92,
+   "power_w": 69.6
+  },
+  {
+   "t": 1792797153.4,
+   "job": "E12_replay_retry",
+   "util_pct": 100,
+   "mem_used_gib": 5.81,
+   "power_w": 67.2
+  },
+  {
+   "t": 1792797273.4,
+   "job": "E12_replay_retry",
+   "util_pct": 100,
+   "mem_used_gib": 5.79,
+   "power_w": 68.8
+  },
+  {
+   "t": 1792797393.4,
+   "job": "E12_replay_retry",
+   "util_pct": 100,
+   "mem_used_gib": 5.79,
+   "power_w": 69.1
+  },
+  {
+   "t": 1792797513.4,
+   "job": "E12_replay_retry",
+   "util_pct": 100,
+   "mem_used_gib": 5.79,
+   "power_w": 67.4
+  },
+  {
+   "t": 1792797633.4,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 30.4
+  },
+  {
+   "t": 1792797753.5,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 30.4
+  },
+  {
+   "t": 1792797873.5,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 30.1
+  },
+  {
+   "t": 1792797993.5,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 29.4
+  },
+  {
+   "t": 1792798113.5,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 29.0
+  },
+  {
+   "t": 1792798233.5,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.8
+  },
+  {
+   "t": 1792798353.6,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792798473.6,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792798593.6,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792798713.6,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792798833.6,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792798953.6,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792799073.7,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792799193.7,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792799313.7,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792799433.7,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792799553.7,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792799673.8,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792799793.8,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792799913.8,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792800033.8,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792800153.8,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792800273.9,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792800393.9,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792800513.9,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792800633.9,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.7
+  },
+  {
+   "t": 1792800753.9,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792800874.0,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792800994.0,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
+  },
+  {
+   "t": 1792801114.0,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792801234.0,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.6
+  },
+  {
+   "t": 1792801354.0,
+   "job": "E12_replay_retry",
+   "util_pct": 0,
+   "mem_used_gib": 0.74,
+   "power_w": 28.5
   }
  ]
 }
