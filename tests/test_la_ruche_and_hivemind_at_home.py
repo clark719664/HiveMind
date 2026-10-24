@@ -99,10 +99,28 @@ def test_dataset_mining_campaign_populates_la_ruche_and_dashboard(
     )
     assert html_path.exists()
     assert state_path.exists()
+    assert (html_path.parent / "cyber-bee-poster.svg").exists()
+    assert (html_path.parent / "exoplanet-seti-visual.svg").exists()
+
     html_text = render_hivemind_at_home_html(state)
     assert "HIVEMIND@HOME" in html_text
     assert "LA RUCHE" in html_text
     assert "gwenlaya-tpu-1" in html_text
+    assert "cyber-bee-svg-layer" in html_text
+    assert "Space Grotesk" in html_text
+    assert "nav-tab lang-btn" not in html_text
+
+    # Verify that the embedded JavaScript is free of syntax errors
+    import re
+    import subprocess
+    scripts = re.findall(r"<script>(.*?)</script>", html_text, re.DOTALL)
+    assert len(scripts) >= 1
+    node_res = subprocess.run(
+        ["node", "--check"],
+        input=scripts[0].encode("utf-8"),
+        capture_output=True,
+    )
+    assert node_res.returncode == 0, f"JS Syntax Error: {node_res.stderr.decode()}"
 
     app = create_hivemind_at_home_app(
         mining_ruche_report_path=mining_report_path,
