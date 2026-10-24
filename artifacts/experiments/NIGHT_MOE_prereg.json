@@ -1,0 +1,130 @@
+{
+ "experiment_id": "NIGHT-MOE-1",
+ "registered_utc": "2026-10-24T19:21:22Z",
+ "registered_before_run": true,
+ "title": "Domain experts (LoRA adapters on the served 7B) trained one after another on real data: school maths, planet detection, star classification, cyber questions",
+ "requested_by": "HiveMind owner (2026-10-24): train several experts one after another over a ten-hour night, 1 to 2 hours each, from astrophysics (planet detection, star classification), school maths to physics, and cyber questions, based on the existing HiveMind Hugging Face mining campaign and Hugging Face datasets",
+ "finding_that_shapes_the_design": {
+  "what": "The existing campaign does not train on Hugging Face data. src/hivemind/data/fixtures/polyglot_science_8domain_v1.json holds three short strings per domain, and src/hivemind/data/hf_real_trainer.py states in its own docstring that it fits seeded random targets, fetches no dataset and measures no classification accuracy. Its astrophysics dataset id (MultimodalUniverse/multimodal_universe) and the registry ids for Rust, Solidity and Lean do not resolve on the Hugging Face API (HTTP 401).",
+  "consequence": "The campaign supplies subjects and structure only. This run uses real public data with held-out evaluation, and nothing here may be described as a continuation of an earlier measured result."
+ },
+ "model": {
+  "base": "Qwen/Qwen2.5-Coder-7B-Instruct, nf4 for training, LoRA r16 alpha32 on q,k,v,o,gate,up,down; served as the Q4_K_M GGUF of the router's qwen2.5-coder:7b-instruct with llama-server --lora (the path E17 verifies)",
+  "note": "A coder model is the only 7B on the T4 today. Subjects outside code are a test of how far an adapter moves it, not a claim of domain strength."
+ },
+ "data": {
+  "maths": {
+   "source": "openai/gsm8k",
+   "licence_as_read": "- mit",
+   "n_train": 1000,
+   "n_eval": 200,
+   "sha256": {
+    "train.jsonl": "fca97f18958653d2d2752d94a46977452329e9792b4da762f600df04662fac14",
+    "eval.jsonl": "e87c2960cf325902e20782b33c8cdc23c8e532d3a69dc3dcaa6433060df28edd"
+   }
+  },
+  "exoplanet": {
+   "source": "NASA Exoplanet Archive TAP table 'cumulative' (Kepler objects of interest)",
+   "licence_as_read": "NASA Exoplanet Archive data are public; acknowledgement requested (read the archive's acknowledgement page before publishing)",
+   "n_train": 1600,
+   "n_eval": 600,
+   "sha256": {
+    "train.jsonl": "e161a0e79d08ef479d1a32285b35a9446f10a2383f4d87ad67016df1f881dd75",
+    "eval.jsonl": "8391520bdb81f86e99fea378d706954ca89af103c3219add57397491e54e1bbe"
+   }
+  },
+  "stars": {
+   "source": "NASA Exoplanet Archive TAP table 'stellarhosts' (observed spectral type from the literature)",
+   "licence_as_read": "NASA Exoplanet Archive data are public; acknowledgement requested",
+   "n_train": 974,
+   "n_eval": 317,
+   "sha256": {
+    "train.jsonl": "f3a9d105f52a676c94480f2e15013b9e5eadb0f42d327a6020d6ecafb7f6df9a",
+    "eval.jsonl": "d1ad691d6723b274181e8616667570bf5340b5c075b142fb3d88407e4e683bf9"
+   }
+  },
+  "cyber": {
+   "source": "Trendyol/Trendyol-Cybersecurity-Instruction-Tuning-Dataset (train, first 60 MB, LLM-generated, no verifier) + cais/mmlu computer_security + AI4Sec/cti-bench cti-mcq (eval only)",
+   "licence_as_read": {
+    "Trendyol": "apache-2.0",
+    "mmlu": "- mit",
+    "cti-bench": "cc-by-nc-sa-4.0 (non-commercial, share-alike: evaluation only, nothing redistributed; owner to confirm)"
+   },
+   "n_train": 1200,
+   "n_eval": 500,
+   "sha256": {
+    "train.jsonl": "fcc027594869b2be0248c6a0f52dcd7d058cf8a2e490c28612fe9aeffccf7e9d",
+    "eval.jsonl": "d681d1eaed32318c00a652812b650a6f0c9a816b75aa2918b3ed25543d0c7f57"
+   }
+  },
+  "physics_transfer": {
+   "source": "cais/mmlu high_school_physics,college_physics,conceptual_physics",
+   "licence_as_read": "- mit",
+   "n_train": 0,
+   "n_eval": 488,
+   "sha256": {
+    "train.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eval.jsonl": "2d7388f2e54d586887bb50c3234afc641e66cb8568a47835634f9fceb1538710"
+   }
+  },
+  "astro_transfer": {
+   "source": "cais/mmlu astronomy",
+   "licence_as_read": "- mit",
+   "n_train": 0,
+   "n_eval": 152,
+   "sha256": {
+    "train.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eval.jsonl": "4c83217e462f531edb218ec4470b8f08403c311f80372ebbefc698c2f376c02d"
+   }
+  }
+ },
+ "data_notes": {
+  "exoplanet": "Kepler objects of interest, CONFIRMED vs FALSE POSITIVE (CANDIDATE excluded). Split by star. Label-defining columns excluded (koi_fpflag_*, koi_pdisposition, koi_score). Classical reference on the same features (numpy logistic regression): {\"accuracy\": 0.8233333333333334, \"balanced_accuracy\": 0.8146815704299071, \"n_eval\": 600}",
+  "stars": "Observed spectral class of planet-host stars. The held-out set has no O or B stars and 2 A stars, so only F, G, K, M are really tested. Temperature is a feature: the textbook temperature rule scores 0.8265 on this held-out set, so this subject tests the pipeline, not astrophysics.",
+  "maths": "GSM8K gold step-by-step solutions (calculator markup removed); numeric final-answer match. Physics is a TRANSFER test: MMLU high-school, college and conceptual physics (488 questions), eval only. No physics training data with a clear licence and a checkable answer was found (camel-ai/physics is CC-BY-NC and unverified).",
+  "cyber": "Training: Trendyol instruction data (Apache-2.0, LLM-generated, unverified), filtered by a keyword list that drops offensive-tooling requests (pattern in the pack manifest) and by answer length. Evaluation: MMLU computer_security (100) and CTI-Bench MCQ (400, CC-BY-NC-SA, evaluation only, nothing redistributed). Both choices need owner confirmation before the run."
+ },
+ "hypotheses": {
+  "H-maths": "The maths adapter raises accuracy on 200 held-out GSM8K problems over the base (same engine, same settings). Accepted only if exact McNemar p < 0.05 two-sided AND the net gain is positive. With 200 items a gain below about 5 to 8 points cannot reach that, so a smaller gain is reported as 'not detected', never as 'improved'.",
+  "H-physics-transfer": "No claim of gain. The maths adapter is flagged HARM if it is significantly worse than the base on 488 MMLU physics questions (p < 0.05, adapter lower).",
+  "H-exoplanet": "The adapter beats the base on 600 held-out Kepler objects (exact McNemar p < 0.05, net positive). Against the classical reference the comparison is descriptive (accuracy with Wilson interval); no significance claim, because the reference predictions are not paired.",
+  "H-stars": "The adapter beats the base on 317 held-out stars (exact McNemar p < 0.05). Reported next to the temperature rule and the majority class; expected to land near the rule.",
+  "H-cyber": "No gain is expected from LLM-generated, unverified training text. Primary: the adapter is not significantly worse than the base on the pooled 500 questions (HARM flag otherwise); a gain is reported only if p < 0.05.",
+  "H-interference": "Each adapter, on the first 100 items of every other pack, is not significantly worse than the base (HARM flag otherwise). 100 items detect only large harm (about 8 to 11 points)."
+ },
+ "minimum_detectable_gain": "Exact McNemar, two-sided p < 0.05, computed for discordant-pair shares of 10, 15 and 25 percent: n=100: 8 to 11 points; n=200: 5 to 8; n=317: 4.4 to 6; n=488: 3.1 to 4.9; n=500: 3.2 to 4.6; n=600: 3.0 to 4.3.",
+ "controls": {
+  "negative_control": "For every subject a second adapter is trained on the same prompts with the completions dealt out to other prompts (1 epoch, time-capped) and evaluated on the same pack. If it shows a significant GAIN over the base (p < 0.05), the evaluation or the pipeline is contaminated and that subject's result is VOID.",
+  "scorer_controls": "Unit tests: unparsable replies count as wrong; known McNemar and Wilson values; the orchestrator's failure handling with external calls mocked. Four deliberate breakages were each caught by a test.",
+  "determinism": "Verified for this engine on the E17 base run (0 of 30 repeats differed, prompt cache off). Not re-checked per pack.",
+  "leakage": "Each pack asserts no shared key and no identical prompt between train and eval; the exoplanet and star splits put whole stars on one side."
+ },
+ "acceptance_before_any_adapter_is_served": "An adapter may be offered for serving only if its own pack passes (p < 0.05 gain, control not significant) AND the verified update gate (src/hivemind/swarm/verified_update_gate.py, paired non-regression) returns ACCEPT on the other packs. Otherwise the result is reported and the adapter is not served.",
+ "operations": {
+  "before_the_night": [
+   "E17 finished and the producer restored with the restore command tested",
+   "scripts/night_orchestrator.py --baselines (about 80 min estimated, GPU free)",
+   "free disk on the VM data disk at least 2 GB",
+   "owner confirms: router offline for about 8 hours, cyber filter and CTI-Bench evaluation-only use"
+  ],
+  "night": "scripts/night_orchestrator.py --run [--interference] --deadline-h 10",
+  "restore": "the producer agent is restarted as the last stage regardless of failures; if that stage fails the exit code is 4"
+ },
+ "schedule_estimate_minutes": {
+  "note": "estimates from the E17 speed (about 1.1 s per 300-token sequence for a 7B in nf4); the trainer time caps protect the night; real timings are written to state.json",
+  "maths": "train 45 (cap 45) + control 15 + convert/serve 10 + eval own 30 + transfer 15 + control eval 15 = about 130",
+  "exoplanet": "train 27 + control 15 + 10 + eval 13 + astro 8 + control eval 13 = about 86",
+  "stars": "train 20 + control 15 + 10 + eval 7 + astro 8 + control eval 7 = about 67",
+  "cyber": "train 56 (cap 60) + control 15 + 10 + eval 13 + control eval 13 = about 107",
+  "interference": "about 45",
+  "total_with_interference": "about 7.2 h of the 10 h; the rest is slack"
+ },
+ "not_claimed": [
+  "a better astrophysics or cyber model in general",
+  "that the experts beat larger models",
+  "that a gain on a held-out split transfers to other data",
+  "anything about the 20B gpt-oss tier, which is a separate measurement",
+  "a Nash or market result: serving is a separate decision"
+ ],
+ "non_monetary": "HMT remain points with no cash value."
+}

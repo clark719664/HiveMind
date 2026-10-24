@@ -158,6 +158,11 @@ FORWARDED_REQUEST_FIELDS: frozenset[str] = frozenset({
 })
 
 
+# Reasoning models (the moe-general tier) think before they answer and the thinking counts against max_tokens, so a consumer
+# must be able to ask for less of it. Only these exact values are forwarded.
+REASONING_EFFORTS: frozenset[str] = frozenset({"low", "medium", "high"})
+
+
 def prompt_byte_count(body: Mapping[str, Any]) -> int:
     """UTF-8 bytes of everything the consumer sent as prompt: message contents, tool calls and tool definitions."""
     total = 0
@@ -719,6 +724,9 @@ def create_router_app(
         if local is None:
             return None
         outgoing = {k: v for k, v in body.items() if k in FORWARDED_REQUEST_FIELDS}
+        effort = body.get("reasoning_effort")
+        if isinstance(effort, str) and effort in REASONING_EFFORTS:  # an enum, so it cannot carry prompt material; anything else is dropped
+            outgoing["reasoning_effort"] = effort
         outgoing["model"] = local
         outgoing["max_tokens"] = plan.max_tokens
         outgoing["max_completion_tokens"] = plan.max_tokens
