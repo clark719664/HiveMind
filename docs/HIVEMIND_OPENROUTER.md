@@ -78,6 +78,8 @@ You can explore and test the HiveMind OpenRouter directly in any browser without
 
 ## Using HiveMind from your IDE
 
+Step-by-step guide for each editor, with troubleshooting: [HIVEMIND_CONNECT_IDE.md](HIVEMIND_CONNECT_IDE.md).
+
 Register once, then use the API key as the bearer token and the gateway as the OpenAI base URL. Model ids are
 `hivemind/<model>`, and `hivemind/auto` picks the live model with the most supply.
 
@@ -102,7 +104,8 @@ configuration formats change between releases.
       },
       "models": {
         "hivemind/auto": {
-          "name": "HiveMind auto"
+          "name": "HiveMind auto",
+          "limit": { "context": 8192, "output": 700 }
         }
       }
     }
@@ -187,6 +190,27 @@ A producer runs any OpenAI-compatible server. This example uses Ollama with `qwe
 
 Choose `--cost-per-1k` honestly. If it is above the market price, no requests reach you. If it is below
 your real cost, you lose money on every token you serve.
+
+### Serving the `moe-general` tier (gpt-oss 20B) on a 15 GB card such as a Tesla T4
+
+Measured on one Tesla T4 on 2026-10-24 (Ollama 0.34.1, flash attention on, 8-bit KV cache, one slot, 4,096 context,
+card otherwise empty):
+
+- **Memory:** 12,331 MiB resident of 15,360. It does not fit beside a 7B model; a 3B beside it fits but runs partly on the CPU.
+  So a T4 serves *either* `moe-general` *or* `coder`/`coder-lite`, not both at once. Swapping costs a cold load (285 s from disk).
+- **Speed:** 19 to 45 tokens per second on short single requests (indicative, not a benchmark).
+- **Quality:** on six harder coding tasks with hidden tests it solved 6 of 6 on the first attempt where the 7B coder solved 3 of 6 (n = 6, direction only).
+- **It thinks first.** The thinking counts against `max_tokens`, so with a small limit the answer can come back empty. Ask for less thinking with
+  `"reasoning_effort": "low"` (the gateway forwards `low`, `medium` or `high` and drops anything else) and keep `max_tokens` generous. The gateway
+  already bills thinking text, so producers are paid for it.
+- **Start a private server for it** (so the shared service is not reconfigured), then heartbeat the tier:
+
+  ```bash
+  OLLAMA_HOST=127.0.0.1:11436 OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_NUM_PARALLEL=1 OLLAMA_KEEP_ALIVE=30m ollama serve &
+  python scripts/hivemind_producer_agent.py --gateway GATEWAY_URL --endpoint https://YOUR_ENDPOINT --preset moe-general --execution-class t4
+  ```
+
+  Add `--allow-model gpt-oss:20b` to the producer shield. `catalog.py` now lists 15 GB as the minimum for this tier.
 
 ## Python and game developers
 
@@ -298,3 +322,24 @@ and the connect remains possible; closing it needs an egress proxy (HM-S13-07).
 
 The router secret must not change once accounts exist, because account ids and key hashes depend on it.
 Rotating it orphans every existing account.
+
+## Lessons from the first live runs (2026-10-24)
+
+What running real clients against the live router and one Tesla T4 taught us. Each line was observed, not assumed.
+
+- **Producer slots.** A producer that allows one request at a time answers an overlapping request with 502. OpenCode sends a title
+  request and the real one together, so it stalled. Allow at least 2 (3 worked); Ollama queues the extra work. The shield default is 2.
+- **Reserve.** The gateway reserves points for the whole prompt plus `max_tokens`. OpenCode without an output limit needed about 123
+  points per request and a 50-point account was refused. Set a model output limit (the OpenCode snippet now does) or top up.
+- **Tool calls.** The 7B coder tier often writes an agent tool call as plain JSON text, so editor agents that rely on tool calls do not
+  edit files; chat-style help works. Turn the editor's tools off for these tiers.
+- **Context.** Ollama's default context is 4,096 tokens on the T4; OpenCode's own prompt is about 2,000, so keep project prompts short.
+- **Quality.** On 257 held-out MBPP-sanitized tasks the 7B tier passed 76.3% on the first attempt and 82.9% with the verify-and-repair
+  loop (`scripts/hivemind_verified.py`; 17 rescued, none lost). Complex multi-rule tasks (an expression parser) still failed in 3 rounds.
+- **Determinism.** Ollama at temperature 0 with a fixed seed was not always repeatable (1 of 3 repeated requests differed) and ignores
+  temperature and seed on `/v1`. Benchmarks through it carry noise; compare with paired counts.
+- **Adapters.** Ollama 0.34.1 refuses LoRA adapters ("LoRA adapters are no longer supported"). llama.cpp's `llama-server --lora` applies a
+  converted adapter on the same base file (verified with a stand-in: output changed with the adapter and not without it).
+- **Disk.** Training a 7B on a 16 GB T4 needs the model's 15 GB of weights on disk: check free space on the data disk first (the VM had 41 GB).
+- **Sandbox boundary.** Running a caller's tests is useful but must happen on the caller's side or in a separate isolated service, never
+  inside the gateway or a producer.

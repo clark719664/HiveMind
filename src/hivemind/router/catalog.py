@@ -62,7 +62,9 @@ TIERS: tuple[ModelTier, ...] = (
               "everyday Python and simple game code: functions, classes, pygame loops, tracebacks"),
     ModelTier("coder-plus", "Coder Plus (14B)", "qwen2.5-coder:14b", 9.0, 12.0, False, None, 0.7, 80.0,
               "larger refactors, multi-file reasoning, tests"),
-    ModelTier("moe-general", "General MoE (gpt-oss 20B, 3.6B active)", "gpt-oss:20b", 14.0, 16.0, True, 3.6, 0.9, 80.0,
+    # Measured 2026-10-24 on a Tesla T4 (15,360 MiB): 12,331 MiB resident at 4,096 context with an 8-bit KV cache, flash attention
+    # and the card otherwise empty; it does not fit beside a 7B and a 3B beside it is partly on CPU. It thinks before answering.
+    ModelTier("moe-general", "General MoE (gpt-oss 20B, 3.6B active)", "gpt-oss:20b", 14.0, 15.0, True, 3.6, 0.9, 80.0,
               "reasoning-heavy questions and design; a mixture-of-experts model that fits a 16 GB card"),
     ModelTier("moe-coder", "Coder MoE (Qwen3-Coder 30B, 3.3B active)", "qwen3-coder:30b", 19.0, 24.0, True, 3.3, 1.2, 100.0,
               "the strongest coding tier: agentic edits across files with a long context"),

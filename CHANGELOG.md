@@ -5,6 +5,45 @@
 - Manuscript v3.8.0 (not deposited; the deposited record stays v3.7.1, 10.5281/zenodo.23607597): withdraws the INVALID E11 Qwen2.5-Coder-7B row (negative control failed by -0.47 nats), states P11a on Qwen2.5-0.5B as refuted on one rate-matched cell, adds a labelled-untested likely-cause note to E10b, and adds provenance checks PROV-72 and PROV-73; fig. 8 is regenerated without the 7B panel; the ledger gains a `withdrawn` block for P11a/P11b.
 - T4 replication kit: `docs/community/T4_REPLICATION_KIT.md` and `scripts/compare_replication.py` (compares a replication run against the campaign receipts; 4 tests in `tests/test_compare_replication.py`).
 - Test: `tests/test_e15_gate.py` parses with `ast.literal_eval` instead of `eval`.
+## Unreleased — moe-general (gpt-oss 20B) measured on a T4
+
+- `catalog.py`: `moe-general` minimum memory 16 GB to 15 GB, from a measurement (12,331 MiB resident on a T4, card otherwise empty); the catalog test now covers 14.9, 15.0 and 15.36 GB.
+- `gateway.py`: `reasoning_effort` is forwarded when it is exactly `low`, `medium` or `high` (any other value is dropped), so consumers can limit a reasoning model's thinking. A test caught an unhashable-value crash in the first version; fixed and covered.
+- `docs/HIVEMIND_OPENROUTER.md`: how to serve the tier on a 15 GB card, with the measured memory, speed and the six-task result (n = 6). Not yet served live: it needs the T4, which is being used for E17 training.
+
+## Unreleased — Prompt-level routing: whole-word keywords and abstention
+
+- `src/hivemind/core/btm_moe.py`: new `keyword_route` (whole-word keyword matching, abstain with `([], {})` when no keyword hits, ties by domain name, optional `min_weight` default 0.0), used by `Season3DomainExpertRegistry.route_domain_query` and `route_with_serving_experts`. Before: with no hit every domain scored 1.0 and the dict order decided, so five of seven probe prompts (python, cardiology, geography, a proof, a pandas traceback) went to Rust + Solidity; keywords matched inside longer words ("arc", "nat", "pub", "by").
+- **Contract change:** a prompt with no keyword hit returns `([], {})`; callers must use the base model. The existing property test now allows the empty result. No code in `src/` calls these functions outside the two modules.
+- Not fixed here: some registry keywords are ordinary English whole words (`by`, `require`, `contract`, `trial`, `proof`), so they can still fire; the labelled routing set must carry them as hard negatives. Patch written by the GWAYA session, read in full and applied; full suite 100% with no failures.
+## Unreleased — GWAYA Level B: sandbox-gated acceptance of LoRA / DiLoCo updates
+
+- `src/hivemind/swarm/verified_update_gate.py`: `decide` (exact paired McNemar gate on held-out sandbox outcomes: same tasks, minimum n, UNVERIFIED never a pass and too much of it blocks, net-loss and significant-regression rejection, optional required improvement, sealed receipt), `evaluate_tasks` (generator plus injected sandbox gate such as `e15_gate.gate`) and `gate_update`.
+- `docs/community/GWAYA_LEVEL_B_UPDATE_GATE.md`: rules, limits and use.
+- **No LoRA was trained or evaluated and no pass-rate number is claimed.** The gate is not yet wired into the DiLoCo merge or the E14 admission policies.
+- `tests/test_verified_update_gate.py`: 17 tests (exact-p closed forms, better/regressed/identical controls, UNVERIFIED-heavy refusal, Hypothesis properties, evaluator with a mocked sandbox, and one real `e15_gate` sandbox run when the host allows it). Mutation checks: scoring an unverified baseline as a fail, an unverified candidate as a pass, or switching off the net-loss rule each fail a test.
+## Unreleased — Improvements recorded from the live T4 runs
+
+- `scripts/hivemind_connect.py`: the OpenCode snippet now carries a model output limit (`limit.output` = the chosen max tokens) and a context hint, and explains how to turn tools off when a 7B model writes tool calls as text. The docs already claimed snippets set 2,048; the OpenCode one did not.
+- `docs/HIVEMIND_OPENROUTER.md`: new section "Lessons from the first live runs" (producer slots, reserve, tool calls, context, measured quality, determinism, adapters, disk, sandbox boundary).
+- `ROADMAP.md`: HM-S13-16 to HM-S13-20 (isolated verifier service, busy-producer handling, reserve sizing, routing defects reported by the GWAYA session, llama.cpp adapter serving).
+- New `docs/HIVEMIND_CONNECT_IDE.md`: base URL, key, model ids, per-editor settings (OpenCode, VS Code Continue/Cline, JetBrains, Zed, Aider, env), a table of what was tested live versus format-checked only, verified mode, and a troubleshooting table. Linked from the README, the OpenRouter doc and a new wiki page.
+- Portal (`/`): snippet tabs for OpenCode, Zed, JetBrains and env variables; Continue shows the current YAML format; OpenCode carries the output limit; no tab points at a tier that has no producer. A test checks every button has a snippet and the limit is present.
+- Nothing here changes the gateway's behaviour.
+
+## Unreleased — Verified mode for coding requests (client side)
+
+- `scripts/hivemind_verified.py`: generate through the router, judge with the caller's own tests in the local fail-closed sandbox, repair with the failure text (<= 3 repairs), return the first passing candidate; otherwise the first attempt flagged `UNVERIFIED_FALLBACK`; no sandbox means `BLOCKED`. Library functions `verified_solve`, `sandbox_judge`, `router_ask`.
+- Measured on the live router and the T4 (MBPP-sanitized, n=257, 7B `coder`): 76.3% first attempt, 82.9% with the loop, 17 rescued / 0 lost, exact McNemar p = 1.5e-5; ~192 HMT. Sampling uncontrolled (Ollama ignores temperature/seed on /v1). One benchmark, one run.
+- Deliberately NOT in the gateway or the producers: they would have to execute code supplied by strangers. A server-side version needs a separate isolated verifier service; not built.
+- `tests/test_hivemind_verified.py` (9 tests). Mutation checks: first-attempt fallback, blocked sandbox, always-accept and withheld feedback each fail tests.
+
+## Unreleased — GWAYA-Lite Python code expert as a serving-layer expert
+
+- `src/hivemind/core/serving_experts.py`: `SERVING_EXPERT_SPECS` (first entry `Python_Code_GWAYA`), `route_with_serving_experts` (same `1.0 + 2.5 x keyword hits` scale as `route_domain_query`, over LoRA domains and serving experts) and `load_gwaya_code_expert` (lazy import of the optional `gwaya` package; 7B-only by default).
+- Kept out of `SEASON_3_DOMAIN_EXPERT_SPECS` on purpose: a serving expert has no adapter or dataset, and adding it there would give `train_and_publish_season3_domain_experts` a fifth domain and break the 4-domain Season 3 test.
+- Source and numbers: GWAYA repo PR #21 (T4, MBPP-sanitized, n=257, all tests required): 7B Q4 82.1% raw / 82.9% with the GWAYA loop (+2/0, p=0.5, not significant), 3B Q4 70.8% / 71.6%; a 3B-first cascade did not pay off (83.3% vs 82.9%). Measured by the GWAYA session, not re-run here. "VERIFIED" means the visible tests passed.
+- `tests/test_serving_experts.py`: 5 tests run anywhere; 2 need a GWAYA release with the Code expert and are skipped otherwise (run with `PYTHONPATH=<GWAYA repo>`: 7 passed).
 
 ## v2.10.2 — 2026-10-24 — OpenRouter Interactive Portal, In-Browser Playground & GPU Point Calculator
 

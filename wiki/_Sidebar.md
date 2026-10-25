@@ -14,6 +14,7 @@
 - 📚 **[11. Acknowledgments & Academic Citations](Acknowledgments-and-Academic-Citations)**
 - 🧭 **[12. Developer Swarm Progression Guide](Developer-Swarm-Progression-Guide)**
 - 📡 **[13. HiveMind@home, GCP & La Ruche Vault](HiveMind-at-Home-GCP-Dashboard-and-La-Ruche-Vault)**
+- 🔌 **[14. Connect your IDE to the OpenRouter](Connect-Your-IDE-to-the-HiveMind-OpenRouter)**
 
 ---
 **Community Discussions & Links**

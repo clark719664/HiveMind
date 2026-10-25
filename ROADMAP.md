@@ -260,6 +260,11 @@ Evidence: 144 router tests (Hypothesis properties on the certificate, ledger con
 | `HM-S13-13` | a tier id is only a claim | probe producers with fixed prompts to check the model behind a tier, slash on a mismatch (extends `HM-S13-05`) | G-R2 |
 | `HM-S13-15` | registration by handle is anonymous and bare | "Sign in with Google": `/signup` page, token verifier with one test per rule, key rotation on re-login, reserved `google.` handles, optional closing of handle registration (**delivered**; needs the operator's OAuth client id) | G-R1 |
 | `HM-S13-14` | the MoE tiers have no producer yet | seed producers for `moe-general` (16 GB) and `moe-coder` (24 GB), for example the owner's 16 GB card behind the shield | G-R1 |
+| `HM-S13-16` | verified mode runs on the caller's machine only | an isolated verifier service (own sandbox, no secrets, no ledger access) so IDE tools can get verify-and-repair without a local sandbox; the gateway and producers must still never execute caller code (measured gain of the loop: +6.6 points, 76.3% to 82.9%, n=257) | G-R2 |
+| `HM-S13-17` | a busy single-slot producer turns overlapping requests into 502 | queue or retry on a busy shield and surface producer concurrency in the heartbeat; guidance already says use at least 2 slots (OpenCode sends a title and the answer at once) | G-R1 |
+| `HM-S13-18` | the reserve assumes the longest possible answer | reserve from the caller's max_tokens only, and show the reserve in the 402 so agent clients can lower it (a 50-point balance was refused for an OpenCode request) | G-R1 |
+| `HM-S13-19` | prompt-level expert routing (`route_domain_query`) has verified defects reported by the GWAYA session: substring keyword matches, no abstain, arbitrary second expert | word-boundary matching, abstain on the no-hit floor, regression tests; reproduce the reported probes first. Proposed, not started; awaiting the owner | G-R2 |
+| `HM-S13-20` | the VM's Ollama (0.34.1) refuses LoRA adapters | serve a tuned adapter with llama.cpp `llama-server --lora` on the same Q4 base GGUF behind the shield; Ollama keeps the base as rollback (mechanism verified with a stand-in adapter; quality depends on E17) | G-R2 |
 
 ---
 
