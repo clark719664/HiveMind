@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import ast
 import json
-import statistics
 import subprocess
 import time
 from collections import Counter
@@ -185,12 +184,49 @@ def run_probes(key: str, bee_item: dict[str, Any], services: dict[str, str]) -> 
     return {"valid": True, "controls": controls, "results": results, "probe_balance_hmt": balance}
 
 
+T4_HOST: tuple[str, str] = ("socreateai-agora-hermes-node1", "us-east4-b")
+T4_TELEMETRY: str = "/mnt/disks/disk-socrateai-local-1/hivemind_telemetry"
+# Runs on the VM: reads the governor/monitor telemetry written by the T4 node's own services; prints one JSON object.
+_T4_READER: str = r"""
+import json, time, collections
+T = "%s"; since = %f
+latest = json.load(open(T + "/latest.json"))
+ev = collections.Counter(); yields_ms = []; states = collections.Counter(); last_state = None
+for line in open(T + "/governor.jsonl"):
+    try: r = json.loads(line)
+    except ValueError: continue
+    if r.get("t", 0) < since: continue
+    e = r.get("event"); ev[e] += 1
+    if e == "snapshot": states[r.get("state")] += 1; last_state = r.get("state")
+    if e == "yield" and r.get("gpu_freed_ms") is not None: yields_ms.append(r["gpu_freed_ms"])  # field name of t4_governor.py
+units = latest.get("units", {})
+print(json.dumps({"governor": latest.get("governor"), "events": dict(ev), "snapshot_states": dict(states), "yield_ms": yields_ms,
+                  "qlora_progress": latest.get("qlora_progress"), "gpu": latest.get("gpu"), "nginx": latest.get("nginx"),
+                  "units_inactive": sorted(k for k, v in units.items() if v.get("enabled") == "enabled" and v.get("active") != "active"),
+                  "gateway_live_tiers": (latest.get("gateway") or {}).get("live_tiers"), "telemetry_age_s": round(time.time() - latest.get("t", 0), 1),
+                  "hold_file": __import__("os").path.exists(T + "/HOLD")}))
+"""
+
+
+def t4_summary(since: datetime) -> dict[str, Any]:
+    """Serving/training state of the T4 node from its own telemetry: governor state over the window, yields to inference and
+    their latency, QLoRA workunits assimilated, VRAM and processes, and managed units that are enabled but not running."""
+    code = _T4_READER % (T4_TELEMETRY, since.timestamp())
+    proc = subprocess.run(["gcloud", "compute", "ssh", T4_HOST[0], "--zone", T4_HOST[1], "--command", f"python3 -c '{code}'"],
+                          capture_output=True, text=True, timeout=240, check=False)
+    lines = [ln for ln in proc.stdout.splitlines() if ln.startswith("{")]
+    if proc.returncode != 0 or not lines:
+        return {"error": (proc.stderr.strip() or "no output")[-300:]}
+    return json.loads(lines[-1])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--key-file", type=Path, required=True, help="file holding the probe account's hm-... key")
     parser.add_argument("--out", type=Path, required=True, help="JSONL file; one line is appended per run")
     parser.add_argument("--since", default="", help="ISO time for the traffic window (default: one hour ago)")
     parser.add_argument("--no-probes", action="store_true", help="traffic summary only")
+    parser.add_argument("--t4", action="store_true", help="add the T4 node's serving/training state (via gcloud compute ssh)")
     args = parser.parse_args()
     since = datetime.fromisoformat(args.since.replace("Z", "+00:00")) if args.since else datetime.now(timezone.utc) - timedelta(hours=1)
     record: dict[str, Any] = {"utc": datetime.now(timezone.utc).isoformat(timespec="seconds"), "traffic": traffic_summary(since)}
@@ -205,6 +241,8 @@ def main() -> int:
             code = 1
         passed = sum(r["ok"] for r in probes["results"])
         record["probe_summary"] = f"{passed}/{len(probes['results'])} passed" if probes["valid"] else "INVALID: checker control failed"
+    if args.t4:
+        record["t4"] = t4_summary(since)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record, sort_keys=True) + "\n")
@@ -215,6 +253,16 @@ def main() -> int:
                   f"402 {s['http_402']}  5xx {s['http_5xx']}  registrations {s['registrations']}  browser {s['browser_requests']}")
     else:
         print("traffic:", t)
+    if "t4" in record:
+        n = record["t4"]
+        if "error" in n:
+            print("t4: unavailable:", n["error"])
+        else:
+            g = n.get("governor") or {}
+            gpu = n.get("gpu") or {}
+            print(f"t4: now {g.get('state')} (BOINC GPU {g.get('boinc_gpu_mode')}, hold file {n.get('hold_file')}) | window states {n['snapshot_states']} | "
+                  f"yields {len(n['yield_ms'])} {n['yield_ms'][:5]} ms | QLoRA assimilated {(n.get('qlora_progress') or {}).get('assimilated')} | "
+                  f"VRAM {gpu.get('used_mib')}/{gpu.get('total_mib')} MiB util {gpu.get('util_pct')}% | inactive units {n['units_inactive']}")
     if "probes" in record:
         print("probes:", record["probe_summary"])
         for r in record["probes"]["results"]:
