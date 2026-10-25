@@ -100,6 +100,8 @@ def assimilate(args: list[str]) -> int:
         torch.save({"state": state, "sha256": sha, "wu_id": wu}, out)
         entry["adapter"], entry["adapter_sha256"] = out.name, sha
         entry["eval_loss_before"], entry["eval_loss_after"] = meta.get("eval_loss_before"), meta.get("eval_loss_after")
+        entry["domain"] = meta.get("domain")
+        entry["eval_by_domain_before"], entry["eval_by_domain_after"] = meta.get("eval_by_domain_before"), meta.get("eval_by_domain_after")
         # publish the chain head: the work generator starts the next workunit from this adapter
         tmp = LEDGER_DIR / "latest_adapter.pt.tmp"
         torch.save({"state": state, "sha256": sha, "wu_id": wu}, tmp)

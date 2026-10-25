@@ -5,7 +5,8 @@ After=hivemind-boinc-client.service nginx.service
 
 [Service]
 User=callensxavier_gmail_com
-ExecStart=/usr/bin/python3 /opt/hivemind/t4/scripts/t4_governor.py --idle-start-s 30
+# inference first: training needs 30 min of silence at night (22:00-07:00 Europe/Paris, an assumption about the owner's night) or 2 h of silence otherwise
+ExecStart=/usr/bin/python3 /opt/hivemind/t4/scripts/t4_governor.py --idle-start-s 1800 --day-idle-s 7200 --night-tz Europe/Paris --night-start-h 22 --night-end-h 7
 Restart=always
 RestartSec=5
 

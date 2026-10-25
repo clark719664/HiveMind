@@ -60,6 +60,12 @@ def load_peft_model(spec: dict[str, Any], adapter_state: dict[str, Any] | None =
     return model
 
 
+def eval_by_domain(model, spec: dict[str, Any]) -> dict[str, float]:
+    """Held-out loss per domain (``eval_sets``); falls back to the single ``eval_tokens`` set of older workunits."""
+    sets = spec.get("eval_sets") or {"general": spec["eval_tokens"]}
+    return {d: eval_loss(model, toks) for d, toks in sets.items() if toks}
+
+
 def eval_loss(model, tokens, batch: int = 4) -> float:
     import torch
 
@@ -107,7 +113,7 @@ def train(
         c = torch.load(ckpt, map_location="cpu")
         states, eval0, resumed = c["states"], c["eval0"], len(c["states"]) - 1
     if eval0 is None:
-        eval0 = eval_loss(model, spec["eval_tokens"])
+        eval0 = eval_by_domain(model, spec)
     t0 = time.time()
     for k in range(len(states) - 1, k_total):
         if lazy:  # red-team control: claim progress without computing it
@@ -128,14 +134,16 @@ def train(
     from hivemind.core.quantization import load_lora_state_dict
 
     load_lora_state_dict(model, states[-1])
-    eval1 = eval_loss(model, spec["eval_tokens"])
+    eval1 = eval_by_domain(model, spec)
     wall = time.time() - t0
     tokens_seen = steps * int(spec["micro_batch"]) * len(spec["train_tokens"][0])
     meta = {
         "app": TRAIN_APP, "app_version": APP_VERSION, "wu_id": spec["wu_id"], "model_id": spec["model_id"],
         "device_name": torch.cuda.get_device_name(0), "fingerprint": class_fingerprint("cuda", "fp16"),
         "segments": k_total, "segment_steps": seg, "resumed_from_segment": resumed,
-        "state_sha256": [state_sha(s) for s in states], "eval_loss_before": eval0, "eval_loss_after": eval1,
+        "state_sha256": [state_sha(s) for s in states], "domain": spec.get("domain", "general"),
+        "eval_by_domain_before": eval0, "eval_by_domain_after": eval1,
+        "eval_loss_before": sum(eval0.values()) / len(eval0), "eval_loss_after": sum(eval1.values()) / len(eval1),  # mean over domains
         "trainable_params": sum(p.numel() for p in model.parameters() if p.requires_grad),
         "peak_vram_mib": torch.cuda.max_memory_allocated() // 2**20, "wall_seconds": wall,
         # forward+backward on ~0.4 B active parameters per token (granite-3.1-1b-a400m): an estimate, capped by the validator

@@ -57,6 +57,15 @@ def boinc_gpu_pids(procs: list[tuple[str, ...]]) -> list[str]:
     return out
 
 
+def in_night(now: float, tz: str, start_h: int, end_h: int) -> bool:
+    """True inside the owner's night window (wraps past midnight when start_h > end_h)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    h = datetime.fromtimestamp(now, ZoneInfo(tz)).hour
+    return (start_h <= h < end_h) if start_h < end_h else (h >= start_h or h < end_h)
+
+
 class Boinc:
     def __init__(self, boinccmd: str, lib: str, port: int, datadir: Path, dry: bool) -> None:
         self.cmd, self.lib, self.port, self.dir, self.dry = boinccmd, lib, port, datadir, dry
@@ -84,7 +93,11 @@ def main() -> int:
     ap.add_argument("--rpc-port", type=int, default=31420)
     ap.add_argument("--telemetry", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/hivemind_telemetry/governor.jsonl"))
     ap.add_argument("--state-file", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/hivemind_telemetry/governor_state.json"))
-    ap.add_argument("--idle-start-s", type=float, default=30.0, help="quiet seconds before training may run")
+    ap.add_argument("--idle-start-s", type=float, default=1800.0, help="quiet seconds before training may run INSIDE the night window")
+    ap.add_argument("--day-idle-s", type=float, default=7200.0, help="quiet seconds required OUTSIDE the night window (training is meant to be mostly nocturnal)")
+    ap.add_argument("--night-tz", default="Europe/Paris", help="timezone of the owner's night (an assumption: change it if wrong)")
+    ap.add_argument("--night-start-h", type=int, default=22)
+    ap.add_argument("--night-end-h", type=int, default=7)
     ap.add_argument("--poll-s", type=float, default=1.0)
     ap.add_argument("--min-free-mib", type=int, default=4300, help="free VRAM needed (beyond what BOINC itself holds) to start training")
     ap.add_argument("--max-temp-c", type=int, default=82)
@@ -106,7 +119,11 @@ def main() -> int:
 
     # a fresh start counts as "just busy": training waits out a full quiet period first
     state, last_busy, yields, last_yield_ms, last_snapshot = "init", time.time(), 0, None, 0.0
-    log({"event": "start", "dry_run": a.dry_run, "idle_start_s": a.idle_start_s})
+    # every (re)start begins with training OFF; it can only be turned on by a full quiet period
+    boinc.set_gpu("never")
+    state = "yielded"
+    log({"event": "start", "dry_run": a.dry_run, "idle_start_s": a.idle_start_s, "day_idle_s": a.day_idle_s,
+         "night": f"{a.night_start_h:02d}:00-{a.night_end_h:02d}:00 {a.night_tz}"})
     while not stop["now"]:
         t0 = time.time()
         try:
@@ -129,6 +146,7 @@ def main() -> int:
             state = "yielded"
             log({"event": "hold_released"})
         elif busy and state != "yielded":
+            had_task = bool(boinc_gpu_pids(gpu_state()["procs"])) if not a.dry_run else False
             ok = boinc.set_gpu("never") if boinc.mode != "never" or state != "yielded" else True
             t_req = time.time()
             freed_ms = None
@@ -144,8 +162,9 @@ def main() -> int:
             yields += 1
             last_yield_ms = freed_ms
             state = "yielded"
-            log({"event": "yield", "in_flight": in_flight, "set_never_ok": ok, "gpu_freed_ms": freed_ms, "yields": yields})
-        elif not busy and state in ("init", "yielded") and (t0 - last_busy) >= a.idle_start_s:
+            # gpu_freed_ms is a real measurement only when a BOINC GPU task was running (had_boinc_gpu_task); otherwise there was nothing to free
+            log({"event": "yield", "in_flight": in_flight, "set_never_ok": ok, "had_boinc_gpu_task": had_task, "gpu_freed_ms": freed_ms, "yields": yields})
+        elif not busy and state in ("init", "yielded") and (t0 - last_busy) >= (a.idle_start_s if in_night(t0, a.night_tz, a.night_start_h, a.night_end_h) else a.day_idle_s):
             g = gpu_state()
             mine = sum(int(p[2]) for p in g["procs"] if p[0] in boinc_gpu_pids(g["procs"]))
             free = g["total_mib"] - g["used_mib"] + mine
@@ -153,7 +172,8 @@ def main() -> int:
                 ok = boinc.set_gpu("always")
                 if ok:
                     state = "training"
-                    log({"event": "resume", "idle_s": round(t0 - last_busy, 1), "free_mib": free, "temp_c": g["temp_c"]})
+                    log({"event": "resume", "idle_s": round(t0 - last_busy, 1), "free_mib": free, "temp_c": g["temp_c"],
+                         "night": in_night(t0, a.night_tz, a.night_start_h, a.night_end_h)})
             elif state == "init":
                 boinc.set_gpu("never")
                 state = "yielded"

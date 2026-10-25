@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from hivemind.boinc.real_client.moe_work import build_train_spec  # noqa: E402
+from hivemind.boinc.real_client.moe_work import DOMAIN_ORDER, build_train_spec  # noqa: E402
 from hivemind.boinc.real_client.server_stack import Stack  # noqa: E402
 
 FPOPS = 4.8e14
@@ -46,8 +46,8 @@ def main() -> int:
     ap.add_argument("--stack-base", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/boinc/stack"))
     ap.add_argument("--boinc-src", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/boinc/src"))
     ap.add_argument("--interval-s", type=float, default=30.0)
-    ap.add_argument("--shards", type=int, default=10)
-    ap.add_argument("--inner-steps", type=int, default=40)
+    ap.add_argument("--shards", type=int, default=50, help="shards per domain before the cursor wraps")
+    ap.add_argument("--inner-steps", type=int, default=80, help="a round is ~3-4 min on the shared T4; rounds are only run when the node is idle")
     ap.add_argument("--segment-steps", type=int, default=10)
     ap.add_argument("--once", action="store_true")
     a = ap.parse_args()
@@ -62,7 +62,9 @@ def main() -> int:
                 rnd = (json.loads(state_f.read_text())["round"] if state_f.exists() else 0) + 1
                 head = json.loads((ledger / "latest_adapter.json").read_text()) if (ledger / "latest_adapter.json").exists() else None
                 name = f"hmq_{rnd:05d}"
-                spec = build_train_spec(name, shard_index=rnd % a.shards, inner_steps=a.inner_steps, segment_steps=a.segment_steps,
+                domain = DOMAIN_ORDER[(rnd - 1) % len(DOMAIN_ORDER)]  # one domain per round; each domain advances its own cursor
+                shard = ((rnd - 1) // len(DOMAIN_ORDER)) % a.shards
+                spec = build_train_spec(name, shard_index=shard, domain=domain, inner_steps=a.inner_steps, segment_steps=a.segment_steps,
                                         start_adapter_sha256=head["sha256"] if head else None)
                 (st.root / "hivemind_specs" / f"{name}.json").write_text(json.dumps(spec))
                 inputs = {"in.json": json.dumps(spec, sort_keys=True).encode()}
@@ -73,7 +75,7 @@ def main() -> int:
                     template = "hivemind_qlora_moe_chain_in"
                 st.create_work(TRAIN_APP, name, inputs, FPOPS, template=template)
                 state_f.write_text(json.dumps({"round": rnd, "created": name, "chained": bool(head), "t": time.time()}))
-                print(f"created {name} (shard {rnd % a.shards}, chained={bool(head)})", flush=True)
+                print(f"created {name} (domain {domain}, shard {shard}, chained={bool(head)})", flush=True)
                 prune(ledger)
         except Exception as exc:
             print(f"workgen error: {exc}", file=sys.stderr, flush=True)

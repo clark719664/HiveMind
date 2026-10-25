@@ -92,7 +92,11 @@ def progress(ledger: Path) -> dict:
     if f.exists():
         rows = [json.loads(x) for x in f.read_text().splitlines() if x.strip()]
         out["assimilated"] = len(rows)
-        out["last"] = {k: rows[-1].get(k) for k in ("wu_id", "app", "adapter_sha256", "eval_loss_after", "eval_loss_before")} if rows else None
+        keys = ("wu_id", "app", "domain", "adapter_sha256", "eval_loss_before", "eval_loss_after", "eval_by_domain_after")
+        out["last"] = {k: rows[-1].get(k) for k in keys} if rows else None
+        train = [r for r in rows if r.get("app") == "hivemind_qlora_moe"]
+        out["train_rounds"] = len(train)
+        out["mean_eval_loss_trend"] = [round(r["eval_loss_after"], 4) for r in train[-10:] if r.get("eval_loss_after") is not None]
     return out
 
 

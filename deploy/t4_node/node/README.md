@@ -15,14 +15,34 @@ Installed on 2026-10-25 at the owner's request. Inference always has priority; t
 | `t4_workgen.py` | keeps one chained QLoRA workunit queued; each starts from the latest validated adapter (`latest_adapter.pt`), the validator requires the chain to start there | running; round 1 queued |
 | Validator | its GPU replay waits for a quiet moment too (nginx idle for 5 s, max 30 min) | active |
 
-## Training is currently HELD
+## Policy (owner, 2026-10-25): serving first, training only after long silence, mostly at night
 
-The governor is deployed but `…/hivemind_telemetry/HOLD` exists, so the BOINC GPU mode stays `never` and no training task runs.
-Reason: the yield path has not yet been measured with a real task, and the owner said traffic is arriving. To allow
-training: `rm /mnt/disks/disk-socrateai-local-1/hivemind_telemetry/HOLD`. To pause it again: `touch` the same file.
+- The governor starts in `never` on every (re)start. Training resumes only after **30 minutes** without an in-flight request
+  **inside the night window** (22:00-07:00 `Europe/Paris`, an assumption about the owner's night; `--night-tz/-start-h/-end-h`), or after
+  **2 hours** of silence outside it. Any request suspends it immediately.
+- `…/hivemind_telemetry/HOLD` is an operator switch: while it exists nothing trains (`touch` to pause, `rm` to allow).
+- The validator's GPU replay also waits for a quiet moment.
+- A `yield` log line is a real measurement only when `had_boinc_gpu_task` is true; `gpu_freed_ms` of a yield with no task is meaningless.
 
-Not yet measured (do not quote numbers for these): the time from "request arrives" to "GPU free" (`gpu_freed_ms` in
-`governor.jsonl`), the effect of a running task on inference latency, and the QLoRA loss trend over chained rounds.
+**Not measured yet (do not quote numbers):** the time from "request arrives" to "GPU free" with a task running, the effect of a
+running task on inference latency, and the QLoRA loss trend over chained rounds. The first night run produces the first
+real yield measurement. The 13:15Z idle latency baseline (router path, temperature 0) taken by a teammate session: bee-stars
+0.35-0.51 s, coder (short) 0.63-0.81 s, auto 0.27-0.28 s, coder 320 tokens 9.8-9.9 s at ~32 tok/s.
+
+## What the night rounds train on
+
+One domain per round, cycling `general` (wikitext), `french` (Wikipedia fr), `edu_web` (FineWeb-Edu), `news` (CNN/DailyMail), `biomed`
+(PubMed), `math` (GSM8K), all from the local Hugging Face cache (no downloads). Every domain has a fixed held-out slice that never appears in
+training; each round reports the held-out loss for **all** domains, so a round trained on French also shows its effect on English and math
+(`eval_by_domain_before/after`, `qlora_progress` in the telemetry). MBPP and HumanEval are cached too but are the repository's evaluation
+benchmarks and are never training data. A round is 80 inner steps (~3-4 min). Each round starts from the previous validated adapter.
+
+**More MoE models: what is true today.** `granite-3.1-3b-a800m-base` is fully cached (6.2 GB) and is the natural next model; it will not fit
+beside the daytime mix (~5 GB free) but could at night once Ollama has unloaded its model (~10 GB free beside the Bee expert). That is a
+different adapter lineage (adapters are model-specific) and needs a per-workunit VRAM requirement in the governor; **not built or
+tested**. `OLMoE-1B-7B` and `Phi-tiny-MoE` are config-only in the cache (8 KB): they would need a download, and OLMoE's experts would not
+fit this card anyway. Quality levers not used yet (each is a separate, measurable change): a learning-rate schedule across rounds,
+gradient accumulation, longer sequences (VRAM-limited), expert-level quantisation.
 
 ## Known limits
 
