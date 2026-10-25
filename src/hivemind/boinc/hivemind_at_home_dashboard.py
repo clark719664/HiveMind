@@ -49,6 +49,8 @@ from safetensors import safe_open
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
+from hivemind.boinc.night_moe_page import DEFAULT_RESULTS_PATH, load_night_moe, render_night_moe_html
+
 HANDLE_REGEX = re.compile(r"^[a-zA-Z0-9_@.\-]{2,64}$")
 DANGEROUS_INJECTION_PATTERNS = [
     re.compile(r"<\s*script[^>]*>", re.IGNORECASE),
@@ -2917,6 +2919,9 @@ uv run python scripts/test_public_gcp_hivemind_client.py --url {PUBLIC_GCP_CLOUD
             <a href="https://hivemind-openrouter-1003063861791.us-central1.run.app/" target="_blank" rel="noopener" class="btn-action btn-gold btn-chamfer" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;" data-i18n="btn_openrouter_portal">
               &#x26A1; Launch OpenRouter Playground &amp; Portal (/)
             </a>
+            <a href="/night-moe" class="btn-action btn-chamfer" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+              &#x1F319; Night MoE Results
+            </a>
             <a href="https://hivemind-openrouter-1003063861791.us-central1.run.app/signup" target="_blank" rel="noopener" class="btn-action btn-chamfer" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;" data-i18n="btn_signup_google">
               &#x1F680; Sign in with Google (/signup)
             </a>
@@ -4317,6 +4322,7 @@ def create_hivemind_at_home_app(
         "artifacts/dataset_mining_and_ruche_report.json"
     ),
     vault_dir: Path | str = Path("artifacts/la_ruche_vault"),
+    night_moe_results_path: Path | str = DEFAULT_RESULTS_PATH,
 ) -> FastAPI:
     """Create the FastAPI web server for HiveMind@home, GCP Cloud Telemetry, La Ruche & Federated AI."""
     app = FastAPI(
@@ -4413,6 +4419,17 @@ def create_hivemind_at_home_app(
             mining_ruche_report_path=mining_ruche_report_path,
         )
         return HTMLResponse(content=render_hivemind_at_home_html(state))
+
+    @app.get("/night-moe", response_class=HTMLResponse)
+    def night_moe_page() -> HTMLResponse:
+        return HTMLResponse(content=render_night_moe_html(load_night_moe(night_moe_results_path)))
+
+    @app.get("/api/v1/night-moe", response_class=JSONResponse)
+    def api_night_moe() -> JSONResponse:
+        report = load_night_moe(night_moe_results_path)
+        if report is None:
+            raise HTTPException(status_code=404, detail="NIGHT-MOE-1 results are not deployed")
+        return JSONResponse(content=report)
 
     @app.get("/health", response_class=JSONResponse)
     def health_probe() -> JSONResponse:
