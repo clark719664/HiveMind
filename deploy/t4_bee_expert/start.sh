@@ -24,5 +24,8 @@ if [ -s api_key ] && ! pgrep -f "hivemind_producer_agent.py .*--endpoint https:/
      --cost-per-1k 0.4 --capacity-1k 30 --execution-class t4 > agent.log 2>&1 < /dev/null &)
   sleep 15
 fi
-echo "llama: $(curl -s -m2 localhost:8294/health) | shield: $(ss -ltn | grep -c ':8789 ') | agent: $(pgrep -fc 'sslip.io/bee')"
+llama_health=$(curl -s -m2 localhost:8294/health)
+shield_listening=$(ss -ltn | grep -c ':8789 ')
+agent_count=$(pgrep -fc 'hivemind_producer_agent[.]py .*sslip[.]io/bee')
+echo "llama: ${llama_health}; shield listening: ${shield_listening}; agent processes: ${agent_count}"
 tail -n 2 agent.log 2>/dev/null
