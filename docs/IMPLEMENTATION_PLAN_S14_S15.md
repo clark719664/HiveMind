@@ -17,9 +17,9 @@ issue; owner-only tasks are listed separately and have no issue.
 | Task | Issue | Depends on | Gate | Size |
 |---|---|---|---|---|
 | HM-S14-01 adapter-vs-control decision rule | #165 | — | G-R1 | S (re-scores stored predictions, no GPU) |
-| HM-S14-02 verified self-solutions as targets | #166 | HM-S14-06 (disk) | G-R1 | L (GPU) |
+| HM-S14-02 verified self-solutions as targets | #166 | — | G-R1 | L (GPU) |
 | HM-S14-03 routed Bee MoE as one system | #167 | HM-S14-01 | G-R1 | M |
-| HM-S14-04 full interference grid | #168 | HM-S14-01, HM-S14-06 | G-R1 | M (GPU) |
+| HM-S14-04 full interference grid | #168 | HM-S14-01 | G-R1 | M (GPU) |
 | HM-S14-07 cyber on verified targets or a code expert | #169 | HM-S14-02 | G-R1 | L (GPU) |
 | HM-S14-08 update gate on the stars adapter | #170 | HM-S14-01 | G-R2 | S |
 | HM-S15-01 evidence-volume budget for dances | #171 | — | G-R1 | S (CPU) |
@@ -30,7 +30,7 @@ issue; owner-only tasks are listed separately and have no issue.
 | HM-S15-06 exact LoRA aggregation + privacy accountant | #176 | — | G-R2 | M (two hosts) |
 
 Critical paths:
-- GPU work: HM-S14-06 (disk), then HM-S14-01, then HM-S14-02 and HM-S14-04 in parallel, then HM-S14-03.
+- GPU work: HM-S14-01 (the disk, HM-S14-06, is done), then HM-S14-02 and HM-S14-04 in parallel, then HM-S14-03.
 - QueenBee: HM-S15-01 and HM-S15-02 (CPU only, good first research tasks), then HM-S15-03 once one expert is served.
 
 ## Owner-only tasks (no issue)
@@ -38,7 +38,7 @@ Critical paths:
 | Task | Status on 2026-10-25 |
 |---|---|
 | HM-S14-05 larger bases and GPU quota | open; an A100 quota request is the owner's decision |
-| HM-S14-06 data disk sized for the run | the VM's data disk had 462 MB free; the owner asked the VM session to grow `disk-socrateai-local-1` from 500 GB to 2000 GB online (`gcloud compute disks resize` + `resize2fs`, no reboot). **Pending** until `df` on the VM confirms it. Separately, VM data is being archived to the private bucket `gs://socrateai-hivemind-vm-archive` (copy, CRC32C-verify, then delete only the folders the owner approved) |
+| HM-S14-06 data disk sized for the run | **done 2026-10-25**: `disk-socrateai-local-1` grown online from 500 GB to 2000 GB (`df`: 2.0T, 492G used, 1.5T free; it had 462 MB free). The boot disk (146G, 13G free) is being relieved by moving idle home folders to the data disk. Separately, VM data is being archived to the private bucket `gs://socrateai-hivemind-vm-archive` (copy, CRC32C-verify, then delete only the folders the owner approved) |
 | HM-S14-09 reconcile the deployed dashboard overlay with `deploy/gcp_cloud_run` | open; needs deploy access |
 | HM-S15-07 knowledge points live | open; the owner sets the bonus share of the validator fee |
 
