@@ -418,7 +418,7 @@ const PROMPTS = {
   python: "Write a high-performance Python decorator with LRU caching, thread safety, and execution duration metrics in microseconds.",
   pytorch: "Write a PyTorch autograd Function that computes the exact Voronoi cell projections on a Conway-Sloane A2 hexagonal lattice.",
   astro: "Simulate transit timing variations (TTV) of an exoplanetary system under 3-body gravitational resonance.",
-  reciprocity: "Explain how HiveMind's 0.00 EUR non-monetary compute reciprocity model works for gamers and AI developers."
+  reciprocity: "Explain how HiveMind's non-monetary compute reciprocity model works for gamers and AI developers."
 };
 
 document.querySelectorAll('.prompt-pill').forEach(btn => {
@@ -747,7 +747,7 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
       <h2>Community AI Inference.<br><span style="color:var(--cyan);">Zero Cost. Powered by Consumer GPUs.</span></h2>
       <p>
         HiveMind OpenRouter gives developers an OpenAI-compatible API powered by a global swarm of idle gamer GPUs.
-        Operates strictly under the <strong>0.00 EUR / 0.00 USD Non-Monetary Compute Reciprocity Charter</strong>:
+        Operates strictly under the <strong>HiveMind Reflexion Points (HMT) Non-Monetary Compute Reciprocity Charter</strong>:
         share compute when your GPU is idle, earn HMT points, and spend them in your editor.
       </p>
       <div class="cta-group">
@@ -829,7 +829,7 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
           <div class="stat-item">First Byte: <span id="statLatency">0 ms</span></div>
           <div class="stat-item">Generation Speed: <span id="statSpeed">0 tok/s</span></div>
           <div class="stat-item">Tokens: <span id="statTokens">0</span></div>
-          <div class="stat-item">Reciprocity: <span>0.00 EUR</span></div>
+          <div class="stat-item">Reciprocity: <span>HiveMind Reflexion Points (HMT)</span></div>
         </div>
       </section>
     </div>
@@ -902,7 +902,7 @@ python scripts/hivemind_producer_agent.py --gateway https://hivemind-openrouter-
 
     <footer>
       <div>
-        <strong>HiveMind OpenRouter</strong> &bull; Non-monetary compute reciprocity (0.00 EUR / USD).
+        <strong>HiveMind OpenRouter</strong> &bull; Non-monetary compute reciprocity.
       </div>
       <div class="footer-links">
         <a href="https://github.com/xaviercallens/HiveMind" target="_blank" rel="noopener">GitHub</a>
