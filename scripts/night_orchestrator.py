@@ -90,8 +90,8 @@ def convert_cmd(adapter: str) -> str:
 
 def serve_cmd(adapter_gguf: str | None) -> str:
     lora = f"--lora {adapter_gguf}" if adapter_gguf else ""
-    return (f"pkill -f 'llama-serve[r] .*--port {PORT}' ; sleep 2; cd {D} && (setsid nohup {LLAMA}/build/bin/llama-server -m {BASE_GGUF} {lora} -c 4096 -ngl 99 -np 1 "
-            f"--host 127.0.0.1 --port {PORT} > serve_{PORT}.log 2>&1 < /dev/null &); for i in $(seq 1 60); do curl -s -m2 localhost:{PORT}/health | grep -q ok && echo UP && exit 0; sleep 2; done; echo DOWN; exit 1")
+    return (f"pkill -f 'llama-serve[r] .*--port {PORT}' ; sleep 2; cd {D} && (setsid nohup {LLAMA}/build/bin/llama-serve\"\"r -m {BASE_GGUF} {lora} -c 4096 -ngl 99 -np 1 "
+            f"--host 127.0.0.1 --port {PORT} > serve_{PORT}.log 2>&1 < /dev/null &); for i in $(seq 1 180); do curl -s -m2 localhost:{PORT}/health | grep -q ok && echo UP && exit 0; sleep 2; done; echo DOWN; exit 1")
 
 
 STOP_SERVER = f"pkill -f 'llama-serve[r] .*--port {PORT}'; sleep 3; nvidia-smi --query-gpu=memory.used --format=csv,noheader"

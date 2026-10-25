@@ -166,3 +166,26 @@ def test_control_is_a_real_permutation_not_a_rotation(tmp_path: Path) -> None:
     shuffled = [json.loads(line)["completion"] for line in (tmp_path / "p" / "train_shuffled.jsonl").read_text().splitlines()]
     offsets = {(int(c[1:]) - i) % 60 for i, c in enumerate(shuffled)}
     assert len(offsets) > 10  # a rotation would give exactly one offset
+
+
+def test_no_remote_command_matches_its_own_pkill_pattern() -> None:
+    """The whole command line is what pkill -f sees, so the launch text must not match the kill pattern (seen: ssh exit 255)."""
+    import re
+
+    for cmd in (orch.serve_cmd("/x/a.gguf"), orch.serve_cmd(None), orch.STOP_SERVER):
+        m = re.search(r"pkill -f '([^']+)'", cmd)
+        assert m and not re.search(m.group(1), cmd), cmd
+
+
+def test_remote_commands_have_no_unexpanded_placeholders() -> None:
+    for cmd in (orch.serve_cmd("/x/a.gguf"), orch.serve_cmd(None), orch.convert_cmd("adapters/a"), orch.train_cmd("p", "o", 2, 0.5), orch.RESTORE):
+        assert "{LLAMA}" not in cmd and "{BASE_GGUF}" not in cmd and "{lora}" not in cmd and "{D}" not in cmd
+
+
+def test_line_separator_characters_do_not_split_a_jsonl_row(tmp_path: Path) -> None:
+    """Seen on the night run: two GSM8K rows hold U+2028, str.splitlines() cut them and the trainer died with JSONDecodeError."""
+    train = [{"key": f"k{i}", "messages": [{"role": "user", "content": f"a\u2028b{i}\u2029c"}], "completion": f"x{i}"} for i in range(5)]
+    pk.write_pack(tmp_path, "p", train, [{"key": "e", "messages": [{"role": "user", "content": "z"}], "gold": "x0", "kind": "label"}], {})
+    for name in ("train.jsonl", "train_shuffled.jsonl"):
+        text = (tmp_path / "p" / name).read_text()
+        assert len(text.splitlines()) == 5 and all(json.loads(line)["messages"][0]["content"].startswith("a\u2028b") for line in text.splitlines())
