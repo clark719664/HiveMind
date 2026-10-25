@@ -9,8 +9,8 @@
 [![Live La Ruche](https://img.shields.io/badge/La_Ruche_Portal-Live_on_Cloud_Run-f59e0b?style=for-the-badge&logo=googlecloud)](https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app)
 [![HiveMind@home Web](https://img.shields.io/badge/HiveMind%40home_Site-Live_5--Language_Portal-a855f7?style=for-the-badge&logo=github)](https://xaviercallens.github.io/HiveMindatHome.github.io/)
 [![Test Suite](https://img.shields.io/badge/Tests-Full%20suite%20in%20CI%20(coverage%20gate%2095%25)-brightgreen?style=for-the-badge)](.github/workflows/ci_swarm_tests.yml)
-[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-128%2F128%20Machine--Checked%20Theorems%20(0%20sorry%2C%200%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
-[![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-v3.8.0%20LaTeX%20%26%20PDF%20(99%20Verified%20Artifacts)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
+[![Lean 4 Verified](https://img.shields.io/badge/Lean%204-Machine--checked%20theorems%20(0%20sorry%2C%200%20user%20axioms)-005cc5?style=for-the-badge)](lean4/HiveMindSpec.lean)
+[![Foundation Paper](https://img.shields.io/badge/Foundation%20Paper-v3.8.0%20LaTeX%20%26%20PDF%20(self--assessed%2C%20scripted%20audit%2C%20not%20peer%20reviewed)-b31b1b?style=for-the-badge)](paper/hivemind_foundation_article.pdf)
 [![Zenodo DOI](https://img.shields.io/badge/Zenodo%20DOI-10.5281%2Fzenodo.23649757-1682d4?style=for-the-badge)](https://doi.org/10.5281/zenodo.23649757)
 [![Hardware Verified](https://img.shields.io/badge/Verified%20Dual--GPU-Tesla%20T4%20(16GB%20MoE)%20%2B%20RTX%202070%20(8GB%20Inference)-76b900?style=for-the-badge)](artifacts/rtx_intense_stress_and_steam_deploy_report.json)
 [![Community PRs](https://img.shields.io/badge/Community%20PRs-63%2F63%20Merged%20(Waves%201--7%20%7C%201h%20Orchestrator)-a855f7?style=for-the-badge)](docs/CONTRIBUTOR_TASKS_AND_BOUNTIES.md)
@@ -91,10 +91,14 @@ Every assimilated workunit below passed deterministic same-class GPU replay veri
 | Workunit ID | Focus Domain & Corpus | Chained | 6-Domain Mean Eval Loss | Net $\Delta$ vs. 6-Domain Base (`2.2705`) | Per-Domain Held-Out Loss Highlights (`eval_by_domain_after`) | Ratchet Status |
 | :--- | :--- | :---: | :---: | :---: | :--- | :---: |
 | **Base Model** | `ibm-granite/granite-3.1-1b-a400m-base` | — | `2.2705` | `0.0000` | `general: 2.2796`, `biomed: 2.5017`, `math: 1.6440`, `news: 2.2988` | Baseline |
-| **`hmq_00001`** | `general` (`Salesforce/wikitext-2-raw-v1`) | Seed | `2.0992` *(1-dom)* | `-0.1805` *(general)* | **`general`: `2.2796` $ightarrow$ `2.0992` (`-0.1805`)** | Seed Head |
-| **`hmq_00004`** | `news` (`abisee/cnn_dailymail`) | `True` | `2.5860` | — | **`news`: `2.2988` $ightarrow$ `2.1973` (`-0.1015`)** | Domain Sweep |
-| **`hmq_00005`** | `biomed` (`ccdv/pubmed-summarization`) | `True` | `2.8422` | — | **`biomed`: `2.8506` $ightarrow$ `2.3242` (`-0.5264`, beating `2.5017` base)** | Domain Sweep |
-| **`hmq_00006`** | `math` (`openai/gsm8k`) | `True` | `2.4582` | — | **`math`: `2.5048` $ightarrow$ `1.4915` (`-1.0133`, beating `1.6440` base)** | Domain Sweep |
+| **`hmq_00001`** | `general` (`Salesforce/wikitext-2-raw-v1`) | Seed | `2.0992` *(1-dom)* | `-0.1805` *(general)* | **`general`: `2.2796` $
+ightarrow$ `2.0992` (`-0.1805`)** | Seed Head |
+| **`hmq_00004`** | `news` (`abisee/cnn_dailymail`) | `True` | `2.5860` | — | **`news`: `2.2988` $
+ightarrow$ `2.1973` (`-0.1015`)** | Domain Sweep |
+| **`hmq_00005`** | `biomed` (`ccdv/pubmed-summarization`) | `True` | `2.8422` | — | **`biomed`: `2.8506` $
+ightarrow$ `2.3242` (`-0.5264`, beating `2.5017` base)** | Domain Sweep |
+| **`hmq_00006`** | `math` (`openai/gsm8k`) | `True` | `2.4582` | — | **`math`: `2.5048` $
+ightarrow$ `1.4915` (`-1.0133`, beating `1.6440` base)** | Domain Sweep |
 | **`hmq_00007`** | `general` + 6-Domain Replay (Shard 1) | `True` | **`2.2288`** | **`-0.0417`** | **All 6 domains dropped simultaneously:** `biomed: 2.3018`, `general: 2.1886`, `math: 1.4550`, `news: 2.2061` | **ACCEPTED** |
 | **`hmq_00012`** | `math` + 6-Domain Replay (Shard 1) | `True` | **`2.2196`** | **`-0.0509`** | **`math`: `1.4308` (`-0.2132` vs base)**, `biomed: 2.2836`, `general: 2.1801`, `news: 2.1901` | **ACCEPTED** |
 | **`hmq_00013`** | `general` + 6-Domain Replay (Shard 2) | `True` | **`2.2012`** | **`-0.0693`** | `general: 2.1608`, `french: 2.4982`, `edu_web: 2.6538`, `biomed: 2.2726`, `news: 2.1822` | **ACCEPTED** |
@@ -105,7 +109,8 @@ Every assimilated workunit below passed deterministic same-class GPU replay veri
 
 - **Validated Astrophysics Specialist (`hivemind/bee-stars`, [`docs/LIVE_USER_TESTS.md`](docs/LIVE_USER_TESTS.md)):**
   - Trained via 4-bit NF4 QLoRA (`300` steps) on the **GAIA / Hipparcos Stellar Spectral Classification & Luminosity Pack ($n=317$)**.
-  - Hold-out accuracy rose from **`0.489` (base) $ightarrow$ `0.893` (adapter, `+40.4%`, exact paired McNemar $p < 10^{-4}$)**, beating the shuffled-label control (`0.432`) on `193` items vs. `7`. Now served live 24/7 as `hivemind/bee-stars`.
+  - Hold-out accuracy rose from **`0.489` (base) $
+ightarrow$ `0.893` (adapter, `+40.4%`, exact paired McNemar $p < 10^{-4}$)**, beating the shuffled-label control (`0.432`) on `193` items vs. `7`. Now served live 24/7 as `hivemind/bee-stars`.
 - **Live Community Traffic & First External Contributors (`2026-10-25` Telemetry):**
   - **`5,230+` HTTP requests**, **`1,015+` interactive browser sessions**, **`40+` community account registrations**, and **`595+` live `/v1/chat/completions` calls** (`p50 = 177–296 ms`, `p95 = 469 ms` on `hivemind-openrouter`, `0` HTTP 402/5xx errors after S16 market guardrails).
   - **Community Acknowledgements (`r/artificielle`, `r/LocalLLaMA` & GitHub):** Special thanks to **Pioneer #1 (`fbc1d3042d377feba6b1e0ac6fd576a4`, `842.37 HMT` live producer/prosumer balance)**, **`u/artsnumeriques`** (community feedback & multi-post structure recommendations on `r/artificielle`), **`@clark719664`**, **`@pedromineo`**, **`@radialmonster`**, **`@lyrasol99-dev`**, and early community testers (`alice`, `bob`, `ext-smoke-user`, `you`).
