@@ -53,6 +53,29 @@ class Stack:
     def sql(self, statement: str) -> str:
         return sh(["mariadb", "--no-defaults", "-u", "root", "-S", "/run/mysqld/mysqld.sock", "-e", statement]).stdout
 
+    SOCKET = "/run/mysqld/mysqld.sock"  # /run is tmpfs: `sudo install -d -o $USER /run/mysqld` after every reboot
+
+    def start_db(self) -> bool:
+        """Private MariaDB, socket only (--skip-networking: no TCP listener at all). Idempotent."""
+        if Path(self.SOCKET).exists():
+            return True
+        if not Path("/run/mysqld").is_dir():
+            raise RuntimeError("/run/mysqld is missing: run `sudo install -d -o $USER /run/mysqld` once per boot")
+        subprocess.Popen(
+            ["mariadbd", "--no-defaults", "--basedir=/usr", f"--datadir={self.base}/mysql/data", f"--socket={self.SOCKET}",
+             f"--pid-file={self.base}/run/mariadb.pid", "--skip-networking", f"--log-error={self.base}/log/mariadb.err"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+        end = time.time() + 60
+        while time.time() < end:
+            if sh(["mariadb", "--no-defaults", "-u", "root", "-S", self.SOCKET, "-e", "select 1"], check=False).returncode == 0:
+                return True
+            time.sleep(1)
+        return False
+
+    def stop_db(self) -> None:
+        sh(["mariadb-admin", "--no-defaults", "-u", "root", "-S", self.SOCKET, "shutdown"], check=False)
+
     def make_project(self) -> None:
         if not self.pwfile.exists():
             self.pwfile.write_text(secrets.token_hex(16))
@@ -104,6 +127,11 @@ class Stack:
         text = text.replace("</boinc>", "\n".join(daemons) + "\n</boinc>") if "</boinc>" in text else text + "\n".join(daemons)
         cfg.write_text(text)
 
+    def fix_scheduler_list(self) -> None:
+        """make_project leaves a commented <scheduler> line and a placeholder ``href="url"`` link in schedulers.txt:
+        the client tried the placeholder first ("Couldn't resolve host name") before falling back. Write a clean list."""
+        (self.root / "html" / "user" / "schedulers.txt").write_text(f"<scheduler>{self.url}/{self.name}_cgi/cgi</scheduler>\n")
+
     def write_plan_class_spec(self) -> None:
         (self.root / "plan_class_spec.xml").write_text(
             "<plan_classes>\n <plan_class>\n  <name>" + PLAN_CLASS + "</name>\n  <gpu_type>nvidia</gpu_type>\n  <cuda/>\n"
@@ -147,11 +175,9 @@ class Stack:
         sh(["bin/update_versions", "--no_query"] if False else ["bin/update_versions"], cwd=self.root, env=self.project_env(), check=False)
 
     def stage(self, name: str, data: bytes) -> None:
-        tmp = self.root / "download" / f".stage_{name}"
-        tmp.parent.mkdir(exist_ok=True)
-        tmp.write_bytes(data)
-        sh(["bin/stage_file", "--copy", str(tmp)], cwd=self.root, env=self.project_env())
-        tmp.unlink(missing_ok=True)
+        # create_work copies download/<name> into the hashed download hierarchy itself
+        (self.root / "download").mkdir(exist_ok=True)
+        (self.root / "download" / name).write_bytes(data)
 
     def create_work(self, app: str, wu_name: str, inputs: dict[str, bytes], fpops_est: float, command_line: str = "") -> None:
         names = []

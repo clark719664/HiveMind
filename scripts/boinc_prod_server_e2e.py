@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import secrets
 import subprocess
 import sys
@@ -117,7 +118,8 @@ def main() -> int:
     c["C1"] = bool(rep["client_rpc_up"] and not any("anonymous" in ln for ln in log.splitlines()) and "hmp_good_001_0" in r)
     avid = {ln.split("\t")[0]: ln.split("\t")[3] for ln in rep["app_versions"].strip().splitlines()[1:]}
     c["C2"] = bool(r.get("hmp_good_001_0", {}).get("app_version_id") in avid and any("Starting task hmp_good_001_0" in ln and "cuda_hivemind" in ln for ln in rep["client_log_lines"]))
-    c["C3"] = bool(any("Finished upload of hmp_good_001_0_0" in ln for ln in rep["client_log_lines"]) and any("Finished upload of hmp_good_001_0_1" in ln for ln in rep["client_log_lines"]))
+    # the real server names output files hmp_good_001_0_r<random>_<n> (the emulator used <result>_<n>)
+    c["C3"] = all(re.search(rf"Finished upload of hmp_good_001_0_r\d+_{i}\b", log) for i in (0, 1))
     g = r.get("hmp_good_001_0", {})
     c["C4"] = bool(g.get("validate_state") == "1" and float(g.get("granted_credit", 0) or 0) > 0)
     lz = r.get("hmp_lazy_001_0", {})
@@ -138,7 +140,6 @@ def main() -> int:
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(rep, indent=2, sort_keys=True, default=str))
     (a.out.parent / "client_stdout.log").write_text(log[-80000:])
-    del torch
     print(json.dumps({"criteria": c, "PASS": rep["PASS"]}, indent=2))
     return 0 if rep["PASS"] else 1
 

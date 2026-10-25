@@ -39,6 +39,7 @@ def setup(stack: Stack, venv_python: str) -> None:
     stack.make_project()
     stack.write_apache()
     stack.write_plan_class_spec()
+    stack.fix_scheduler_list()
     for d in ("hivemind_specs", "hivemind_ledger"):
         (stack.root / d).mkdir(exist_ok=True)
     for name, cmd in (("hivemind_validate", "validate"), ("hivemind_assimilate", "assimilate")):
@@ -65,12 +66,14 @@ def main() -> int:
         setup(st, a.venv_python)
         print("setup done:", st.master_url)
     elif a.action == "start":
+        print("db up:", st.start_db())
         st.start_apache()
         print("apache up:", st.wait_http(30))
         print(st.start_daemons())
     else:
         st.stop_daemons()
         st.stop_apache()
+        st.stop_db()
     return 0
 
 
