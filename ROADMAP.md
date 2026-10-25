@@ -306,6 +306,34 @@ Delivered: package `hivemind.queenbee` with a strategy manager (bandit by defaul
 | `HM-S15-06` ([#176](https://github.com/xaviercallens/HiveMind/issues/176)) | averaging LoRA factors is inexact and no privacy budget is accounted | product-space or exact aggregation, privacy accountant, Multi-Krum attack test, two hosts | G-R2 |
 | `HM-S15-07` | knowledge points are not live | admission service behind the firewall, public dataset with licences, settlement via the epoch ledger; bonus share set by the owner | owner |
 
+## 🛫 3.14 Season 16 (`Wave 15` — "Operation First-Flight") — live operations after the first real users (2026-10-25)
+
+Work breakdown, order and gates: [`docs/IMPLEMENTATION_PLAN_S16.md`](docs/IMPLEMENTATION_PLAN_S16.md). Record of the first real-life test: [`docs/LIVE_USER_TESTS.md`](docs/LIVE_USER_TESTS.md), `artifacts/live_tests/FIRST_REAL_USER_TEST_20261025.json`.
+
+Delivered on 2026-10-25:
+- **Served:** the three public services serve real inference from the T4 producers (Bee stars expert, 7B and 3B coders) under one ledger.
+- **New users:** a new account's first request is served at the default price (fixed: idle high bidders had refused it with 402).
+- **Wording:** pages show HiveMind Reflexion Points only.
+- **Monitoring:** a monitor probes every service and tier every 30 minutes with checkers that must reject a known-wrong answer first.
+
+What the first day exposed:
+- deploys from an uncommitted tree undid live fixes twice;
+- a few active high bidders still price new users out at idle capacity;
+- the first real answer was served correctly but was wrong code.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S16-01` ([#188](https://github.com/xaviercallens/HiveMind/issues/188)) | deploys from an uncommitted tree dropped live fixes | build from a tagged main commit, canary, switch by revision name; retire the overlays | G-L1 |
+| `HM-S16-02` ([#189](https://github.com/xaviercallens/HiveMind/issues/189)) | nothing stops a broken image from taking traffic | checked-probe contract on the canary gates every switch | G-L1 |
+| `HM-S16-03` ([#190](https://github.com/xaviercallens/HiveMind/issues/190)) | 4 active bidders at max 10 set 7.5 HMT/1k at idle capacity | posted price below capacity, Kelly under congestion, certificates and a Lean theorem for the switch | G-L2 |
+| `HM-S16-04` ([#191](https://github.com/xaviercallens/HiveMind/issues/191)) | probes check liveness, the first real answer was wrong | held-out coding prompts with hidden tests in a sandbox, pass@1 per tier, route `auto` by verified score | G-L2 |
+| `HM-S16-05` ([#192](https://github.com/xaviercallens/HiveMind/issues/192)) | remote control is stored, not enforced | agents obey pause and VRAM cap; integration test | G-L2 |
+| `HM-S16-06` ([#193](https://github.com/xaviercallens/HiveMind/issues/193)) | cold reload gave a 504 | loaded-model heartbeats, routing to resident models, explicit `model_loading` | G-L2 |
+| `HM-S16-07` ([#194](https://github.com/xaviercallens/HiveMind/issues/194)) | test accounts moved the price and the user counts | `test`/`probe` flag excluded from bids and metrics, starter-grant cap per IP | G-L1 |
+| `HM-S16-08` ([#195](https://github.com/xaviercallens/HiveMind/issues/195)) | regressions are seen only by whoever reads the monitor | status page and alerting from the monitor log | G-L1 |
+| `HM-S16-09` ([#196](https://github.com/xaviercallens/HiveMind/issues/196)) | template completions and browser-side credits remain in the dashboard source | remove both, restore `/night-moe`, tests | G-L1 |
+| `HM-S16-10` ([#197](https://github.com/xaviercallens/HiveMind/issues/197)) | a second revision on the same replica is a second ledger writer | startup lock with a GCS generation precondition | G-L1 |
+
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
 
 If you have a consumer GPU (**NVIDIA GeForce RTX 20/30/40/50-series 6 GB–24 GB**, **AMD Radeon RX 6000/7000 via ROCm**, or **Apple Silicon M1/M2/M3/M4 via MPS**) and are interested in testing how your hardware performs on the HiveMind Sparse MoE + `EF21-DiLoCo` + `ZK-OPoI v4` stack, we provide a safe, opt-in, `< 1.5 GB` peak-VRAM benchmark suite:
