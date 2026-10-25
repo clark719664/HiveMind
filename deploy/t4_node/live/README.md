@@ -93,6 +93,12 @@ from the code described elsewhere on this page.
 15 times between 20:05 and 20:45Z, mostly outside the night window. I did not edit that configuration. At 20:45:57Z I created `…/hivemind_telemetry/HOLD` (the documented pause switch) because a user request had waited
 for a yield (below); `rm` it to resume, under whichever governor settings are then in effect.
 
+**Decision at 20:49Z (contested).** Asked to choose between restoring the 30 min / 2 h policy, keeping the 5 s experiment, or staying paused, the owner answered in the author's session:
+"Keep the contributor's 5-second experiment, with the HOLD removed." HOLD was removed at 20:49:38Z; training resumed at 20:49:42Z with `idle_s: 5.0, night: false`. The repo template
+(`../node/hivemind-t4-governor.service`) now documents 5 / 5 / 3800 as the owner-approved experiment, with the original values written next to it for rollback (so re-running `install_node.sh`
+does not silently revert it). **A teammate session then relayed an owner statement of "30 minutes at night and 2 hours by day"**, which contradicts it; the order of the two statements is unknown, so
+the owner was asked to confirm. Whichever applies, the switch is one `ExecStart` line, a redeploy and a governor restart.
+
 **First real yields** (`had_boinc_gpu_task: true`, trigger nginx): **766 ms** at 20:17:39Z and **7,129 ms** at 20:35:39Z (BOINC GPU process gone after the request was seen). The router log shows a request at 20:35:32Z that
 took **7.17 s**, matching the second yield to a tenth of a second: a user waited roughly the whole yield. Other requests in that burst took 0.18-0.63 s. A 68.9 s request at 20:24:19Z while a task was running is unexplained.
 n = 2 real yields: do not generalise. The 7 s is BOINC's suspend path (the client asks the app to stop and waits), not the governor's polling (1 s). A direct kill of the task process on yield would make it deterministic (the app checkpoints every
