@@ -323,6 +323,29 @@ and the connect remains possible; closing it needs an egress proxy (HM-S13-07).
 The router secret must not change once accounts exist, because account ids and key hashes depend on it.
 Rotating it orphans every existing account.
 
+## Sign in with any OpenID Connect provider (general sign-in)
+
+Google is the first, easiest route (`/signup`). The same checks work for any provider that issues RS256 ID tokens (Microsoft,
+Auth0, Keycloak, GitLab, a university or company login). An operator lists them in `HIVEMIND_OIDC_PROVIDERS`:
+
+```json
+[{"name": "acme", "issuer": "https://login.acme.example/", "jwks_url": "https://login.acme.example/jwks.json",
+  "client_id": "YOUR-CLIENT-ID", "require_verified_email": true}]
+```
+
+- `name`: 2-16 lowercase letters or digits (not `google`); it prefixes the account handle (`acme.<keyed hash>`) and that prefix is
+  reserved, so nobody can register it by hand. Use `issuers` (a list) when a provider has more than one issuer string.
+- A client signs in with the provider's own flow, then posts the ID token: `POST /v1/hivemind/register/oidc/acme`
+  `{"id_token": "...", "role": "consumer"}` and gets `{account_id, api_key, role, created}` (no-store). `GET /v1/hivemind/signin/providers`
+  lists what a gateway accepts. Signing in again keeps the account and balance and replaces the key.
+- Checks, each with a negative test: RS256 only, signature, issuer, audience equal to your client id, expiry, token freshness (10 min),
+  verified e-mail (switchable per provider), single use. Only the opaque `sub` is kept, hashed together with the provider name,
+  so the same `sub` at two providers gives two different accounts. Accounts are never merged across providers.
+- Limits: the gateway does not run the provider's login page (only Google has one, at `/signup`); a tool must obtain the ID token
+  itself. Enable a provider before any handle with its prefix is registered, otherwise the gateway refuses it. `deploy.sh` does not
+  pass `HIVEMIND_OIDC_PROVIDERS` yet (its `--set-env-vars` splits on commas); set it with `gcloud run services update --env-vars-file`.
+- Not tested against a live provider: the tests use keys generated in the test.
+
 ## Lessons from the first live runs (2026-10-24)
 
 What running real clients against the live router and one Tesla T4 taught us. Each line was observed, not assumed.

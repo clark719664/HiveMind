@@ -54,6 +54,7 @@ from hivemind.router.accounts import (
 )
 from hivemind.router.catalog import catalog_payload
 from hivemind.router.google_auth import GoogleAuthError, GoogleIdTokenVerifier
+from hivemind.router.oidc_auth import OidcAuthError, OidcIdTokenVerifier
 from hivemind.router.portal_page import portal_content_security_policy, render_portal_page
 from hivemind.router.signup_page import content_security_policy, render_signup_page
 from hivemind.router.market import (
@@ -563,6 +564,7 @@ def create_router_app(
     max_producer_capacity_1k: float = MAX_PRODUCER_CAPACITY_1K,
     google_client_id: str | None = None,
     google_verifier: GoogleIdTokenVerifier | None = None,
+    oidc_verifiers: Mapping[str, OidcIdTokenVerifier] | None = None,
     open_registration: bool = True,
 ) -> FastAPI:
     """Build the gateway app. ``resolver`` (host -> IP strings) is injectable for tests of the SSRF guard.
@@ -968,10 +970,45 @@ def create_router_app(
         return JSONResponse({"account_id": account_id, "api_key": api_key, "role": role, "created": created},
                             headers={"Cache-Control": "no-store"})
 
+    oidc = dict(oidc_verifiers or {})
+    for name in oidc:
+        if name == "google":
+            raise ValueError("configure Google with google_client_id; 'google' is not an extra OIDC provider")
+        store.allow_identity_provider(name)
+
+    @app.get("/v1/hivemind/signin/providers")
+    def signin_providers() -> dict[str, Any]:
+        """Which sign-in methods this gateway accepts (public). Clients send a provider ID token to the matching endpoint."""
+        providers = ([{"name": "google", "register": "/v1/hivemind/register/google", "client_id": google.client_id}] if google else [])
+        providers += [{"name": n, "register": f"/v1/hivemind/register/oidc/{n}", "client_id": v.client_id} for n, v in sorted(oidc.items())]
+        return {"object": "hivemind.signin_providers", "providers": providers, "handle_registration": open_registration}
+
+    @app.post("/v1/hivemind/register/oidc/{provider}")
+    def register_oidc(provider: str, request: Request, payload: GoogleRegisterRequest) -> JSONResponse:
+        verifier = oidc.get(provider)
+        if verifier is None:
+            raise RouterError(404, "Unknown sign-in provider.", "invalid_request_error", "unknown_provider")
+        if not register_limiter.allow(client_key(request), clock()):
+            raise RouterError(429, "Too many sign-ins; try again in a minute.", "rate_limit_error", "rate_limited")
+        try:
+            identity = verifier.verify(payload.id_token)
+        except OidcAuthError as exc:
+            if exc.code == "keys_unavailable":
+                raise RouterError(503, "Could not reach the identity provider to check the sign-in; try again.", "service_unavailable", "provider_unreachable") from None
+            if exc.code == "busy":
+                raise RouterError(503, "Too many sign-ins in progress; try again.", "service_unavailable", "busy") from None
+            LOGGER.info("%s sign-in refused: %s", provider, exc.code)  # reason code only: never the token
+            raise RouterError(401, "Sign-in failed. Sign in again.", "authentication_error", f"{provider}_{exc.code}") from None
+        account_id, api_key, created = store.sign_in_with_identity(provider, identity.subject, payload.role)
+        account = store.get_account(account_id)
+        role = account.role if account is not None else payload.role
+        return JSONResponse({"account_id": account_id, "api_key": api_key, "role": role, "created": created},
+                            headers={"Cache-Control": "no-store"})
+
     @app.post("/v1/hivemind/register")
     def register(request: Request, payload: RegisterRequest) -> dict[str, str]:
         if not open_registration:
-            raise RouterError(403, "Handle registration is closed. Sign in with Google at /signup.", "permission_error", "registration_closed")
+            raise RouterError(403, "Handle registration is closed. Sign in at /signup or see /v1/hivemind/signin/providers.", "permission_error", "registration_closed")
         if not register_limiter.allow(client_key(request), clock()):
             raise RouterError(429, "Too many registrations; try again in a minute.", "rate_limit_error", "rate_limited")
         try:
@@ -979,7 +1016,7 @@ def create_router_app(
         except HandleTaken:
             raise RouterError(409, "That handle is already registered.", "invalid_request_error", "handle_taken") from None
         except (SwarmSecurityViolationError, ReservedHandle):
-            raise RouterError(400, "Handle rejected: use 1-64 ASCII letters, digits and . _ @ + - characters, not starting with 'google.'.", "invalid_request_error", "invalid_handle") from None
+            raise RouterError(400, "Handle rejected: use 1-64 ASCII letters, digits and . _ @ + - characters, not starting with a sign-in provider prefix such as 'google.'.", "invalid_request_error", "invalid_handle") from None
         return {"account_id": account_id, "api_key": api_key, "role": payload.role}
 
     @app.get("/v1/hivemind/me")

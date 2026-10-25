@@ -5,6 +5,12 @@
 - Manuscript v3.8.0 (not deposited; the deposited record stays v3.7.1, 10.5281/zenodo.23607597): withdraws the INVALID E11 Qwen2.5-Coder-7B row (negative control failed by -0.47 nats), states P11a on Qwen2.5-0.5B as refuted on one rate-matched cell, adds a labelled-untested likely-cause note to E10b, and adds provenance checks PROV-72 and PROV-73; fig. 8 is regenerated without the 7B panel; the ledger gains a `withdrawn` block for P11a/P11b.
 - T4 replication kit: `docs/community/T4_REPLICATION_KIT.md` and `scripts/compare_replication.py` (compares a replication run against the campaign receipts; 4 tests in `tests/test_compare_replication.py`).
 - Test: `tests/test_e15_gate.py` parses with `ast.literal_eval` instead of `eval`.
+## Unreleased — General OpenID Connect sign-in (after Google)
+
+- `src/hivemind/router/oidc_auth.py`: provider-agnostic ID-token verifier (`OidcProvider`, `OidcIdTokenVerifier`, `providers_from_json`); `google_auth.py` is now this engine with Google's settings (all 43 Google tests unchanged and passing).
+- `POST /v1/hivemind/register/oidc/{provider}` and public `GET /v1/hivemind/signin/providers`; `RouterStore.allow_identity_provider` reserves each provider's handle prefix (refused if a handle already uses it); `HIVEMIND_OIDC_PROVIDERS` in the Cloud Run server.
+- `tests/test_router_oidc.py` (13 tests). Mutation checks: turning off the issuer check, the verified-email rule, the per-store prefix reservation, or the provider lookup each makes a test fail.
+- Not done: Google itself still needs the owner's OAuth client id; `deploy.sh` does not forward `HIVEMIND_OIDC_PROVIDERS`; no live provider was exercised.
 ## Unreleased — moe-general (gpt-oss 20B) measured on a T4
 
 - `catalog.py`: `moe-general` minimum memory 16 GB to 15 GB, from a measurement (12,331 MiB resident on a T4, card otherwise empty); the catalog test now covers 14.9, 15.0 and 15.36 GB.
