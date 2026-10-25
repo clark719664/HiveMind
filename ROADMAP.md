@@ -286,6 +286,22 @@ What the first night measured (7B QLoRA adapters, one T4, exact paired McNemar a
 | `HM-S14-08` | no adapter passed the update gate for serving | run the verified update gate on the stars adapter and decide whether the router offers it as an expert tier | G-R2 |
 | `HM-S14-09` | the dashboard link and repo server code lag the deployed overlay | reconcile `deploy/gcp_cloud_run` with the live image (release id and report files) before the next redeploy | G-R1 |
 
+## 👑 3.13 Season 15 (`Wave 14` — "Operation QueenBee") — verified-feedback routing and knowledge sharing (owner's brief, 2026-10-25)
+
+Proposal: [`docs/QUEENBEE_PROPOSAL.md`](docs/QUEENBEE_PROPOSAL.md). Experiments: [`docs/QUEENBEE_EXPERIMENTS.md`](docs/QUEENBEE_EXPERIMENTS.md). Literature: [`docs/QUEENBEE_LITERATURE_REVIEW.md`](docs/QUEENBEE_LITERATURE_REVIEW.md). Lean: `HiveMindSpec.ALIX_QueenBee`, Theorems 129-139.
+
+Delivered: package `hivemind.queenbee` with a strategy manager (bandit by default; verified preference pairs; opt-in clipped and noised sharing through Multi-Krum plus quorum), signed dance records, and knowledge points paid as a lump sum that leaves the market equilibrium unchanged. In simulation QB1c (valid after two invalid runs that their own controls caught), the bandit beats uniform and the static route in 20/20 seeds, honest dances cut early regret from 22.9 to 9.7, and a scout cross-check cuts sybil damage from 41.3 to 3.6. The value cap did **not** work as a defence.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S15-01` | the value cap cuts honest signal and does not bound influence by evidence | per-signer pseudo-trial budget, Lean theorem, preregistered re-test with the cap really removed | G-R1 |
+| `HM-S15-02` | the scout check trusts scouts | two independent scouts per cell, rotation, one-corrupt-scout adversary | G-R1 |
+| `HM-S15-03` | the bandit is only simulated | route among served experts on tasks with executable tests; measure the routing plateau first | G-R1 |
+| `HM-S15-04` | the Queen does not decompose tasks | subtask split with per-subtask verifiers, against planner-as-router baselines | G-R1 |
+| `HM-S15-05` | strategy b has no users | consenting developers' verified corrections, local adapter, verified update gate | G-R2 |
+| `HM-S15-06` | averaging LoRA factors is inexact and no privacy budget is accounted | product-space or exact aggregation, privacy accountant, Multi-Krum attack test, two hosts | G-R2 |
+| `HM-S15-07` | knowledge points are not live | admission service behind the firewall, public dataset with licences, settlement via the epoch ledger; bonus share set by the owner | owner |
+
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
 
 If you have a consumer GPU (**NVIDIA GeForce RTX 20/30/40/50-series 6 GB–24 GB**, **AMD Radeon RX 6000/7000 via ROCm**, or **Apple Silicon M1/M2/M3/M4 via MPS**) and are interested in testing how your hardware performs on the HiveMind Sparse MoE + `EF21-DiLoCo` + `ZK-OPoI v4` stack, we provide a safe, opt-in, `< 1.5 GB` peak-VRAM benchmark suite:
