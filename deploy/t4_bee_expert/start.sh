@@ -24,6 +24,10 @@ if [ -s api_key ] && ! pgrep -f "hivemind_producer_agent.py .*--endpoint https:/
      --cost-per-1k 0.4 --capacity-1k 30 --execution-class t4 > agent.log 2>&1 < /dev/null &)
   sleep 15
 fi
+# Keep the 7B coder resident: Ollama unloads it after OLLAMA_KEEP_ALIVE (10m) idle, and the reload made a user's first
+# coding request take 52-120 s (one 504 measured 2026-10-25). keep_alive=-1 on a load request pins it without changing the
+# shared service config; Ollama still evicts it when another model is needed (OLLAMA_MAX_LOADED_MODELS=1).
+curl -s -m 300 localhost:11434/api/generate -d '{"model":"qwen2.5-coder:7b-instruct","prompt":"","keep_alive":-1}' > /dev/null
 llama_health=$(curl -s -m2 localhost:8294/health)
 shield_listening=$(ss -ltn | grep -c ':8789 ')
 agent_count=$(pgrep -fc 'hivemind_producer_agent[.]py .*sslip[.]io/bee')
