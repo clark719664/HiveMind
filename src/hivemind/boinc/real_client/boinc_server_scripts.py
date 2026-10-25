@@ -30,10 +30,35 @@ def _meta(files: list[str]) -> tuple[dict, list[Path]]:
     return meta, paths
 
 
+def wait_for_idle(quiet_s: float = 5.0, max_wait_s: float | None = None) -> float:
+    """Block until nginx shows no in-flight inference request for ``quiet_s`` seconds, so the validator's GPU replay never competes
+    with end users. Gives up after ``max_wait_s`` (default 30 min) so validation cannot starve forever. Returns seconds waited."""
+    import urllib.request
+
+    url = os.environ.get("HIVEMIND_IDLE_URL", "http://127.0.0.1:8091/nginx_status")
+    limit = float(os.environ.get("HIVEMIND_IDLE_WAIT_S", 1800)) if max_wait_s is None else max_wait_s
+    t0, quiet_since = time.time(), None
+    while time.time() - t0 < limit:
+        try:
+            txt = urllib.request.urlopen(url, timeout=2).read().decode()
+            writing = int(txt.split("Writing:")[1].split()[0]) - 1  # minus this poll
+        except Exception:
+            return time.time() - t0  # no status endpoint (e.g. a test box): do not block
+        if writing <= 0:
+            quiet_since = quiet_since or time.time()
+            if time.time() - quiet_since >= quiet_s:
+                break
+        else:
+            quiet_since = None
+        time.sleep(1)
+    return time.time() - t0
+
+
 def validate(args: list[str]) -> int:
     import torch
 
     meta, paths = _meta(args)
+    wait_for_idle()
     wu = meta.get("wu_id", "")
     spec_path = SPEC_DIR / f"{wu}.json"
     if not wu or not spec_path.is_file() or "/" in wu or ".." in wu:
@@ -71,8 +96,16 @@ def assimilate(args: list[str]) -> int:
     if meta["app"] == "hivemind_qlora_moe":
         state = torch.load(paths[1], map_location="cpu")["states"][-1]
         out = LEDGER_DIR / f"adapter_{wu}.pt"
-        torch.save({"state": state, "sha256": state_sha(state), "wu_id": wu}, out)
-        entry["adapter"], entry["adapter_sha256"] = out.name, state_sha(state)
+        sha = state_sha(state)
+        torch.save({"state": state, "sha256": sha, "wu_id": wu}, out)
+        entry["adapter"], entry["adapter_sha256"] = out.name, sha
+        entry["eval_loss_before"], entry["eval_loss_after"] = meta.get("eval_loss_before"), meta.get("eval_loss_after")
+        # publish the chain head: the work generator starts the next workunit from this adapter
+        tmp = LEDGER_DIR / "latest_adapter.pt.tmp"
+        torch.save({"state": state, "sha256": sha, "wu_id": wu}, tmp)
+        tmp.replace(LEDGER_DIR / "latest_adapter.pt")
+        (LEDGER_DIR / "latest_adapter.json").write_text(json.dumps(
+            {"wu_id": wu, "sha256": sha, "eval_loss_before": meta.get("eval_loss_before"), "eval_loss_after": meta.get("eval_loss_after"), "t": time.time()}))
     else:
         entry["completions"] = meta.get("completions", [])
     with open(LEDGER_DIR / "assimilated.jsonl", "a") as f:

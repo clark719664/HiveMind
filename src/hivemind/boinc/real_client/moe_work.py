@@ -40,6 +40,7 @@ def build_train_spec(
     alpha: int = 16,
     rng_seed: int = 7,
     init_seed: int = 42,
+    start_adapter_sha256: str | None = None,
 ) -> dict[str, Any]:
     from transformers import AutoTokenizer
 
@@ -57,6 +58,8 @@ def build_train_spec(
         "rng_seed": rng_seed, "init_seed": init_seed, "shard_index": shard_index,
         "train_tokens": train, "eval_tokens": ev,
     }
+    if start_adapter_sha256:
+        spec["start_adapter_sha256"] = start_adapter_sha256
     sha, sig = sign_shard_bytes(json.dumps(train, separators=(",", ":")).encode(), rng_seed)
     spec["shard_sha256"], spec["shard_hmac_signature"] = sha, sig
     return spec

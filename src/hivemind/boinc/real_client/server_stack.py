@@ -174,18 +174,39 @@ class Stack:
         sh(["bin/xadd"], cwd=self.root, env=self.project_env())
         sh(["bin/update_versions", "--no_query"] if False else ["bin/update_versions"], cwd=self.root, env=self.project_env(), check=False)
 
+    def update_versions(self) -> str:
+        """Run BOINC's interactive update_versions, answering yes (sign and add every new app version directory)."""
+        r = subprocess.run(["bin/update_versions"], cwd=self.root, env=self.project_env(), input="y\n" * 60, capture_output=True, text=True, timeout=300)
+        return r.stdout[-1500:]
+
+    def deprecate_versions_below(self, version: int) -> None:
+        self.sql(f"use {self.dbname}; update app_version set deprecated=1 where version_num<{version};")
+
     def stage(self, name: str, data: bytes) -> None:
         # create_work copies download/<name> into the hashed download hierarchy itself
         (self.root / "download").mkdir(exist_ok=True)
         (self.root / "download" / name).write_bytes(data)
 
-    def create_work(self, app: str, wu_name: str, inputs: dict[str, bytes], fpops_est: float, command_line: str = "") -> None:
+    def ensure_chain_template(self, app: str = "hivemind_qlora_moe") -> str:
+        """Input template for chained training workunits: in.json plus the start adapter (adapter.pt)."""
+        name = f"{app}_chain_in"
+        (self.root / "templates" / name).write_text(
+            "<file_info><number>0</number></file_info>\n<file_info><number>1</number></file_info>\n<workunit>\n"
+            "<file_ref><file_number>0</file_number><open_name>in.json</open_name></file_ref>\n"
+            "<file_ref><file_number>1</file_number><open_name>adapter.pt</open_name></file_ref>\n"
+            "<rsc_memory_bound>4e9</rsc_memory_bound>\n<rsc_disk_bound>2e9</rsc_disk_bound>\n<delay_bound>86400</delay_bound>\n"
+            "<min_quorum>1</min_quorum>\n<target_nresults>1</target_nresults>\n<max_error_results>2</max_error_results>\n"
+            "<max_total_results>2</max_total_results>\n<max_success_results>1</max_success_results>\n</workunit>\n"
+        )
+        return name
+
+    def create_work(self, app: str, wu_name: str, inputs: dict[str, bytes], fpops_est: float, command_line: str = "", template: str | None = None) -> None:
         names = []
         for open_name, data in inputs.items():
             phys = f"{wu_name}_{open_name.replace('.', '_')}"
             self.stage(phys, data)
             names.append(phys)
-        cmd = ["bin/create_work", "--appname", app, "--wu_name", wu_name, "--wu_template", f"templates/{app}_in", "--result_template", f"templates/{app}_out",
+        cmd = ["bin/create_work", "--appname", app, "--wu_name", wu_name, "--wu_template", f"templates/{template or app + '_in'}", "--result_template", f"templates/{app}_out",
                "--rsc_fpops_est", f"{fpops_est:.6g}", "--rsc_fpops_bound", f"{fpops_est * 100:.6g}"]
         if command_line:
             cmd += ["--command_line", command_line]

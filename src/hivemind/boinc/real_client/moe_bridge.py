@@ -73,8 +73,10 @@ class MoEValidator:
         with self._lock:
             self._ensure(spec)
             assert self._init_state is not None
-            if state_sha(self._init_state) != meta["state_sha256"][0]:
-                return _reject(wu, host, "chain does not start at the deterministic LoRA init")
+            # a chained workunit starts from the previous validated adapter, a first one from the deterministic init
+            expected_start = spec.get("start_adapter_sha256") or state_sha(self._init_state)
+            if expected_start != meta["state_sha256"][0]:
+                return _reject(wu, host, "chain does not start at the expected adapter (previous validated adapter or deterministic init)")
             k = self._rng.randrange(k_total)
             tokens = torch.tensor(spec["train_tokens"], dtype=torch.long)
             seg = int(spec["segment_steps"])

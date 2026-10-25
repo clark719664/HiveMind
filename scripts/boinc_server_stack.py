@@ -55,7 +55,9 @@ def setup(stack: Stack, venv_python: str) -> None:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("action", choices=["setup", "start", "stop"])
+    ap.add_argument("action", choices=["setup", "start", "stop", "apps"])
+    ap.add_argument("--version", type=int, default=101, help="app version to publish with the 'apps' action")
+    ap.add_argument("--code-src", type=Path, default=Path("/opt/hivemind/t4/src"), help="stable code path baked into the 'apps' launchers")
     ap.add_argument("--base", type=Path, required=True)
     ap.add_argument("--boinc-src", type=Path, required=True)
     ap.add_argument("--venv-python", required=True)
@@ -65,6 +67,15 @@ def main() -> int:
     if a.action == "setup":
         setup(st, a.venv_python)
         print("setup done:", st.master_url)
+    elif a.action == "apps":
+        # publish a new app version whose launcher points at a stable code path (not an ephemeral git worktree); older versions are deprecated
+        for app, spec in APPS.items():
+            body = launcher(a.venv_python, a.code_src, "hivemind.boinc.real_client.moe_app", spec["args"], {"HF_HUB_OFFLINE": "1"})
+            st.install_app(app, body, spec["n_inputs"], spec["outputs"], spec["max_nbytes"], version=a.version)
+        st.ensure_chain_template()
+        print(st.update_versions())
+        st.deprecate_versions_below(a.version)
+        print("published app version", a.version, "-> code at", a.code_src)
     elif a.action == "start":
         print("db up:", st.start_db())
         st.start_apache()

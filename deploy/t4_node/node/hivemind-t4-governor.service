@@ -1,0 +1,13 @@
+# Idle-time governor: inference has priority; QLoRA training runs only in quiet periods and yields within seconds.
+[Unit]
+Description=HiveMind T4 governor (train when idle, yield to inference)
+After=hivemind-boinc-client.service nginx.service
+
+[Service]
+User=callensxavier_gmail_com
+ExecStart=/usr/bin/python3 /opt/hivemind/t4/scripts/t4_governor.py --idle-start-s 30
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

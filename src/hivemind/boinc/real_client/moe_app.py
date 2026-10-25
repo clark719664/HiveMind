@@ -81,14 +81,23 @@ def state_sha(state: dict[str, Any]) -> str:
     return compute_state_dict_sha256(state)
 
 
-def train(spec: dict[str, Any], ckpt: Path, crash_after_segment: int | None = None, lazy: bool = False) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def train(
+    spec: dict[str, Any],
+    ckpt: Path,
+    crash_after_segment: int | None = None,
+    lazy: bool = False,
+    start_state: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """``start_state`` chains workunits: training continues from the adapter the previous validated workunit produced."""
     import torch
 
     from hivemind.core.diloco_inner import replay_inner_segment
-    from hivemind.core.quantization import extract_lora_state_dict
+    from hivemind.core.quantization import extract_lora_state_dict, load_lora_state_dict
 
     train_tokens = torch.tensor(spec["train_tokens"], dtype=torch.long)
     model = load_peft_model(spec)
+    if start_state is not None:
+        load_lora_state_dict(model, start_state)
     seg, steps = int(spec["segment_steps"]), int(spec["inner_steps"])
     k_total = steps // seg
     states: list[dict[str, Any]] = [extract_lora_state_dict(model)]
@@ -171,7 +180,12 @@ def main(argv: list[str] | None = None) -> int:
     spec = json.loads(resolve_filename("in.json").read_text())
     out_json = resolve_filename("out.json")
     if mode == "train":
-        meta, states = train(spec, Path("hivemind_moe_ckpt.pt"), crash, lazy)
+        start_state = None
+        if spec.get("start_adapter_sha256"):
+            start_state = torch.load(resolve_filename("adapter.pt"), map_location="cpu")["state"]
+            if state_sha(start_state) != spec["start_adapter_sha256"]:
+                raise RuntimeError("the start adapter does not match the workunit's start_adapter_sha256")
+        meta, states = train(spec, Path("hivemind_moe_ckpt.pt"), crash, lazy, start_state)
         out_pt = resolve_filename("out.pt")
         torch.save({"states": states}, out_pt)
         out_json.write_text(json.dumps(meta, sort_keys=True))
