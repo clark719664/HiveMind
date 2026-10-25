@@ -57,6 +57,32 @@ def boinc_gpu_pids(procs: list[tuple[str, ...]]) -> list[str]:
     return out
 
 
+def parse_pmon(text: str) -> dict[str, int]:
+    """``nvidia-smi pmon -s u`` -> {pid: sm%}. A '-' (no sample for that process) is omitted, never read as 0."""
+    out: dict[str, int] = {}
+    for ln in text.splitlines():
+        p = ln.split()
+        if len(p) >= 4 and not ln.lstrip().startswith("#") and p[1].isdigit() and p[3].isdigit():
+            out[p[1]] = int(p[3])
+    return out
+
+
+def other_gpu_busy(g: dict, threshold_pct: int = 10) -> tuple[bool, int]:
+    """Is something other than the BOINC task using the GPU? This catches callers that never pass through nginx (local Ollama or
+    llama-server clients) and requests shorter than the in-flight poll interval.
+
+    No BOINC task running: whole-GPU utilisation >= threshold. BOINC task running: the highest SM% among the other processes."""
+    mine = set(boinc_gpu_pids(g["procs"]))
+    if not mine:
+        return g["util_pct"] >= threshold_pct, g["util_pct"]
+    try:
+        pm = parse_pmon(subprocess.run(["nvidia-smi", "pmon", "-c", "1", "-s", "u"], capture_output=True, text=True, timeout=8).stdout)
+    except Exception:
+        return False, 0
+    top = max((sm for pid, sm in pm.items() if pid not in mine), default=0)
+    return top >= max(threshold_pct // 2, 5), top
+
+
 def in_night(now: float, tz: str, start_h: int, end_h: int) -> bool:
     """True inside the owner's night window (wraps past midnight when start_h > end_h)."""
     from datetime import datetime
@@ -133,7 +159,13 @@ def main() -> int:
         except Exception as exc:
             in_flight, http_ok = 0, False
             st = {"error": str(exc)[:80]}
-        busy = in_flight >= 1
+        # two independent "someone is asking" signals: nginx in-flight (router traffic) and GPU activity by anything but BOINC
+        try:
+            other_busy, other_util = other_gpu_busy(gpu_state())
+        except Exception:
+            other_busy, other_util = False, 0
+        busy = in_flight >= 1 or other_busy
+        trigger = "nginx" if in_flight >= 1 else ("gpu" if other_busy else None)
         if busy:
             last_busy = t0
         if a.hold_file.exists():
@@ -163,7 +195,8 @@ def main() -> int:
             last_yield_ms = freed_ms
             state = "yielded"
             # gpu_freed_ms is a real measurement only when a BOINC GPU task was running (had_boinc_gpu_task); otherwise there was nothing to free
-            log({"event": "yield", "in_flight": in_flight, "set_never_ok": ok, "had_boinc_gpu_task": had_task, "gpu_freed_ms": freed_ms, "yields": yields})
+            log({"event": "yield", "trigger": trigger, "in_flight": in_flight, "other_gpu_util": other_util, "set_never_ok": ok,
+                 "had_boinc_gpu_task": had_task, "gpu_freed_ms": freed_ms, "yields": yields})
         elif not busy and state in ("init", "yielded") and (t0 - last_busy) >= (a.idle_start_s if in_night(t0, a.night_tz, a.night_start_h, a.night_end_h) else a.day_idle_s):
             g = gpu_state()
             mine = sum(int(p[2]) for p in g["procs"] if p[0] in boinc_gpu_pids(g["procs"]))
@@ -180,7 +213,7 @@ def main() -> int:
         if t0 - last_snapshot >= 10:
             g = gpu_state()
             snap = {"state": state, "boinc_gpu_mode": boinc.mode, "in_flight": in_flight, "http_ok": http_ok, "yields": yields,
-                    "last_yield_ms": last_yield_ms, "quiet_s": round(t0 - last_busy, 1) if last_busy else None,
+                    "last_yield_ms": last_yield_ms, "other_gpu_util": other_util, "busy_trigger": trigger, "quiet_s": round(t0 - last_busy, 1) if last_busy else None,
                     "gpu_used_mib": g["used_mib"], "gpu_temp_c": g["temp_c"], "gpu_util_pct": g["util_pct"], "boinc_procs": boinc_gpu_pids(g["procs"]), "t": round(t0, 1)}
             a.state_file.write_text(json.dumps(snap))
             log({"event": "snapshot", **{k: snap[k] for k in ("state", "in_flight", "gpu_used_mib", "gpu_util_pct", "yields", "last_yield_ms")}})

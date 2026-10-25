@@ -24,6 +24,18 @@ Installed on 2026-10-25 at the owner's request. Inference always has priority; t
 - The validator's GPU replay also waits for a quiet moment.
 - A `yield` log line is a real measurement only when `had_boinc_gpu_task` is true; `gpu_freed_ms` of a yield with no task is meaningless.
 
+**How the governor decides the node is busy (two signals, polled once a second).** (1) nginx in-flight requests: the gateway is a push router (it calls the producer's
+registered HTTPS endpoint; the agent only heartbeats), so router traffic does pass through nginx, and the 13:12 yield was triggered that way (`in_flight: 1`). (2) GPU
+activity by anything that is not the BOINC task: whole-GPU utilisation >= 10 % when no task runs, or the highest per-process SM % among the other processes
+(`nvidia-smi pmon`) while one does. This second signal exists because callers that skip nginx (local clients of Ollama on :11434, of the Bee server, of the gwaya-lite
+gateway) and requests shorter than one poll would otherwise be invisible. Any trigger restarts the quiet timer; yield events record `trigger`. Still blind: a request
+that starts and ends between two polls without a GPU-utilisation sample.
+
+**VRAM at the first night run.** The governor starts training only if free VRAM (not counting what BOINC itself holds) is >= 4300 MiB, and the QLoRA app peaks at ~3.4 GiB (+ CUDA context). With the Bee server (4.8 GiB) alone resident
+(Ollama unloaded after its 10-minute keep-alive, as at 19:15Z: 4,841 MiB used) about 10.5 GiB is free and training starts if the node has been silent for 30 minutes. With the 7B also
+resident (10.3 GiB used) ~5 GiB is free and it still starts, leaving ~1.6 GiB. With both coders resident (~13 GiB) the guard refuses, so training does not run: the safe failure mode. A pinned
+model (`keep_alive: -1` or `OLLAMA_KEEP_ALIVE=-1`) is good for latency but means Ollama never unloads, so night training would only run while the free-VRAM guard passes.
+
 **Not measured yet (do not quote numbers):** the time from "request arrives" to "GPU free" with a task running, the effect of a
 running task on inference latency, and the QLoRA loss trend over chained rounds. The first night run produces the first
 real yield measurement. The 13:15Z idle latency baseline (router path, temperature 0) taken by a teammate session: bee-stars

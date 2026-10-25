@@ -29,8 +29,12 @@ Also: the Bee slot count is 1 (`-np 1`) behind a shield that admits 3, so Bee re
 **Node telemetry, 12:56-15:51 UTC (`scripts/t4_inference_report.py`).** Requests were in flight in 2 of 601 15-second samples (0.3 %, max 1);
 GPU memory constant at 10,303 MiB, utilisation 0 % at p95 with one 93 % spike, temperature 48-72 C, power p95 31 W; all four tiers visible at the
 gateway in 601 of 601 samples; no preemption notice; host load median 6.3 on 8 vCPUs (mostly other sessions' work). nginx handled ~1.3 requests/s,
-almost all of it the gateway's endpoint checks and the monitors' polls, **not user inferences**. Conclusion supported: the service was available and
-essentially idle; there is no evidence here of real end-user demand yet. The in-flight signal is sampled every 15 s, so very short requests can be missed.
+almost all of it the gateway's endpoint checks and the monitors' polls, **not user inferences**. What the 15 s sampling supports: the GPU was lightly loaded.
+**It does NOT support "no demand"** (an earlier version of this page said so, wrongly): the in-flight signal is sampled every 15 s and chat requests last
+~0.2 s, so it sees almost none of them. The nginx access log (adm-only, read with sudo) counts them properly: on 25 Oct (UTC) 566 completed
+`POST .../chat/completions` (`/bee` 413, `/` 111, `/u` 42), typically **20-50 per hour** through the afternoon (53 in the 12:00 hour, 43 in the 15:00 hour), 337 of the
+Bee ones in the 10:00 hour alone. Some are the monitors' and teammates' probes; the log cannot tell probes from users. At ~30 requests/hour of 0.2 s the GPU is
+busy ~0.2 % of the time, which is exactly what the sampling saw: low load, real traffic. (`t4_monitor.py` now records the real count per route and status.)
 
 **Gateway view (aggregates; the market endpoint publishes no per-user data).** At 15:5x UTC no consumer was bidding, so nothing cleared and the
 price sat at the 0.494 HMT/1k floor; at ~13:00 UTC, during test windows, four consumers were bidding and the price was ~7.5. The owner's prosumer account had
@@ -50,8 +54,15 @@ The owner's new producer therefore does receive and answer traffic. A teammate's
 bee-stars 0.35-0.51 s, coder 0.63-0.81 s, auto 0.27 s, and ~32 tok/s for a 320-token completion.
 
 **coder-lite hurts the coder tier.** Ollama runs with `OLLAMA_MAX_LOADED_MODELS=1`, so the 7B and the 3B evict each other. A second, cleaner pair measured:
-coder 0.24 s -> coder-lite **6.6 s** -> the next coder request **8.2 s** (swap back) -> coder 0.16 s. The first sample's 32-63 s for coder-lite is slower
-than this pair and I do not have an explanation beyond load/swap; do not quote one figure for it. Collateral cost: after any coder-lite request the next coder user waits ~40x longer.
+coder 0.24 s -> coder-lite **6.6 s** -> the next coder request **8.2 s** (swap back) -> coder 0.16 s. Collateral cost: after any coder-lite request the next coder user waits ~40x longer.
+
+**Disclosure: my own latency tests caused slow requests for others.** The router's Cloud Run log (read-only) shows slow chat completions at 15:53-16:05 UTC:
+62.9 s, 177.7 s, a **502 after 120 s**, 32.1 s and 73.3 s. That is the window of my `coder-lite` tests (my sample's 32 s, 63 s and 502 are in that list), and with a
+single resident model each of my 3B requests evicted the 7B for whoever asked next. The 177.7 s and 73.3 s entries are not mine and probably were such victims or
+other probes; the log does not say. A teammate session reported the same slow requests as "13:53-14:05Z real users"; the router log timestamps them two hours later,
+so that label was off by two hours, and its explanation (a cold load) is right in mechanism but those requests were not a separate user event. The same router log shows an
+older slow period, 10:30-11:43 UTC (502 after 120 s at 10:30:53, 10:32:32, 11:41:27; 200s of 24-91 s), that predates all of my work today and has the same signature
+(the nginx log has matching 499s at 10:32, 10:34 and 11:43). Lesson recorded: do not probe the `coder-lite` tier on a live node; measure it on a quiet node or a copy.
 
 Two fixes, each a change to a live service (not applied; the owner decides):
 1. Stop advertising `coder-lite` (remove `--model coder-lite=...` from the older coder agent; the unit template in this directory already does).

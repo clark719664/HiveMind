@@ -67,6 +67,39 @@ def test_governor_night_window_wraps_midnight() -> None:
     assert in_night(at(10), "Europe/Paris", 8, 18) is True  # a non-wrapping window
 
 
+def test_parse_pmon_ignores_header_and_unsampled_processes() -> None:
+    from t4_governor import parse_pmon
+
+    txt = ("# gpu         pid   type     sm    mem    enc    dec    jpg    ofa    command \n# Idx           #    C/G      %      %      %      %      %      %    name \n"
+           "    0     742539     C      -      -      -      -      -      -    llama-server   \n    0     946827     C     37     12      -      -      -      -    llama-server   \n")
+    assert parse_pmon(txt) == {"946827": 37}  # '-' means "no sample", which must not be read as idle (0)
+
+
+def test_other_gpu_busy_without_a_boinc_task_uses_whole_gpu_utilisation() -> None:
+    from t4_governor import other_gpu_busy
+
+    assert other_gpu_busy({"procs": [], "util_pct": 80}) == (True, 80)  # e.g. a local Ollama client that never touched nginx
+    assert other_gpu_busy({"procs": [], "util_pct": 3}) == (False, 3)
+
+
+def test_chatlog_counts_new_completions_by_route_and_survives_rotation(tmp_path: Path) -> None:
+    from t4_monitor import ChatLog
+
+    log = tmp_path / "access.log"
+    log.write_text('1.2.3.4 - - [25/Oct/2026:10:00:00 +0000] "POST /v1/chat/completions HTTP/1.1" 200 5 "-" "x"\n')
+    c = ChatLog(log)
+    assert c.poll() == {"ok": True, "n": 0, "by": {}}  # the first poll starts "now": history is not recounted
+    with open(log, "a") as f:
+        f.write('1.2.3.4 - - [25/Oct/2026:10:00:01 +0000] "POST /v1/chat/completions HTTP/1.1" 200 5 "-" "x"\n')
+        f.write('1.2.3.4 - - [25/Oct/2026:10:00:02 +0000] "POST /bee/v1/chat/completions HTTP/1.1" 200 5 "-" "x"\n')
+        f.write('1.2.3.4 - - [25/Oct/2026:10:00:03 +0000] "POST /u/v1/chat/completions HTTP/1.1" 499 0 "-" "x"\n')
+        f.write('1.2.3.4 - - [25/Oct/2026:10:00:04 +0000] "GET /v1/models HTTP/1.1" 401 5 "-" "x"\n')  # a poll, not an inference
+    assert c.poll() == {"ok": True, "n": 3, "by": {"coder:200": 1, "bee:200": 1, "u:499": 1}}
+    log.rename(tmp_path / "access.log.1")  # logrotate: a new file with a new inode
+    log.write_text('1.2.3.4 - - [25/Oct/2026:10:05:00 +0000] "POST /v1/chat/completions HTTP/1.1" 502 0 "-" "x"\n')
+    assert c.poll()["by"] == {"coder:502": 1}
+
+
 def test_wait_for_idle_does_not_block_when_there_is_no_status_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HIVEMIND_IDLE_URL", "http://127.0.0.1:9/nginx_status")  # nothing listens here
     t = time.time()

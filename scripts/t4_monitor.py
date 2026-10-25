@@ -17,7 +17,7 @@ import os
 import subprocess
 import time
 import urllib.request
-from collections import defaultdict, deque
+from collections import Counter, defaultdict, deque
 from pathlib import Path
 
 GATEWAY = "https://hivemind-openrouter-1003063861791.us-central1.run.app"
@@ -86,6 +86,43 @@ def gateway_view() -> dict:
     return {"models_http": code, "live_tiers": tiers, "health_http": http(f"{GATEWAY}/health", timeout=8)[0]}
 
 
+class ChatLog:
+    """Counts completed chat-completion requests from nginx's access log since the previous poll (the monitor runs as root; the log is
+    adm-only). In-flight sampling every 15 s misses sub-second requests; this is the real request count. It does NOT give latency
+    (the default log format has no request time). Handles rotation (new inode or a shorter file)."""
+
+    PAT = None
+
+    def __init__(self, path: Path = Path("/var/log/nginx/access.log")) -> None:
+        import re
+
+        self.path, self.inode, self.offset = path, None, None
+        ChatLog.PAT = ChatLog.PAT or re.compile(r'"POST (\S+)[^"]*" (\d{3}) ')
+
+    def poll(self) -> dict:
+        try:
+            st_ = self.path.stat()
+        except OSError:
+            return {"ok": False}
+        if self.inode != st_.st_ino or (self.offset is not None and st_.st_size < self.offset):
+            first = self.inode is None
+            self.inode, self.offset = st_.st_ino, (st_.st_size if first else 0)  # first poll starts "now"; after rotation read the new file from 0
+            if first:
+                return {"ok": True, "n": 0, "by": {}}
+        by: Counter = Counter()
+        with open(self.path, "rb") as f:
+            f.seek(self.offset)
+            data = f.read()
+            self.offset = f.tell()
+        for ln in data.decode(errors="replace").splitlines():
+            m = ChatLog.PAT.search(ln)
+            if m and "chat/completions" in m.group(1):
+                p = m.group(1)
+                route = "bee" if p.startswith("/bee/") else "u" if p.startswith("/u/") else "coder"
+                by[f"{route}:{m.group(2)}"] += 1
+        return {"ok": True, "n": sum(by.values()), "by": dict(by)}
+
+
 def progress(ledger: Path) -> dict:
     out = {"assimilated": 0, "last": None}
     f = ledger / "assimilated.jsonl"
@@ -122,6 +159,7 @@ def main() -> int:
     can_restart = os.geteuid() == 0 and not a.no_restart
     restarts: dict[str, deque] = defaultdict(deque)
     last_full, preempt_logged, prev_req, prev_t = 0.0, False, None, None
+    chat_log = ChatLog()
 
     def event(kind: str, **kw) -> None:
         with open(a.out_dir / "events.jsonl", "a") as f:
@@ -145,7 +183,7 @@ def main() -> int:
                 prev_req, prev_t = ng["requests_total"], now
             snap = {"t": round(now, 2), "uptime_s": float(Path("/proc/uptime").read_text().split()[0]), "loadavg": os.getloadavg(),
                     "disk_free_gb": {p: round(os.statvfs(p).f_bavail * os.statvfs(p).f_frsize / 1e9, 1) for p in ("/", "/mnt/disks/disk-socrateai-local-1")},
-                    "gpu": gpu(), "nginx": {**ng, "req_per_s": rate}, "units": units, "gateway": gateway_view(),
+                    "gpu": gpu(), "nginx": {**ng, "req_per_s": rate}, "chat_completions_since_last": chat_log.poll(), "units": units, "gateway": gateway_view(),
                     "governor": json.loads(a.governor_state.read_text()) if a.governor_state.exists() else None,
                     "qlora_progress": progress(a.ledger), "preemption_notice": pre}
             rotate(a.out_dir / "t4_node.jsonl")
