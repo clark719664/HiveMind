@@ -1,0 +1,523 @@
+{
+ "alpha": 0.05,
+ "base_model": "Qwen2.5-Coder-7B-Instruct Q4_K_M (QLoRA r16 a32 adapters)",
+ "baselines": {
+  "astro_transfer": {
+   "accuracy": 0.7105,
+   "correct": 108,
+   "n": 152,
+   "unparsable": 0
+  },
+  "cyber": {
+   "accuracy": 0.65,
+   "correct": 325,
+   "n": 500,
+   "unparsable": 1
+  },
+  "exoplanet": {
+   "accuracy": 0.3617,
+   "correct": 217,
+   "n": 600,
+   "unparsable": 0
+  },
+  "maths": {
+   "accuracy": 0.785,
+   "correct": 157,
+   "n": 200,
+   "unparsable": 27
+  },
+  "physics_transfer": {
+   "accuracy": 0.541,
+   "correct": 264,
+   "n": 488,
+   "unparsable": 2
+  },
+  "stars": {
+   "accuracy": 0.489,
+   "correct": 155,
+   "n": 317,
+   "unparsable": 0
+  }
+ },
+ "bonferroni_alpha": 0.00294,
+ "experiment": "NIGHT-MOE-1",
+ "n_other_cells": 17,
+ "subjects": {
+  "cyber": {
+   "control": {
+    "accuracy": 0.658,
+    "base_accuracy_same_items": 0.65,
+    "correct": 329,
+    "delta_vs_base": 0.008,
+    "flag": "NS",
+    "mcnemar_exact_p": 0.4545,
+    "n": 500,
+    "only_adapter_right": 10,
+    "only_base_right": 6,
+    "unparsable": 0,
+    "wilson95": [
+     0.6154,
+     0.6982
+    ]
+   },
+   "control_note": "",
+   "missing_cells": [
+    "maths"
+   ],
+   "other_packs": {
+    "astro_transfer": {
+     "accuracy": 0.73,
+     "base_accuracy_same_items": 0.73,
+     "correct": 73,
+     "delta_vs_base": 0.0,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 1.0,
+     "n": 100,
+     "only_adapter_right": 1,
+     "only_base_right": 1,
+     "survives_bonferroni": false,
+     "unparsable": 1,
+     "wilson95": [
+      0.6357,
+      0.8073
+     ]
+    },
+    "exoplanet": {
+     "accuracy": 0.41,
+     "base_accuracy_same_items": 0.38,
+     "correct": 41,
+     "delta_vs_base": 0.03,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.25,
+     "n": 100,
+     "only_adapter_right": 3,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.3187,
+      0.508
+     ]
+    },
+    "physics_transfer": {
+     "accuracy": 0.46,
+     "base_accuracy_same_items": 0.45,
+     "correct": 46,
+     "delta_vs_base": 0.01,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 1.0,
+     "n": 100,
+     "only_adapter_right": 3,
+     "only_base_right": 2,
+     "survives_bonferroni": false,
+     "unparsable": 1,
+     "wilson95": [
+      0.3656,
+      0.5574
+     ]
+    },
+    "stars": {
+     "accuracy": 0.54,
+     "base_accuracy_same_items": 0.46,
+     "correct": 54,
+     "delta_vs_base": 0.08,
+     "flag": "GAIN",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.00781,
+     "n": 100,
+     "only_adapter_right": 8,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.4426,
+      0.6344
+     ]
+    }
+   },
+   "own": {
+    "accuracy": 0.66,
+    "base_accuracy_same_items": 0.65,
+    "correct": 330,
+    "delta_vs_base": 0.01,
+    "flag": "NS",
+    "mcnemar_exact_p": 0.38331,
+    "n": 500,
+    "only_adapter_right": 13,
+    "only_base_right": 8,
+    "unparsable": 1,
+    "wilson95": [
+     0.6174,
+     0.7002
+    ]
+   },
+   "own_pack": "cyber",
+   "reason": "own-pack change +0.0100, p=0.38331",
+   "verdict": "NO_GAIN"
+  },
+  "exoplanet": {
+   "control": {
+    "accuracy": 0.3867,
+    "base_accuracy_same_items": 0.3617,
+    "correct": 232,
+    "delta_vs_base": 0.025,
+    "flag": "GAIN",
+    "mcnemar_exact_p": 0.0237,
+    "n": 600,
+    "only_adapter_right": 27,
+    "only_base_right": 12,
+    "unparsable": 0,
+    "wilson95": [
+     0.3485,
+     0.4262
+    ]
+   },
+   "control_note": "",
+   "missing_cells": [
+    "maths"
+   ],
+   "other_packs": {
+    "astro_transfer": {
+     "accuracy": 0.7171,
+     "base_accuracy_same_items": 0.7105,
+     "correct": 109,
+     "delta_vs_base": 0.0066,
+     "flag": "NS",
+     "kind": "transfer",
+     "mcnemar_exact_p": 1.0,
+     "n": 152,
+     "only_adapter_right": 1,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.6408,
+      0.7827
+     ]
+    },
+    "cyber": {
+     "accuracy": 0.79,
+     "base_accuracy_same_items": 0.79,
+     "correct": 79,
+     "delta_vs_base": 0.0,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 1.0,
+     "n": 100,
+     "only_adapter_right": 0,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.7002,
+      0.8583
+     ]
+    },
+    "physics_transfer": {
+     "accuracy": 0.41,
+     "base_accuracy_same_items": 0.45,
+     "correct": 41,
+     "delta_vs_base": -0.04,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.125,
+     "n": 100,
+     "only_adapter_right": 0,
+     "only_base_right": 4,
+     "survives_bonferroni": false,
+     "unparsable": 1,
+     "wilson95": [
+      0.3187,
+      0.508
+     ]
+    },
+    "stars": {
+     "accuracy": 0.52,
+     "base_accuracy_same_items": 0.46,
+     "correct": 52,
+     "delta_vs_base": 0.06,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.07031,
+     "n": 100,
+     "only_adapter_right": 7,
+     "only_base_right": 1,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.4232,
+      0.6154
+     ]
+    }
+   },
+   "own": {
+    "accuracy": 0.8733,
+    "base_accuracy_same_items": 0.3616,
+    "correct": 524,
+    "delta_vs_base": 0.5117,
+    "flag": "GAIN",
+    "mcnemar_exact_p": 0.0,
+    "n": 600,
+    "only_adapter_right": 324,
+    "only_base_right": 17,
+    "unparsable": 0,
+    "wilson95": [
+     0.8443,
+     0.8976
+    ]
+   },
+   "own_pack": "exoplanet",
+   "reason": "shuffled-label control gained significantly over base (p=0.0237)",
+   "verdict": "VOID"
+  },
+  "maths": {
+   "control": {
+    "accuracy": 0.0,
+    "base_accuracy_same_items": 0.75,
+    "correct": 0,
+    "delta_vs_base": -0.75,
+    "flag": "HARM",
+    "mcnemar_exact_p": 0.0,
+    "n": 100,
+    "only_adapter_right": 0,
+    "only_base_right": 75,
+    "unparsable": 2,
+    "wilson95": [
+     0.0,
+     0.037
+    ]
+   },
+   "control_note": "the shuffled control scored 0 correct, which is expected for exact-match numeric answers (a shuffled answer is almost never right), so this control cannot gain and the VOID rule is not testable for this subject",
+   "missing_cells": [],
+   "other_packs": {
+    "astro_transfer": {
+     "accuracy": 0.28,
+     "base_accuracy_same_items": 0.73,
+     "correct": 28,
+     "delta_vs_base": -0.45,
+     "flag": "HARM",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.0,
+     "n": 100,
+     "only_adapter_right": 1,
+     "only_base_right": 46,
+     "survives_bonferroni": true,
+     "unparsable": 54,
+     "wilson95": [
+      0.2014,
+      0.3749
+     ]
+    },
+    "cyber": {
+     "accuracy": 0.55,
+     "base_accuracy_same_items": 0.79,
+     "correct": 55,
+     "delta_vs_base": -0.24,
+     "flag": "HARM",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.0,
+     "n": 100,
+     "only_adapter_right": 0,
+     "only_base_right": 24,
+     "survives_bonferroni": true,
+     "unparsable": 30,
+     "wilson95": [
+      0.4524,
+      0.6439
+     ]
+    },
+    "exoplanet": {
+     "accuracy": 0.58,
+     "base_accuracy_same_items": 0.38,
+     "correct": 58,
+     "delta_vs_base": 0.2,
+     "flag": "GAIN",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.0,
+     "n": 100,
+     "only_adapter_right": 20,
+     "only_base_right": 0,
+     "survives_bonferroni": true,
+     "unparsable": 0,
+     "wilson95": [
+      0.4821,
+      0.672
+     ]
+    },
+    "physics_transfer": {
+     "accuracy": 0.3422,
+     "base_accuracy_same_items": 0.541,
+     "correct": 167,
+     "delta_vs_base": -0.1988,
+     "flag": "HARM",
+     "kind": "transfer",
+     "mcnemar_exact_p": 0.0,
+     "n": 488,
+     "only_adapter_right": 21,
+     "only_base_right": 118,
+     "survives_bonferroni": true,
+     "unparsable": 155,
+     "wilson95": [
+      0.3015,
+      0.3854
+     ]
+    },
+    "stars": {
+     "accuracy": 0.6,
+     "base_accuracy_same_items": 0.46,
+     "correct": 60,
+     "delta_vs_base": 0.14,
+     "flag": "GAIN",
+     "kind": "interference",
+     "mcnemar_exact_p": 0.00258,
+     "n": 100,
+     "only_adapter_right": 17,
+     "only_base_right": 3,
+     "survives_bonferroni": true,
+     "unparsable": 0,
+     "wilson95": [
+      0.502,
+      0.6906
+     ]
+    }
+   },
+   "own": {
+    "accuracy": 0.715,
+    "base_accuracy_same_items": 0.785,
+    "correct": 143,
+    "delta_vs_base": -0.07,
+    "flag": "NS",
+    "mcnemar_exact_p": 0.07039,
+    "n": 200,
+    "only_adapter_right": 19,
+    "only_base_right": 33,
+    "unparsable": 1,
+    "wilson95": [
+     0.6488,
+     0.7731
+    ]
+   },
+   "own_pack": "maths",
+   "reason": "own-pack change -0.0700, p=0.07039",
+   "verdict": "NO_GAIN"
+  },
+  "stars": {
+   "control": {
+    "accuracy": 0.306,
+    "base_accuracy_same_items": 0.489,
+    "correct": 97,
+    "delta_vs_base": -0.183,
+    "flag": "HARM",
+    "mcnemar_exact_p": 5e-05,
+    "n": 317,
+    "only_adapter_right": 72,
+    "only_base_right": 130,
+    "unparsable": 0,
+    "wilson95": [
+     0.2578,
+     0.3588
+    ]
+   },
+   "control_note": "",
+   "missing_cells": [
+    "maths"
+   ],
+   "other_packs": {
+    "astro_transfer": {
+     "accuracy": 0.7303,
+     "base_accuracy_same_items": 0.7106,
+     "correct": 111,
+     "delta_vs_base": 0.0197,
+     "flag": "NS",
+     "kind": "transfer",
+     "mcnemar_exact_p": 0.25,
+     "n": 152,
+     "only_adapter_right": 3,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.6547,
+      0.7945
+     ]
+    },
+    "cyber": {
+     "accuracy": 0.79,
+     "base_accuracy_same_items": 0.79,
+     "correct": 79,
+     "delta_vs_base": 0.0,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 1.0,
+     "n": 100,
+     "only_adapter_right": 0,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.7002,
+      0.8583
+     ]
+    },
+    "exoplanet": {
+     "accuracy": 0.38,
+     "base_accuracy_same_items": 0.38,
+     "correct": 38,
+     "delta_vs_base": 0.0,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 1.0,
+     "n": 100,
+     "only_adapter_right": 0,
+     "only_base_right": 0,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.291,
+      0.4779
+     ]
+    },
+    "physics_transfer": {
+     "accuracy": 0.44,
+     "base_accuracy_same_items": 0.45,
+     "correct": 44,
+     "delta_vs_base": -0.01,
+     "flag": "NS",
+     "kind": "interference",
+     "mcnemar_exact_p": 1.0,
+     "n": 100,
+     "only_adapter_right": 2,
+     "only_base_right": 3,
+     "survives_bonferroni": false,
+     "unparsable": 0,
+     "wilson95": [
+      0.3467,
+      0.5377
+     ]
+    }
+   },
+   "own": {
+    "accuracy": 0.8927,
+    "base_accuracy_same_items": 0.4889,
+    "correct": 283,
+    "delta_vs_base": 0.4038,
+    "flag": "GAIN",
+    "mcnemar_exact_p": 0.0,
+    "n": 317,
+    "only_adapter_right": 148,
+    "only_base_right": 20,
+    "unparsable": 0,
+    "wilson95": [
+     0.8539,
+     0.9222
+    ]
+   },
+   "own_pack": "stars",
+   "reason": "own-pack gain +0.4038 (p=0.0); control HARM",
+   "verdict": "VALID"
+  }
+ }
+}

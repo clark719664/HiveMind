@@ -44,6 +44,8 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--workers", type=int, default=1, help="1 with a one-slot llama-server keeps decoding deterministic")
     ap.add_argument("--determinism", type=int, default=0)
+    ap.add_argument("--num-predict", type=int, default=700, help="ollama backend: reasoning models spend this budget on thinking too")
+    ap.add_argument("--think", default="", help="ollama backend: low|medium|high for gpt-oss, empty = field not sent")
     ap.add_argument("--backend", choices=("ollama", "llamacpp"), default="llamacpp", help="amendment 1: llamacpp = llama-server OpenAI endpoint, base or base+--lora")
     args = ap.parse_args()
     V = load_verified()
@@ -60,7 +62,9 @@ def main() -> int:
                 r = client.post(f"{args.ollama}/v1/chat/completions", json=body, timeout=600)
                 r.raise_for_status()
                 return r.json()["choices"][0]["message"]["content"]
-            body = {"model": model, "messages": messages, "stream": False, "options": {"temperature": 0, "seed": 7, "num_predict": 700}}
+            body = {"model": model, "messages": messages, "stream": False, "options": {"temperature": 0, "seed": 7, "num_predict": args.num_predict, "num_ctx": 4096}}
+            if args.think:
+                body["think"] = args.think
             r = client.post(f"{args.ollama}/api/chat", json=body, timeout=600)
             r.raise_for_status()
             return r.json()["message"]["content"]

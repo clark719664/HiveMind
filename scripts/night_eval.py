@@ -73,7 +73,7 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--model", default="base")
     args = ap.parse_args()
-    rows = [json.loads(line) for line in (Path(args.pack) / "eval.jsonl").read_text().splitlines() if line.strip()]
+    rows = [json.loads(line) for line in (Path(args.pack) / "eval.jsonl").read_text().split("\n") if line.strip()]
     if args.limit:
         rows = rows[: args.limit]
     out = Path(args.out)
