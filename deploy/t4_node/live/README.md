@@ -86,6 +86,22 @@ Same actor, same evening: **uncommitted edits to my worktree and a redeploy** of
 did not commit them, and my commits exclude them; a copy of the diff is in the job scratch directory. Anything trained from tonight on uses that code, so treat the loss trend as coming from it, not
 from the code described elsewhere on this page.
 
+## 2026-10-25 20:45Z: first real yield measurements, a changed governor policy, and a pause (HOLD)
+
+**The governor service was running other settings than the owner's policy.** From 20:05:15Z it ran `--idle-start-s 5 --day-idle-s 5 --min-free-mib 3800` (intended: `1800 / 7200 / 4300`:
+30 min of silence at night, 2 h by day). Someone other than the author of this page changed it; nothing in this repository or my commits sets 5 s. Effect: training resumed after 5 s of quiet at any hour,
+15 times between 20:05 and 20:45Z, mostly outside the night window. I did not edit that configuration. At 20:45:57Z I created `…/hivemind_telemetry/HOLD` (the documented pause switch) because a user request had waited
+for a yield (below); `rm` it to resume, under whichever governor settings are then in effect.
+
+**First real yields** (`had_boinc_gpu_task: true`, trigger nginx): **766 ms** at 20:17:39Z and **7,129 ms** at 20:35:39Z (BOINC GPU process gone after the request was seen). The router log shows a request at 20:35:32Z that
+took **7.17 s**, matching the second yield to a tenth of a second: a user waited roughly the whole yield. Other requests in that burst took 0.18-0.63 s. A 68.9 s request at 20:24:19Z while a task was running is unexplained.
+n = 2 real yields: do not generalise. The 7 s is BOINC's suspend path (the client asks the app to stop and waits), not the governor's polling (1 s). A direct kill of the task process on yield would make it deterministic (the app checkpoints every
+segment, so at most one segment is redone); not implemented, because BOINC treating an externally killed task as a premature exit needs to be tested first.
+
+Most other `yield` events in that period are `trigger: gpu, had_boinc_gpu_task: false`: they are the **validator's own GPU replay** after each finished workunit, which the second busy signal correctly reads as another GPU user. They say nothing about users.
+
+**VRAM.** The training process peaks at **3,716 MiB in every one of ~20 runs** (the 2.6 -> 3.7 GiB "growth" seen mid-run is the normal start-to-peak profile of one run, repeated). Whole-GPU peak with Bee + 7B + training: 14,017 MiB, ~1.3 GB free. The app sets no explicit memory cap.
+
 ## Recommended: restart the VM automatically after a preemption (created: job `hm-t4-keepalive`)
 
 The instance is `SPOT`, `automaticRestart=false`, termination action `STOP`, so a plain `start` brings a preempted VM back.
