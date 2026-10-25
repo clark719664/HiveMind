@@ -95,6 +95,11 @@ def stable_bucket(text: str, buckets: int = 100) -> int:
     return int(hashlib.sha256(f"{SEED}:{text}".encode()).hexdigest(), 16) % buckets
 
 
+def jsonl_line(row: dict) -> str:
+    """One JSON object per line. U+2028/U+2029 and friends are escaped: str.splitlines() (used by readers) would cut a line there."""
+    return json.dumps(row, ensure_ascii=False).replace("\u2028", "\\u2028").replace("\u2029", "\\u2029") + "\n"
+
+
 def write_pack(out: Path, name: str, train: list[dict], evals: list[dict], manifest: dict) -> dict:
     d = out / name
     d.mkdir(parents=True, exist_ok=True)
@@ -111,10 +116,10 @@ def write_pack(out: Path, name: str, train: list[dict], evals: list[dict], manif
         if len(set(comps)) > 1 and all(c == r["completion"] for c, r in zip(comps, train)):
             comps = comps[1:] + comps[:1]
         shuffled = [{**r, "completion": c} for r, c in zip(train, comps)]
-        (d / "train_shuffled.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in shuffled))
+        (d / "train_shuffled.jsonl").write_text("".join(jsonl_line(r) for r in shuffled))
         fixed_points = sum(1 for a, b in zip(train, shuffled) if a["completion"] == b["completion"])
     for fname, rows in (("train.jsonl", train), ("eval.jsonl", evals)):
-        (d / fname).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+        (d / fname).write_text("".join(jsonl_line(r) for r in rows))
     manifest = {**manifest, "control_shuffled_same_completion_rows": (fixed_points if train else None), "pack": name, "n_train": len(train), "n_eval": len(evals), "leakage": leak,
                 "sha256": {f: sha256_file(d / f) for f in ("train.jsonl", "eval.jsonl")}, "built_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     (d / "manifest.json").write_text(json.dumps(manifest, indent=1))
