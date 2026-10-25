@@ -25,7 +25,18 @@ Measured or pulled on this machine, from the repo's own reports (nothing newer w
 3. Other MoE checkpoints named in the experiments (`granite-3.1-3b-a800m`, `OLMoE-1B-7B`, `Phi-tiny-MoE`) were training subjects; this machine has not been verified to serve them.
 4. `qwen3-coder:30b` (MoE) does **not** fit a T4 (19 GB weights).
 
-## Exposing the node to new users (owner action; not done by this repo or by the assistant that wrote it)
+> **Status correction (2026-10-25).** An earlier version of this page said the T4 was not yet reachable by new users. The
+> owner's other session reports that it already is: this T4 serves through the gateway via a public HTTPS endpoint, with
+> two producer accounts (the coder tiers, and a separate "bee" expert). The author of this page did not verify that and
+> did not create it. What is left open is only **what the one card serves**: the current mix (a ~4.8 GB expert in
+> llama.cpp plus the 7B coder, ~5.6 GB), `gpt-oss:20b` (12.3 GiB, needs both stopped), or BOINC training. The steps below
+> describe how to do it for a *new* machine.
+>
+> **BOINC next to the live mix:** with ~10.4 GiB already resident, one BOINC task (~3.5 GiB) fits, but the server-side
+> validator's replay (another ~3.5 GiB of model) cannot overlap with it (≈17.4 GiB > the card's 15.4). The recorded runs
+> did not overlap them. Serialise validation, or validate on a different card.
+
+## Exposing the node to new users (a new machine; this one is reported as already done)
 
 The public gateway (`docs/HIVEMIND_OPENROUTER.md`, "The public deployment") routes only to producers that
 (a) hold a producer API key and (b) advertise a **public https endpoint** (its SSRF guard rejects http and private
