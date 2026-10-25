@@ -47,3 +47,29 @@ def test_percentiles_are_ordered_and_inside_the_sample(values: list[float]) -> N
 def test_percentile_of_nothing_is_none() -> None:
     assert monitor._percentile([], 0.5) is None
     assert monitor._percentile([3.0], 0.95) == 3.0
+
+
+def test_t4_reader_summarises_governor_telemetry(tmp_path: Path) -> None:
+    """The VM-side reader counts only events inside the window and reports yields, states, inactive units and the hold file."""
+    import json
+    import subprocess
+
+    (tmp_path / "latest.json").write_text(json.dumps({
+        "t": 2000.0, "governor": {"state": "training", "boinc_gpu_mode": "always"}, "qlora_progress": {"assimilated": 3},
+        "gpu": {"used_mib": 13800, "total_mib": 15360, "util_pct": 97},
+        "units": {"a": {"active": "active", "enabled": "enabled"}, "b": {"active": "inactive", "enabled": "enabled"},
+                  "c": {"active": "inactive", "enabled": "disabled"}}}))
+    rows = [{"event": "snapshot", "state": "serving", "t": 900.0},       # before the window: ignored
+            {"event": "snapshot", "state": "training", "t": 1100.0},
+            {"event": "yield", "in_flight": 1, "set_never_ok": True, "gpu_freed_ms": 840, "yields": 1, "t": 1200.0},
+            {"event": "yield", "in_flight": 1, "set_never_ok": False, "gpu_freed_ms": None, "yields": 2, "t": 1300.0},
+            {"event": "snapshot", "state": "serving", "t": 1201.0}]
+    (tmp_path / "governor.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\nnot json\n")
+    (tmp_path / "HOLD").write_text("")
+    out = subprocess.run([sys.executable, "-c", monitor._T4_READER % (tmp_path, 1000.0)], capture_output=True, text=True, check=True)
+    summary = json.loads(out.stdout)
+    assert summary["snapshot_states"] == {"training": 1, "serving": 1}
+    assert summary["yield_ms"] == [840]
+    assert summary["units_inactive"] == ["b"]
+    assert summary["hold_file"] is True
+    assert summary["qlora_progress"] == {"assimilated": 3}
