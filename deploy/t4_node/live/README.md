@@ -24,7 +24,40 @@ GPU: ~10.3 GiB of 15.4 resident (Bee ~4.8, 7B coder ~5.5), 8 vCPUs, load average
 
 Also: the Bee slot count is 1 (`-np 1`) behind a shield that admits 3, so Bee requests queue; and CPU load is already high, which the producer processes share.
 
-## Recommended: restart the VM automatically after a preemption (not yet created)
+## Measured on 2026-10-25 (small samples; read the limits)
+
+**Node telemetry, 12:56-15:51 UTC (`scripts/t4_inference_report.py`).** Requests were in flight in 2 of 601 15-second samples (0.3 %, max 1);
+GPU memory constant at 10,303 MiB, utilisation 0 % at p95 with one 93 % spike, temperature 48-72 C, power p95 31 W; all four tiers visible at the
+gateway in 601 of 601 samples; no preemption notice; host load median 6.3 on 8 vCPUs (mostly other sessions' work). nginx handled ~1.3 requests/s,
+almost all of it the gateway's endpoint checks and the monitors' polls, **not user inferences**. Conclusion supported: the service was available and
+essentially idle; there is no evidence here of real end-user demand yet. The in-flight signal is sampled every 15 s, so very short requests can be missed.
+
+**Gateway view (aggregates; the market endpoint publishes no per-user data).** At 15:5x UTC no consumer was bidding, so nothing cleared and the
+price sat at the 0.494 HMT/1k floor; at ~13:00 UTC, during test windows, four consumers were bidding and the price was ~7.5. The owner's prosumer account had
+`producer_earned` 0.773 HMT: that shows its producer served paid requests, but the ledger cannot say whether the consumers were other users or the
+owner's own test keys, so it must not be read as external demand.
+
+**End-user-path latency, 3 requests per tier, 8 tokens, temperature 0, 15:5x UTC (one sample, router path).**
+
+| tier | ok | latency min / median / max | served by |
+| --- | --- | --- | --- |
+| coder (7B) | 3/3 | 0.15 / 0.17 / 0.40 s | the owner's producer 2x, the older coder producer 1x |
+| auto | 3/3 | 0.15 / 0.16 / 0.20 s | the same two coder producers |
+| bee-stars | 3/3 | 0.18 / 0.20 / 0.64 s | the bee producer |
+| coder-lite (3B) | 2/3 | **32 / 48 / 63 s**, one **502 Bad Gateway** | the older coder producer |
+
+The owner's new producer therefore does receive and answer traffic. A teammate's idle baseline at 13:15Z (router path) agrees for the fast tiers:
+bee-stars 0.35-0.51 s, coder 0.63-0.81 s, auto 0.27 s, and ~32 tok/s for a 320-token completion.
+
+**coder-lite hurts the coder tier.** Ollama runs with `OLLAMA_MAX_LOADED_MODELS=1`, so the 7B and the 3B evict each other. A second, cleaner pair measured:
+coder 0.24 s -> coder-lite **6.6 s** -> the next coder request **8.2 s** (swap back) -> coder 0.16 s. The first sample's 32-63 s for coder-lite is slower
+than this pair and I do not have an explanation beyond load/swap; do not quote one figure for it. Collateral cost: after any coder-lite request the next coder user waits ~40x longer.
+
+Two fixes, each a change to a live service (not applied; the owner decides):
+1. Stop advertising `coder-lite` (remove `--model coder-lite=...` from the older coder agent; the unit template in this directory already does).
+2. Let both models stay resident: `OLLAMA_MAX_LOADED_MODELS=2` and an Ollama restart. Memory arithmetic from measured figures: Bee 4.8 GiB + 7B 5.6 GiB + 3B ~2.7 GiB = ~13.1 GiB of 15.4, ~2 GiB spare. It restarts Ollama (the loaded model is dropped and cold-loaded again), leaves no room for a BOINC task while both are resident (they unload after 10 minutes of silence, which is before any night run), and is untested here.
+
+## Recommended: restart the VM automatically after a preemption (created: job `hm-t4-keepalive`)
 
 The instance is `SPOT`, `automaticRestart=false`, termination action `STOP`, so a plain `start` brings a preempted VM back.
 A Cloud Scheduler job that calls the Compute API every 3 minutes does that with no extra machine (starting a running VM is a
