@@ -566,6 +566,7 @@ def create_router_app(
     google_verifier: GoogleIdTokenVerifier | None = None,
     oidc_verifiers: Mapping[str, OidcIdTokenVerifier] | None = None,
     open_registration: bool = True,
+    bid_activity_window_s: float = 0.0,
 ) -> FastAPI:
     """Build the gateway app. ``resolver`` (host -> IP strings) is injectable for tests of the SSRF guard.
 
@@ -620,7 +621,8 @@ def create_router_app(
 
     def bids_for(extra: Account | None) -> list[ConsumerBid]:
         """Bids of funded accounts only, each capped by what its balance can pay for one default-sized request."""
-        prices = store.funded_consumer_bids(DEFAULT_MAX_TOKENS)
+        active_since = clock() - bid_activity_window_s if bid_activity_window_s > 0.0 else None
+        prices = store.funded_consumer_bids(DEFAULT_MAX_TOKENS, active_since=active_since)
         if extra is not None and extra.role != "producer" and extra.account_id not in prices:
             balance = store.balance(extra.account_id)
             if balance > 0.0:
