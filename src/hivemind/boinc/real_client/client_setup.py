@@ -48,11 +48,15 @@ def prepare_data_dir(
     python: str = "python3",
     gpu_flops: float = 4e12,
     apps: list[dict[str, Any]] | None = None,
+    authenticator: str | None = None,
+    install_apps: bool = True,
 ) -> dict[str, Any]:
+    """Client data dir. ``install_apps=False`` writes no ``app_info.xml``: the client then fetches the project's
+    signed app versions itself (use with a real server and the ``authenticator`` its web stack returned)."""
     data_dir.mkdir(parents=True, exist_ok=True)
     pdir = data_dir / "projects" / project_dir_name(master_url)
     pdir.mkdir(parents=True, exist_ok=True)
-    auth = secrets.token_hex(16)
+    auth = authenticator or secrets.token_hex(16)
     (data_dir / "gui_rpc_auth.cfg").write_text(secrets.token_hex(8))
     (data_dir / "cc_config.xml").write_text(
         "<cc_config>\n <log_flags><task>1</task><file_xfer>1</file_xfer><sched_ops>1</sched_ops>"
@@ -69,6 +73,8 @@ def prepare_data_dir(
         f"<account><master_url>{master_url}</master_url><authenticator>{auth}</authenticator></account>\n"
     )
     # The science app: a launcher script. The client runs it in a slot directory (cwd) with the WU command line.
+    if not install_apps:
+        return {"project_dir": pdir, "authenticator": auth}
     xml = ["<app_info>\n"]
     for a in apps or [toy_app(python)]:
         fname = f"{a['name']}_{a['version']}_{PLATFORM}"
