@@ -256,11 +256,23 @@ def main() -> int:
         elif pid.startswith("P11") and E11.exists():
             e11 = json.loads(E11.read_text(encoding="utf-8"))
             a = e11["analysis"][pid]
-            entry.update({"status": _norm(a["status"]), "status_detail": a["status"], "per_model": a["per_model"],
-                          "scale": "real KV tensors of Qwen2.5-0.5B-Instruct, Qwen2.5-Coder-7B-Instruct and Gemma-4-E4B on WikiText-2, 1024-token windows, 3 seeds (E11, amendment 1)",
+            # Review condition (scientific lead, 2026-10-24): the Qwen2.5-Coder-7B row is INVALID (negative control
+            # negative_A2at8_equals_fp8 failed by -0.47 nats on a float16 model, so the FP8 arm is suspect); its verdicts are
+            # withdrawn and never enter the status. The 0.5B P11a verdict rests on ONE rate-matched cell (R = 4).
+            per_model = {m: ("withdrawn (negative control failed)" if m == "qwen7b" else v) for m, v in a["per_model"].items()}
+            kept = {m: v for m, v in per_model.items() if not v.startswith("withdrawn")}
+            if pid == "P11a":
+                detail = ("refuted on qwen0.5b (one rate-matched cell, R = 4; R = 2 and 3 not rate-matched) and gemma4-e4b; "
+                          "qwen7b withdrawn: negative control failed")
+            else:
+                detail = ("refuted on gemma4-e4b (E8 beats Z without the transform); qwen0.5b inconclusive; "
+                          "qwen7b withdrawn: negative control failed")
+            entry.update({"status": _norm(a["status"]), "status_detail": detail, "per_model": per_model,
+                          "withdrawn": {"qwen7b": {"reason": "negative control negative_A2at8_equals_fp8 failed: -0.47 +- 0.20 nats (an 8-bit lattice cannot be half a nat better than FP8 unless the FP8 arm is broken on this float16 model)"}},
+                          "scale": "real KV tensors of Qwen2.5-0.5B-Instruct and Gemma-4-E4B on WikiText-2, 1024-token windows, 3 seeds (E11, amendment 1); the Qwen2.5-Coder-7B row is INVALID and withdrawn",
                           "artifact": "artifacts/experiments/E11_kv_lattice_report.json", "receipt_sha256": e11["receipt_sha256"], "prereg_sha256": e11["prereg_sha256"],
                           "controls_all_passed": e11["controls_all_passed"],
-                          "note": "overall rule: refuted if refuted on any valid model; the A2@8-vs-FP8 negative control failed on both Qwen models by a design error recorded in amendment 1"})
+                          "note": "receipt controls_all_passed is false; qwen7b (control off by -0.47 nats) is withdrawn; on qwen0.5b the same control reads -0.04 nats, explained in amendment 1 by FP8 e4m3 being coarser than an 8-bit lattice, and that failure is reported; only gemma4-e4b passed every control"})
         elif pid in ("P12-same", "P12-cross", "P12-fixed-point") and E12_REPORT.exists():
             e12_rep = json.loads(E12_REPORT.read_text(encoding="utf-8"))
             a = e12_rep["analysis"][pid]

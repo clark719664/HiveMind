@@ -277,7 +277,7 @@ exists, its receipt matches, and the scientific lead has recorded the prediction
   E11 Qwen-7B row invalid (negative control failed, −0.47 ± 0.20 nats); E12-GPU (same-T4 exact, every class crossing
   > ε, fp64+snap proxy does not help) and E13 (P13b refuted: the all-on swarm keeps −0.05 ± 0.35 of the single-learner
   gain; the K<M quorum with a persistent straggler is the mechanism, no-quorum retention 0.94) are sound and will be
-  the headline of v3.8.0 once the branch is rebased (11 conflicts) and gated.
+  the headline of v3.8.0 (the branch has since been merged with `main` and the manuscript re-based as v3.8.0).
 - **Governance**: `main` requires a PR and enforces admins after two coordinator commits with the owner's e-mail
   bypassed the gate; gatekeeper retries merges of ACCEPTed heads (PR #125).
 - **Hardening (owner's brief)**: `HiveMindFirewall` delivered with a 59-vector scripted red team (first run 47/49, two defects
@@ -293,15 +293,16 @@ Ledger: `artifacts/predictions_ledger.json` (P11a, P11b, P12-* added; E10b attac
 
 - **E11 (RQ10)** on real KV tensors of Qwen2.5-0.5B-Instruct (fp16), Qwen2.5-Coder-7B-Instruct (fp16, embeddings on
   CPU) and Gemma-4-E4B (bf16, per-layer embeddings on CPU), WikiText-2, 1024-token windows, 3 seeds:
-  **P11a 'refuted' on all three models under the registered rule** (no detectable gain of A₂ per RoPE plane over
-  entropy-coded scalar at any rate-matched R) — Gemma has 3 matched rates, both Qwen models only R = 4 (Qwen-7B: 5/18
-  lattice cells matched), so the Qwen verdicts are weak and 3 seeds give low power; **P11b refuted** on Gemma (E₈
-  already beats ℤ without the KLT; inconclusive on 0.5B; 'supported' on 7B by one matched KLT cell and one matched
-  no-transform cell). Consequence: the KV ring stays on FP8 (`HM-S10-05` keeps the pluggable codec,
-  adopts none). Amendment 1 (per-layer calibration rate) was made after the first 0.5B execution and before any 7B /
-  Gemma result; the A₂@8-vs-FP8 negative control fails on both Qwen models because e4m3 keeps 3 mantissa bits (a
-  design error, kept as registered). Many 7B cells missed the matched-rate band; Qwen-7B is extremely KV-sensitive
-  (FP8 ΔNLL +0.47 nats).
+  **the Qwen2.5-Coder-7B row is INVALID** (the negative control `negative_A2at8_equals_fp8` failed at -0.47 +- 0.20
+  nats: an 8-bit lattice cannot be half a nat better than FP8 unless the FP8 arm is broken on this float16 model), so
+  its verdicts (P11a refuted, P11b 'supported on one matched cell') are WITHDRAWN and no 7B number is to be quoted
+  until the FP8 arm has been investigated (scientific lead's review). **P11a refuted on Qwen2.5-0.5B on one
+  rate-matched cell (R = 4; R = 2 and 3 are not rate-matched)** and on Gemma (3 matched rates; all intervals include
+  0); 3 seeds give low power. **P11b refuted** on Gemma (E₈ already beats ℤ without the KLT) and inconclusive on 0.5B.
+  Consequence: the KV ring stays on FP8 (`HM-S10-05` keeps the pluggable codec, adopts none). Amendment 1 (per-layer
+  calibration rate) was made after the first 0.5B execution and before any 7B / Gemma result; on 0.5B the
+  A₂@8-vs-FP8 negative control reads -0.04 nats (e4m3 keeps 3 mantissa bits, so FP8 is coarser than an 8-bit lattice;
+  a design error, kept as registered and reported), so only Gemma passed every control.
 - **E12 (RQ11)**: **P12-same supported** (same T4, separate process: ‖Δθ‖∞ = 0.0 in 9/9), **P12-cross supported** (T4 vs
   x86 CPU, fp32: 2.0e-4–6.3e-4 > ε in 9/9), controls pass. The fp64 + 2⁻²⁰ snapping proxy does not reduce the
   cross-device divergence, which sits near the inner lr from step 10 on — consistent with Adam's sign-like early steps

@@ -989,46 +989,49 @@ def verify_manuscript_data_consistency(
     src10b = "artifacts/experiments/E10b_lattice_05b_report.json"
     if e11.get("models"):
         m = e11["models"]
-        order = ["qwen0.5b", "qwen7b", "gemma4-e4b"]
-        _add_check_all("PROV-32", "E11 baseline NLL (Qwen-0.5B, Qwen-7B, Gemma-4-E4B)", [f"{m[k]['baseline_nll']:.3f}" for k in order], src11)
-        _add_check_all("PROV-33", "E11 FP8 delta-NLL per model", [f"{m[k]['cells']['fp8']['dnll_mean']:+.4f}" for k in order] + [f"{m[k]['cells']['fp8']['dnll_ci95']:.4f}" for k in order], src11)
-        _add_check_all("PROV-34", "E11 INT4 delta-NLL per model", [f"{m[k]['cells']['int@4']['dnll_mean']:+.3f}" for k in order], src11)
+        m_all = m
+        # v3.8.0: the Qwen2.5-Coder-7B row is INVALID (its negative control failed) and withdrawn; no 7B number is a provenance target
+        # except the control value that invalidates it (PROV-39, PROV-72).
+        order = ["qwen0.5b", "gemma4-e4b"]
+        _add_check_all("PROV-32", "E11 baseline NLL (Qwen-0.5B, Gemma-4-E4B; Qwen-7B withdrawn)", [f"{m[k]['baseline_nll']:.3f}" for k in order], src11)
+        _add_check_all("PROV-33", "E11 FP8 delta-NLL per valid model", [f"{m[k]['cells']['fp8']['dnll_mean']:+.4f}" for k in order] + [f"{m[k]['cells']['fp8']['dnll_ci95']:.4f}" for k in order], src11)
+        _add_check_all("PROV-34", "E11 INT4 delta-NLL per valid model", [f"{m[k]['cells']['int@4']['dnll_mean']:+.3f}" for k in order], src11)
 
         def _matched(k: str) -> int:
             return sum(1 for ck, cv in m[k]["cells"].items() if "rate_matched" in cv and ck != "A2@8|none" and cv["rate_matched"])
 
-        _add_check_all("PROV-35", "E11 rate-matched lattice cells out of 18, per model", [f"${_matched(k)}/18$" for k in order], src11)
-        _add_check_all("PROV-36", "E11 number of lattice cells outside the matched-rate band, Qwen-7B (out of 18)", [f"${18 - _matched('qwen7b')}$ of the 18"], src11)
+        _add_check_all("PROV-35", "E11 rate-matched lattice cells out of 18, per valid model", [f"${_matched(k)}/18$" for k in order], src11)
+        # PROV-36 (Qwen-7B cells outside the matched-rate band) is retired with the withdrawn 7B row; numbers of the other checks are unchanged.
         pa = {k: m[k]["P11a"]["cells"] for k in order}
         _add_check_all(
             "PROV-37",
-            "E11 P11a paired differences Z - A2 at matched rate (Qwen-0.5B R=4; Qwen-7B R=4; Gemma R=2,3,4)",
-            [f"{pa['qwen0.5b']['R=4']['z_minus_a2_mean']:+.3f}", f"{pa['qwen7b']['R=4']['z_minus_a2_mean']:+.3f}"]
+            "E11 P11a paired differences Z - A2 at matched rate (Qwen-0.5B R=4, the single matched cell; Gemma R=2,3,4; Qwen-7B withdrawn)",
+            [f"{pa['qwen0.5b']['R=4']['z_minus_a2_mean']:+.3f}"]
             + [f"{pa['gemma4-e4b'][r]['z_minus_a2_mean']:+.4f}" for r in ("R=2", "R=3", "R=4")],
             src11,
         )
-        pb7 = m["qwen7b"]["P11b"]["cells"]
+        pb5 = m["qwen0.5b"]["P11b"]["cells"]
         pbg = m["gemma4-e4b"]["P11b"]["cells"]
         _add_check_all(
             "PROV-38",
-            "E11 P11b cells: Qwen-7B matched KLT R=2 and no-transform R=4, Gemma no-transform R=2",
-            [f"{pb7['R=2|klt']['z_minus_e8_mean']:+.3f}", f"{pb7['R=4|none']['z_minus_e8_mean']:+.3f}", f"{pbg['R=2|none']['z_minus_e8_mean']:+.4f}"],
+            "E11 P11b cells: Qwen-0.5B no-transform R=2 and R=3, Gemma no-transform R=2 (Qwen-7B withdrawn)",
+            [f"{pb5['R=2|none']['z_minus_e8_mean']:+.3f}", f"{pb5['R=3|none']['z_minus_e8_mean']:+.3f}", f"{pbg['R=2|none']['z_minus_e8_mean']:+.4f}"],
             src11,
         )
         _add_check_all(
             "PROV-39",
-            "E11 failed negative control A2@8 minus FP8 (Qwen-0.5B, Qwen-7B) and passing Gemma value",
+            "E11 negative control A2@8 minus FP8 (Qwen-0.5B, Gemma passing) and the Qwen-7B value that invalidates its row",
             [f"{m[k]['controls']['negative_A2at8_equals_fp8']['diff_mean']:+.4f}" for k in ("qwen0.5b", "gemma4-e4b")]
-            + [f"{m['qwen7b']['controls']['negative_A2at8_equals_fp8']['diff_mean']:+.3f}"],
+            + [f"{m_all['qwen7b']['controls']['negative_A2at8_equals_fp8']['diff_mean']:+.3f}"],
             src11,
         )
         _add_check_all("PROV-40", "E11 positive control INT2 delta-NLL per model", [f"{m[k]['controls']['positive_int2_raises_dnll']['dnll_mean']:+.3f}" for k in order], src11)
         fr = {k: m[k]["descriptive_frontier_vs_fp8"] for k in order}
         _add_check_all(
             "PROV-41",
-            "E11 descriptive frontier vs FP8 at 4 bits (Gemma A2, E8+KLT; Qwen A2, E8+KLT)",
+            "E11 descriptive frontier vs FP8 at 4 bits (Gemma A2, E8+KLT; Qwen-0.5B A2, E8+KLT)",
             [f"{fr['gemma4-e4b']['A2@4|none']['minus_fp8_mean']:+.4f}", f"{fr['gemma4-e4b']['E8@4|klt']['minus_fp8_mean']:+.4f}"]
-            + [f"{fr[k][c]['minus_fp8_mean']:+.3f}" for k in ("qwen0.5b", "qwen7b") for c in ("A2@4|none", "E8@4|klt")],
+            + [f"{fr[k][c]['minus_fp8_mean']:+.3f}" for k in ("qwen0.5b",) for c in ("A2@4|none", "E8@4|klt")],
             src11,
         )
     else:
@@ -1092,6 +1095,41 @@ def verify_manuscript_data_consistency(
 
     # ---- v3.7.0 second batch: E13, E14, E15, E16 and the GWAYA-Lite deployment (PROV-49 onward) ----
     _provenance_e13_e16(tex_text, checks)
+
+    # ---- v3.8.0: withdrawal of the invalid E11 Qwen2.5-Coder-7B row and the E10b caveat (PROV-72 onward) ----
+    if e11.get("models") and "qwen7b" in e11["models"]:
+        q7 = e11["models"]["qwen7b"]
+        q7c = q7.get("controls", {}).get("negative_A2at8_equals_fp8", {})
+        withdrawn_numbers = [f"{q7['baseline_nll']:.3f}", f"{q7['cells']['fp8']['dnll_mean']:+.4f}", f"{q7['cells']['int@4']['dnll_mean']:+.3f}"] if "cells" in q7 else []
+        leaked = [t for t in withdrawn_numbers if t in tex_text]
+        ok72 = (q7c.get("passed") is False and f"{q7c['diff_mean']:+.3f}" in tex_text and "negative control failed" in tex_text
+                and "withdrawn" in tex_text and bool(withdrawn_numbers) and not leaked)
+        checks.append({
+            "check_id": "PROV-72",
+            "metric_name": "E11 Qwen-7B row invalid: negative control failed in the receipt, the control value and the words 'negative control failed' and 'withdrawn' occur, and none of its baseline NLL, FP8 or INT4 delta-NLL values occurs in the manuscript",
+            "expected_tokens": [f"{q7c.get('diff_mean', float('nan')):+.3f}", "negative control failed", "withdrawn"],
+            "forbidden_tokens_absent": withdrawn_numbers,
+            "source_artifact": src11,
+            "match_rule": "receipt control failed AND all tokens occur AND no withdrawn 7B value occurs",
+            "passed": bool(ok72),
+        })
+    else:
+        checks.append({"check_id": "PROV-72", "metric_name": "E11 Qwen-7B row missing from receipt", "expected_tokens": [], "source_artifact": src11, "passed": False})
+    if e10b.get("controls"):
+        import re as _re
+        failed_ctl = not e10b["controls"]["positive_sign_hurts"]["passed"]
+        sentences = [x for x in _re.split(r"(?<=\.)\s", tex_text) if "0.869" in x]
+        ok73 = failed_ctl and bool(sentences) and all("positive control failed" in x for x in sentences)
+        checks.append({
+            "check_id": "PROV-73",
+            "metric_name": "E10b: the receipt's positive control failed, and every sentence quoting the 0.869 distortion ratio also states that the positive control failed (descriptive only)",
+            "expected_tokens": ["0.869", "positive control failed"],
+            "source_artifact": src10b,
+            "match_rule": "receipt control failed AND every sentence with 0.869 states the failed control",
+            "passed": bool(ok73),
+        })
+    else:
+        checks.append({"check_id": "PROV-73", "metric_name": "E10b report missing", "expected_tokens": [], "source_artifact": src10b, "passed": False})
 
     failed = [c["check_id"] for c in checks if not c["passed"]]
     return {
@@ -1343,7 +1381,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     peer_review_report = {
         "manuscript_title": "Project HiveMind: A System Design for Decentralized Sparse Mixture-of-Experts Training with DiLoCo-Style Outer Optimization on 8 GB Consumer GPUs",
-        "version": "3.7.2",
+        "version": "3.8.0",
         "is_peer_review": False,
         "disclosure": AUDIT_DISCLOSURE,
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
@@ -1383,7 +1421,7 @@ def run_autoevolve_peer_review() -> Dict[str, Any]:
 
     autoevolve_manifest = {
         "pipeline_name": "Project HiveMind x AutoevolveAI Cross-Session Research Pipeline",
-        "version": "3.7.2",
+        "version": "3.8.0",
         "lead_peer_review_model": LEAD_PEER_REVIEW_MODEL,
         "workspace_root": ".",
         "artifacts_and_entrypoints": {

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — 2026-10-24 — paper v3.8.0 corrections and T4 replication kit (no version tag)
+
+- Manuscript v3.8.0 (not deposited; the deposited record stays v3.7.1, 10.5281/zenodo.23607597): withdraws the INVALID E11 Qwen2.5-Coder-7B row (negative control failed by -0.47 nats), states P11a on Qwen2.5-0.5B as refuted on one rate-matched cell, adds a labelled-untested likely-cause note to E10b, and adds provenance checks PROV-72 and PROV-73; fig. 8 is regenerated without the 7B panel; the ledger gains a `withdrawn` block for P11a/P11b.
+- T4 replication kit: `docs/community/T4_REPLICATION_KIT.md` and `scripts/compare_replication.py` (compares a replication run against the campaign receipts; 4 tests in `tests/test_compare_replication.py`).
+- Test: `tests/test_e15_gate.py` parses with `ast.literal_eval` instead of `eval`.
 ## Unreleased — General OpenID Connect sign-in (after Google)
 
 - `src/hivemind/router/oidc_auth.py`: provider-agnostic ID-token verifier (`OidcProvider`, `OidcIdTokenVerifier`, `providers_from_json`); `google_auth.py` is now this engine with Google's settings (all 43 Google tests unchanged and passing).
@@ -55,7 +60,7 @@
 
 ## 10-hour T4 benchmark campaign (E10b, E11, E11b, E12, E13, E14, E15, E16) — 2026-10-24
 
-- Pre-registered experiments run on one Tesla T4 with Hugging Face data and models (Qwen2.5-0.5B, Qwen2.5-Coder-7B in fp16 and Gemma-4-E4B in bf16 on a 16 GB card): E11 refutes P11a on all three models and P11b; E12 supports P12-same and P12-cross; E10b at 0.5B is invalid by its positive control. Report: `docs/benchmarks/T4_10h_campaign_report.md`.
+- Pre-registered experiments run on one Tesla T4 with Hugging Face data and models (Qwen2.5-0.5B, Qwen2.5-Coder-7B in fp16 and Gemma-4-E4B in bf16 on a 16 GB card): E11 refutes P11a on Qwen2.5-0.5B (one rate-matched cell, R = 4) and Gemma-4-E4B and P11b on Gemma, while the Qwen2.5-Coder-7B row is INVALID (its negative control failed by -0.47 nats) and its verdicts are withdrawn; E12 supports P12-same and P12-cross; E10b at 0.5B is invalid by its positive control (descriptive 0.869 distortion ratio only). Report: `docs/benchmarks/T4_10h_campaign_report.md`.
 - New code: `hivemind.compress.kv_lattice` (GPU ℤ⁸ / A₂ / E₈ codecs, bit-identical to the reference decoders), `hivemind.core.kv_page_codecs` (pluggable KV page codec, FP8 default unchanged), `hivemind.boinc.validator_assignment` (architecture-matched spot-check validators), `ComputeVisibleSparseLoCoCompressor(value_codec=...)`, experiment runners E10b / E11 / E12, the E11b aggregator and a resumable GPU job queue with NVML sampling.
 - Fix: `hivemind.core.quantization` imports `peft` lazily, so the spot-check replay path and its tests run without peft.
 - Extension queue (same day, one T4, all pre-registered; no peer review of record, PTS / $HIVE non-monetary): E13 (localhost swarm over real HTTP: S1 equals S0, wire cost 0.09 of raw; viability P13b refuted on Qwen2.5-0.5B and Granite-1B), E13d (six domains, six workers: P13b inconclusive), E14 (fair quorum / deferred carry: H14a and H14b supported on dense Qwen2.5-0.5B, inconclusive on Granite-3.1-1B; exploratory), E15 (GWAYA-gated RFT of Qwen2.5-Coder-1.5B: inference loop +7.0 points supported, RFT +0.8 points inconclusive, memory cap supported) and E16 (GWAYA-Lite tiers on the T4: PR #21 P1/P2 measured). Statuses are in `artifacts/predictions_ledger.json` (P13-P16, computed for E14/E15 by `scripts/analyze_E14_E15_hypotheses.py`) and in the regenerated `docs/benchmarks/T4_10h_campaign_report.md`.
