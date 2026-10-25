@@ -111,6 +111,16 @@ segment, so at most one segment is redone); not implemented, because BOINC treat
 
 Most other `yield` events in that period are `trigger: gpu, had_boinc_gpu_task: false`: they are the **validator's own GPU replay** after each finished workunit, which the second busy signal correctly reads as another GPU user. They say nothing about users.
 
+**22:08:45Z: the experiment values were re-applied by someone else, deliberately, via a named drop-in (UNRESOLVED; the owner has given conflicting answers).** Evidence is the root sudo log
+(`/var/log/auth.log`), all as the same unix user so the actor cannot be told apart: 21:55:46-58 my installer + governor restart (cwd = my worktree); 22:08:18 `systemctl cat hivemind-t4-governor.service` from the home directory;
+22:08:45 `mkdir hivemind-t4-governor.service.d`, `tee …/intense-moe.conf`, a `sed -i` turning `1800/7200/4300` into `5/5/3800` in the unit file (and in a path under `/opt/hivemind/t4/systemd/` that does not exist), `daemon-reload`,
+and a governor restart. `/etc/systemd/system/hivemind-t4-governor.service.d/intense-moe.conf` resets `ExecStart=` and sets the 5/5/3800 line. **A drop-in overrides the main unit file, so `install_node.sh` cannot restore the
+policy while it exists**; the repo template (1800/7200/4300) is therefore NOT what is running. Under it the governor made 10 resumes between 22:08 and 22:28Z. The author did not make this change, did not undo it, and made no further edit.
+The owner's words so far: to the author "keep the contributor's 5-second experiment, HOLD removed" (20:49Z); to a teammate session, twice, "30 min night, 2 h day" (the second time as a choice among three options, ~20:55Z).
+To go back to the serving-first policy: `sudo rm /etc/systemd/system/hivemind-t4-governor.service.d/intense-moe.conf && sudo rmdir /etc/systemd/system/hivemind-t4-governor.service.d && sudo bash deploy/t4_node/install_node.sh && sudo systemctl restart hivemind-t4-governor.service`,
+then check `systemctl show -p ExecStart hivemind-t4-governor.service` and the governor's `start` event. To pause training whatever the settings: `touch …/hivemind_telemetry/HOLD`.
+Since the kill-on-yield fix (below) went live at 21:55:58Z there has been **no real yield yet** (0 events with `had_boinc_gpu_task: true`), so its effect is unmeasured.
+
 **Why the stop is slow, and the fix (21:55Z).** Four real yields were measured under the 5 s experiment: 0.77 s, 7.1 s, **23.4 s** and **15.9 s** (the last two exceed the 10 s limit; the rising trend is not stable).
 The BOINC client's own log and source (`client/app.cpp` `preempt()`, `app_control.cpp` `request_exit()`) explain it: for a GPU job a suspend always "removes it from memory" by posting a `<quit/>` message into
 shared memory and then **waiting** (`QUIT_TIMEOUT` 60 s before it kills). Our app does not use the BOINC API, so it never reads that message; the task simply ends whenever it ends (here 16-24 s after the request).
