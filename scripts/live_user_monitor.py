@@ -191,7 +191,7 @@ _T4_READER: str = r"""
 import json, time, collections
 T = "%s"; since = %f
 latest = json.load(open(T + "/latest.json"))
-ev = collections.Counter(); yields_ms = []; real_ms = []; states = collections.Counter(); last_state = None
+ev = collections.Counter(); yields_ms = []; real_ms = []; real_ended = []; states = collections.Counter(); last_state = None
 for line in open(T + "/governor.jsonl"):
     try: r = json.loads(line)
     except ValueError: continue
@@ -201,9 +201,9 @@ for line in open(T + "/governor.jsonl"):
     if e == "yield" and r.get("gpu_freed_ms") is not None:  # field names of t4_governor.py
         yields_ms.append(r["gpu_freed_ms"])
         # a hand-back only counts as a measurement when a BOINC GPU task was actually running and a request caused it
-        if r.get("had_boinc_gpu_task") and r.get("trigger") == "nginx": real_ms.append(r["gpu_freed_ms"])
+        if r.get("had_boinc_gpu_task") and r.get("trigger") == "nginx": real_ms.append(r["gpu_freed_ms"]); real_ended.append(r.get("ended_by_governor"))
 units = latest.get("units", {})
-print(json.dumps({"governor": latest.get("governor"), "events": dict(ev), "snapshot_states": dict(states), "yield_ms": yields_ms, "real_yield_ms": real_ms,
+print(json.dumps({"governor": latest.get("governor"), "events": dict(ev), "snapshot_states": dict(states), "yield_ms": yields_ms, "real_yield_ms": real_ms, "real_yield_ended_by_governor": real_ended,
                   "qlora_progress": latest.get("qlora_progress"), "gpu": latest.get("gpu"), "nginx": latest.get("nginx"),
                   "units_inactive": sorted(k for k, v in units.items() if v.get("enabled") == "enabled" and v.get("active") != "active"),
                   "gateway_live_tiers": (latest.get("gateway") or {}).get("live_tiers"), "telemetry_age_s": round(time.time() - latest.get("t", 0), 1),
@@ -264,7 +264,7 @@ def main() -> int:
             g = n.get("governor") or {}
             gpu = n.get("gpu") or {}
             print(f"t4: now {g.get('state')} (BOINC GPU {g.get('boinc_gpu_mode')}, hold file {n.get('hold_file')}) | window states {n['snapshot_states']} | "
-                  f"yields {len(n['yield_ms'])} (real: with a BOINC task running, caused by a request: {n['real_yield_ms']} ms; max of all {max(n['yield_ms'], default=None)} ms) | QLoRA assimilated {(n.get('qlora_progress') or {}).get('assimilated')} | "
+                  f"yields {len(n['yield_ms'])} (real: with a BOINC task running, caused by a request: {n['real_yield_ms']} ms, ended_by_governor {n['real_yield_ended_by_governor']}; max of all {max(n['yield_ms'], default=None)} ms) | QLoRA assimilated {(n.get('qlora_progress') or {}).get('assimilated')} | "
                   f"VRAM {gpu.get('used_mib')}/{gpu.get('total_mib')} MiB util {gpu.get('util_pct')}% | inactive units {n['units_inactive']}")
     if "probes" in record:
         print("probes:", record["probe_summary"])
