@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
 import sys
 import time
 from pathlib import Path
@@ -98,6 +99,28 @@ def test_chatlog_counts_new_completions_by_route_and_survives_rotation(tmp_path:
     log.rename(tmp_path / "access.log.1")  # logrotate: a new file with a new inode
     log.write_text('1.2.3.4 - - [25/Oct/2026:10:05:00 +0000] "POST /v1/chat/completions HTTP/1.1" 502 0 "-" "x"\n')
     assert c.poll()["by"] == {"coder:502": 1}
+
+
+def test_terminate_tree_ends_a_process_and_its_children_quickly() -> None:
+    import subprocess as sp
+
+    from t4_governor import descendants, terminate_tree
+
+    # a parent that spawns a child, and both ignore SIGTERM to prove the SIGKILL fallback works
+    code = ("import signal, subprocess, sys, time\nsignal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "c = subprocess.Popen([sys.executable, '-c', 'import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)'])\ntime.sleep(60)\n")
+    p = sp.Popen([sys.executable, "-c", code])
+    time.sleep(1.0)
+    kids = descendants(p.pid)
+    assert len(kids) >= 1
+    t = time.time()
+    assert terminate_tree(p.pid, grace_s=0.5) is True
+    assert time.time() - t < 4.0
+    p.wait(timeout=5)
+    assert all(not Path(f"/proc/{k}").exists() for k in kids)
+    from t4_governor import pid_alive
+
+    assert pid_alive(os.getpid()) is True and pid_alive(p.pid) is False  # a reaped/zombie process is "gone"
 
 
 def test_wait_for_idle_does_not_block_when_there_is_no_status_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -57,6 +57,57 @@ def boinc_gpu_pids(procs: list[tuple[str, ...]]) -> list[str]:
     return out
 
 
+def descendants(pid: int) -> list[int]:
+    """All child/grandchild processes of ``pid`` (from /proc), the same set the BOINC client enumerates."""
+    kids: dict[int, list[int]] = {}
+    for p in Path("/proc").iterdir():
+        if p.name.isdigit():
+            try:
+                ppid = int((p / "stat").read_text().rsplit(")", 1)[1].split()[1])
+            except (OSError, IndexError, ValueError):
+                continue
+            kids.setdefault(ppid, []).append(int(p.name))
+    out, todo = [], [pid]
+    while todo:
+        for c in kids.get(todo.pop(), []):
+            out.append(c)
+            todo.append(c)
+    return out
+
+
+def pid_alive(pid: int) -> bool:
+    """Running or sleeping; a zombie (dead, waiting to be reaped by its parent) and a vanished process both count as gone."""
+    try:
+        state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+    except (OSError, IndexError):
+        return False
+    return state not in ("Z", "X")
+
+
+def terminate_tree(pid: int, grace_s: float = 1.0) -> bool:
+    """End a BOINC task process and its descendants: SIGTERM, then SIGKILL for whatever is still alive after ``grace_s``.
+
+    Why the governor does this instead of waiting for BOINC: for GPU jobs the client always "removes from memory" on a suspend by posting
+    a <quit/> message into shared memory, which an app that does not use the BOINC API never reads, so the task only ends when it ends by
+    itself (measured 0.8-23 s) or after the client's 60 s quit timeout. The QLoRA app checkpoints every segment, so ending it loses at most
+    one segment, and the client treats the exit exactly like a requested quit (task_state QUIT_PENDING -> UNINITIALIZED, restart later)."""
+    targets = [pid, *descendants(pid)]
+    for sig in (signal.SIGTERM, signal.SIGKILL):
+        for t in targets:
+            try:
+                os.kill(t, sig)
+            except ProcessLookupError:
+                pass
+            except PermissionError:
+                return False
+        end = time.time() + (grace_s if sig == signal.SIGTERM else 2.0)
+        while time.time() < end:
+            if not any(pid_alive(t) for t in targets):
+                return True
+            time.sleep(0.05)
+    return not any(pid_alive(t) for t in targets)
+
+
 def parse_pmon(text: str) -> dict[str, int]:
     """``nvidia-smi pmon -s u`` -> {pid: sm%}. A '-' (no sample for that process) is omitted, never read as 0."""
     out: dict[str, int] = {}
@@ -130,6 +181,8 @@ def main() -> int:
     ap.add_argument("--hold-file", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/hivemind_telemetry/HOLD"),
                     help="operator switch: while this file exists the governor keeps training OFF however quiet the node is "
                          "(`touch` to pause training, `rm` to allow it again)")
+    ap.add_argument("--yield-grace-s", type=float, default=1.0, help="seconds BOINC gets to stop the task by itself before the governor ends it")
+    ap.add_argument("--no-kill", action="store_true", help="never end the task process directly; rely on BOINC's own (slow) stop")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     a.telemetry.parent.mkdir(parents=True, exist_ok=True)
@@ -178,10 +231,20 @@ def main() -> int:
             state = "yielded"
             log({"event": "hold_released"})
         elif busy and state != "yielded":
-            had_task = bool(boinc_gpu_pids(gpu_state()["procs"])) if not a.dry_run else False
+            task_pids = boinc_gpu_pids(gpu_state()["procs"]) if not a.dry_run else []
+            had_task = bool(task_pids)
             ok = boinc.set_gpu("never") if boinc.mode != "never" or state != "yielded" else True
             t_req = time.time()
             freed_ms = None
+            ended_by_governor = False
+            if ok and task_pids and not a.no_kill:
+                # BOINC only posts a <quit/> the non-API app never reads (measured stops: 0.8-23 s): give it a short grace, then end the task ourselves
+                grace_end = time.time() + a.yield_grace_s
+                while time.time() < grace_end and any(pid_alive(int(p)) for p in task_pids):
+                    time.sleep(0.1)
+                for p in [p for p in task_pids if pid_alive(int(p))]:
+                    ended_by_governor = True
+                    terminate_tree(int(p), grace_s=1.0)
             if ok and not a.dry_run:
                 deadline = t_req + 30
                 while time.time() < deadline:
@@ -196,7 +259,7 @@ def main() -> int:
             state = "yielded"
             # gpu_freed_ms is a real measurement only when a BOINC GPU task was running (had_boinc_gpu_task); otherwise there was nothing to free
             log({"event": "yield", "trigger": trigger, "in_flight": in_flight, "other_gpu_util": other_util, "set_never_ok": ok,
-                 "had_boinc_gpu_task": had_task, "gpu_freed_ms": freed_ms, "yields": yields})
+                 "had_boinc_gpu_task": had_task, "ended_by_governor": ended_by_governor, "gpu_freed_ms": freed_ms, "yields": yields})
         elif not busy and state in ("init", "yielded") and (t0 - last_busy) >= (a.idle_start_s if in_night(t0, a.night_tz, a.night_start_h, a.night_end_h) else a.day_idle_s):
             g = gpu_state()
             mine = sum(int(p[2]) for p in g["procs"] if p[0] in boinc_gpu_pids(g["procs"]))

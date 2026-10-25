@@ -111,6 +111,16 @@ segment, so at most one segment is redone); not implemented, because BOINC treat
 
 Most other `yield` events in that period are `trigger: gpu, had_boinc_gpu_task: false`: they are the **validator's own GPU replay** after each finished workunit, which the second busy signal correctly reads as another GPU user. They say nothing about users.
 
+**Why the stop is slow, and the fix (21:55Z).** Four real yields were measured under the 5 s experiment: 0.77 s, 7.1 s, **23.4 s** and **15.9 s** (the last two exceed the 10 s limit; the rising trend is not stable).
+The BOINC client's own log and source (`client/app.cpp` `preempt()`, `app_control.cpp` `request_exit()`) explain it: for a GPU job a suspend always "removes it from memory" by posting a `<quit/>` message into
+shared memory and then **waiting** (`QUIT_TIMEOUT` 60 s before it kills). Our app does not use the BOINC API, so it never reads that message; the task simply ends whenever it ends (here 16-24 s after the request).
+It is not a crash: none of the last 12 tasks has a traceback or an out-of-memory error in its stored stderr. The governor now gives BOINC 1 s (`--yield-grace-s`), then ends the task's process tree itself
+(SIGTERM, SIGKILL for stragglers; `--no-kill` disables it). This loses at most one segment of work (the app checkpoints per segment) and puts the client in the state it already reaches today
+(`QUIT_PENDING -> UNINITIALIZED`, restart later). **Not yet measured on a real task**: the yield log line now carries `ended_by_governor`, and the next real yield (`had_boinc_gpu_task: true`) will show whether it is now ~1-2 s.
+Yield time (request seen -> GPU process gone) is also not the triggering request's latency: the router showed no user waiting that long near the 23 s and 16 s yields (the only chat > 5 s near them was 6.5 s at 21:06:44Z), but it did for the 7.1 s one.
+
+**First night resume under the restored policy (verified):** 21:41:50Z, `idle_s 1800.8, night: true`. The `yield` at 21:43:59Z that followed was the validator's replay (`trigger gpu, had_boinc_gpu_task false`), not a user.
+
 **VRAM.** The training process peaks at **3,716 MiB in every one of ~20 runs** (the 2.6 -> 3.7 GiB "growth" seen mid-run is the normal start-to-peak profile of one run, repeated). Whole-GPU peak with Bee + 7B + training: 14,017 MiB, ~1.3 GB free. The app sets no explicit memory cap.
 
 ## Recommended: restart the VM automatically after a preemption (created: job `hm-t4-keepalive`)
