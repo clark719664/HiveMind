@@ -270,21 +270,69 @@ Evidence: 144 router tests (Hypothesis properties on the certificate, ledger con
 
 ## 🐝 3.12 Season 14 (`Wave 13` — "Operation Night-Hive") — Bee MoE experts with QLoRA on larger bases (from the 2026-10-24/25 night run)
 
+Work breakdown, dependencies and gate definitions: [`docs/IMPLEMENTATION_PLAN_S14_S15.md`](docs/IMPLEMENTATION_PLAN_S14_S15.md); contributor tasks link to their issues below.
+
 Plan of record: [`docs/NIGHT_MOE_2_PLAN.md`](docs/NIGHT_MOE_2_PLAN.md) (draft, to be preregistered); results of the first run: [`docs/NIGHT_MOE_RESULTS.md`](docs/NIGHT_MOE_RESULTS.md), served at `/night-moe` on the HiveMind@home service.
 
 What the first night measured (7B QLoRA adapters, one T4, exact paired McNemar against the base on identical items): stars **VALID** (0.489 to 0.893, shuffled control below base); exoplanet **VOID** under the registered rule (the shuffled control also gained, p=0.0237) although the adapter beats its control 309 to 17; maths **NO_GAIN** (0.785 to 0.715, and on the 173 items both parsed 130 vs 157 correct, so the loss is real); cyber **NO_GAIN** (0.660 vs 0.650, p=0.383). Seven training stages hit their time cap; three interference stages timed out.
 
 | Task | Problem | Deliverable | Gate |
 | :-- | :-- | :-- | :-- |
-| `HM-S14-01` | the VOID rule and the controls mislead (control keeps the label prior; maths control cannot score above zero) | adapter-vs-control paired test as the primary decision, cross-domain adapter control for generative tasks, preregistered | G-R1 |
-| `HM-S14-02` | gold-text fine-tuning hurt maths | train on rejection-sampled, verified self-solutions (E15 recipe) | G-R1 |
-| `HM-S14-03` | "MoE" was a set of adapters | build and test the routed system: router accuracy, then end-to-end accuracy and interference with the gate in place | G-R1 |
-| `HM-S14-04` | interference was sampled at n=100 and 3 cells timed out | full-pack interference grid, one preregistered Bonferroni family, caps from measured time | G-R1 |
+| `HM-S14-01` ([#165](https://github.com/xaviercallens/HiveMind/issues/165)) | the VOID rule and the controls mislead (control keeps the label prior; maths control cannot score above zero) | adapter-vs-control paired test as the primary decision, cross-domain adapter control for generative tasks, preregistered | G-R1 |
+| `HM-S14-02` ([#166](https://github.com/xaviercallens/HiveMind/issues/166)) | gold-text fine-tuning hurt maths | train on rejection-sampled, verified self-solutions (E15 recipe) | G-R1 |
+| `HM-S14-03` ([#167](https://github.com/xaviercallens/HiveMind/issues/167)) | "MoE" was a set of adapters | build and test the routed system: router accuracy, then end-to-end accuracy and interference with the gate in place | G-R1 |
+| `HM-S14-04` ([#168](https://github.com/xaviercallens/HiveMind/issues/168)) | interference was sampled at n=100 and 3 cells timed out | full-pack interference grid, one preregistered Bonferroni family, caps from measured time | G-R1 |
 | `HM-S14-05` | 7B on a T4 is the only size tried | Qwen2.5-Coder-14B QLoRA on one L4 (no quota change); 1-step smoke tests for gpt-oss-20B and Qwen3-Coder-30B-A3B; A100 quota request is the owner's decision | owner |
-| `HM-S14-06` | VM data disk is 99.7% full (1.6 GB free) | a data disk sized for the run before any training starts | owner |
-| `HM-S14-07` | unverified generated text gave a null | verified targets only for the cyber expert, or drop it; add a code expert with executable tests | G-R1 |
-| `HM-S14-08` | no adapter passed the update gate for serving | run the verified update gate on the stars adapter and decide whether the router offers it as an expert tier | G-R2 |
+| `HM-S14-06` | VM data disk is 99.7% full (1.6 GB free) | a data disk sized for the run before any training starts; **done 2026-10-25:** grown online to 2000 GB (1.5T free) | owner |
+| `HM-S14-07` ([#169](https://github.com/xaviercallens/HiveMind/issues/169)) | unverified generated text gave a null | verified targets only for the cyber expert, or drop it; add a code expert with executable tests | G-R1 |
+| `HM-S14-08` ([#170](https://github.com/xaviercallens/HiveMind/issues/170)) | no adapter passed the update gate for serving | run the verified update gate on the stars adapter and decide whether the router offers it as an expert tier | G-R2 |
 | `HM-S14-09` | the dashboard link and repo server code lag the deployed overlay | reconcile `deploy/gcp_cloud_run` with the live image (release id and report files) before the next redeploy | G-R1 |
+
+## 👑 3.13 Season 15 (`Wave 14` — "Operation QueenBee") — verified-feedback routing and knowledge sharing (owner's brief, 2026-10-25)
+
+Work breakdown, dependencies and gate definitions: [`docs/IMPLEMENTATION_PLAN_S14_S15.md`](docs/IMPLEMENTATION_PLAN_S14_S15.md); contributor tasks link to their issues below.
+
+Proposal: [`docs/QUEENBEE_PROPOSAL.md`](docs/QUEENBEE_PROPOSAL.md). Experiments: [`docs/QUEENBEE_EXPERIMENTS.md`](docs/QUEENBEE_EXPERIMENTS.md). Literature: [`docs/QUEENBEE_LITERATURE_REVIEW.md`](docs/QUEENBEE_LITERATURE_REVIEW.md). Lean: `HiveMindSpec.ALIX_QueenBee`, Theorems 129-139.
+
+Delivered: package `hivemind.queenbee` with a strategy manager (bandit by default; verified preference pairs; opt-in clipped and noised sharing through Multi-Krum plus quorum), signed dance records, and knowledge points paid as a lump sum that leaves the market equilibrium unchanged. In simulation QB1c (valid after two invalid runs that their own controls caught), the bandit beats uniform and the static route in 20/20 seeds, honest dances cut early regret from 22.9 to 9.7, and a scout cross-check cuts sybil damage from 41.3 to 3.6. The value cap did **not** work as a defence.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S15-01` ([#171](https://github.com/xaviercallens/HiveMind/issues/171)) | the value cap cuts honest signal and does not bound influence by evidence | per-signer pseudo-trial budget, Lean theorem, preregistered re-test with the cap really removed | G-R1 |
+| `HM-S15-02` ([#172](https://github.com/xaviercallens/HiveMind/issues/172)) | the scout check trusts scouts | two independent scouts per cell, rotation, one-corrupt-scout adversary | G-R1 |
+| `HM-S15-03` ([#173](https://github.com/xaviercallens/HiveMind/issues/173)) | the bandit is only simulated | route among served experts on tasks with executable tests; measure the routing plateau first | G-R1 |
+| `HM-S15-04` ([#174](https://github.com/xaviercallens/HiveMind/issues/174)) | the Queen does not decompose tasks | subtask split with per-subtask verifiers, against planner-as-router baselines | G-R1 |
+| `HM-S15-05` ([#175](https://github.com/xaviercallens/HiveMind/issues/175)) | strategy b has no users | consenting developers' verified corrections, local adapter, verified update gate | G-R2 |
+| `HM-S15-06` ([#176](https://github.com/xaviercallens/HiveMind/issues/176)) | averaging LoRA factors is inexact and no privacy budget is accounted | product-space or exact aggregation, privacy accountant, Multi-Krum attack test, two hosts | G-R2 |
+| `HM-S15-07` | knowledge points are not live | admission service behind the firewall, public dataset with licences, settlement via the epoch ledger; bonus share set by the owner | owner |
+
+## 🛫 3.14 Season 16 (`Wave 15` — "Operation First-Flight") — live operations after the first real users (2026-10-25)
+
+Work breakdown, order and gates: [`docs/IMPLEMENTATION_PLAN_S16.md`](docs/IMPLEMENTATION_PLAN_S16.md). Record of the first real-life test: [`docs/LIVE_USER_TESTS.md`](docs/LIVE_USER_TESTS.md), `artifacts/live_tests/FIRST_REAL_USER_TEST_20261025.json`.
+
+Delivered on 2026-10-25:
+- **Served:** the three public services serve real inference from the T4 producers (Bee stars expert, 7B and 3B coders) under one ledger.
+- **New users:** a new account's first request is served at the default price (fixed: idle high bidders had refused it with 402).
+- **Wording:** pages show HiveMind Reflexion Points only.
+- **Monitoring:** a monitor probes every service and tier every 30 minutes with checkers that must reject a known-wrong answer first.
+
+What the first day exposed:
+- deploys from an uncommitted tree undid live fixes twice;
+- a few active high bidders still price new users out at idle capacity;
+- the first real answer was served correctly but was wrong code.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S16-01` ([#188](https://github.com/xaviercallens/HiveMind/issues/188)) | deploys from an uncommitted tree dropped live fixes | build from a tagged main commit, canary, switch by revision name; retire the overlays | G-L1 |
+| `HM-S16-02` ([#189](https://github.com/xaviercallens/HiveMind/issues/189)) | nothing stops a broken image from taking traffic | checked-probe contract on the canary gates every switch | G-L1 |
+| `HM-S16-03` ([#190](https://github.com/xaviercallens/HiveMind/issues/190)) | 4 active bidders at max 10 set 7.5 HMT/1k at idle capacity | posted price below capacity, Kelly under congestion, certificates and a Lean theorem for the switch | G-L2 |
+| `HM-S16-04` ([#191](https://github.com/xaviercallens/HiveMind/issues/191)) | probes check liveness, the first real answer was wrong | held-out coding prompts with hidden tests in a sandbox, pass@1 per tier, route `auto` by verified score | G-L2 |
+| `HM-S16-05` ([#192](https://github.com/xaviercallens/HiveMind/issues/192)) | remote control is stored, not enforced | agents obey pause and VRAM cap; integration test | G-L2 |
+| `HM-S16-06` ([#193](https://github.com/xaviercallens/HiveMind/issues/193)) | cold reload gave a 504 | loaded-model heartbeats, routing to resident models, explicit `model_loading` | G-L2 |
+| `HM-S16-07` ([#194](https://github.com/xaviercallens/HiveMind/issues/194)) | test accounts moved the price and the user counts | `test`/`probe` flag excluded from bids and metrics, starter-grant cap per IP | G-L1 |
+| `HM-S16-08` ([#195](https://github.com/xaviercallens/HiveMind/issues/195)) | regressions are seen only by whoever reads the monitor | status page and alerting from the monitor log | G-L1 |
+| `HM-S16-09` ([#196](https://github.com/xaviercallens/HiveMind/issues/196)) | template completions and browser-side credits remain in the dashboard source | remove both, restore `/night-moe`, tests | G-L1 |
+| `HM-S16-10` ([#197](https://github.com/xaviercallens/HiveMind/issues/197)) | a second revision on the same replica is a second ledger writer | startup lock with a GCS generation precondition | G-L1 |
 
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
 

@@ -301,6 +301,30 @@ def test_402_when_the_price_exceeds_the_consumer_max_price(world: World) -> None
     assert response.json()["error"]["code"] == "price_above_max_price"
 
 
+@pytest.mark.parametrize("window_s, expected_status", [(0.0, 402), (900.0, 200)])
+def test_idle_high_bidders_price_out_a_new_user_only_without_the_activity_window(window_s: float, expected_status: int) -> None:
+    """Three funded accounts that raised their max price and then went idle; a new user at the default max price asks."""
+    world = _build_world(bid_activity_window_s=window_s)
+    world.producer("prod-a.test", {"qwen": "q"})
+    for _ in range(3):
+        _, whale_key = world.consumer(100.0)
+        raised = world.app_client.post("/v1/hivemind/consumer/max-price", headers={"Authorization": f"Bearer {whale_key}"},
+                                       json={"max_price_per_1k": 10.0})
+        assert raised.status_code == 200
+    world.clock.now += 3600.0
+    world.producer("prod-a.test", {"qwen": "q"})  # fresh heartbeat after the idle hour
+    newbie_id, newbie_key = world.consumer(100.0)
+
+    response = world.chat(newbie_key)
+
+    assert response.status_code == expected_status, response.text
+    if expected_status == 402:
+        assert response.json()["error"]["code"] == "price_above_max_price"
+        assert world.store.balance(newbie_id) == pytest.approx(100.0)
+    else:
+        assert 0.0 < 100.0 - world.store.balance(newbie_id) < 100.0
+
+
 def test_502_without_charge_when_every_producer_is_down(world: World) -> None:
     consumer_id, key = world.consumer(10.0)
     producer_id, _, _ = world.producer("prod-a.test", {"qwen": "q"}, agent=FakeProducer(explode=True))

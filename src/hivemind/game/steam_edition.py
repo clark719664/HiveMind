@@ -180,7 +180,7 @@ def _generate_cyberpunk_hud_html(game_report: Dict[str, Any]) -> str:
     <div>
       <div class="title">HIVEMIND: NEURAL BREACH // HUGGING FACE HACK-MINER</div>
       <div style="font-size:0.88rem; color:#94a3b8; margin-top:4px;">
-        Steam AppID: 3133700 (Free-to-Play $0.00) | GPU Rig: <span id="gpu-name">NVIDIA GeForce RTX 2070</span> | Backbone: Qwen/Qwen2.5-0.5B (4-Bit NF4 + QLoRA)
+        Steam AppID: 3133700 (Free-to-Play) | GPU Rig: <span id="gpu-name">NVIDIA GeForce RTX 2070</span> | Backbone: Qwen/Qwen2.5-0.5B (4-Bit NF4 + QLoRA)
       </div>
     </div>
     <div>
