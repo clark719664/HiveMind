@@ -331,6 +331,36 @@ def test_only_funded_accounts_bid_and_bids_are_capped_by_balance() -> None:
     assert bids[poor] == pytest.approx(0.5)
 
 
+
+def test_activity_window_drops_idle_high_bidders_but_keeps_recent_ones() -> None:
+    """Idle funded accounts that raised their max price must not set a new user's price; active ones still bid."""
+    store = _store()
+    idle, _ = store.register("idle-whale", "consumer")
+    recent, _ = store.register("recent-whale", "consumer")
+    old, _ = store.register("old-whale", "consumer")
+    newbie, _ = store.register("newbie", "consumer")
+    for account in (idle, recent, old):
+        store.grant(account, 100.0, "seed")
+        store.set_max_price(account, 10.0)
+    store.grant(newbie, 100.0, "seed")
+    store.hold("req-recent", recent, 1.0, now_utc=10_000.0)
+    store.hold("req-old", old, 1.0, now_utc=8_000.0)
+
+    windowed = store.funded_consumer_bids(256, active_since=9_100.0)
+    unwindowed = store.funded_consumer_bids(256)
+
+    assert set(windowed) == {recent}
+    assert windowed[recent] == pytest.approx(10.0)
+    assert set(unwindowed) == {idle, recent, old, newbie}  # control: without the window every funded account bids
+    assert store.funded_consumer_bids(256, active_since=8_000.0).keys() == {recent, old}  # boundary is inclusive
+
+
+def test_activity_window_rejects_a_non_finite_time() -> None:
+    store = _store()
+    with pytest.raises(ValueError):
+        store.funded_consumer_bids(256, active_since=float("nan"))
+    assert store.funded_consumer_bids(256, active_since=0.0) == {}
+
 _hold_op = st.one_of(
     st.tuples(st.just("hold"), st.floats(0.0, 30.0)),
     st.tuples(st.just("settle"), st.integers(0, 40_000), st.floats(0.0, 5.0)),

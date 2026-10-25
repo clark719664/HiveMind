@@ -372,14 +372,24 @@ class RouterStore:
             ).fetchall()
         return {str(r["account_id"]): float(r["max_price_per_1k"]) for r in rows}
 
-    def funded_consumer_bids(self, expected_tokens: int) -> dict[str, float]:
+    def funded_consumer_bids(self, expected_tokens: int, active_since: float | None = None) -> dict[str, float]:
         """Effective bids of accounts that can actually pay: ``min(max_price, balance * 1000 / expected_tokens)``.
 
         Accounts with a non-positive balance are omitted, so anonymous zero-balance sybils cannot move the price,
         and a funded account cannot bid above what its balance could pay for one ``expected_tokens`` request.
+        With ``active_since`` set, only accounts with a usage row or a hold at or after that time bid: every sign-up
+        is funded by the starter grant, so without it idle accounts that once raised their max price keep the
+        clearing price above a new account's default max price and its first request is refused.
         """
         tokens = max(1, int(expected_tokens))
         with self._lock:
+            active: set[str] | None = None
+            if active_since is not None:
+                since = _finite(active_since, "active_since")
+                active = {str(r[0]) for r in self._conn.execute(
+                    "SELECT consumer_id FROM usage WHERE utc >= ? UNION SELECT account_id FROM holds WHERE utc >= ?",
+                    (since, since),
+                ).fetchall()}
             rows = self._conn.execute(
                 "SELECT a.account_id AS account_id, a.max_price_per_1k AS price, COALESCE(SUM(l.delta), 0.0) AS bal "
                 "FROM accounts a LEFT JOIN ledger l ON l.account_id = a.account_id "
@@ -389,7 +399,7 @@ class RouterStore:
         bids: dict[str, float] = {}
         for row in rows:
             balance = float(row["bal"])
-            if balance > 0.0:
+            if balance > 0.0 and (active is None or str(row["account_id"]) in active):
                 bids[str(row["account_id"])] = min(float(row["price"]), balance * 1000.0 / tokens)
         return bids
 
