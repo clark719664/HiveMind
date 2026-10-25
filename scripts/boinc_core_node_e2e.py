@@ -33,7 +33,14 @@ PROMPTS = ["The Mixture of Experts model", "Volunteer computing with BOINC means
 
 def gpu_procs() -> list[str]:
     out = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,name,used_memory", "--format=csv,noheader"], capture_output=True, text=True).stdout
-    return [ln for ln in out.splitlines() if ln.strip() and not ln.startswith(f"{os.getpid()},")]
+    # only processes this test may have left behind (its venv python / the BOINC client); a foreign GPU user such as
+    # another session's llama-server is recorded separately and does not count against the criterion
+    return [ln for ln in out.splitlines() if ln.strip() and not ln.startswith(f"{os.getpid()},") and ("boinc" in ln or "python" in ln)]
+
+
+def gpu_foreign() -> list[str]:
+    out = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,name,used_memory", "--format=csv,noheader"], capture_output=True, text=True).stdout
+    return [ln for ln in out.splitlines() if ln.strip() and "boinc" not in ln and "python" not in ln]
 
 
 def wait_for(cond, timeout: float, every: float = 1.0) -> bool:
@@ -122,7 +129,7 @@ def main() -> int:
         ep.start()
         import urllib.request
 
-        req = urllib.request.Request(f"http://127.0.0.1:{ep.port}/v1/chat/completions", data=json.dumps({"model": ep.name, "messages": [{"role": "user", "content": PROMPTS[0]}], "max_tokens": 16}).encode(), headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(f"http://127.0.0.1:{ep.port}/v1/chat/completions", data=json.dumps({"model": ep.name, "messages": [{"role": "user", "content": PROMPTS[0]}], "max_tokens": 24}).encode(), headers={"Content-Type": "application/json"})
         resp = json.loads(urllib.request.urlopen(req, timeout=120).read())
         listen = subprocess.run(["ss", "-ltn"], capture_output=True, text=True).stdout
         ep_result = {"endpoint_token_ids": resp["hivemind"]["token_ids"], "batch_token_ids": batch, "text": resp["choices"][0]["message"]["content"], "bound": ep.httpd.server_address[0], "port": ep.port, "ss_lines": [ln for ln in listen.splitlines() if f":{ep.port} " in ln or f":{srv.port} " in ln]}
@@ -133,6 +140,7 @@ def main() -> int:
     torch.cuda.empty_cache()
     time.sleep(2)
     report["gpu_busy_after"] = gpu_procs()
+    report["gpu_foreign_after"] = gpu_foreign()
     report["stray_boinc"] = subprocess.run(["pgrep", "-f", "usr/bin/boinc"], capture_output=True, text=True).stdout.split()
     report["verdicts"] = {k: v.to_dict() for k, v in srv.verdicts.items()}
 
