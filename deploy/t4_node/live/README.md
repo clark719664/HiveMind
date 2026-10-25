@@ -68,6 +68,24 @@ Two fixes, each a change to a live service (not applied; the owner decides):
 1. Stop advertising `coder-lite` (remove `--model coder-lite=...` from the older coder agent; the unit template in this directory already does).
 2. Let both models stay resident: `OLLAMA_MAX_LOADED_MODELS=2` and an Ollama restart. Memory arithmetic from measured figures: Bee 4.8 GiB + 7B 5.6 GiB + 3B ~2.7 GiB = ~13.1 GiB of 15.4, ~2 GiB spare. It restarts Ollama (the loaded model is dropped and cold-loaded again), leaves no room for a BOINC task while both are resident (they unload after 10 minutes of silence, which is before any night run), and is untested here.
 
+## 2026-10-25 20:25Z: the owner chose "stop advertising coder-lite"; a third party's process overrides it (UNRESOLVED, owner: "solve it later")
+
+Applied by me: `hivemind-live-agent-coder.service` (coder tier only, same account `af92feeb…`, same endpoint) was started with `--ignore-dependencies`, and
+the old hand-started coder agent (pid 613067, coder + coder-lite) was stopped. Nothing supervised it, and `~/bee-stars/start.sh` launches only the Bee tier.
+
+Then a **different process appeared that neither I nor the teammate session started**: pid 1051361 (since ~20:17Z), and after I stopped it, an identical respawn,
+pid 1060495 (since ~20:27Z). Both run `~/hivemind-producer/hivemind_producer_agent.py` against the router's alternate URL
+(`…-cfhmhmvv5a-uc.a.run.app`, the same Cloud Run service), endpoint = this T4, models `coder` + `coder-lite`, `--cost-per-1k 0.25 --capacity-1k 80`,
+`--execution-class rtx2070-8gb-turing` (not this card), and heartbeat for the **same account**, so the gateway's model list flaps between my agent's `["coder"]` and its
+`["coder","coder-lite"]`. As of 20:30Z the gateway still lists `coder-lite`. The owner described this as a contributor's work and asked to leave it for later; I did not stop it again.
+Consequences to settle later: coder-lite swap penalty is back in force; the advertised price (0.25 vs 0.4) and the wrong execution class are someone else's choices.
+
+Same actor, same evening: **uncommitted edits to my worktree and a redeploy** of two pipeline files, live in `/opt/hivemind/t4/src` since 20:22-20:23Z
+(`boinc_server_scripts.py`: a "ratchet gate" that advances the chain head only if the held-out loss did not get worse, with a comment saying "within 0.02" that the code does not implement;
+`moe_work.py`: each round mixes 19 chunks of the target domain with 9 of each of the five others, and caps the learning rate at 6e-5 on chained rounds). I did not write, review or test these,
+did not commit them, and my commits exclude them; a copy of the diff is in the job scratch directory. Anything trained from tonight on uses that code, so treat the loss trend as coming from it, not
+from the code described elsewhere on this page.
+
 ## Recommended: restart the VM automatically after a preemption (created: job `hm-t4-keepalive`)
 
 The instance is `SPOT`, `automaticRestart=false`, termination action `STOP`, so a plain `start` brings a preempted VM back.
