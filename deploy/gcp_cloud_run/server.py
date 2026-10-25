@@ -16,6 +16,7 @@ app = create_hivemind_at_home_app(
     / "season9_10_gpu_swarm_campaigns_report.json",
     mining_ruche_report_path=ARTIFACTS_DIR / "dataset_mining_and_ruche_report.json",
     vault_dir=ARTIFACTS_DIR / "la_ruche_vault",
+    night_moe_results_path=ARTIFACTS_DIR / "experiments" / "NIGHT_MOE_results.json",
 )
 
 if __name__ == "__main__":
