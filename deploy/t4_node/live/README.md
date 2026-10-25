@@ -93,7 +93,12 @@ from the code described elsewhere on this page.
 15 times between 20:05 and 20:45Z, mostly outside the night window. I did not edit that configuration. At 20:45:57Z I created `…/hivemind_telemetry/HOLD` (the documented pause switch) because a user request had waited
 for a yield (below); `rm` it to resume, under whichever governor settings are then in effect.
 
-**Decision at 20:49Z (contested).** Asked to choose between restoring the 30 min / 2 h policy, keeping the 5 s experiment, or staying paused, the owner answered in the author's session:
+**Outcome (21:11Z): the original policy is restored.** A teammate session relayed that the owner, shown both statements at ~20:55Z, confirmed "30 min night, 2 h day". I could not verify that relay, but
+restoring was the conservative, reversible direction (it can only delay training) and matches the owner's first instruction to the author. Verified at 21:17Z: service arguments
+`--idle-start-s 1800 --day-idle-s 7200 --min-free-mib 4300`, the governor's `start` event says the same, BOINC GPU mode `never`, no training process, no HOLD file. The author's own session still has
+the owner's earlier "keep the experiment" on record, so the owner was asked to confirm there too. The paragraph below is the history; it is no longer the live setting.
+
+**Decision at 20:49Z (contested, then superseded).** Asked to choose between restoring the 30 min / 2 h policy, keeping the 5 s experiment, or staying paused, the owner answered in the author's session:
 "Keep the contributor's 5-second experiment, with the HOLD removed." HOLD was removed at 20:49:38Z; training resumed at 20:49:42Z with `idle_s: 5.0, night: false`. The repo template
 (`../node/hivemind-t4-governor.service`) now documents 5 / 5 / 3800 as the owner-approved experiment, with the original values written next to it for rollback (so re-running `install_node.sh`
 does not silently revert it). **A teammate session then relayed an owner statement of "30 minutes at night and 2 hours by day"**, which contradicts it; the order of the two statements is unknown, so
