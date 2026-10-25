@@ -268,6 +268,24 @@ Evidence: 144 router tests (Hypothesis properties on the certificate, ledger con
 
 ---
 
+## 🐝 3.12 Season 14 (`Wave 13` — "Operation Night-Hive") — Bee MoE experts with QLoRA on larger bases (from the 2026-10-24/25 night run)
+
+Plan of record: [`docs/NIGHT_MOE_2_PLAN.md`](docs/NIGHT_MOE_2_PLAN.md) (draft, to be preregistered); results of the first run: [`docs/NIGHT_MOE_RESULTS.md`](docs/NIGHT_MOE_RESULTS.md), served at `/night-moe` on the HiveMind@home service.
+
+What the first night measured (7B QLoRA adapters, one T4, exact paired McNemar against the base on identical items): stars **VALID** (0.489 to 0.893, shuffled control below base); exoplanet **VOID** under the registered rule (the shuffled control also gained, p=0.0237) although the adapter beats its control 309 to 17; maths **NO_GAIN** (0.785 to 0.715, and on the 173 items both parsed 130 vs 157 correct, so the loss is real); cyber **NO_GAIN** (0.660 vs 0.650, p=0.383). Seven training stages hit their time cap; three interference stages timed out.
+
+| Task | Problem | Deliverable | Gate |
+| :-- | :-- | :-- | :-- |
+| `HM-S14-01` | the VOID rule and the controls mislead (control keeps the label prior; maths control cannot score above zero) | adapter-vs-control paired test as the primary decision, cross-domain adapter control for generative tasks, preregistered | G-R1 |
+| `HM-S14-02` | gold-text fine-tuning hurt maths | train on rejection-sampled, verified self-solutions (E15 recipe) | G-R1 |
+| `HM-S14-03` | "MoE" was a set of adapters | build and test the routed system: router accuracy, then end-to-end accuracy and interference with the gate in place | G-R1 |
+| `HM-S14-04` | interference was sampled at n=100 and 3 cells timed out | full-pack interference grid, one preregistered Bonferroni family, caps from measured time | G-R1 |
+| `HM-S14-05` | 7B on a T4 is the only size tried | Qwen2.5-Coder-14B QLoRA on one L4 (no quota change); 1-step smoke tests for gpt-oss-20B and Qwen3-Coder-30B-A3B; A100 quota request is the owner's decision | owner |
+| `HM-S14-06` | VM data disk is 99.7% full (1.6 GB free) | a data disk sized for the run before any training starts | owner |
+| `HM-S14-07` | unverified generated text gave a null | verified targets only for the cyber expert, or drop it; add a code expert with executable tests | G-R1 |
+| `HM-S14-08` | no adapter passed the update gate for serving | run the verified update gate on the stars adapter and decide whether the router offers it as an expert tier | G-R2 |
+| `HM-S14-09` | the dashboard link and repo server code lag the deployed overlay | reconcile `deploy/gcp_cloud_run` with the live image (release id and report files) before the next redeploy | G-R1 |
+
 ## 🎮 4. Opt-In Community GPU Testing Program (If Interested & Possible)
 
 If you have a consumer GPU (**NVIDIA GeForce RTX 20/30/40/50-series 6 GB–24 GB**, **AMD Radeon RX 6000/7000 via ROCm**, or **Apple Silicon M1/M2/M3/M4 via MPS**) and are interested in testing how your hardware performs on the HiveMind Sparse MoE + `EF21-DiLoCo` + `ZK-OPoI v4` stack, we provide a safe, opt-in, `< 1.5 GB` peak-VRAM benchmark suite:
