@@ -1,4 +1,7 @@
-# TEMPLATE mirroring the process running on 2026-10-25. NOT installed.
+# TEMPLATE based on the process running on 2026-10-25. NOT installed.
+# DIFFERENCE from the running process, on purpose: it advertises only the 7B "coder" tier. The live agent also advertises
+# "coder-lite" (3B); with Ollama MAX_LOADED_MODELS=1 and ~5 GiB free beside the Bee expert, alternating 7B/3B traffic swaps
+# models on every request. The shield still allows the 3B, so adding the tier back is a one-line change here.
 # /etc/hivemind/t4-coder.env (root:root 0600) must define HIVEMIND_API_KEY (the coder-tiers producer key).
 [Unit]
 Description=HiveMind T4 live: producer heartbeat for the coder tiers
@@ -9,7 +12,7 @@ Requires=hivemind-live-shield-coder.service
 User=callensxavier_gmail_com
 WorkingDirectory=/home/callensxavier_gmail_com/hivemind-producer
 EnvironmentFile=/etc/hivemind/t4-coder.env
-ExecStart=/usr/bin/python3 hivemind_producer_agent.py --gateway https://hivemind-openrouter-1003063861791.us-central1.run.app --endpoint https://34-48-48-154.sslip.io --model coder=qwen2.5-coder:7b-instruct --model coder-lite=qwen2.5-coder:3b --cost-per-1k 0.4 --capacity-1k 60 --execution-class t4
+ExecStart=/usr/bin/python3 hivemind_producer_agent.py --gateway https://hivemind-openrouter-1003063861791.us-central1.run.app --endpoint https://34-48-48-154.sslip.io --model coder=qwen2.5-coder:7b-instruct --cost-per-1k 0.4 --capacity-1k 60 --execution-class t4
 Restart=always
 RestartSec=10
 

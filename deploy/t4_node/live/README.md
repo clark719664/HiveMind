@@ -24,6 +24,27 @@ GPU: ~10.3 GiB of 15.4 resident (Bee ~4.8, 7B coder ~5.5), 8 vCPUs, load average
 
 Also: the Bee slot count is 1 (`-np 1`) behind a shield that admits 3, so Bee requests queue; and CPU load is already high, which the producer processes share.
 
+## Recommended: restart the VM automatically after a preemption (not yet created)
+
+The instance is `SPOT`, `automaticRestart=false`, termination action `STOP`, so a plain `start` brings a preempted VM back.
+A Cloud Scheduler job that calls the Compute API every 3 minutes does that with no extra machine (starting a running VM is a
+no-op). The Scheduler API is already enabled in the project and no job exists yet. An attempt to create it from the
+assistant's session was **blocked by the session's permission classifier** (it is a standing change to the cloud project), so
+it has to be run by the owner:
+
+```bash
+gcloud scheduler jobs create http hm-t4-keepalive --location=us-east4 --schedule="*/3 * * * *" --time-zone=UTC \
+  --uri="https://compute.googleapis.com/compute/v1/projects/gen-lang-client-0625573011/zones/us-east4-b/instances/socreateai-agora-hermes-node1/start" \
+  --http-method=POST --oauth-service-account-email=1003063861791-compute@developer.gserviceaccount.com \
+  --description="Restart the Spot T4 VM after preemption (no-op while it runs)"
+gcloud scheduler jobs run hm-t4-keepalive --location=us-east4      # test once
+```
+
+Side effects to accept knowingly: it also undoes a manual stop within 3 minutes (pause it first:
+`gcloud scheduler jobs pause hm-t4-keepalive --location=us-east4`; remove it with `... jobs delete ...`); it authenticates as the
+VM's default compute service account; and a Spot VM can fail to start while the zone has no capacity (it retries every 3 minutes).
+It restores the VM only: the services come back only after the units below are installed.
+
 ## Making the stack restart-safe (units are templates; nothing is installed)
 
 1. Create `/etc/hivemind/t4-coder.env` and `/etc/hivemind/t4-bee.env` (`root:root`, mode `0600`) with `HIVEMIND_API_KEY` and `HIVEMIND_ENDPOINT_TOKEN` for each account. The author did not read these values from the running processes and does not have them.
