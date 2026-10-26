@@ -140,6 +140,14 @@ everything runs as the same unix user. Response, all reversible: the repo copy w
 with a note `POLICY_READ_ME.txt` next to them. Verified: `lsattr` shows the flag, and three tamper attempts (touch the script, create a drop-in, append to the unit) all fail with "Operation not permitted". The installer clears and restores the flag, so changes through the repo still work.
 **What this does not do:** root can run `chattr -i` and carry on; the point is that doing so is a deliberate, logged step instead of a silent overwrite. It does not identify the actor. Only the owner can: look at what runs with the owner's sudo (other Claude sessions, scheduled jobs, orchestrators) and ask.
 
+## Night training results, 25 Oct 20:08Z -> 26 Oct 05:33Z (`scripts/t4_training_report.py`; read the caveats)
+
+98 chained QLoRA rounds were validated and assimilated (1 reissued after an abort by an outside command to the BOINC client; mean 105 s per round); 85 of them finished inside the 22:00-07:00 Paris window. **They ran under the
+contributor's 5-10 s idle settings and unreviewed pipeline edits (ratchet gate, domain-replay mix, lr cap), not under the owner's 30 min / 2 h policy.** Held-out loss (fixed sets, 8 sequences x 128 tokens per domain, never trained on),
+from the state before the first all-domain round (NOT the pure base model) to the chain head (round 92): mean 2.2705 -> 2.1380 (-5.8 %); math -15.1 %, biomed -11.7 %, general -8.8 %, french -1.3 %, news -0.8 %, edu_web ~0.
+It **plateaued after ~30 rounds**: later blocks of 10 rounds improve by 0.0005-0.005, the std over the last 20 rounds is 0.0055, and in the last 30 rounds a round no longer improves even the domain it trains on (+0.0006). Limits: tiny held-out sets; the
+head was chosen on the same sets (best-of-97, optimistically biased); one seed; held-out loss is not answer quality (no downstream test was run); the trained model (granite-3.1-1b-a400m-base + LoRA) is not one the gateway serves, so there is no user-facing gain today.
+
 **22:08:45Z: the experiment values were re-applied by someone else, deliberately, via a named drop-in (history; resolved above).** Evidence is the root sudo log
 (`/var/log/auth.log`), all as the same unix user so the actor cannot be told apart: 21:55:46-58 my installer + governor restart (cwd = my worktree); 22:08:18 `systemctl cat hivemind-t4-governor.service` from the home directory;
 22:08:45 `mkdir hivemind-t4-governor.service.d`, `tee …/intense-moe.conf`, a `sed -i` turning `1800/7200/4300` into `5/5/3800` in the unit file (and in a path under `/opt/hivemind/t4/systemd/` that does not exist), `daemon-reload`,
