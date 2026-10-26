@@ -129,14 +129,15 @@ policy while it exists**; the repo template (1800/7200/4300) is therefore NOT wh
 The owner's words so far: to the author "keep the contributor's 5-second experiment, HOLD removed" (20:49Z); to a teammate session, twice, "30 min night, 2 h day" (the second time as a choice among three options, ~20:55Z).
 To go back to the serving-first policy: `sudo rm /etc/systemd/system/hivemind-t4-governor.service.d/intense-moe.conf && sudo rmdir /etc/systemd/system/hivemind-t4-governor.service.d && sudo bash deploy/t4_node/install_node.sh && sudo systemctl restart hivemind-t4-governor.service`,
 then check `systemctl show -p ExecStart hivemind-t4-governor.service` and the governor's `start` event. To pause training whatever the settings: `touch …/hivemind_telemetry/HOLD`.
-Since the kill-on-yield fix (below) went live at 21:55:58Z there has been **no real yield yet** (0 events with `had_boinc_gpu_task: true`), so its effect is unmeasured.
+Since the kill-on-yield fix (below) went live at 21:55:58Z there has been **one real yield** (checked 01:46Z; an earlier version of this page said none, from a check run at 22:28Z that was never repeated):
+**23:37:24Z, trigger nginx, `in_flight 1`, `other_gpu_util 0`, `had_boinc_gpu_task: true`, `ended_by_governor: true`, `gpu_freed_ms 1135`.** n = 1, and the router logged no chat near it, so there is no user-side latency for it.
 
 **Why the stop is slow, and the fix (21:55Z).** Four real yields were measured under the 5 s experiment: 0.77 s, 7.1 s, **23.4 s** and **15.9 s** (the last two exceed the 10 s limit; the rising trend is not stable).
 The BOINC client's own log and source (`client/app.cpp` `preempt()`, `app_control.cpp` `request_exit()`) explain it: for a GPU job a suspend always "removes it from memory" by posting a `<quit/>` message into
 shared memory and then **waiting** (`QUIT_TIMEOUT` 60 s before it kills). Our app does not use the BOINC API, so it never reads that message; the task simply ends whenever it ends (here 16-24 s after the request).
 It is not a crash: none of the last 12 tasks has a traceback or an out-of-memory error in its stored stderr. The governor now gives BOINC 1 s (`--yield-grace-s`), then ends the task's process tree itself
 (SIGTERM, SIGKILL for stragglers; `--no-kill` disables it). This loses at most one segment of work (the app checkpoints per segment) and puts the client in the state it already reaches today
-(`QUIT_PENDING -> UNINITIALIZED`, restart later). **Not yet measured on a real task**: the yield log line now carries `ended_by_governor`, and the next real yield (`had_boinc_gpu_task: true`) will show whether it is now ~1-2 s.
+(`QUIT_PENDING -> UNINITIALIZED`, restart later). **First measurement with the fix: 1.135 s (23:37:24Z, one sample) against 23.4 s and 15.9 s before it**, consistent with the 1 s grace plus the kill; the yield log line carries `ended_by_governor` so every further real yield can be checked. One sample says the mechanism works, not that every stop will be this fast.
 Yield time (request seen -> GPU process gone) is also not the triggering request's latency: the router showed no user waiting that long near the 23 s and 16 s yields (the only chat > 5 s near them was 6.5 s at 21:06:44Z), but it did for the 7.1 s one.
 
 **First night resume under the restored policy (verified):** 21:41:50Z, `idle_s 1800.8, night: true`. The `yield` at 21:43:59Z that followed was the validator's replay (`trigger gpu, had_boinc_gpu_task false`), not a user.

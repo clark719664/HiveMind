@@ -58,7 +58,9 @@ def main() -> int:
     print("events:", dict(Counter(e["event"] for e in ev)), "| preemption notices:", sum(e["event"] == "PREEMPTION_NOTICE" for e in ev))
     y = [e for e in gov if e["event"] == "yield"]
     real = [e for e in y if e.get("had_boinc_gpu_task")]
-    print(f"governor yields: {len(y)} logged, {len(real)} with a real BOINC GPU task (only these measure yield latency)", [e.get("gpu_freed_ms") for e in real])
+    print(f"governor yields: {len(y)} logged, {len(real)} with a real BOINC GPU task (only these measure yield latency)")
+    for e in real:  # always list them with time and trigger, so a stale "none yet" can never be carried forward
+        print(f"  {time.strftime('%H:%M:%S', time.gmtime(e['t']))}Z trigger={e.get('trigger')} in_flight={e.get('in_flight')} ended_by_governor={e.get('ended_by_governor')} gpu_freed_ms={e.get('gpu_freed_ms')}")
     print("governor states seen:", dict(Counter(json.loads(x)["state"] for x in [json.dumps({'state': e.get('state')}) for e in gov if e["event"] == "snapshot"])))
     return 0
 
