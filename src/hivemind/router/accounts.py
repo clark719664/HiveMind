@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS accounts(
     role TEXT NOT NULL CHECK (role IN ('consumer','producer','prosumer','admin')),
     key_hash TEXT NOT NULL UNIQUE,
     created_utc REAL NOT NULL,
-    max_price_per_1k REAL NOT NULL
+    max_price_per_1k REAL NOT NULL,
+    is_test INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS ledger(
     seq INTEGER PRIMARY KEY,
@@ -163,6 +164,7 @@ class Account:
     role: str
     created_utc: float
     max_price_per_1k: float
+    is_test: bool = False
 
 
 @dataclass(frozen=True)
@@ -248,6 +250,10 @@ class RouterStore:
             columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(producers)")}
             if "endpoint_token" not in columns:
                 self._conn.execute("ALTER TABLE producers ADD COLUMN endpoint_token TEXT")
+            # Databases created before the test/probe flag existed gain it in place; every existing account stays a real one.
+            account_columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(accounts)")}
+            if "is_test" not in account_columns:
+                self._conn.execute("ALTER TABLE accounts ADD COLUMN is_test INTEGER NOT NULL DEFAULT 0")
             # One account may advertise several endpoints (several GPUs / servers): rows of the old one-per-account table move across once.
             self._conn.execute(
                 "INSERT OR IGNORE INTO producer_endpoints(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
@@ -256,7 +262,7 @@ class RouterStore:
             )
             for sys_id in _ESCROW_ACCOUNTS:
                 self._conn.execute(
-                    "INSERT OR IGNORE INTO accounts VALUES (?,?,?,?,?,?)",
+                    "INSERT OR IGNORE INTO accounts(account_id, handle, role, key_hash, created_utc, max_price_per_1k) VALUES (?,?,?,?,?,?)",
                     (sys_id, sys_id, "admin", f"!{sys_id}", time.time(), 0.0),
                 )
 
@@ -307,6 +313,7 @@ class RouterStore:
             role=str(row["role"]),
             created_utc=float(row["created_utc"]),
             max_price_per_1k=float(row["max_price_per_1k"]),
+            is_test=bool(row["is_test"]),
         )
 
     # ------------------------------------------------------------------ accounts
@@ -314,14 +321,18 @@ class RouterStore:
         """Deterministic account id for a handle (after identity normalisation)."""
         return self._hmac_hex(normalise_identity(handle))[:32]
 
-    def register(self, handle: str, role: str) -> tuple[str, str]:
-        """Create an account; returns ``(account_id, api_key)``. The key is shown once and never stored."""
+    def register(self, handle: str, role: str, *, is_test: bool = False) -> tuple[str, str]:
+        """Create an account; returns ``(account_id, api_key)``. The key is shown once and never stored.
+
+        ``is_test`` marks a test or probe account: it never bids in the market and is counted apart from real users.
+        The store does not authorise that choice; the gateway lets only an admin key ask for it.
+        """
         if role not in ROLES:
             raise ValueError(f"role must be one of {ROLES}")
         normalised = normalise_identity(handle)
         if normalised.startswith(tuple(f"{provider}." for provider in sorted(self._identity_providers))):
             raise ReservedHandle(f"handle prefix is reserved: {normalised}")
-        return self._create_account(normalised, role)
+        return self._create_account(normalised, role, is_test)
 
     def allow_identity_provider(self, name: str) -> None:
         """Enable sign-in through another OpenID Connect provider and reserve its handle prefix (``<name>.``) at once.
@@ -359,12 +370,12 @@ class RouterStore:
                 conn.execute("UPDATE accounts SET key_hash=? WHERE account_id=?", (self._hmac_hex(new_key), account_id))
                 return account_id, new_key, False
             conn.execute(
-                "INSERT INTO accounts VALUES (?,?,?,?,?,?)",
+                "INSERT INTO accounts(account_id, handle, role, key_hash, created_utc, max_price_per_1k) VALUES (?,?,?,?,?,?)",
                 (account_id, handle, role, self._hmac_hex(new_key), time.time(), DEFAULT_MAX_PRICE_PER_1K),
             )
         return account_id, new_key, True
 
-    def _create_account(self, normalised: str, role: str) -> tuple[str, str]:
+    def _create_account(self, normalised: str, role: str, is_test: bool = False) -> tuple[str, str]:
         account_id = self._hmac_hex(normalised)[:32]
         api_key = "hm-" + secrets.token_urlsafe(32)
         with self._tx() as conn:
@@ -374,8 +385,8 @@ class RouterStore:
             if exists is not None:
                 raise HandleTaken(f"handle already registered: {normalised}")
             conn.execute(
-                "INSERT INTO accounts VALUES (?,?,?,?,?,?)",
-                (account_id, normalised, role, self._hmac_hex(api_key), time.time(), DEFAULT_MAX_PRICE_PER_1K),
+                "INSERT INTO accounts(account_id, handle, role, key_hash, created_utc, max_price_per_1k, is_test) VALUES (?,?,?,?,?,?,?)",
+                (account_id, normalised, role, self._hmac_hex(api_key), time.time(), DEFAULT_MAX_PRICE_PER_1K, int(is_test)),
             )
         return account_id, api_key
 
@@ -396,11 +407,11 @@ class RouterStore:
         return None if row is None else self._row_account(row)
 
     def consumer_max_prices(self) -> dict[str, float]:
-        """Declared max price of every non-system account that may consume (everything but pure producers)."""
+        """Declared max price of every non-system, non-test account that may consume (everything but pure producers)."""
         with self._lock:
             rows = self._conn.execute(
                 "SELECT account_id, max_price_per_1k FROM accounts WHERE role != 'producer' AND account_id NOT LIKE 'sys:%' "
-                "ORDER BY account_id"
+                "AND is_test = 0 ORDER BY account_id"
             ).fetchall()
         return {str(r["account_id"]): float(r["max_price_per_1k"]) for r in rows}
 
@@ -412,6 +423,7 @@ class RouterStore:
         With ``active_since`` set, only accounts with a usage row or a hold at or after that time bid: every sign-up
         is funded by the starter grant, so without it idle accounts that once raised their max price keep the
         clearing price above a new account's default max price and its first request is refused.
+        Test and probe accounts (see :meth:`set_test_flag`) never bid, whatever their balance, price or activity.
         """
         tokens = max(1, int(expected_tokens))
         with self._lock:
@@ -425,7 +437,7 @@ class RouterStore:
             rows = self._conn.execute(
                 "SELECT a.account_id AS account_id, a.max_price_per_1k AS price, COALESCE(SUM(l.delta), 0.0) AS bal "
                 "FROM accounts a LEFT JOIN ledger l ON l.account_id = a.account_id "
-                "WHERE a.role != 'producer' AND a.account_id NOT LIKE 'sys:%' "
+                "WHERE a.role != 'producer' AND a.account_id NOT LIKE 'sys:%' AND a.is_test = 0 "
                 "GROUP BY a.account_id ORDER BY a.account_id"
             ).fetchall()
         bids: dict[str, float] = {}
@@ -443,6 +455,32 @@ class RouterStore:
             cur = conn.execute("UPDATE accounts SET max_price_per_1k=? WHERE account_id=?", (price, account_id))
             if cur.rowcount != 1:
                 raise UnknownAccount(account_id)
+
+    def set_test_flag(self, account_id: str, is_test: bool) -> None:
+        """Mark (or unmark) an account as a test/probe account. Raises :class:`UnknownAccount` for an unknown id."""
+        with self._tx() as conn:
+            cur = conn.execute("UPDATE accounts SET is_test=? WHERE account_id=? AND account_id NOT LIKE 'sys:%'", (int(is_test), account_id))
+            if cur.rowcount != 1:
+                raise UnknownAccount(account_id)
+
+    def user_counts(self, since: float) -> dict[str, dict[str, int]]:
+        """Real and test accounts counted apart: ``total``, ``created`` and ``active`` (a usage row or a hold) at or after ``since``.
+
+        System accounts are not users and are never counted.
+        """
+        cutoff = _finite(since, "since")
+        counts = {"real": {"total": 0, "created": 0, "active": 0}, "test": {"total": 0, "created": 0, "active": 0}}
+        with self._lock:
+            active = {str(r[0]) for r in self._conn.execute(
+                "SELECT consumer_id FROM usage WHERE utc >= ? UNION SELECT account_id FROM holds WHERE utc >= ?", (cutoff, cutoff),
+            ).fetchall()}
+            rows = self._conn.execute("SELECT account_id, is_test, created_utc FROM accounts WHERE account_id NOT LIKE 'sys:%'").fetchall()
+        for row in rows:
+            bucket = counts["test" if row["is_test"] else "real"]
+            bucket["total"] += 1
+            bucket["created"] += float(row["created_utc"]) >= cutoff
+            bucket["active"] += str(row["account_id"]) in active
+        return counts
 
     # ------------------------------------------------------------------ ledger
     def balance(self, account_id: str) -> float:

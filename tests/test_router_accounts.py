@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import sqlite3
 import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,6 +18,7 @@ from hivemind.router.accounts import (
     InsufficientBalance,
     RouterStore,
     TooManyHolds,
+    UnknownAccount,
 )
 
 SECRET = b"s" * 32
@@ -360,6 +363,83 @@ def test_activity_window_rejects_a_non_finite_time() -> None:
     with pytest.raises(ValueError):
         store.funded_consumer_bids(256, active_since=float("nan"))
     assert store.funded_consumer_bids(256, active_since=0.0) == {}
+
+
+def test_test_accounts_never_bid_and_unflagging_restores_the_bid() -> None:
+    store = _store()
+    real, _ = store.register("real-user", "consumer")
+    probe, _ = store.register("probe-user", "consumer", is_test=True)
+    for account in (real, probe):
+        store.grant(account, 100.0, "seed")
+        store.set_max_price(account, 100.0)
+
+    assert store.get_account(probe).is_test is True and store.get_account(real).is_test is False  # type: ignore[union-attr]
+    assert set(store.funded_consumer_bids(256)) == {real}
+    assert set(store.consumer_max_prices()) == {real}
+
+    store.set_test_flag(real, True)
+    assert store.funded_consumer_bids(256) == {}
+    store.set_test_flag(probe, False)
+    assert set(store.funded_consumer_bids(256)) == {probe}
+    assert store.funded_consumer_bids(256)[probe] == pytest.approx(100.0)
+
+
+def test_set_test_flag_rejects_unknown_and_system_accounts() -> None:
+    store = _store()
+    with pytest.raises(UnknownAccount):
+        store.set_test_flag("f" * 32, True)
+    with pytest.raises(UnknownAccount):
+        store.set_test_flag("sys:burn", True)
+    assert store.get_account("sys:burn").is_test is False  # type: ignore[union-attr]
+
+
+def test_a_database_made_before_the_test_flag_is_upgraded_in_place(tmp_path: Path) -> None:
+    path = tmp_path / "old.db"
+    legacy = sqlite3.connect(path)
+    legacy.execute(
+        "CREATE TABLE accounts(account_id TEXT PRIMARY KEY, handle TEXT NOT NULL UNIQUE, "
+        "role TEXT NOT NULL CHECK (role IN ('consumer','producer','prosumer','admin')), key_hash TEXT NOT NULL UNIQUE, "
+        "created_utc REAL NOT NULL, max_price_per_1k REAL NOT NULL)"
+    )
+    legacy.execute("INSERT INTO accounts VALUES ('old-account','old-user','consumer','hash-1',1.0,2.0)")
+    legacy.commit()
+    legacy.close()
+
+    store = RouterStore(path, SECRET)
+    migrated = store.get_account("old-account")
+    assert migrated is not None and migrated.is_test is False and migrated.handle == "old-user"
+    store.grant("old-account", 5.0, "seed")
+    assert set(store.funded_consumer_bids(256)) == {"old-account"}  # an existing account stays a real bidder
+    store.set_test_flag("old-account", True)
+    assert store.funded_consumer_bids(256) == {}
+    _, key = store.register("new-user", "consumer", is_test=True)
+    assert store.authenticate(key).is_test is True  # type: ignore[union-attr]
+    store.close()
+
+    reopened = RouterStore(path, SECRET)  # the upgrade is idempotent
+    assert reopened.get_account("old-account").is_test is True  # type: ignore[union-attr]
+    reopened.close()
+
+
+def test_user_counts_keep_real_and_test_accounts_apart() -> None:
+    store = _store()
+    store.register("producer-only", "producer")
+    real_a, _ = store.register("real-a", "consumer")
+    real_b, _ = store.register("real-b", "consumer")
+    probe, _ = store.register("probe", "consumer", is_test=True)
+    for account in (real_a, real_b, probe):
+        store.grant(account, 10.0, "seed")
+    store.hold("req-a", real_a, 1.0, now_utc=time.time() + 100.0)
+    store.hold("req-probe", probe, 1.0, now_utc=time.time() + 100.0)
+    store.hold("req-b-old", real_b, 1.0, now_utc=1.0)
+
+    everything = store.user_counts(0.0)
+    recent = store.user_counts(time.time() + 50.0)
+
+    assert everything == {"real": {"total": 3, "created": 3, "active": 2}, "test": {"total": 1, "created": 1, "active": 1}}
+    assert recent == {"real": {"total": 3, "created": 0, "active": 1}, "test": {"total": 1, "created": 0, "active": 1}}
+    with pytest.raises(ValueError):
+        store.user_counts(float("nan"))
 
 _hold_op = st.one_of(
     st.tuples(st.just("hold"), st.floats(0.0, 30.0)),
