@@ -36,6 +36,11 @@ def main() -> int:
         from hivemind.core.diloco_inner import replay_inner_segment
         from hivemind.core.quantization import extract_lora_state_dict
 
+        # transformers pre-allocates (almost) the whole model size in one block before loading ("allocator warm-up"). It is only a speed-up, but with a few GiB
+        # free it OOMs before a single weight is loaded, so the night trainer must skip it for any model whose 16-bit size exceeds the free VRAM.
+        import transformers.modeling_utils as _mu
+
+        _mu.caching_allocator_warmup = lambda *args, **kwargs: None
         total = torch.cuda.get_device_properties(0).total_memory
         torch.cuda.set_per_process_memory_fraction(min(1.0, a.cap_mib * 2**20 / total))
         spec = {"model_id": a.model_id, "init_seed": 7, "rank": 8, "alpha": 16}
