@@ -13,8 +13,10 @@ import os
 from pathlib import Path
 from typing import Any
 
+from hivemind.boinc.real_client.moe_profiles import PROFILES
 from hivemind.boinc.workunit import sign_shard_bytes
 
+BASE_SHARD_TOKENS = 64 * 128  # tokens per shard the per-domain row counts below were sized for
 DEFAULT_MODEL = "ibm-granite/granite-3.1-1b-a400m-base"
 HUB = Path(os.path.expanduser("~/.cache/huggingface/hub"))
 DOMAIN_ORDER = ["general", "french", "edu_web", "news", "biomed", "math",
@@ -97,8 +99,9 @@ def domain_ids(tok, domain: str, role: str, shard_index: int, need: int) -> list
         usable = _total_rows(path)
         if s["eval_start"] < 0 and path == _file(s["ds"], s["eval"]):
             usable += s["eval_start"]  # train and eval share a file: the held-out tail is never a training shard
-        shard_index %= max(usable // s["rows"], 1)  # a cursor past the last whole shard wraps instead of reading held-out rows
-        rows = _rows(path, s["cols"], shard_index * s["rows"], s["rows"])
+        per_shard = s["rows"] * max(1, -(-need // BASE_SHARD_TOKENS))  # a shard of more tokens takes proportionally more rows
+        shard_index %= max(usable // per_shard, 1)  # a cursor past the last whole shard wraps instead of reading held-out rows
+        rows = _rows(path, s["cols"], shard_index * per_shard, per_shard)
     else:
         rows = _rows(_file(s["ds"], s["eval"]), s["cols"], s["eval_start"], 200)
     return _ids(tok, _docs(rows, s["cols"]), need)
@@ -125,6 +128,7 @@ def build_train_spec(
     init_seed: int = 42,
     start_adapter_sha256: str | None = None,
     domain: str = "general",
+    profile: str | None = None,
 ) -> dict[str, Any]:
     from transformers import AutoTokenizer
 
@@ -133,6 +137,10 @@ def build_train_spec(
 
     if domain not in _SOURCES:
         raise ValueError(f"unknown domain {domain!r}; choose from {DOMAIN_ORDER}")
+    prof = PROFILES[profile] if profile else None
+    if prof:  # a profile fixes the sizes; explicit arguments are ignored so a big workunit cannot be built half-sized
+        seq_len, n_seq, micro_batch, rank, alpha = prof["seq_len"], prof["n_seq"], prof["micro_batch"], prof["rank"], prof["alpha"]
+        inner_steps, segment_steps = prof["inner_steps"], prof["segment_steps"]
     tok = AutoTokenizer.from_pretrained(model_id, cache_dir=HF_CACHE)
     train = _chunks(domain_ids(tok, domain, "train", shard_index, n_seq * seq_len), seq_len, n_seq)
     # the held-out set of EVERY domain is always evaluated, so a round trained on French also shows what it did to English
@@ -143,6 +151,8 @@ def build_train_spec(
         "rng_seed": rng_seed, "init_seed": init_seed, "shard_index": shard_index, "domain": domain,
         "train_tokens": train, "eval_tokens": eval_sets["general"], "eval_sets": eval_sets,
     }
+    if prof:
+        spec.update({"app": prof["app"], "profile": profile, "min_gpu_ram_mb": prof["min_gpu_ram_mb"], "seq_len": seq_len})
     if start_adapter_sha256:
         spec["start_adapter_sha256"] = start_adapter_sha256
     sha, sig = sign_shard_bytes(json.dumps(train, separators=(",", ":")).encode(), rng_seed)
