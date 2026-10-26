@@ -1720,6 +1720,8 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         steps = int(payload.get("steps", 400))
         dt = float(payload.get("dt", 0.015))
         num_byzantine = int(payload.get("num_byzantine", 2))
+        account_spend_usd = float(payload.get("account_spend_usd", 25.0))
+        is_vac_banned = bool(payload.get("is_vac_banned", False))
         return scientific_game_engine.solve_mission(
             mission_id=mission_id,
             gamer_tag=gamer_tag,
@@ -1728,7 +1730,14 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
             steps=steps,
             dt=dt,
             num_byzantine=num_byzantine,
+            account_spend_usd=account_spend_usd,
+            is_vac_banned=is_vac_banned,
         )
+
+    @app.post("/api/scientific-game/playtest-cohort", response_class=JSONResponse)
+    def post_scientific_game_playtest_cohort() -> Dict[str, Any]:
+        """Run the 5-player end-user gameplay cohort playtest and return leaderboard & telemetry."""
+        return scientific_game_engine.run_multiplayer_cohort_playtest()
 
     @app.get("/api/scientific-game/rtx2070-la-ruche", response_class=JSONResponse)
     def get_scientific_game_rtx2070_la_ruche(gamer_tag: str = "CyberValkyrie_FR") -> Dict[str, Any]:

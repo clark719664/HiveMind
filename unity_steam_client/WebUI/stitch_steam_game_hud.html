@@ -315,6 +315,7 @@
         <button id="btn-mission-2" class="btn btn-emerald" onclick="runMission('MISSION-SCI-02-E8-LATTICE-QUORUM')">Mission 2: E8 Lattice &amp; Multi-Krum</button>
         <button id="btn-mission-3" class="btn" onclick="runMission('MISSION-SCI-03-ANSE-ENERGY-REACTOR')">Mission 3: ANSE Energy-Bee Reactor</button>
         <button id="btn-preempt" class="btn" onclick="triggerPreemption()">Test &lt;1.5s Steam GPU Preemption</button>
+        <button id="btn-cohort-playtest" class="btn btn-gold" onclick="runCohortPlaytest()">5-Player Cohort Playtest &amp; Leaderboard</button>
       </div>
       <div class="terminal" id="mission-terminal">[READY] Select a Scientific Mission above to run deterministic physics &amp; ANSE energy verification.</div>
     </div>
@@ -421,9 +422,9 @@
       "paged_adamw_8bit_gb": 0.32,
       "total_peak_vram_gb": 6.49
     },
-    "tensor_kernel_latency_ms": 12.072,
-    "tensor_kernel_throughput_gflops": 9.38,
-    "tensor_verification_norm": 7526.272
+    "tensor_kernel_latency_ms": 10.896,
+    "tensor_kernel_throughput_gflops": 10.39,
+    "tensor_verification_norm": 7518.1279
   },
   "la_ruche_cloud_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app",
   "unity_steam_stack": {
@@ -1225,6 +1226,30 @@
         term.textContent = `[WDDM PREEMPTION VERIFIED]\n${JSON.stringify(data, null, 2)}`;
       } catch (err) {
         term.textContent = '[OFFLINE PREEMPTION] Background worker yielded VRAM in 18.4 ms (<1500 ms SLA).';
+      }
+    }
+
+    async function runCohortPlaytest() {
+      const term = document.getElementById('mission-terminal');
+      term.textContent = '[MULTIPLAYER COHORT PLAYTEST] Running 5 end-user gamer personas (RTX 2070, ROCm Fedora, DirectML Win11, CrowdGPT Trunk, SybilBot)...';
+      try {
+        const resp = await fetch('/api/scientific-game/playtest-cohort', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+        if (!resp.ok) throw new Error('playtest failed');
+        const data = await resp.json();
+        const rows = (data.leaderboard || []).map(r =>
+          `  #${r.rank} ${r.gamer_tag.padEnd(28)} | ${String(r.total_scientific_pts).padStart(4)} PTS | E_Bee=${r.best_bee_energy} | SybilOK=${r.steam_sybil_verified} | ${r.hardware_rig}`
+        ).join('\n');
+        document.getElementById('pts-badge').textContent = `${data.total_cohort_scientific_pts.toLocaleString()} COHORT PTS`;
+        term.textContent =
+          `[5-PLAYER COHORT PLAYTEST VERIFIED // ${data.cohort_id}]\n` +
+          `  Honest Verified: ${data.honest_players_verified} | Sybil Attackers Blocked: ${data.sybil_attackers_blocked} | Total Cohort Score: ${data.total_cohort_scientific_pts} PTS\n` +
+          `[LIVE MULTIPLAYER ODYSSEY LEADERBOARD (0.00 EUR / 0.00 USD)]\n${rows}`;
+      } catch (err) {
+        term.textContent = `[OFFLINE COHORT PLAYTEST FALLBACK] Error: ${err}`;
       }
     }
 

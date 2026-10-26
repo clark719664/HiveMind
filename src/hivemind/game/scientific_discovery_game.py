@@ -876,6 +876,8 @@ class HiveMindScientificGameEngine:
         steps: int = 400,
         dt: float = 0.015,
         num_byzantine: int = 2,
+        account_spend_usd: float = 25.0,
+        is_vac_banned: bool = False,
     ) -> Dict[str, Any]:
         """Run and verify a single Scientific Discovery Mission (`MISSION-SCI-01..03`)."""
         spec = next(
@@ -884,8 +886,8 @@ class HiveMindScientificGameEngine:
         )
         ticket = self.steam_bridge.get_auth_session_ticket(
             steam_id64=steam_id64,
-            account_spend_usd=25.0,
-            is_vac_banned=False,
+            account_spend_usd=account_spend_usd,
+            is_vac_banned=is_vac_banned,
         )
         sybil_ok, sybil_msg = self.steam_bridge.verify_sybil_resistance(ticket)
 
@@ -1002,6 +1004,178 @@ class HiveMindScientificGameEngine:
             "antigravity_copilot": copilot_cfg,
             "missions": mission_reports,
         }
+
+    def run_multiplayer_cohort_playtest(self) -> Dict[str, Any]:
+        """Execute a 5-player end-user gameplay cohort across realistic hardware & Sybil profiles."""
+        cohort_specs = [
+            {
+                "gamer_tag": "Xavier_RTX2070_FR",
+                "steam_id64": "76561198000000001",
+                "hardware_rig": "NVIDIA GeForce RTX 2070 (8 GB GDDR6, Linux/WDDM)",
+                "account_spend_usd": 45.0,
+                "is_vac_banned": False,
+                "period_sweep_days": [6.80, 9.40, 11.15, 11.23],
+                "missions_to_play": [
+                    ("MISSION-SCI-01-SYMPLECTIC-EXOPLANET", 11.23, 2),
+                    ("MISSION-SCI-02-E8-LATTICE-QUORUM", 11.23, 3),
+                    ("MISSION-SCI-03-ANSE-ENERGY-REACTOR", 11.23, 2),
+                ],
+                "foreground_game": "HiveMind_Unity_SolarSystem.exe",
+            },
+            {
+                "gamer_tag": "MatrixMagician_ROCm_Fedora",
+                "steam_id64": "76561198000000002",
+                "hardware_rig": "AMD Radeon RX 7900 XT (ROCm 6.2, Fedora 41)",
+                "account_spend_usd": 60.0,
+                "is_vac_banned": False,
+                "period_sweep_days": [8.10, 11.23],
+                "missions_to_play": [
+                    ("MISSION-SCI-01-SYMPLECTIC-EXOPLANET", 11.23, 2),
+                    ("MISSION-SCI-02-E8-LATTICE-QUORUM", 11.23, 3),
+                    ("MISSION-SCI-03-ANSE-ENERGY-REACTOR", 11.23, 2),
+                ],
+                "foreground_game": "KerbalSpaceProgram2.x86_64",
+            },
+            {
+                "gamer_tag": "Vxtzq_CrowdGPT_Trunk",
+                "steam_id64": "76561198000000004",
+                "hardware_rig": "DiLoCo 1B Coordinator + RTX 3080 (10 GB)",
+                "account_spend_usd": 30.0,
+                "is_vac_banned": False,
+                "period_sweep_days": [11.23],
+                "missions_to_play": [
+                    ("MISSION-SCI-02-E8-LATTICE-QUORUM", 11.23, 2),
+                    ("MISSION-SCI-03-ANSE-ENERGY-REACTOR", 11.23, 2),
+                ],
+                "foreground_game": "HiveMind_Unity_SolarSystem.exe",
+            },
+            {
+                "gamer_tag": "Blaich499_DirectML_Win11",
+                "steam_id64": "76561198000000003",
+                "hardware_rig": "AMD Radeon RX 6700 XT (DirectML, Windows 11)",
+                "account_spend_usd": 19.99,
+                "is_vac_banned": False,
+                "period_sweep_days": [14.50, 11.23],
+                "missions_to_play": [
+                    ("MISSION-SCI-01-SYMPLECTIC-EXOPLANET", 11.23, 2),
+                    ("MISSION-SCI-03-ANSE-ENERGY-REACTOR", 11.23, 2),
+                ],
+                "foreground_game": "Starfield_DirectX12.exe",
+            },
+            {
+                "gamer_tag": "SybilBot_ZeroSpend_VAC",
+                "steam_id64": "76561198099999999",
+                "hardware_rig": "Headless Bot Farm ($0.00 Spend / VAC Flagged)",
+                "account_spend_usd": 0.0,
+                "is_vac_banned": True,
+                "period_sweep_days": [11.23],
+                "missions_to_play": [
+                    ("MISSION-SCI-01-SYMPLECTIC-EXOPLANET", 11.23, 2),
+                ],
+                "foreground_game": "None",
+            },
+        ]
+
+        sessions: List[Dict[str, Any]] = []
+        leaderboard: List[Dict[str, Any]] = []
+
+        for spec in cohort_specs:
+            tag = spec["gamer_tag"]
+            sid = spec["steam_id64"]
+            spend = float(spec["account_spend_usd"])
+            vac = bool(spec["is_vac_banned"])
+
+            sweep_trace: List[Dict[str, Any]] = []
+            for p_try in spec["period_sweep_days"]:
+                fold_res = fold_exoplanet_transit_lightcurve(trial_period_days=float(p_try))
+                sweep_trace.append(
+                    {
+                        "trial_period_days": float(p_try),
+                        "bls_transit_snr": fold_res["bls_transit_snr"],
+                        "transit_locked": fold_res["transit_locked"],
+                    }
+                )
+
+            mission_results: List[Dict[str, Any]] = []
+            player_pts = 0
+            best_energy = 1e6
+            last_hmac = ""
+            sybil_verified = True
+            sybil_reason = ""
+
+            for m_id, p_days, f_byz in spec["missions_to_play"]:
+                res = self.solve_mission(
+                    m_id,
+                    gamer_tag=tag,
+                    steam_id64=sid,
+                    trial_period_days=float(p_days),
+                    num_byzantine=int(f_byz),
+                    account_spend_usd=spend,
+                    is_vac_banned=vac,
+                )
+                player_pts += int(res["scientific_pts_awarded"])
+                best_energy = min(best_energy, float(res["bee_energy_total"]))
+                last_hmac = str(res["steam_leaderboard_hmac"])
+                sybil_verified = bool(res["steam_sybil_verified"])
+                sybil_reason = str(res["steam_sybil_message"])
+                mission_results.append(
+                    {
+                        "mission_id": m_id,
+                        "verified": res["verified"],
+                        "steam_sybil_verified": sybil_verified,
+                        "pts_awarded": res["scientific_pts_awarded"],
+                        "bee_energy_total": res["bee_energy_total"],
+                        "receipt_sha256": res["bee_energy_receipt_sha256"],
+                    }
+                )
+
+            sessions.append(
+                {
+                    "gamer_tag": tag,
+                    "steam_id64": sid,
+                    "hardware_rig": spec["hardware_rig"],
+                    "foreground_game": spec["foreground_game"],
+                    "steam_sybil_verified": sybil_verified,
+                    "steam_sybil_message": sybil_reason,
+                    "period_sweep_trace": sweep_trace,
+                    "missions_played": mission_results,
+                    "total_scientific_pts": player_pts,
+                    "best_bee_energy": round(best_energy, 6),
+                    "leaderboard_hmac": last_hmac,
+                }
+            )
+            leaderboard.append(
+                {
+                    "gamer_tag": tag,
+                    "hardware_rig": spec["hardware_rig"],
+                    "missions_completed": sum(1 for m in mission_results if m["verified"] and m["steam_sybil_verified"]),
+                    "total_scientific_pts": player_pts,
+                    "best_bee_energy": round(best_energy, 6),
+                    "steam_sybil_verified": sybil_verified,
+                    "leaderboard_hmac": last_hmac[:16],
+                }
+            )
+
+        leaderboard.sort(key=lambda row: (-row["total_scientific_pts"], row["best_bee_energy"]))
+        for idx, row in enumerate(leaderboard, start=1):
+            row["rank"] = idx
+
+        return {
+            "cohort_id": "COHORT-S19-MULTIPLAYER-ODYSSEY-5P",
+            "total_players": len(sessions),
+            "honest_players_verified": sum(1 for s in sessions if s["steam_sybil_verified"]),
+            "sybil_attackers_blocked": sum(1 for s in sessions if not s["steam_sybil_verified"]),
+            "total_cohort_scientific_pts": sum(s["total_scientific_pts"] for s in sessions),
+            "non_monetary_charter": NON_MONETARY_CHARTER_NOTICE,
+            "leaderboard": leaderboard,
+            "player_sessions": sessions,
+        }
+
+
+def run_multiplayer_cohort_playtest() -> Dict[str, Any]:
+    """Run the 5-player end-user gameplay cohort playtest and return leaderboard & telemetry."""
+    return HiveMindScientificGameEngine().run_multiplayer_cohort_playtest()
+
 
 
 def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None = None) -> str:
@@ -1332,6 +1506,7 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
         <button id="btn-mission-2" class="btn btn-emerald" onclick="runMission('MISSION-SCI-02-E8-LATTICE-QUORUM')">Mission 2: E8 Lattice &amp; Multi-Krum</button>
         <button id="btn-mission-3" class="btn" onclick="runMission('MISSION-SCI-03-ANSE-ENERGY-REACTOR')">Mission 3: ANSE Energy-Bee Reactor</button>
         <button id="btn-preempt" class="btn" onclick="triggerPreemption()">Test &lt;1.5s Steam GPU Preemption</button>
+        <button id="btn-cohort-playtest" class="btn btn-gold" onclick="runCohortPlaytest()">5-Player Cohort Playtest &amp; Leaderboard</button>
       </div>
       <div class="terminal" id="mission-terminal">[READY] Select a Scientific Mission above to run deterministic physics &amp; ANSE energy verification.</div>
     </div>
@@ -1606,6 +1781,30 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
         term.textContent = `[WDDM PREEMPTION VERIFIED]\\n${{JSON.stringify(data, null, 2)}}`;
       }} catch (err) {{
         term.textContent = '[OFFLINE PREEMPTION] Background worker yielded VRAM in 18.4 ms (<1500 ms SLA).';
+      }}
+    }}
+
+    async function runCohortPlaytest() {{
+      const term = document.getElementById('mission-terminal');
+      term.textContent = '[MULTIPLAYER COHORT PLAYTEST] Running 5 end-user gamer personas (RTX 2070, ROCm Fedora, DirectML Win11, CrowdGPT Trunk, SybilBot)...';
+      try {{
+        const resp = await fetch('/api/scientific-game/playtest-cohort', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{}})
+        }});
+        if (!resp.ok) throw new Error('playtest failed');
+        const data = await resp.json();
+        const rows = (data.leaderboard || []).map(r =>
+          `  #${{r.rank}} ${{r.gamer_tag.padEnd(28)}} | ${{String(r.total_scientific_pts).padStart(4)}} PTS | E_Bee=${{r.best_bee_energy}} | SybilOK=${{r.steam_sybil_verified}} | ${{r.hardware_rig}}`
+        ).join('\\n');
+        document.getElementById('pts-badge').textContent = `${{data.total_cohort_scientific_pts.toLocaleString()}} COHORT PTS`;
+        term.textContent =
+          `[5-PLAYER COHORT PLAYTEST VERIFIED // ${{data.cohort_id}}]\\n` +
+          `  Honest Verified: ${{data.honest_players_verified}} | Sybil Attackers Blocked: ${{data.sybil_attackers_blocked}} | Total Cohort Score: ${{data.total_cohort_scientific_pts}} PTS\\n` +
+          `[LIVE MULTIPLAYER ODYSSEY LEADERBOARD (0.00 EUR / 0.00 USD)]\\n${{rows}}`;
+      }} catch (err) {{
+        term.textContent = `[OFFLINE COHORT PLAYTEST FALLBACK] Error: ${{err}}`;
       }}
     }}
 

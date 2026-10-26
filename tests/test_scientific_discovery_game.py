@@ -14,6 +14,7 @@ from hivemind.game.scientific_discovery_game import (
     render_scientific_discovery_game_html,
     run_anse_energy_reactor_mission,
     run_e8_lattice_multikrum_mission,
+    run_multiplayer_cohort_playtest,
 )
 from hivemind.game.steam_edition import create_hack_miner_fastapi_app
 from hivemind.router.portal_page import render_portal_page
@@ -186,6 +187,29 @@ def test_frontend_dom_controls_and_js_handlers_contract() -> None:
     assert "data.preemption_eviction_ms" in html
     assert "/api/scientific-game/rtx2070-la-ruche" in html
     assert "/api/scientific-game/la-ruche-copilot" in html
+    assert 'id="btn-cohort-playtest"' in html
+    assert "/api/scientific-game/playtest-cohort" in html
+
+
+def test_multiplayer_cohort_playtest_and_sybil_defense() -> None:
+    cohort = run_multiplayer_cohort_playtest()
+    assert cohort["total_players"] == 5
+    assert cohort["honest_players_verified"] == 4
+    assert cohort["sybil_attackers_blocked"] == 1
+    assert cohort["total_cohort_scientific_pts"] == 4050 + 4050 + 2850 + 2700 + 0
+
+    lb = cohort["leaderboard"]
+    assert lb[0]["gamer_tag"] in ("Xavier_RTX2070_FR", "MatrixMagician_ROCm_Fedora")
+    assert lb[0]["total_scientific_pts"] == 4050
+    assert lb[-1]["gamer_tag"] == "SybilBot_ZeroSpend_VAC"
+    assert lb[-1]["total_scientific_pts"] == 0
+    assert lb[-1]["steam_sybil_verified"] is False
+
+    client = TestClient(create_hack_miner_fastapi_app())
+    r_cohort = client.post("/api/scientific-game/playtest-cohort")
+    assert r_cohort.status_code == 200
+    assert r_cohort.json()["total_cohort_scientific_pts"] == 13650
+
 
 
 
