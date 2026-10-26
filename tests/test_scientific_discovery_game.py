@@ -21,10 +21,14 @@ from hivemind.router.portal_page import render_portal_page
 def test_unity_steamworks_and_solar_system_stack_present() -> None:
     stack = inspect_unity_steam_stack()
     assert stack["all_files_present"] is True
+    assert stack["stitch_mcp_design"]["design_system_asset"] == "assets/a3653ca2e0a1411081b38c8c351992f7"
+    assert stack["stitch_mcp_design"]["design_system_name"] == "Cyber-Honeycomb Supercluster"
     paths = {f["path"]: f for f in stack["files"]}
     assert paths["Assets/Scripts/SolarSystem/NBodySimulation.cs"]["present"] is True
     assert paths["Assets/Scripts/HiveMind/HiveMindScientificGameBridge.cs"]["present"] is True
     assert paths["Packages/com.rlabrecque.steamworks.net/package.json"]["present"] is True
+    assert paths["WebUI/stitch_cyber_honeycomb_dashboard.html"]["present"] is True
+    assert paths["WebUI/stitch_e8_honeycomb_animated_svg.html"]["present"] is True
 
 
 def test_antigravity_copilot_config_and_portal_snippet() -> None:
@@ -81,6 +85,9 @@ def test_full_scientific_odyssey_and_fastapi_endpoints() -> None:
     html = render_scientific_discovery_game_html(odyssey)
     assert "HIVEMIND: DYSON &amp; EXOPLANET ODYSSEY" in html
     assert "SebLague/Solar-System" in html
+    assert "Cyber-Honeycomb Supercluster" in html
+    assert "assets/a3653ca2e0a1411081b38c8c351992f7" in html
+    assert "animated-svg-ANIMATION_1" in html
 
     client = TestClient(create_hack_miner_fastapi_app())
     r_page = client.get("/scientific-game")
