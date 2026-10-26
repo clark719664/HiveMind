@@ -10,9 +10,11 @@ from hivemind.game.scientific_discovery_game import (
     fold_exoplanet_transit_lightcurve,
     inspect_unity_steam_stack,
     integrate_orbital_symplectic_comparison,
+    probe_rtx2070_hardware_and_vram,
     render_scientific_discovery_game_html,
     run_anse_energy_reactor_mission,
     run_e8_lattice_multikrum_mission,
+    run_multiplayer_cohort_playtest,
 )
 from hivemind.game.steam_edition import create_hack_miner_fastapi_app
 from hivemind.router.portal_page import render_portal_page
@@ -21,10 +23,14 @@ from hivemind.router.portal_page import render_portal_page
 def test_unity_steamworks_and_solar_system_stack_present() -> None:
     stack = inspect_unity_steam_stack()
     assert stack["all_files_present"] is True
+    assert stack["stitch_mcp_design"]["design_system_asset"] == "assets/a3653ca2e0a1411081b38c8c351992f7"
+    assert stack["stitch_mcp_design"]["design_system_name"] == "Cyber-Honeycomb Supercluster"
     paths = {f["path"]: f for f in stack["files"]}
     assert paths["Assets/Scripts/SolarSystem/NBodySimulation.cs"]["present"] is True
     assert paths["Assets/Scripts/HiveMind/HiveMindScientificGameBridge.cs"]["present"] is True
     assert paths["Packages/com.rlabrecque.steamworks.net/package.json"]["present"] is True
+    assert paths["WebUI/stitch_cyber_honeycomb_dashboard.html"]["present"] is True
+    assert paths["WebUI/stitch_e8_honeycomb_animated_svg.html"]["present"] is True
 
 
 def test_antigravity_copilot_config_and_portal_snippet() -> None:
@@ -81,6 +87,9 @@ def test_full_scientific_odyssey_and_fastapi_endpoints() -> None:
     html = render_scientific_discovery_game_html(odyssey)
     assert "HIVEMIND: DYSON &amp; EXOPLANET ODYSSEY" in html
     assert "SebLague/Solar-System" in html
+    assert "Cyber-Honeycomb Supercluster" in html
+    assert "assets/a3653ca2e0a1411081b38c8c351992f7" in html
+    assert "animated-svg-ANIMATION_1" in html
 
     client = TestClient(create_hack_miner_fastapi_app())
     r_page = client.get("/scientific-game")
@@ -108,3 +117,99 @@ def test_full_scientific_odyssey_and_fastapi_endpoints() -> None:
     preempt_data = r_preempt.json()
     assert preempt_data["background_worker_paused"] is True
     assert preempt_data["preemption_within_1500ms_sla"] is True
+
+
+def test_rtx2070_hardware_probe_and_custom_mission_params() -> None:
+    rtx = probe_rtx2070_hardware_and_vram(profile_name="rtx2070_7b_worker")
+    assert rtx["vram_ceiling_mb"] == 8192.0
+    assert rtx["within_8gb_golden_invariant"] is True
+    assert rtx["wddm_game_headroom_mb"] >= 1500.0
+    assert rtx["tensor_kernel_throughput_gflops"] > 0.0
+
+    client = TestClient(create_hack_miner_fastapi_app())
+    r_custom = client.post(
+        "/api/scientific-game/solve",
+        json={
+            "mission_id": "MISSION-SCI-01-SYMPLECTIC-EXOPLANET",
+            "gamer_tag": "Xavier_RTX2070_FR",
+            "trial_period_days": 11.23,
+            "steps": 300,
+            "dt": 0.015,
+        },
+    )
+    assert r_custom.status_code == 200
+    assert r_custom.json()["verified"] is True
+
+    r_byz = client.post(
+        "/api/scientific-game/solve",
+        json={
+            "mission_id": "MISSION-SCI-02-E8-LATTICE-QUORUM",
+            "gamer_tag": "Xavier_RTX2070_FR",
+            "num_byzantine": 3,
+        },
+    )
+    assert r_byz.status_code == 200
+    assert r_byz.json()["verified"] is True
+
+
+def test_frontend_dom_controls_and_js_handlers_contract() -> None:
+    client = TestClient(create_hack_miner_fastapi_app())
+    r_page = client.get("/scientific-game")
+    assert r_page.status_code == 200
+    html = r_page.text
+
+    required_dom_ids = [
+        'id="orbit-canvas"',
+        'id="animated-svg-ANIMATION_1"',
+        'id="pts-badge"',
+        'id="preempt-badge"',
+        'id="kpi-drift"',
+        'id="kpi-snr"',
+        'id="kpi-sqnr"',
+        'id="kpi-krum"',
+        'id="period-slider"',
+        'id="byz-slider"',
+        'id="btn-mission-1"',
+        'id="btn-mission-2"',
+        'id="btn-mission-3"',
+        'id="btn-preempt"',
+        'id="btn-sync-rtx"',
+        'id="btn-ask-copilot"',
+        'id="copilot-model"',
+        'id="copilot-prompt"',
+        'id="mission-terminal"',
+        'id="stack-terminal"',
+    ]
+    for dom_id in required_dom_ids:
+        assert dom_id in html, f"Missing frontend DOM element: {dom_id}"
+
+    assert "q.byzantine_poisoners" in html
+    assert "data.preemption_eviction_ms" in html
+    assert "/api/scientific-game/rtx2070-la-ruche" in html
+    assert "/api/scientific-game/la-ruche-copilot" in html
+    assert 'id="btn-cohort-playtest"' in html
+    assert "/api/scientific-game/playtest-cohort" in html
+
+
+def test_multiplayer_cohort_playtest_and_sybil_defense() -> None:
+    cohort = run_multiplayer_cohort_playtest()
+    assert cohort["total_players"] == 5
+    assert cohort["honest_players_verified"] == 4
+    assert cohort["sybil_attackers_blocked"] == 1
+    assert cohort["total_cohort_scientific_pts"] == 4050 + 4050 + 2850 + 2700 + 0
+
+    lb = cohort["leaderboard"]
+    assert lb[0]["gamer_tag"] in ("Xavier_RTX2070_FR", "MatrixMagician_ROCm_Fedora")
+    assert lb[0]["total_scientific_pts"] == 4050
+    assert lb[-1]["gamer_tag"] == "SybilBot_ZeroSpend_VAC"
+    assert lb[-1]["total_scientific_pts"] == 0
+    assert lb[-1]["steam_sybil_verified"] is False
+
+    client = TestClient(create_hack_miner_fastapi_app())
+    r_cohort = client.post("/api/scientific-game/playtest-cohort")
+    assert r_cohort.status_code == 200
+    assert r_cohort.json()["total_cohort_scientific_pts"] == 13650
+
+
+
+

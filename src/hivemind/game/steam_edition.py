@@ -1264,7 +1264,9 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
     from hivemind.swarm.strategy_optimizer import StrategyOptimizerTelemetryEngine
     from hivemind.game.scientific_discovery_game import (
         HiveMindScientificGameEngine,
+        ask_la_ruche_bee_copilot_live,
         render_scientific_discovery_game_html,
+        sync_game_with_la_ruche_live,
     )
 
     pkg_info = build_free_steam_edition_package(game_report=game_report)
@@ -1715,11 +1717,50 @@ def create_hack_miner_fastapi_app(game_report: Dict[str, Any] | None = None) -> 
         gamer_tag = str(payload.get("gamer_tag", "CyberValkyrie_FR"))
         steam_id64 = str(payload.get("steam_id64", "76561198000000001"))
         trial_period = float(payload.get("trial_period_days", 11.23))
+        steps = int(payload.get("steps", 400))
+        dt = float(payload.get("dt", 0.015))
+        num_byzantine = int(payload.get("num_byzantine", 2))
+        account_spend_usd = float(payload.get("account_spend_usd", 25.0))
+        is_vac_banned = bool(payload.get("is_vac_banned", False))
         return scientific_game_engine.solve_mission(
             mission_id=mission_id,
             gamer_tag=gamer_tag,
             steam_id64=steam_id64,
             trial_period_days=trial_period,
+            steps=steps,
+            dt=dt,
+            num_byzantine=num_byzantine,
+            account_spend_usd=account_spend_usd,
+            is_vac_banned=is_vac_banned,
+        )
+
+    @app.post("/api/scientific-game/playtest-cohort", response_class=JSONResponse)
+    def post_scientific_game_playtest_cohort() -> Dict[str, Any]:
+        """Run the 5-player end-user gameplay cohort playtest and return leaderboard & telemetry."""
+        return scientific_game_engine.run_multiplayer_cohort_playtest()
+
+    @app.get("/api/scientific-game/rtx2070-la-ruche", response_class=JSONResponse)
+    def get_scientific_game_rtx2070_la_ruche(gamer_tag: str = "CyberValkyrie_FR") -> Dict[str, Any]:
+        """Probe local RTX 2070 (8 GB VRAM) hardware & sync live with HiveMind La Ruche."""
+        return sync_game_with_la_ruche_live(gamer_tag=gamer_tag)
+
+    @app.post("/api/scientific-game/la-ruche-copilot", response_class=JSONResponse)
+    def post_scientific_game_la_ruche_copilot(
+        payload: Dict[str, Any] = Body(default={}),
+    ) -> Dict[str, Any]:
+        """Query a live Specialist Bee on La Ruche or local GPU swarm and score ANSE Bee Energy."""
+        prompt = str(
+            payload.get(
+                "prompt",
+                "Write a 2nd-order Symplectic Velocity-Verlet step in Python that conserves Hamiltonian energy H.",
+            )
+        )
+        model = str(payload.get("model", "hivemind/bee-stars"))
+        gamer_tag = str(payload.get("gamer_tag", "CyberValkyrie_FR"))
+        return ask_la_ruche_bee_copilot_live(
+            prompt=prompt,
+            model=model,
+            gamer_tag=gamer_tag,
         )
 
     @app.post("/api/scientific-game/preempt", response_class=JSONResponse)
