@@ -9,7 +9,7 @@ Requires=hivemind-live-shield-user.service
 User=callensxavier_gmail_com
 WorkingDirectory=/home/callensxavier_gmail_com/hivemind-producer
 EnvironmentFile=/etc/hivemind/t4-user.env
-ExecStart=/usr/bin/python3 hivemind_producer_agent.py --gateway https://hivemind-openrouter-1003063861791.us-central1.run.app --endpoint https://34-48-48-154.sslip.io/u --model coder=qwen2.5-coder:7b-instruct --cost-per-1k 0.4 --capacity-1k 40 --execution-class t4
+ExecStart=/usr/bin/python3 hivemind_producer_agent.py --gateway https://hivemind-openrouter-1003063861791.us-central1.run.app --endpoint https://34-48-48-154.sslip.io/u --model coder=qwen2.5-coder:7b-instruct --model bee-stars=hivemind-bee-stars --cost-per-1k 0.4 --capacity-1k 40 --execution-class t4
 Restart=always
 RestartSec=10
 

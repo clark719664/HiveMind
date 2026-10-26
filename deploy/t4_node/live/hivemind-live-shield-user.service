@@ -9,7 +9,7 @@ Requires=ollama.service
 User=callensxavier_gmail_com
 WorkingDirectory=/home/callensxavier_gmail_com/hivemind-producer
 EnvironmentFile=/etc/hivemind/t4-user.env
-ExecStart=/usr/bin/python3 hivemind_producer_shield.py --upstream http://127.0.0.1:11434 --host 127.0.0.1 --port 8790 --max-concurrent 2 --allow-model qwen2.5-coder:7b-instruct
+ExecStart=/usr/bin/python3 hivemind_producer_shield.py --upstream http://127.0.0.1:11434 --host 127.0.0.1 --port 8790 --max-concurrent 2 --allow-model qwen2.5-coder:7b-instruct --route hivemind-bee-stars=http://127.0.0.1:8294
 Restart=on-failure
 RestartSec=5
 
