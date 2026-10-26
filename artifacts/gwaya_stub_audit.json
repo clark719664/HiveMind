@@ -1,7 +1,7 @@
 {
   "schema_version": "hivemind-gwaya-stub-audit/v1.0",
   "auditor": "gwaya.ast_audit.ZeroStubAudit (GWAYA-GwenLayaOpenModel)",
-  "files_audited": 173,
+  "files_audited": 176,
   "files_failed": [],
   "all_passed": true,
   "results": [
@@ -474,6 +474,15 @@
       }
     },
     {
+      "file": "src/hivemind/game/scientific_discovery_game.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "src/hivemind/game/steam_edition.py",
       "passed": true,
       "detail": {
@@ -771,6 +780,15 @@
       }
     },
     {
+      "file": "src/hivemind/swarm/crowdgpt_bridge.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
       "file": "src/hivemind/swarm/decoupled_diloco.py",
       "passed": true,
       "detail": {
@@ -907,6 +925,15 @@
     },
     {
       "file": "src/hivemind/swarm/wan_fault_benchmark.py",
+      "passed": true,
+      "detail": {
+        "is_clean": true,
+        "violations": [],
+        "penalty_energy": 0.0
+      }
+    },
+    {
+      "file": "src/hivemind/verification/bee_energy.py",
       "passed": true,
       "detail": {
         "is_clean": true,
@@ -1563,6 +1590,6 @@
       }
     }
   ],
-  "written_utc": "2026-10-26T03:54:07Z",
-  "receipt_sha256": "bd0bba3e413a1a31b9880a0870d5ab45b529e23aec63bfebc8b4a9ace4cf3d0e"
+  "written_utc": "2026-10-26T13:22:17Z",
+  "receipt_sha256": "28f4342225921dbf789d07068e8baf2637f70f82cbc6eeda6c47d566074421a6"
 }
