@@ -22,6 +22,16 @@ committed() {  # print the committed content of a repo-relative path; warn if th
   "${GIT[@]}" show "HEAD:$rel"
 }
 
+# Make a silent rewrite FAIL LOUDLY: the control-plane files are immutable (chattr +i) between installs. Root can clear the flag on purpose (chattr -i), which then shows
+# up in the sudo log; a script that just overwrites the file gets "Operation not permitted". The installer clears the flags before writing and restores them at the end.
+PROTECT_FILES=("$OPT/scripts/t4_governor.py" "$OPT/scripts/t4_monitor.py" "$OPT/scripts/t4_workgen.py" "$OPT/expected_governor_args.txt" "$OPT/expected_code_hashes.txt"
+               "$OPT/POLICY_READ_ME.txt" /etc/systemd/system/hivemind-t4-governor.service /etc/systemd/system/hivemind-t4-monitor.service /etc/systemd/system/hivemind-t4-workgen.service)
+# empty drop-in directories, made immutable: nothing can be added to them, so `mkdir -p …service.d && tee …/override.conf` fails
+PROTECT_DIRS=(/etc/systemd/system/hivemind-t4-governor.service.d /etc/systemd/system/hivemind-t4-monitor.service.d /etc/systemd/system/hivemind-t4-workgen.service.d)
+unlock() { for f in "${PROTECT_FILES[@]}" "${PROTECT_DIRS[@]}" "$OPT"/bin/*.sh; do if [ -e "$f" ]; then chattr -i "$f" 2>/dev/null || true; fi; done; }
+lock() { for f in "${PROTECT_FILES[@]}" "${PROTECT_DIRS[@]}" "$OPT"/bin/*.sh; do if [ -e "$f" ]; then chattr +i "$f" 2>/dev/null || echo "NOTE: could not make $f immutable" >&2; fi; done; }
+unlock
+
 install -d -o "$USER_NAME" -g "$USER_NAME" "$OPT" "$OPT/bin" "$OPT/scripts" "$OPT/src"
 rsync -a --delete --exclude '__pycache__' "$REPO/src/hivemind/" "$OPT/src/hivemind/"
 if [ -n "$("${GIT[@]}" status --porcelain -- src 2>/dev/null)" ]; then
@@ -52,7 +62,22 @@ done
 "${GIT[@]}" show "HEAD:deploy/t4_node/node/hivemind-t4-governor.service" | grep -m1 '^ExecStart=' | sed -E 's/.*t4_governor\.py //' > "$OPT/expected_governor_args.txt"
 ( cd "$OPT" && sha256sum scripts/*.py bin/*.sh ) > "$OPT/expected_code_hashes.txt"
 chown "$USER_NAME:$USER_NAME" "$OPT/expected_governor_args.txt" "$OPT/expected_code_hashes.txt"
-overrides="$(ls -d /etc/systemd/system/hivemind-*.service.d 2>/dev/null || true)"
+cat > "$OPT/POLICY_READ_ME.txt" <<'POLICY'
+HiveMind T4 node: the control-plane files here are protected ON PURPOSE.
+
+Owner's decision (2026-10-26): the governor's policy - resume training only after 1800 s without a request inside the night window
+(22:00-07:00 Europe/Paris), 7200 s by day, and at least 4300 MiB of free VRAM - changes ONLY through a reviewed change to the repo
+(deploy/t4_node/node/hivemind-t4-governor.service and scripts/t4_governor.py), followed by `sudo bash deploy/t4_node/install_node.sh`.
+The "intense-moe" mode (5-10 s) is not wanted. Earlier unauthorised edits (a systemd drop-in at 22:08Z on 25 Oct, code edits at 02:08Z and
+03:09Z on 26 Oct) were reverted; they are in /var/log/auth.log and /opt/hivemind/t4/removed-overrides/.
+
+These files are immutable (chattr +i) so that an edit fails loudly instead of silently changing the policy. The installer clears and restores the
+flag. If you need a different policy, ask the owner and propose the change in the repo; do not remove the flag by hand.
+POLICY
+chown "$USER_NAME:$USER_NAME" "$OPT/POLICY_READ_ME.txt"
+for d in "${PROTECT_DIRS[@]}"; do install -d -m 0755 "$d"; done
+# real drop-in files only (the protected, empty directories are expected)
+overrides="$(find /etc/systemd/system -path '*/hivemind-*.service.d/*' -type f 2>/dev/null || true)"
 if [ -n "$overrides" ]; then
   echo "WARNING: systemd drop-in overrides exist and take precedence over the unit files this installer writes:"
   echo "$overrides"
@@ -62,4 +87,5 @@ for u in hivemind-boinc-db hivemind-boinc-apache hivemind-boinc-daemons hivemind
          hivemind-live-bee-llama hivemind-live-shield-bee hivemind-live-agent-bee hivemind-live-shield-coder hivemind-live-agent-coder; do
   systemctl enable "$u.service" >/dev/null 2>&1 && echo "enabled $u" || echo "FAILED to enable $u"
 done
-echo "installed to $OPT from committed content; nothing was started"
+lock
+echo "installed to $OPT from committed content (control-plane files immutable); nothing was started"
