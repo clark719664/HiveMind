@@ -62,7 +62,7 @@ class MoEValidator:
             states = torch.load(states_path, map_location="cpu")["states"]
         except Exception as exc:
             return _reject(wu, host, f"unreadable upload: {exc}")
-        if meta.get("wu_id") != wu or meta.get("app") != "hivemind_qlora_moe":
+        if meta.get("wu_id") != wu or meta.get("app") != spec.get("app", "hivemind_qlora_moe"):
             return _reject(wu, host, "result is not for this workunit/app")
         k_total = int(spec["inner_steps"]) // int(spec["segment_steps"])
         if len(states) != k_total + 1 or [state_sha(s) for s in states] != meta.get("state_sha256"):

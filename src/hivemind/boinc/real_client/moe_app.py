@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from hivemind.boinc.real_client.app import boinc_finish, class_fingerprint, resolve_filename
+from hivemind.boinc.real_client.moe_profiles import TRAIN_APPS
 
 # hivemind.config.ensure_local_drive_caches() (run by importing the training code) re-points HF_HOME/HF_HUB_CACHE
 # at a repo-local .cache, which hides the models cached in the user's real cache. Capture the real path first and
@@ -138,7 +139,7 @@ def train(
     wall = time.time() - t0
     tokens_seen = steps * int(spec["micro_batch"]) * len(spec["train_tokens"][0])
     meta = {
-        "app": TRAIN_APP, "app_version": APP_VERSION, "wu_id": spec["wu_id"], "model_id": spec["model_id"],
+        "app": spec.get("app", TRAIN_APP), "app_version": APP_VERSION, "wu_id": spec["wu_id"], "model_id": spec["model_id"],
         "device_name": torch.cuda.get_device_name(0), "fingerprint": class_fingerprint("cuda", "fp16"),
         "segments": k_total, "segment_steps": seg, "resumed_from_segment": resumed,
         "state_sha256": [state_sha(s) for s in states], "domain": spec.get("domain", "general"),
@@ -175,6 +176,19 @@ def infer(spec: dict[str, Any], adapter_state: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def gpu_gate(spec: dict[str, Any], mode: str, have_mb: int) -> str | None:
+    """Why this host must not run the workunit, or None. The scheduler should never send a big workunit to a small GPU, but a
+    mis-registered host must fail loudly rather than run out of memory halfway through."""
+    if mode != "train":
+        return None
+    if spec.get("app", TRAIN_APP) not in TRAIN_APPS:
+        return f"unknown training app {spec.get('app')!r}"
+    need_mb = int(spec.get("min_gpu_ram_mb", 0))
+    if have_mb < need_mb:
+        return f"workunit needs a GPU with {need_mb} MiB, this one has {have_mb} MiB"
+    return None
+
+
 def main(argv: list[str] | None = None) -> int:
     import torch
 
@@ -186,6 +200,10 @@ def main(argv: list[str] | None = None) -> int:
         print("no CUDA device visible to the app", file=sys.stderr)
         return 2
     spec = json.loads(resolve_filename("in.json").read_text())
+    refusal = gpu_gate(spec, mode, torch.cuda.get_device_properties(0).total_memory // 2**20)
+    if refusal:
+        print(refusal, file=sys.stderr)
+        return 2
     out_json = resolve_filename("out.json")
     if mode == "train":
         start_state = None
