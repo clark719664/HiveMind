@@ -63,7 +63,7 @@ def test_t4_reader_summarises_governor_telemetry(tmp_path: Path) -> None:
             {"event": "snapshot", "state": "training", "t": 1100.0},
             {"event": "yield", "in_flight": 1, "set_never_ok": True, "gpu_freed_ms": 840, "yields": 1, "t": 1200.0},
             {"event": "yield", "in_flight": 1, "set_never_ok": False, "gpu_freed_ms": None, "yields": 2, "t": 1300.0},
-            {"event": "yield", "trigger": "nginx", "had_boinc_gpu_task": True, "gpu_freed_ms": 7129, "yields": 3, "t": 1250.0},
+            {"event": "yield", "trigger": "nginx", "had_boinc_gpu_task": True, "gpu_freed_ms": 7129, "ended_by_governor": True, "yields": 3, "t": 1250.0},
             {"event": "yield", "trigger": "gpu", "had_boinc_gpu_task": False, "gpu_freed_ms": 60, "yields": 4, "t": 1260.0},
             {"event": "snapshot", "state": "serving", "t": 1201.0}]
     (tmp_path / "governor.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\nnot json\n")
@@ -73,6 +73,7 @@ def test_t4_reader_summarises_governor_telemetry(tmp_path: Path) -> None:
     assert summary["snapshot_states"] == {"training": 1, "serving": 1}
     assert summary["yield_ms"] == [840, 7129, 60]
     assert summary["real_yield_ms"] == [7129]
+    assert summary["real_yield_ended_by_governor"] == [True]
     assert summary["units_inactive"] == ["b"]
     assert summary["hold_file"] is True
     assert summary["qlora_progress"] == {"assimilated": 3}
