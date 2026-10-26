@@ -3016,6 +3016,31 @@ python scripts/hivemind_connect.py snippet continue --model coder</pre>
             <div style="background:#040711;border:1px solid #1e293b;border-radius:4px;padding:6px 8px;font-family:monospace;font-size:0.72rem;color:#38bdf8;min-height:90px;max-height:120px;overflow-y:auto;white-space:pre-wrap;" id="quick-router-output">Click 'Test Live Query' to benchmark OpenRouter gateway inference across the community swarm...</div>
           </div>
         </div>
+
+        <!-- OVERNIGHT REAL-LIFE GO-LIVE & BOINC QLORA-MOE TELEMETRY (25-26 OCT 2026) -->
+        <div style="background:rgba(5,8,17,0.78);border:1px solid rgba(16,185,129,0.4);border-radius:6px;padding:12px;margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+            <h4 style="margin:0;color:#34d399;font-size:0.85rem;text-transform:uppercase;">&#x1F319; European Night Real-Life Telemetry &amp; BOINC QLoRA-MoE Progress (25&ndash;26 Oct 2026)</h4>
+            <span class="pill-green" style="font-size:0.72rem;">15/15 Live Probes PASS &bull; 100 BOINC WUs &bull; 0 HTTP 402/5xx</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;font-size:0.76rem;color:#cbd5e1;margin-bottom:8px;">
+            <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(56,189,248,0.25);border-radius:5px;padding:8px;">
+              <strong style="color:#38bdf8;">Dual-GPU Fleet &amp; Overnight Traffic</strong><br/>
+              <strong>Tesla T4 (16 GB) + RTX 2070 (8 GB)</strong> (4 active producers, 7 live models + <code>hivemind/crowd-v1</code> pre-wired). Overnight (20:00Z&ndash;08:00Z): <strong>4,474 HTTP reqs</strong>, <strong>133 chat completions</strong> (router p50 <code>198.1 ms</code>, p95 <code>799.6 ms</code>), <strong>0 HTTP 402</strong>, <strong>0 HTTP 5xx</strong>.
+            </div>
+            <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(251,191,36,0.25);border-radius:5px;padding:8px;">
+              <strong style="color:#fbbf24;">BOINC Chained QLoRA-MoE (98 hmq_* Rounds)</strong><br/>
+              <strong>100 assimilated workunits</strong> (<code>5,632.11</code> verified Cobblestones, <code>0.0</code> replay drift, <code>3,409 MiB</code> peak VRAM, mean <code>105 s/round</code>). Strict loss ratchet accepted <strong>20 improvements</strong> and held <strong>78 rounds</strong> at head <code>hmq_00092</code> (SHA <code>e91e0ec3</code>).
+            </div>
+            <div style="background:rgba(15,23,42,0.7);border:1px solid rgba(52,211,153,0.25);border-radius:5px;padding:8px;">
+              <strong style="color:#34d399;">6-Domain Held-Out NLL: 2.2705 &rarr; 2.1380 (-5.8%)</strong><br/>
+              <code>math</code>: 1.6440 &rarr; <strong>1.3949 (-15.1%)</strong> | <code>biomed</code>: 2.5017 &rarr; <strong>2.2089 (-11.7%)</strong> | <code>general</code>: 2.3230 &rarr; <strong>2.1177 (-8.8%)</strong> | <code>french</code>: -1.3% | <code>news</code>: -0.8% | <code>edu_web</code>: ~0.0%.
+            </div>
+          </div>
+          <div style="font-size:0.71rem;color:#94a3b8;font-family:monospace;line-height:1.45;">
+            <strong>Caveats (<code>scripts/t4_training_report.py</code>):</strong> Baseline (<code>2.2705</code>) is before <code>hmq_00002</code> (first 6-domain round). Loss plateaued after ~30 rounds (last-20 std <code>0.0055</code>; rounds 69&ndash;98 target delta <code>+0.0006</code>). Fixed held-out sets (8 &times; 128 tokens/domain); head <code>hmq_00092</code> is best-of-97 on those sets; BOINC <code>granite-3.1-1b-a400m-base</code> LoRA is evaluated offline (not yet served by <code>/v1/chat/completions</code>). Governor recorded 130 yields (latest mid-BOINC-task kill-on-yield: <code>1,135 ms</code> &amp; <code>1,133 ms</code>).
+          </div>
+        </div>
       </section>
     </div>
 
