@@ -17,7 +17,9 @@ from hivemind.boinc.workunit import sign_shard_bytes
 
 DEFAULT_MODEL = "ibm-granite/granite-3.1-1b-a400m-base"
 HUB = Path(os.path.expanduser("~/.cache/huggingface/hub"))
-DOMAIN_ORDER = ["general", "french", "edu_web", "news", "biomed", "math"]
+DOMAIN_ORDER = ["general", "french", "edu_web", "news", "biomed", "math",
+                "science", "medqa", "legal", "finance", "arxiv", "code", "cyber", "physics", "chemistry", "olympiad_math"]
+# the first six are the original cycle; new domains are only ever appended, so a recorded round still names the same domain
 
 # domain -> (dataset dir, train file glob, eval file glob, text columns, rows per training shard, eval start (negative = from the end))
 _SOURCES: dict[str, dict[str, Any]] = {
@@ -27,11 +29,28 @@ _SOURCES: dict[str, dict[str, Any]] = {
     "news": {"ds": "abisee--cnn_dailymail", "train": "3.0.0/validation-*.parquet", "eval": "3.0.0/test-*.parquet", "cols": ["article"], "rows": 40, "eval_start": 0},
     "biomed": {"ds": "ccdv--pubmed-summarization", "train": "section/validation-*.parquet", "eval": "section/test-*.parquet", "cols": ["article"], "rows": 12, "eval_start": 0},
     "math": {"ds": "openai--gsm8k", "train": "main/train-*.parquet", "eval": "main/test-*.parquet", "cols": ["question", "answer"], "rows": 120, "eval_start": 0},
+    # added domains: files come from scripts/moe_fetch_domains.py (pinned commits). Single-file sources hold out their last 200 rows.
+    "science": {"ds": "allenai--sciq", "train": "data/train-*.parquet", "eval": "data/test-*.parquet", "cols": ["support", "question", "correct_answer"], "rows": 300, "eval_start": 0},
+    "medqa": {"ds": "openlifescienceai--medmcqa", "train": "data/train-*.parquet", "eval": "data/test-*.parquet", "cols": ["question", "exp"], "rows": 200, "eval_start": 0},
+    "legal": {"ds": "lex_glue", "train": "case_hold/train-*.parquet", "eval": "case_hold/test-*.parquet", "cols": ["context"], "rows": 300, "eval_start": 0},
+    "finance": {"ds": "FinGPT--fingpt-fiqa_qa", "train": "data/train-*.parquet", "eval": "data/train-*.parquet", "cols": ["input", "output"], "rows": 150, "eval_start": -200},
+    "arxiv": {"ds": "ccdv--arxiv-summarization", "train": "document/validation-*.parquet", "eval": "document/test-*.parquet", "cols": ["article"], "rows": 6, "eval_start": 0},
+    "code": {"ds": "flytech--python-codes-25k", "train": "default/train/0000.parquet", "eval": "default/train/0000.parquet", "cols": ["instruction", "output"], "rows": 100, "eval_start": -200},
+    "cyber": {"ds": "CyberNative--Code_Vulnerability_Security_DPO", "train": "default/train/0000.parquet", "eval": "default/train/0000.parquet", "cols": ["question", "chosen"], "rows": 100, "eval_start": -200},
+    "physics": {"ds": "camel-ai--physics", "train": "default/train/0000.parquet", "eval": "default/train/0000.parquet", "cols": ["message_1", "message_2"], "rows": 60, "eval_start": -200},
+    "chemistry": {"ds": "camel-ai--chemistry", "train": "default/train/0000.parquet", "eval": "default/train/0000.parquet", "cols": ["message_1", "message_2"], "rows": 60, "eval_start": -200},
+    "olympiad_math": {"ds": "AI-MO--NuminaMath-CoT", "train": "data/train-00000-of-00005.parquet", "eval": "data/test-*.parquet", "cols": ["problem", "solution"], "rows": 100, "eval_start": 0},
 }
 
 
 def _file(ds: str, pattern: str) -> Path:
     return sorted((HUB / f"datasets--{ds}" / "snapshots").glob(f"*/{pattern}"))[0]
+
+
+def _total_rows(path: Path) -> int:
+    import pyarrow.parquet as pq
+
+    return int(pq.ParquetFile(path).metadata.num_rows)
 
 
 def _rows(path: Path, cols: list[str], start: int, n: int) -> list[dict[str, Any]]:
@@ -68,13 +87,18 @@ def _ids(tok, docs: list[str], need: int, max_doc_tokens: int = 3000) -> list[in
 
 
 def _docs(rows: list[dict[str, Any]], cols: list[str]) -> list[str]:
-    return ["\n".join(str(r[c]) for c in cols) for r in rows]
+    return ["\n".join(str(r[c]) for c in cols if r.get(c) is not None) for r in rows]  # a null column (e.g. medmcqa has no explanation) is skipped, not written as "None"
 
 
 def domain_ids(tok, domain: str, role: str, shard_index: int, need: int) -> list[int]:
     s = _SOURCES[domain]
     if role == "train":
-        rows = _rows(_file(s["ds"], s["train"]), s["cols"], shard_index * s["rows"], s["rows"])
+        path = _file(s["ds"], s["train"])
+        usable = _total_rows(path)
+        if s["eval_start"] < 0 and path == _file(s["ds"], s["eval"]):
+            usable += s["eval_start"]  # train and eval share a file: the held-out tail is never a training shard
+        shard_index %= max(usable // s["rows"], 1)  # a cursor past the last whole shard wraps instead of reading held-out rows
+        rows = _rows(path, s["cols"], shard_index * s["rows"], s["rows"])
     else:
         rows = _rows(_file(s["ds"], s["eval"]), s["cols"], s["eval_start"], 200)
     return _ids(tok, _docs(rows, s["cols"]), need)
