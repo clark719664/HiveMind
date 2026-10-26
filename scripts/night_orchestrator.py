@@ -41,6 +41,7 @@ SUBJECTS = {
 }
 EVAL_PACKS = ["maths", "physics_transfer", "astro_transfer", "exoplanet", "stars", "cyber"]
 CONTROL_CAP_H, CONVERT_MIN, SERVE_MIN, STAGE_SLACK_MIN = 0.25, 6, 8, 5
+CKPT_EVERY = 10  # optimizer steps between resumable checkpoints: the GPU host is a Spot VM that can be stopped mid-run
 # evaluation time budgets in minutes (estimates x ~1.6; real timings are written to state.json), and items used for the control model
 EVAL_MIN = {"maths": 40, "physics_transfer": 25, "astro_transfer": 15, "exoplanet": 25, "stars": 15, "cyber": 25}
 CONTROL_LIMIT = {"maths": 100}
@@ -80,7 +81,7 @@ class Plan:
 
 def train_cmd(pairs: str, out: str, epochs: int, cap_h: float) -> str:
     return (f"cd {D} && HF_HOME={D}/hf HF_HUB_OFFLINE=1 ./venv/bin/python e17_train.py --base {BASE_HF} --pairs {pairs} --out {out} "
-            f"--epochs {epochs} --lr 1e-4 --accum 16 --warmup 10 --max-len 768 --seed 17 --max-hours {cap_h}")
+            f"--epochs {epochs} --lr 1e-4 --accum 16 --warmup 10 --max-len 768 --seed 17 --max-hours {cap_h} --ckpt-every {CKPT_EVERY}")
 
 
 def convert_cmd(adapter: str) -> str:
