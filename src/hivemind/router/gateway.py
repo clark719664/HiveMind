@@ -49,6 +49,7 @@ from hivemind.router.accounts import (
     ProducerRecord,
     ReservedHandle,
     RouterStore,
+    TooManyEndpoints,
     TooManyHolds,
     UnknownAccount,
 )
@@ -708,12 +709,21 @@ def create_router_app(
         by_id = {r.account_id: r for r in records}
         weights = {a: clamped(by_id[a]) for a in eq.active_producers if a in by_id}
         order = rotation.order(model_id, weights)
+        candidates: list[ProducerRecord] = []
+        for a in order:
+            servers = by_id[a].per_endpoint()
+            if len(servers) > 1:  # one account, several servers: spread load over them by capacity, keep the rest as fallbacks
+                by_url = {s.endpoint_url: s for s in servers}
+                shares = {u: min(s.capacity_1k, capacity_clamp) for u, s in by_url.items()}
+                candidates.extend(by_url[u] for u in rotation.order(f"{model_id}|{a}", shares))
+            else:
+                candidates.append(servers[0])
         return _Plan(
             request_id=request_id,
             model_id=model_id,
             price_per_1k=eq.price_per_1k,
             mechanism=eq.mechanism,
-            candidates=tuple(by_id[a] for a in order),
+            candidates=tuple(candidates),
             prompt_bytes=prompt_bytes,
             max_tokens=max_tokens,
         )
@@ -1065,11 +1075,14 @@ def create_router_app(
             if not _MODEL_ID_RE.match(public) or public == AUTO_MODEL:
                 raise RouterError(400, f"Invalid model id: {entry.id!r}", "invalid_request_error", "invalid_model_id")
             models.append({"id": public, "local_name": entry.local_name})
-        store.upsert_producer(
-            account.account_id, payload.endpoint_url, models, payload.cost_per_1k, payload.capacity_1k, payload.execution_class,
-            now_utc=clock(), endpoint_token=payload.endpoint_token,
-        )
-        return {"account_id": account.account_id, "status": "live", "models": [m["id"] for m in models], "ttl_s": PRODUCER_TTL_S}
+        try:
+            endpoints = store.upsert_producer(
+                account.account_id, payload.endpoint_url, models, payload.cost_per_1k, payload.capacity_1k, payload.execution_class,
+                now_utc=clock(), endpoint_token=payload.endpoint_token,
+            )
+        except TooManyEndpoints as exc:
+            raise RouterError(400, str(exc), "invalid_request_error", "too_many_endpoints") from None
+        return {"account_id": account.account_id, "status": "live", "models": [m["id"] for m in models], "ttl_s": PRODUCER_TTL_S, "endpoints": endpoints}
 
     @app.get("/v1/hivemind/market")
     def market(request: Request, model: str = AUTO_MODEL) -> dict[str, Any]:

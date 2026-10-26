@@ -24,7 +24,7 @@ import threading
 import time
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -76,6 +76,17 @@ CREATE TABLE IF NOT EXISTS producers(
     execution_class TEXT NOT NULL,
     endpoint_token TEXT
 );
+CREATE TABLE IF NOT EXISTS producer_endpoints(
+    account_id TEXT NOT NULL,
+    endpoint_url TEXT NOT NULL,
+    models_json TEXT NOT NULL,
+    cost_per_1k REAL NOT NULL,
+    capacity_1k REAL NOT NULL,
+    last_heartbeat_utc REAL NOT NULL,
+    execution_class TEXT NOT NULL,
+    endpoint_token TEXT,
+    PRIMARY KEY(account_id, endpoint_url)
+);
 CREATE TABLE IF NOT EXISTS usage(
     request_id TEXT PRIMARY KEY,
     consumer_id TEXT NOT NULL,
@@ -109,6 +120,14 @@ class TooManyHolds(Exception):
 
 class DuplicateRequest(ValueError):
     """Raised when a ``request_id`` has already been settled."""
+
+
+class TooManyEndpoints(ValueError):
+    """Raised by :meth:`RouterStore.upsert_producer` when an account already advertises ``MAX_ENDPOINTS_PER_ACCOUNT`` endpoints."""
+
+
+MAX_ENDPOINTS_PER_ACCOUNT = 8  # one account may run several GPUs / servers; bounded so a heartbeat flood cannot grow the table without limit
+STALE_ENDPOINT_PURGE_S = 86_400.0  # an endpoint silent for a day is forgotten (it left the pool long ago) and frees its slot
 
 
 # Handles of the form ``<provider>.<keyed hash>`` belong to identity-provider sign-ins; nobody can register one by hand,
@@ -156,10 +175,17 @@ class ProducerRecord:
     last_heartbeat_utc: float
     execution_class: str
     endpoint_token: str | None = None  # secret the gateway presents to the producer's own server; never serialised
+    # When an account advertises several live endpoints for a model, the record is the ACCOUNT's offer (capacity summed, cost the capacity-weighted mean,
+    # the market sees one producer) and ``endpoints`` holds one single-endpoint record per server for dispatch. Empty for a one-endpoint account.
+    endpoints: tuple[ProducerRecord, ...] = field(default=(), compare=False)
 
     def __repr__(self) -> str:
         return (f"ProducerRecord(account_id={self.account_id!r}, endpoint_url={self.endpoint_url!r}, models={self.models!r}, "
                 f"cost_per_1k={self.cost_per_1k!r}, capacity_1k={self.capacity_1k!r}, execution_class={self.execution_class!r})")
+
+    def per_endpoint(self) -> tuple[ProducerRecord, ...]:
+        """The servers to try for this account: itself when it has one, otherwise one record per endpoint."""
+        return self.endpoints or (self,)
 
     def local_name(self, model_id: str) -> str | None:
         """Return the producer's local name for ``model_id`` or ``None`` if it does not serve it."""
@@ -222,6 +248,12 @@ class RouterStore:
             columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(producers)")}
             if "endpoint_token" not in columns:
                 self._conn.execute("ALTER TABLE producers ADD COLUMN endpoint_token TEXT")
+            # One account may advertise several endpoints (several GPUs / servers): rows of the old one-per-account table move across once.
+            self._conn.execute(
+                "INSERT OR IGNORE INTO producer_endpoints(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
+                "execution_class, endpoint_token) SELECT account_id, rtrim(endpoint_url, '/'), models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
+                "execution_class, endpoint_token FROM producers"
+            )
             for sys_id in _ESCROW_ACCOUNTS:
                 self._conn.execute(
                     "INSERT OR IGNORE INTO accounts VALUES (?,?,?,?,?,?)",
@@ -609,8 +641,12 @@ class RouterStore:
         execution_class: str = "unknown",
         now_utc: float | None = None,
         endpoint_token: str | None = None,
-    ) -> None:
-        """Insert or refresh a producer's advertisement; doubles as the heartbeat.
+    ) -> int:
+        """Insert or refresh ONE endpoint of a producer account; doubles as the heartbeat. Returns how many endpoints the account now advertises.
+
+        An account may advertise several endpoints (several GPUs or servers, each with its own models, cost and capacity): endpoints are keyed
+        by ``(account, endpoint_url)``, so a heartbeat refreshes only its own endpoint and never evicts the others. At most
+        ``MAX_ENDPOINTS_PER_ACCOUNT`` per account (``TooManyEndpoints``); endpoints silent for a day are forgotten first.
 
         ``endpoint_token`` is the bearer secret the gateway presents to the producer's own server so that only the
         gateway can use it; a heartbeat without one clears any earlier token.
@@ -627,27 +663,37 @@ class RouterStore:
                 raise UnknownAccount(account_id)
             if str(row["role"]) not in PRODUCER_ROLES:
                 raise ValueError("account role cannot produce")
+            url = endpoint_url.rstrip("/")
+            conn.execute("DELETE FROM producer_endpoints WHERE account_id=? AND last_heartbeat_utc < ?", (account_id, stamp - STALE_ENDPOINT_PURGE_S))
+            known = {str(r["endpoint_url"]) for r in conn.execute("SELECT endpoint_url FROM producer_endpoints WHERE account_id=?", (account_id,))}
+            if url not in known and len(known) >= MAX_ENDPOINTS_PER_ACCOUNT:
+                raise TooManyEndpoints(f"an account may advertise at most {MAX_ENDPOINTS_PER_ACCOUNT} endpoints")
             conn.execute(
-                "INSERT INTO producers(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
-                "execution_class, endpoint_token) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(account_id) DO UPDATE SET "
-                "endpoint_url=excluded.endpoint_url, models_json=excluded.models_json, cost_per_1k=excluded.cost_per_1k, "
+                "INSERT INTO producer_endpoints(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
+                "execution_class, endpoint_token) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(account_id, endpoint_url) DO UPDATE SET "
+                "models_json=excluded.models_json, cost_per_1k=excluded.cost_per_1k, "
                 "capacity_1k=excluded.capacity_1k, last_heartbeat_utc=excluded.last_heartbeat_utc, "
                 "execution_class=excluded.execution_class, endpoint_token=excluded.endpoint_token",
-                (account_id, endpoint_url, json.dumps(pairs, sort_keys=True), cost, capacity, stamp, execution_class, endpoint_token),
+                (account_id, url, json.dumps(pairs, sort_keys=True), cost, capacity, stamp, execution_class, endpoint_token),
             )
+            return len(known | {url})
 
     def active_producers(self, model_id: str, now_utc: float, ttl_s: float = 120) -> list[ProducerRecord]:
-        """Producers serving ``model_id`` whose last heartbeat is within ``ttl_s`` seconds of ``now_utc``."""
+        """One record per producer ACCOUNT serving ``model_id`` with at least one endpoint whose heartbeat is within ``ttl_s`` seconds of ``now_utc``.
+
+        An account with several live endpoints for the model is one market participant: its record carries the summed capacity and the
+        capacity-weighted mean cost, and ``endpoints`` lists the single-endpoint records the gateway dispatches to.
+        """
         with self._lock:
             rows = self._conn.execute(
-                "SELECT * FROM producers WHERE last_heartbeat_utc >= ? ORDER BY account_id", (now_utc - ttl_s,)
+                "SELECT * FROM producer_endpoints WHERE last_heartbeat_utc >= ? ORDER BY account_id, endpoint_url", (now_utc - ttl_s,)
             ).fetchall()
-        out: list[ProducerRecord] = []
+        by_account: dict[str, list[ProducerRecord]] = {}
         for row in rows:
             models = tuple((str(m["id"]), str(m["local_name"])) for m in json.loads(str(row["models_json"])))
             if all(public != model_id for public, _ in models):
                 continue
-            out.append(
+            by_account.setdefault(str(row["account_id"]), []).append(
                 ProducerRecord(
                     account_id=str(row["account_id"]),
                     endpoint_url=str(row["endpoint_url"]),
@@ -659,13 +705,36 @@ class RouterStore:
                     endpoint_token=None if row["endpoint_token"] is None else str(row["endpoint_token"]),
                 )
             )
+        out: list[ProducerRecord] = []
+        for account_id in sorted(by_account):
+            servers = by_account[account_id]
+            if len(servers) == 1:
+                out.append(servers[0])
+                continue
+            capacity = math.fsum(s.capacity_1k for s in servers)
+            cost = math.fsum(s.cost_per_1k * s.capacity_1k for s in servers) / capacity if capacity > 0.0 else min(s.cost_per_1k for s in servers)
+            classes = {s.execution_class for s in servers}
+            first = servers[0]
+            out.append(
+                ProducerRecord(
+                    account_id=account_id,
+                    endpoint_url=first.endpoint_url,
+                    models=first.models,
+                    cost_per_1k=cost,
+                    capacity_1k=capacity,
+                    last_heartbeat_utc=max(s.last_heartbeat_utc for s in servers),
+                    execution_class=first.execution_class if len(classes) == 1 else "mixed",
+                    endpoint_token=first.endpoint_token,
+                    endpoints=tuple(servers),
+                )
+            )
         return out
 
     def live_models(self, now_utc: float, ttl_s: float = 120) -> list[str]:
         """Sorted public model ids served by at least one producer whose heartbeat is within ``ttl_s`` seconds."""
         with self._lock:
             rows = self._conn.execute(
-                "SELECT models_json FROM producers WHERE last_heartbeat_utc >= ?", (now_utc - ttl_s,)
+                "SELECT models_json FROM producer_endpoints WHERE last_heartbeat_utc >= ?", (now_utc - ttl_s,)
             ).fetchall()
         found: set[str] = set()
         for row in rows:
