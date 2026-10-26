@@ -77,3 +77,26 @@ def test_t4_reader_summarises_governor_telemetry(tmp_path: Path) -> None:
     assert summary["units_inactive"] == ["b"]
     assert summary["hold_file"] is True
     assert summary["qlora_progress"] == {"assimilated": 3}
+
+
+def test_monitor_reads_real_and_test_users_from_the_router_admin_endpoint() -> None:
+    """Against the real router app: the monitor reports a flagged account under 'test' and refuses without the admin key."""
+    import hashlib
+    import hmac
+
+    from fastapi.testclient import TestClient
+
+    from hivemind.router import RouterStore, create_router_app
+
+    secret, admin_key = b"m" * 32, "monitor-admin-key"
+    app = create_router_app(RouterStore(":memory:", secret), admin_key_hash=hmac.new(secret, admin_key.encode(), hashlib.sha256).hexdigest())
+    client = TestClient(app)
+    client.post("/v1/hivemind/register", json={"handle": "real-one", "role": "consumer"})
+    client.post("/v1/hivemind/register", headers={"X-Admin-Key": admin_key}, json={"handle": "probe-one", "role": "consumer", "test": True})
+
+    counts = monitor.user_counts(client, "http://testserver", admin_key, 3600.0)
+    refused = monitor.user_counts(client, "http://testserver", "wrong-key", 3600.0)
+
+    assert counts["real"]["total"] == 1 and counts["test"]["total"] == 1
+    assert counts["real"]["created"] == 1 and counts["test"]["created"] == 1
+    assert refused == {"error": "HTTP 403"}

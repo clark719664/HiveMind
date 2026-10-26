@@ -11,6 +11,9 @@ Two parts, each written as one JSON line to ``--out``:
    checker is first run on a known-wrong answer and must reject it, or the probe run is marked INVALID. An unknown model
    must be refused (404) and a request without a key must get 401.
 
+With ``--admin-key-file`` the record also gets ``users``: real and test accounts counted apart (total, created and active in the window),
+read from the router's admin endpoint because request logs cannot tell a test account from a real one.
+
 Exit status: 0 when every probe passes, 1 when a probe fails, 2 when a checker control fails (the run proves nothing).
 """
 
@@ -134,6 +137,14 @@ def traffic_summary(since: datetime) -> dict[str, Any]:
     return {"since_utc": since.isoformat(), "log_rows": len(rows), "services": by_service}
 
 
+def user_counts(client: httpx.Client, base: str, admin_key: str, window_s: float) -> dict[str, Any]:
+    """Real and test accounts counted apart, from the router's admin endpoint: the request logs cannot tell them apart."""
+    reply = client.get(base + "/v1/hivemind/admin/users", params={"window_s": window_s}, headers={"X-Admin-Key": admin_key})
+    if reply.status_code != 200:
+        return {"error": f"HTTP {reply.status_code}"}
+    return dict(reply.json())
+
+
 def _chat(client: httpx.Client, base: str, key: str, model: str, messages: list[dict[str, str]], stream: bool) -> tuple[int, str, float]:
     body = {"model": model, "messages": messages, "temperature": 0, "max_tokens": 96, "stream": stream}
     headers = {"Authorization": f"Bearer {key}"}
@@ -229,6 +240,7 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True, help="JSONL file; one line is appended per run")
     parser.add_argument("--since", default="", help="ISO time for the traffic window (default: one hour ago)")
     parser.add_argument("--no-probes", action="store_true", help="traffic summary only")
+    parser.add_argument("--admin-key-file", type=Path, help="file holding the router's admin key: adds real and test user counts to the record")
     parser.add_argument("--t4", action="store_true", help="add the T4 node's serving/training state (via gcloud compute ssh)")
     args = parser.parse_args()
     since = datetime.fromisoformat(args.since.replace("Z", "+00:00")) if args.since else datetime.now(timezone.utc) - timedelta(hours=1)
@@ -244,6 +256,10 @@ def main() -> int:
             code = 1
         passed = sum(r["ok"] for r in probes["results"])
         record["probe_summary"] = f"{passed}/{len(probes['results'])} passed" if probes["valid"] else "INVALID: checker control failed"
+    if args.admin_key_file is not None:
+        window_s = max(0.0, (datetime.now(timezone.utc) - since).total_seconds())
+        with httpx.Client(timeout=30) as client:
+            record["users"] = user_counts(client, SERVICES["router"], args.admin_key_file.read_text(encoding="utf-8").strip(), window_s)
     if args.t4:
         record["t4"] = t4_summary(since)
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -256,6 +272,13 @@ def main() -> int:
                   f"402 {s['http_402']}  5xx {s['http_5xx']}  registrations {s['registrations']}  browser {s['browser_requests']}")
     else:
         print("traffic:", t)
+    if "users" in record:
+        u = record["users"]
+        if "error" in u:
+            print("users: unavailable:", u["error"])
+        else:
+            for kind in ("real", "test"):
+                print(f"users {kind:4s} total {u[kind]['total']:4d}  created in window {u[kind]['created']:4d}  active in window {u[kind]['active']:4d}")
     if "t4" in record:
         n = record["t4"]
         if "error" in n:
