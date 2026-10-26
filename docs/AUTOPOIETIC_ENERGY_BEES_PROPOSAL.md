@@ -5,6 +5,9 @@
 - **Source Repositories:** [`xaviercallens/AutoevolveAI`](https://github.com/xaviercallens/AutoevolveAI) (ANSE Phases 1–5) $\times$ [`xaviercallens/HiveMind`](https://github.com/xaviercallens/HiveMind) (La Ruche, BOINC Core Node & OpenRouter Gateway)
 - **Target Roadmap Section:** `ROADMAP.md` Section `3.16` (`Season 18` — `HM-S18-AE-01..05`)
 
+> [!IMPORTANT]
+> **Reviewed 2026-10-26 (same day as the draft).** The task table, gates and order of record are in [`ROADMAP.md` §3.16](../ROADMAP.md), which lists six review findings (R1–R6) and their fixes. This document keeps the motivation, the evidence audit and the energy definition; where it differs from §3.16, §3.16 wins. All gates are drafts until the scientific lead pre-registers them.
+
 ---
 
 ## 1. Motivation: Two Measured Bottlenecks in HiveMind Live Operations
@@ -33,7 +36,7 @@ To avoid importing complexity that does not work, we filter [`AutoevolveAI`](htt
 | **2. Phase 3 Autopoietic Hot-Swapping & Banach Registry** (`anse/autopoiesis/hypervisor.py`) | **5/5 Gates Passed:** Promoted better children (`5/5`, median `75x` speedup), rejected fast-but-wrong children (`5/5` vs `0/5` legacy), `0/15` false promotions on A/A noise (vs `5/15` legacy), `5/5` instant rollbacks, and `2/2` valid LLM-proposed children promoted (`0` invalid). | Gate every La Ruche / OpenRouter Bee adapter promotion (`theta_parent -> theta_child`) on an out-of-process equivalence check + interleaved noise-margin thermodynamic condition $\Delta E = E_{\text{child}} - E_{\text{parent}} < -\epsilon_{\text{noise}}$. |
 | **3. Phase 4 Low-Tier Hardness Directives `D1, D3, D6`** (`docs/EVOLUTION_LAB.md`) | Designed for $\le 3\text{B}$–$7\text{B}$ models: `D1` compresses failing code/stderr to `<200` chars; `D3` enforces energy-monotonic early stop ($E_2 > E_1$) and returns **best-so-far** ($\arg\min_t E_t$); `D6` exports verified preference pairs when $\Delta E \ge 10$. | Prevent token waste on 1B–7B Bees (`coder-lite`, `crowd-v1`, `bee-stars`, `coder`), guarantee non-increasing energy across retries, and harvest live `(chosen_low_E, rejected_high_E)` pairs for Night-MoE QLoRA self-evolution. |
 | **4. Rung-2 Formal Gate & Warm Verifier Amortization** (`results/rung2_gate_cost.json`, `rung2_gate_controls.json`) | Proved `4/4` positive/negative obligation controls (`0` `sorry` or wrong-coefficient leaks) and showed that **Mathlib import (`17.61 s` median)** is ~100% of single-shot Lean verification cost (`spec + candidate` add `~0 s`). | Run a **persistent warm verifier daemon** (Lean 4 REPL / persistent Python worker pool) on the T4 / BOINC validator node so candidate Bee outputs are checked in milliseconds without paying the per-process import floor. |
-| **5. System-1 Fast Soundness Pre-Ranker** (`results/retrained_models_use_cases_report.json`) | `laya_system_one` achieved `10/10` (`100%`) accuracy distinguishing sound vs. unsound physics/math/Lean4/ML candidates in `~1.08 s`; MCTS candidate ordering achieved `24.6x–155.4x` speedup over blind sandbox evaluation. | Use a lightweight System-1 probe strictly to **order** candidate Bee responses or route `hivemind/auto` before executing the winning candidate in the real sandbox. |
+| ~~**5. System-1 Fast Soundness Pre-Ranker**~~ (`results/retrained_models_use_cases_report.json`) | `laya_system_one` 10/10 on 10 hand-picked cases; the MCTS "speed-ups" compare predicted energies, not executions. | **Dropped in review (R6):** too little evidence; Phase 2 showed a learned probe must first beat a linear baseline on our own traces. |
 
 ### 2.2 Refuted Mechanisms Explicitly Excluded
 1. **No Unverified JEPA Latent Skipping (`Phase 2 UC1/UC4 FAIL`):** In `AutoevolveAI` Phase 2, the standalone JEPA energy predictor scored `40.0%` vs `44.3%` random on candidate selection (`UC4 FAIL`). **Rule:** Latent predictors may only *order* candidates; **every** promoted Bee or verified response must pass the real sandbox (`E_Bee`).
@@ -46,35 +49,31 @@ To avoid importing complexity that does not work, we filter [`AutoevolveAI`](htt
 
 For any prompt $x$ in domain $d \in \{\text{code}, \text{math/lean4}, \text{astro/physics}, \text{biomed}, \text{general}\}$ and candidate response $y \sim \pi_{\theta_d}(\cdot \mid x)$ from Specialist Bee $\theta_d$, the **Physical Energy Function** $E_{\text{Bee}}(x, y; d)$ is evaluated out-of-process:
 
-$$E_{\text{Bee}}(x, y; d) = \begin{cases} 10^6 & \text{if syntax error, AST stub, timeout, crash, or } \texttt{sorry} \\ w_{\text{fail}} \cdot \frac{N_{\text{fail}}(x, y)}{N_{\text{tests}}(x)} + w_{\text{inv}} \cdot \mathcal{R}_{\text{phys}}(x, y) + w_{\text{lat}} \cdot \frac{\tau_{\text{ms}}(y)}{\tau_0} + w_{\text{mem}} \cdot \frac{M_{\text{peak}}(y)}{M_0} & \text{otherwise} \end{cases}$$
+$$E_{\text{Bee}}(x, y; d) = \begin{cases} 10^6 & \text{if syntax error, AST stub, timeout, crash, or } \texttt{sorry} \\ w_{\text{fail}} \cdot \frac{N_{\text{fail}}}{N_{\text{tests}}} + w_{\text{inv}} \cdot \mathcal{R}_{\text{phys}} + 0.99 \cdot \frac{w_{\text{fail}}}{N_{\text{tests}}} \cdot \frac{w_{\text{lat}} \frac{\tau}{\tau + \tau_0} + w_{\text{mem}} \frac{M}{M + M_0}}{w_{\text{lat}} + w_{\text{mem}}} & \text{otherwise} \end{cases}$$
 
 where:
 - $N_{\text{fail}}(x, y) / N_{\text{tests}}(x) \in [0, 1]$ is the fraction of hidden unit tests or exact paired evaluation items failed ($w_{\text{fail}} = 100.0$),
 - $\mathcal{R}_{\text{phys}}(x, y) \ge 0$ is the domain conservation/epistemic residual (e.g., $|\Delta H / H_0|$ for symplectic astrophysics, `defeq` obligation mismatch for Lean 4, or format/constraint violation for factual packs; $w_{\text{inv}} = 50.0$),
-- $\tau_{\text{ms}}(y)$ and $M_{\text{peak}}(y)$ are measured execution time and peak resident memory inside the `rlimit` sandbox ($w_{\text{lat}} = 1.0, w_{\text{mem}} = 0.5$).
+- $\tau$ and $M$ are measured execution time and peak resident memory inside the `rlimit` sandbox ($\tau_0 = 100$ ms, $M_0 = 64$ MB, $w_{\text{lat}} = 1.0$, $w_{\text{mem}} = 0.5$). The cost term is **bounded below the weight of one failed test**, so cost only orders answers of equal correctness (review R2: the first draft's linear cost ranked a correct 6 s answer below a half-wrong 5 ms one).
 
 ### Thermodynamic Condition for Bee Self-Evolution
-A child Bee adapter $\theta_d^{(t+1)}$ trained during the European Night BOINC window (`22:00–07:00 CET`) replaces the parent Bee $\theta_d^{(t)}$ in La Ruche and on the OpenRouter gateway **if and only if** three joint conditions hold on an **independent held-out oracle split $\mathcal{D}_{\text{oracle}}$** (never used during inner training or per-round ratchet selection):
+A child Bee adapter $\theta_d^{(t+1)}$ trained during the European Night BOINC window (`22:00–07:00 CET`) replaces the parent Bee $\theta_d^{(t)}$ in La Ruche and on the OpenRouter gateway **if and only if** the following hold (no regression on the parent's verified items, exact McNemar as the primary rule, $\epsilon_{\text{noise}}$ measured from at least 3 A/A runs; review R4) on an **independent held-out oracle split $\mathcal{D}_{\text{oracle}}$** (never used during inner training or per-round ratchet selection):
 
 $$\Delta E_d = \operatorname{median}_{(x_i) \in \mathcal{D}_{\text{oracle}}} \Big( E_{\text{Bee}}(x_i, \theta_d^{(t+1)}) - E_{\text{Bee}}(x_i, \theta_d^{(t)}) \Big) < -\epsilon_{\text{noise}}, \quad p_{\text{McNemar}}(\theta_d^{(t+1)} > \theta_d^{(t)}) < 0.05, \quad \text{and} \quad \text{Control}_{\text{shuffled}} = \text{NS}.$$
 
 ---
 
-## 4. Proposed Roadmap Evolution: Season 18 (`Wave 17` — `HM-S18-AE-01` to `HM-S18-AE-05`)
+## 4. Tasks
+
+See [`ROADMAP.md` §3.16](../ROADMAP.md): `HM-S18-AE-01` energy function (unblocks #191), `AE-02` two-split ratchet and plateau rule, `AE-03` energy-gap pairs (unblocks #166), `AE-04` promotion gate (unblocks #165/#170), `AE-05` warm verifier (unblocks #173). Epic: [#208](https://github.com/xaviercallens/HiveMind/issues/208).
 
 ```mermaid
 flowchart LR
-    A["Daytime OpenRouter Traffic\n(/v1/chat/completions)"] --> B["Out-of-Process Bee Energy Sandbox\nE_Bee(x, y) + D1/D3 Best-So-Far"]
-    B -->|"Delta E >= 10\n(Directive D6)"| C["Verified Self-Solution Vault\n(chosen_low_E vs rejected_high_E)"]
-    C --> D["Night BOINC QLoRA-MoE Worker\n(22:00-07:00 CET • RFT / DPO)"]
-    D --> E["Two-Split Energy Ratchet\n(Split A Select + Split B Oracle)"]
-    E -->|"Delta E < -eps_noise\nMcNemar p < 0.05"| F["Autopoietic Bee Hot-Swap\n(La Ruche & OpenRouter + Rollback)"]
+    A["Served answer"] --> B["Sandbox: E_Bee, D1, D3 best-so-far"]
+    B -->|"chosen passes all tests, Delta E >= 10"| C["Verified pairs (opt-in users only)"]
+    C --> D["Night QLoRA on verified self-solutions"]
+    D --> E["Split A ratchet, Split B reported"]
+    E -->|"0 parent regressions, McNemar, Delta E below A/A margin"| F["Promote child Bee, keep rollback"]
 ```
 
-| Task ID | Branch Prefix | Target Subsystem | Deliverable & `AutoevolveAI` Synergy | Gate |
-| :--- | :--- | :--- | :--- | :---: |
-| **`HM-S18-AE-01`** | `feat/s18-bee-energy-sandbox` | `src/hivemind/verification/bee_energy.py` & `src/hivemind/router/gateway.py` | **Out-of-Process Bee Physical Energy Evaluator ($E_{\text{Bee}}$) & Directives `D1`/`D3`**: Port `AutoevolveAI` Phase 1's graded hidden-test sandbox (`rlimit` memory/CPU cap, AST anti-stub check, `E = 1e6` fail-closed penalty) + `D1` (`<200`-char stderr compression) + `D3` (best-so-far $\arg\min_t E_t$ and energy-monotonic early stop when $E_2 > E_1$) into HiveMind's verified completion mode (`HM-S16-04`). | **G-AE1:** `0` false convergences on 20 seeded buggy replies; verified `pass@2 > pass@1` on held-out coding pack. |
-| **`HM-S18-AE-02`** | `feat/s18-boinc-two-split-energy-ratchet` | `src/hivemind/boinc/` & `scripts/t4_training_report.py` | **Two-Split BOINC Energy Ratchet & Plateau Auto-Curriculum**: Address the 30-round token-NLL plateau (`std = 0.0055` in `hmq_00001..00098`) by splitting held-out evaluation into **Split A** (per-round ratchet selection) and **Split B** (independent held-out physical energy & accuracy oracle evaluated every 10 rounds). Automatically rotate domain shards or Anneal/Reset LoRA LR when 10-round Split-A gain drops below `0.005` nats. | **G-AE2:** Zero best-of-$N$ optimism gap between Split B and newly drawn test items; automatic plateau detection triggers on `hmq_00001..00098` replay at round ~32. |
-| **`HM-S18-AE-03`** | `feat/s18-self-evolving-bee-dpo-rft` | `src/hivemind/swarm/self_evolving_bee.py` | **Self-Evolving Bee Loop via Live Energy-Gap RFT/DPO (`Directive D6` + `E15/E17`)**: Whenever a daytime retry or sibling Bee rescues a failed prompt with $\Delta E = E_{\text{rejected}} - E_{\text{chosen}} \ge 10$ and $E_{\text{chosen}} = 0$, record the verified `(prompt, y_chosen, y_rejected)` pair. Train Night-MoE QLoRA adapters on verified self-generated solutions (eliminating the format interference observed with terse external gold text in `NIGHT-MOE-1`). | **G-AE3:** Paired McNemar $p < 0.05$ gain over base on own domain pack (`code` or `maths`), shuffled-label control `NS`, and `0` Bonferroni-significant harms on other packs. |
-| **`HM-S18-AE-04`** | `feat/s18-autopoietic-bee-hotswap` | `src/hivemind/swarm/la_ruche_vault.py` | **Autopoietic Bee Hot-Swapping & Banach Fixed-Point Registry (`Phase 3` Port)**: Port `AutoevolveAI` Phase 3's versioned `ComponentRegistry` to La Ruche and OpenRouter. Promote a child Bee adapter only when out-of-process equivalence passes (`0` regressions on parent's verified suite) AND interleaved A/B energy trials satisfy $\operatorname{median}(\Delta E) < -\epsilon_{\text{noise}}$ (`0/15` false promotions on A/A noise), with instant SHA-256 rollback. | **G-AE4:** `5/5` fast-but-wrong child adapters rejected; `0/15` A/A noise promotions; `<1s` rollback to parent adapter verified in pytest. |
-| **`HM-S18-AE-05`** | `feat/s18-warm-verifier-and-energy-bandit` | `src/hivemind/router/` & `src/hivemind/verification/` | **Warm Verifier Daemon (`Rung-2` Amortization) & Energy-Aware Bandit Router (`HM-S15-03`)**: Amortize the `17.6 s` Mathlib/sandbox startup floor (`rung2_gate_cost.json`) via a persistent warm verifier worker pool, and update `hivemind/auto`'s contextual bandit using real measured $E_{\text{Bee}}$ rewards (with `laya_system_one` used strictly for candidate ordering, never skipping verification). | **G-AE5:** Verification latency per candidate reduced by $\ge 5\times$ vs cold subprocess invocation; bandit routing outperforms uniform random routing on executable tasks. |
+Plateau rule, replayed on the real ledger (97 six-domain rounds `hmq_00002..00098`, default thresholds): first fires at round 47 (`hmq_00048`); at round 40 the 10-round gain is still 0.0096. The thresholds were chosen after seeing this chain, so this is descriptive; the rule must be validated on a new chain.
