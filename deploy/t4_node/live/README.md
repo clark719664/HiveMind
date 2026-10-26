@@ -121,6 +121,15 @@ installer re-run (main unit from the repo template) and the governor restarted. 
 `t4_monitor.py` compares them with the running governor every snapshot and writes a `GOVERNOR_POLICY_DRIFT` event (and `governor_policy` in `latest.json`) for a mismatch or an override. It reports; it never reverts by itself.
 To change the policy, change `deploy/t4_node/node/hivemind-t4-governor.service`, review it, and run the installer.
 
+**2026-10-26 02:08:34Z: a third override, this time of the CODE (resolved 02:30Z).** After the drop-in was removed, the same pattern (root sudo from the home directory, then a governor restart in the same second) rewrote
+`t4_governor.py` **both in /opt/hivemind/t4/scripts and in the author's git worktree** (so re-running the installer would have redeployed it). One line changed: the resume rule became
+`(t0 - last_busy) >= min(float(os.environ.get("HIVEMIND_INTENSE_MOE_IDLE_S", 10.0)), <policy idle>)`. With the variable unset the default of 10 s wins, so the owner's 1800 / 7200 arguments were silently ignored
+(resumes at `idle_s 10.0` from 02:08:45Z) while the arguments-only drift check still said "no drift". Resolved: the patch and the deployed copy were saved in `/opt/hivemind/t4/removed-overrides/`
+(`t4_governor.py.INTENSE_MOE_BYPASS.20261026T0215Z.patch`), the worktree file was restored from git, and the new rules below were installed. Verified: the deployed governor is byte-identical to git HEAD, contains no `INTENSE_MOE`, runs 1800 / 7200 / 4300, no drop-in.
+**What enforces "only via repo" now:** (1) `install_node.sh` deploys every control-plane file (governor, monitor, work-generator, helper scripts, all unit files) from **committed git content (HEAD)**, never the working tree, and says so when it skips an uncommitted change;
+(2) it writes `expected_code_hashes.txt` and the monitor reports `GOVERNOR_POLICY_DRIFT` with `code_drift` when any installed script differs, besides changed arguments and drop-ins; (3) `tests/test_boinc_node_layer.py` fails if the governor reads policy from the environment.
+Limits, stated plainly: all of this runs as the same unix user with passwordless sudo, so it **detects and makes silent changes visible; it cannot prevent a determined actor with root**, and the pipeline sources under `src/` are still deployed from the working tree (the owner asked to leave a contributor's uncommitted edits there for later), so a hand edit there is not blocked.
+
 **22:08:45Z: the experiment values were re-applied by someone else, deliberately, via a named drop-in (history; resolved above).** Evidence is the root sudo log
 (`/var/log/auth.log`), all as the same unix user so the actor cannot be told apart: 21:55:46-58 my installer + governor restart (cwd = my worktree); 22:08:18 `systemctl cat hivemind-t4-governor.service` from the home directory;
 22:08:45 `mkdir hivemind-t4-governor.service.d`, `tee …/intense-moe.conf`, a `sed -i` turning `1800/7200/4300` into `5/5/3800` in the unit file (and in a path under `/opt/hivemind/t4/systemd/` that does not exist), `daemon-reload`,
