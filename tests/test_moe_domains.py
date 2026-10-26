@@ -71,12 +71,12 @@ def test_a_cursor_past_the_last_shard_wraps_and_never_reads_the_held_out_tail(tm
         tok = lambda s: type("T", (), {"input_ids": [1] * len(s)})()  # noqa: E731 - one token per character
         held_out = {f"row{i}" for i in range(800, 1000)}
         for shard in range(0, 40):  # 8 whole shards fit before the held-out tail; the cursor must wrap, not run on
-            ids = moe_work.domain_ids(tok, "_t", "train", shard, 10**9)
+            ids = moe_work.domain_ids(tok, "_t", "train", shard, 64 * 128)
             assert ids, shard
         # the rows a shard reads: shard 8 wraps to shard 0, shard 9 to shard 1
         start0 = [r["text"] for r in moe_work._rows(f, ["text"], 0, 100)]
         assert start0[0] == "row0" and not (set(start0) & held_out)
-        got = {d: len(moe_work.domain_ids(tok, "_t", "train", d, 10**9)) for d in (0, 8, 16)}
+        got = {d: len(moe_work.domain_ids(tok, "_t", "train", d, 64 * 128)) for d in (0, 8, 16)}
         assert got[0] == got[8] == got[16]
         assert moe_work._total_rows(f) == 1000
     finally:
@@ -91,7 +91,7 @@ def test_wrap_matches_the_unwrapped_read_for_shards_that_fit(tmp_path: Path) -> 
         tok = lambda s: type("T", (), {"input_ids": [ord(c) for c in s]})()  # noqa: E731
         for shard in range(8):
             want = [r["text"] for r in moe_work._rows(f, ["text"], shard * 100, 100)]
-            got = moe_work.domain_ids(tok, "_t", "train", shard, 10**9)
+            got = moe_work.domain_ids(tok, "_t", "train", shard, 64 * 128)
             assert got == [ord(c) for c in "".join(w + "\n\n" for w in want)]
     finally:
         moe_work.HUB = old_hub

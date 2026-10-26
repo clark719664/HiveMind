@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 
 from hivemind.boinc.real_client.moe_bridge import MoEValidator
+from hivemind.boinc.real_client.moe_profiles import TRAIN_APPS, profile_for_app
 
 SPEC_DIR = Path(os.environ.get("HIVEMIND_SPEC_DIR", "hivemind_specs"))
 LEDGER_DIR = Path(os.environ.get("HIVEMIND_LEDGER_DIR", "hivemind_ledger"))
@@ -67,7 +68,7 @@ def validate(args: list[str]) -> int:
     spec = json.loads(spec_path.read_text())
     mv = MoEValidator()
     host = f"result-{args[-1]}" if args and args[-1].isdigit() else "host"
-    if meta.get("app") == "hivemind_qlora_moe" and len(paths) >= 2:
+    if meta.get("app") in TRAIN_APPS and len(paths) >= 2:
         verdict = mv.validate_train(spec, paths[0], paths[1], host)
     elif meta.get("app") == "hivemind_moe_infer":
         adapter = torch.load(SPEC_DIR / f"{wu}.adapter.pt", map_location="cpu")["state"]
@@ -93,7 +94,8 @@ def assimilate(args: list[str]) -> int:
     meta, paths = _meta(args)
     wu = meta["wu_id"]
     entry = {"wu_id": wu, "app": meta["app"], "t": time.time()}
-    if meta["app"] == "hivemind_qlora_moe":
+    if meta["app"] in TRAIN_APPS:
+        stem = profile_for_app(meta["app"])["chain_stem"]  # each app has its own chain: a rank-16 adapter cannot continue a rank-8 one
         state = torch.load(paths[1], map_location="cpu")["states"][-1]
         out = LEDGER_DIR / f"adapter_{wu}.pt"
         sha = state_sha(state)
@@ -103,10 +105,10 @@ def assimilate(args: list[str]) -> int:
         entry["domain"] = meta.get("domain")
         entry["eval_by_domain_before"], entry["eval_by_domain_after"] = meta.get("eval_by_domain_before"), meta.get("eval_by_domain_after")
         # publish the chain head: the work generator starts the next workunit from this adapter
-        tmp = LEDGER_DIR / "latest_adapter.pt.tmp"
+        tmp = LEDGER_DIR / f"{stem}.pt.tmp"
         torch.save({"state": state, "sha256": sha, "wu_id": wu}, tmp)
-        tmp.replace(LEDGER_DIR / "latest_adapter.pt")
-        (LEDGER_DIR / "latest_adapter.json").write_text(json.dumps(
+        tmp.replace(LEDGER_DIR / f"{stem}.pt")
+        (LEDGER_DIR / f"{stem}.json").write_text(json.dumps(
             {"wu_id": wu, "sha256": sha, "eval_loss_before": meta.get("eval_loss_before"), "eval_loss_after": meta.get("eval_loss_after"), "t": time.time()}))
     else:
         entry["completions"] = meta.get("completions", [])

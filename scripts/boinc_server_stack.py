@@ -18,12 +18,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from hivemind.boinc.real_client.moe_profiles import TRAIN_APPS  # noqa: E402
 from hivemind.boinc.real_client.server_stack import Stack, launcher  # noqa: E402
 
 APPS = {
     "hivemind_qlora_moe": {"args": ["--mode", "train"], "n_inputs": 1, "outputs": ["out.json", "out.pt"], "max_nbytes": 200_000_000},
     "hivemind_moe_infer": {"args": ["--mode", "infer"], "n_inputs": 2, "outputs": ["out.json"], "max_nbytes": 5_000_000},
+    # the same training code for GPUs with >= 10 GB: its own app and plan class, so the scheduler only offers it to such hosts
+    "hivemind_qlora_moe_big": {"args": ["--mode", "train"], "n_inputs": 1, "outputs": ["out.json", "out.pt"], "max_nbytes": 400_000_000,
+                               "plan_class": "cuda_hivemind_big", "gpu_ram_mb": 10000},
 }
+
+
+def _class_kwargs(spec: dict) -> dict:
+    return {k: spec[k] for k in ("plan_class", "gpu_ram_mb") if k in spec}
 
 
 def shim(stack: Stack, cmd: str, venv_python: str) -> str:
@@ -48,7 +56,7 @@ def setup(stack: Stack, venv_python: str) -> None:
         p.chmod(0o755)
     for app, spec in APPS.items():
         body = launcher(venv_python, ROOT / "src", "hivemind.boinc.real_client.moe_app", spec["args"], {"HF_HUB_OFFLINE": "1"})
-        stack.install_app(app, body, spec["n_inputs"], spec["outputs"], spec["max_nbytes"])
+        stack.install_app(app, body, spec["n_inputs"], spec["outputs"], spec["max_nbytes"], **_class_kwargs(spec))
     stack.configure("hivemind_validate", "hivemind_assimilate", list(APPS))
     stack.register_apps(list(APPS))
 
@@ -71,8 +79,9 @@ def main() -> int:
         # publish a new app version whose launcher points at a stable code path (not an ephemeral git worktree); older versions are deprecated
         for app, spec in APPS.items():
             body = launcher(a.venv_python, a.code_src, "hivemind.boinc.real_client.moe_app", spec["args"], {"HF_HUB_OFFLINE": "1"})
-            st.install_app(app, body, spec["n_inputs"], spec["outputs"], spec["max_nbytes"], version=a.version)
-        st.ensure_chain_template()
+            st.install_app(app, body, spec["n_inputs"], spec["outputs"], spec["max_nbytes"], version=a.version, **_class_kwargs(spec))
+        for train_app in TRAIN_APPS:
+            st.ensure_chain_template(train_app)
         print(st.update_versions())
         st.deprecate_versions_below(a.version)
         print("published app version", a.version, "-> code at", a.code_src)

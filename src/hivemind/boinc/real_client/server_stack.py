@@ -23,6 +23,7 @@ from typing import Any
 
 PLATFORM = "x86_64-pc-linux-gnu"
 PLAN_CLASS = "cuda_hivemind"
+from hivemind.boinc.real_client.moe_profiles import PROFILES  # noqa: E402  (plan classes of the training profiles)
 APACHE_MODULES = {
     "mpm_prefork_module": "mod_mpm_prefork.so", "authz_core_module": "mod_authz_core.so", "authz_host_module": "mod_authz_host.so",
     "access_compat_module": "mod_access_compat.so", "alias_module": "mod_alias.so", "dir_module": "mod_dir.so", "mime_module": "mod_mime.so",
@@ -133,23 +134,28 @@ class Stack:
         (self.root / "html" / "user" / "schedulers.txt").write_text(f"<scheduler>{self.url}/{self.name}_cgi/cgi</scheduler>\n")
 
     def write_plan_class_spec(self) -> None:
-        (self.root / "plan_class_spec.xml").write_text(
-            "<plan_classes>\n <plan_class>\n  <name>" + PLAN_CLASS + "</name>\n  <gpu_type>nvidia</gpu_type>\n  <cuda/>\n"
-            "  <min_gpu_ram_mb>3500</min_gpu_ram_mb>\n  <gpu_ram_used_mb>3500</gpu_ram_used_mb>\n  <cpu_frac>0.2</cpu_frac>\n  <avg_ncpus>1</avg_ncpus>\n"
-            "  <gpu_peak_flops_scale>0.1</gpu_peak_flops_scale>\n </plan_class>\n</plan_classes>\n"
+        """One plan class per training profile; the big one has a higher ``min_gpu_ram_mb`` so the scheduler never offers its app to a small GPU."""
+        classes = {PLAN_CLASS: 3500, **{p["plan_class"]: p["min_gpu_ram_mb"] for p in PROFILES.values()}}
+        body = "".join(
+            f" <plan_class>\n  <name>{name}</name>\n  <gpu_type>nvidia</gpu_type>\n  <cuda/>\n"
+            f"  <min_gpu_ram_mb>{mb}</min_gpu_ram_mb>\n  <gpu_ram_used_mb>{mb}</gpu_ram_used_mb>\n  <cpu_frac>0.2</cpu_frac>\n  <avg_ncpus>1</avg_ncpus>\n"
+            "  <gpu_peak_flops_scale>0.1</gpu_peak_flops_scale>\n </plan_class>\n"
+            for name, mb in classes.items()
         )
+        (self.root / "plan_class_spec.xml").write_text("<plan_classes>\n" + body + "</plan_classes>\n")
 
     # ------------------------------------------------------------------ apps, templates, work
-    def install_app(self, app: str, launcher_body: str, n_inputs: int, outputs: list[str], max_nbytes: int, version: int = 100) -> None:
-        vdir = self.root / "apps" / app / str(version) / f"{PLATFORM}__{PLAN_CLASS}"
+    def install_app(self, app: str, launcher_body: str, n_inputs: int, outputs: list[str], max_nbytes: int, version: int = 100,
+                    plan_class: str = PLAN_CLASS, gpu_ram_mb: int = 3500) -> None:
+        vdir = self.root / "apps" / app / str(version) / f"{PLATFORM}__{plan_class}"
         vdir.mkdir(parents=True, exist_ok=True)
         exe = vdir / f"{app}_{version}_{PLATFORM}"
         exe.write_text(launcher_body)
         exe.chmod(0o755)
         (vdir / "version.xml").write_text(
             f"<version>\n <file>\n  <physical_name>{exe.name}</physical_name>\n  <main_program/>\n </file>\n"
-            f" <plan_class>{PLAN_CLASS}</plan_class>\n <avg_ncpus>1</avg_ncpus>\n <flops>4e12</flops>\n"
-            f" <coproc>\n  <type>NVIDIA</type>\n  <count>1</count>\n </coproc>\n <gpu_ram>3500000000</gpu_ram>\n</version>\n"
+            f" <plan_class>{plan_class}</plan_class>\n <avg_ncpus>1</avg_ncpus>\n <flops>4e12</flops>\n"
+            f" <coproc>\n  <type>NVIDIA</type>\n  <count>1</count>\n </coproc>\n <gpu_ram>{gpu_ram_mb * 1_000_000}</gpu_ram>\n</version>\n"
         )
         tdir = self.root / "templates"
         tdir.mkdir(exist_ok=True)
