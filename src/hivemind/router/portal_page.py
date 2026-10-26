@@ -418,7 +418,8 @@ const PROMPTS = {
   python: "Write a high-performance Python decorator with LRU caching, thread safety, and execution duration metrics in microseconds.",
   pytorch: "Write a PyTorch autograd Function that computes the exact Voronoi cell projections on a Conway-Sloane A2 hexagonal lattice.",
   astro: "Simulate transit timing variations (TTV) of an exoplanetary system under 3-body gravitational resonance.",
-  reciprocity: "Explain how HiveMind's non-monetary compute reciprocity model works for gamers and AI developers."
+  reciprocity: "Explain how HiveMind's non-monetary compute reciprocity model works for gamers and AI developers.",
+  crowdgpt: "Explain how a 1B generalist dense trunk (CrowdGPT Vxtzq/Crowd-v1 trained on 7B FineWeb tokens) and 18 MB domain QLoRA adapters can share a Hub-and-Spoke DiLoCo + Multi-Krum volunteer GPU swarm."
 };
 
 document.querySelectorAll('.prompt-pill').forEach(btn => {
@@ -778,6 +779,7 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
         <select id="modelSelect">
           <option value="hivemind/auto">hivemind/auto (Smart Market Liquidity Routing)</option>
           <option value="hivemind/coder">hivemind/coder (7B &bull; Everyday Python &amp; Game Code)</option>
+          <option value="hivemind/crowd-v1">hivemind/crowd-v1 (1B &bull; CrowdGPT Vxtzq/Crowd-v1 Generalist Trunk &bull; Pre-Wired Partner)</option>
           <option value="hivemind/coder-lite">hivemind/coder-lite (3B &bull; Ultra-Fast Edits)</option>
           <option value="hivemind/coder-plus">hivemind/coder-plus (14B &bull; Multi-File &amp; Tests)</option>
           <option value="hivemind/moe-general">hivemind/moe-general (20B MoE &bull; Reasoning)</option>
