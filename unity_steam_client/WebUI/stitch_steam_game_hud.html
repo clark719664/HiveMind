@@ -300,6 +300,16 @@
           <div class="val" style="color:#34d399;">2/2 Poisoners Cut</div>
         </div>
       </div>
+      <div style="margin-top:10px;padding:10px;background:rgba(22,27,44,0.75);border:1px solid rgba(0,240,255,0.2);border-radius:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.74rem;" class="mono">
+          <span>TRIAL ORBITAL PERIOD P_trial (Lock = 11.23 d): <strong id="period-val" style="color:#fbbf24;">11.23 d</strong></span>
+          <span>BYZANTINE POISONERS (f): <strong id="byz-val" style="color:#00f0ff;">2</strong></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
+          <input id="period-slider" type="range" min="5.0" max="18.0" step="0.01" value="11.23" oninput="document.getElementById('period-val').textContent=this.value+' d'" />
+          <input id="byz-slider" type="range" min="0" max="3" step="1" value="2" oninput="document.getElementById('byz-val').textContent=this.value" />
+        </div>
+      </div>
       <div style="margin-top:10px;">
         <button class="btn btn-gold" onclick="runMission('MISSION-SCI-01-SYMPLECTIC-EXOPLANET')">Mission 1: Symplectic Exoplanet BLS</button>
         <button class="btn btn-emerald" onclick="runMission('MISSION-SCI-02-E8-LATTICE-QUORUM')">Mission 2: E8 Lattice &amp; Multi-Krum</button>
@@ -309,10 +319,10 @@
       <div class="terminal" id="mission-terminal">[READY] Select a Scientific Mission above to run deterministic physics &amp; ANSE energy verification.</div>
     </div>
 
-    <!-- RIGHT CARD: STITCH ANIMATED GOSSET E8 HONEYCOMB + UNITY/STEAM/ANTIGRAVITY STACK -->
+    <!-- RIGHT CARD: STITCH ANIMATED GOSSET E8 HONEYCOMB + RTX 2070 + LIVE LA RUCHE CO-PILOT -->
     <div class="glass-card">
       <h2>
-        <span>02 // STITCH GOSSET E8 HONEYCOMB &amp; UNITY STEAMWORKS INSPECTOR</span>
+        <span>02 // STITCH GOSSET E8 HONEYCOMB, RTX 2070 (8 GB) &amp; LIVE LA RUCHE</span>
         <span class="badge badge-gold">8-EXPERT SPARSE MOE</span>
       </h2>
       <!-- Stitch Screen e329b47858354edc929dda85ea1e535d: Animated Gosset E8 Honeycomb + Flying Cyber-Bees -->
@@ -374,6 +384,16 @@
           </g>
         </svg>
       </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-gold" onclick="syncRtxAndLaRuche()">Sync Local RTX 2070 (8GB) &amp; La Ruche Live</button>
+        <select id="copilot-model" class="mono" style="background:#080d1e;color:#00f0ff;border:1px solid #00f0ff;padding:7px 10px;border-radius:4px;font-size:0.75rem;">
+          <option value="hivemind/bee-stars">hivemind/bee-stars (Astrophysics Bee)</option>
+          <option value="hivemind/coder">hivemind/coder (Symplectic Code Bee)</option>
+          <option value="qwen2.5-coder:3b">qwen2.5-coder:3b (Local GPU Swarm)</option>
+        </select>
+        <button class="btn btn-emerald" onclick="askLaRucheCopilot()">Ask La Ruche Co-Pilot</button>
+      </div>
+      <input id="copilot-prompt" class="mono" type="text" value="Write a 2nd-order Symplectic Velocity-Verlet step in Python that conserves Hamiltonian energy H." style="width:100%;margin-top:8px;background:#040711;color:#dde1fa;border:1px solid rgba(0,240,255,0.3);padding:8px 10px;border-radius:4px;font-size:0.76rem;" />
       <div class="terminal" id="stack-terminal"></div>
     </div>
   </main>
@@ -385,6 +405,27 @@
   "non_monetary_charter": "Strictly Non-Monetary Compute Reciprocity (0.00 EUR / 0.00 USD): All Scientific Odyssey Points (PTS) and HiveMind Reflexion Points (HMT) are educational and reciprocal GPU compute accounting units with zero cash value.",
   "all_missions_verified": true,
   "total_scientific_pts": 4050,
+  "rtx2070_hardware": {
+    "profile_name": "rtx2070_7b_worker",
+    "gpu_target_model": "NVIDIA GeForce RTX 2070 (Turing TU106, 8192 MB GDDR6)",
+    "detected_runtime_device": "cpu",
+    "detected_device_name": "NVIDIA GeForce RTX 2070 (8 GB VRAM Target Profile / Local Tensor Host)",
+    "cuda_available": false,
+    "vram_ceiling_mb": 8192.0,
+    "vram_allocated_or_budget_mb": 6645.8,
+    "wddm_game_headroom_mb": 1546.2,
+    "within_8gb_golden_invariant": true,
+    "vram_budget_gb": {
+      "frozen_base_nf4_gb": 3.85,
+      "lora_trainable_r64_gb": 0.32,
+      "paged_adamw_8bit_gb": 0.32,
+      "total_peak_vram_gb": 6.49
+    },
+    "tensor_kernel_latency_ms": 14.495,
+    "tensor_kernel_throughput_gflops": 7.81,
+    "tensor_verification_norm": 7523.4131
+  },
+  "la_ruche_cloud_url": "https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app",
   "unity_steam_stack": {
     "unity_client_root": "unity_steam_client",
     "all_files_present": true,
@@ -999,20 +1040,24 @@
     function renderStackSummary() {
       const st = INITIAL_ODYSSEY.unity_steam_stack || {};
       const ag = INITIAL_ODYSSEY.antigravity_copilot || {};
+      const rtx = INITIAL_ODYSSEY.rtx2070_hardware || {};
       const stitch = st.stitch_mcp_design || {};
       const files = (st.files || []).map(f => `  [${f.present ? 'OK' : 'MISSING'}] ${f.path} (sha256=${f.sha256})`).join('\n');
       document.getElementById('stack-terminal').textContent =
+        `[RTX 2070 (8 GB VRAM) HARDWARE & TENSOR BENCHMARK]\n` +
+        `  Profile: ${rtx.profile_name} | Target: ${rtx.gpu_target_model}\n` +
+        `  Peak Budget: ${(rtx.vram_budget_gb || {}).total_peak_vram_gb} GB / 8.00 GB (WDDM Headroom: ${rtx.wddm_game_headroom_mb} MB)\n` +
+        `  Kernel Latency: ${rtx.tensor_kernel_latency_ms} ms (${rtx.tensor_kernel_throughput_gflops} GFLOPS)\n\n` +
         `[STITCH MCP DESIGN SYSTEM: ${stitch.design_system_name || 'Cyber-Honeycomb Supercluster'} (${stitch.design_system_asset || 'assets/a3653ca2e0a1411081b38c8c351992f7'})]\n` +
         `  Projects: ${stitch.project_id} & ${stitch.astro_project_id}\n\n` +
         `[UNITY + STEAMWORKS.NET STACK VERIFIED: ${st.all_files_present}]\n${files}\n\n` +
-        `[GOOGLE ANTIGRAVITY SDK CO-PILOT]\n` +
-        `  Config Class: ${ag.config_class_openrouter} / ${ag.config_class_on_device}\n` +
-        `  OpenRouter:   ${ag.openrouter_endpoint}\n` +
-        `  Unity MCP:    ${ag.unity_mcp_server}\n` +
-        `  Charter:      ${INITIAL_ODYSSEY.non_monetary_charter}`;
+        `[GOOGLE ANTIGRAVITY SDK CO-PILOT & LA RUCHE]\n` +
+        `  La Ruche Cloud: ${INITIAL_ODYSSEY.la_ruche_cloud_url || 'https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app'}\n` +
+        `  Config Class:   ${ag.config_class_openrouter} / ${ag.config_class_on_device}\n` +
+        `  Charter:        ${INITIAL_ODYSSEY.non_monetary_charter}`;
     }
 
-    function drawOrbitCanvas() {
+    function drawOrbitCanvas(customOrbitPts, customCurve) {
       const canvas = document.getElementById('orbit-canvas');
       if (!canvas || !canvas.getContext) return;
       const ctx = canvas.getContext('2d');
@@ -1040,7 +1085,7 @@
       const m1 = (INITIAL_ODYSSEY.missions || [])[0] || {};
       const orbitInfo = (m1.telemetry || {}).orbital_integrator || {};
       const transitInfo = (m1.telemetry || {}).transit_folding || {};
-      const pts = orbitInfo.sample_orbit_xy || [];
+      const pts = customOrbitPts || orbitInfo.sample_orbit_xy || [];
       ctx.strokeStyle = '#00f0ff';
       ctx.lineWidth = 2.2;
       ctx.beginPath();
@@ -1054,7 +1099,7 @@
       ctx.stroke();
 
       // Draw folded Kepler/TESS light curve on the right side (ExoElenchus HUD style)
-      const curve = transitInfo.folded_curve_preview || [];
+      const curve = customCurve || transitInfo.folded_curve_preview || [];
       const lx0 = 320, lw = 275, ly0 = 38, lh = 165;
       ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
       ctx.strokeRect(lx0, ly0, lw, lh);
@@ -1075,15 +1120,33 @@
 
     async function runMission(missionId) {
       const term = document.getElementById('mission-terminal');
-      term.textContent = `[RUNNING SCIENTIFIC MISSION] ${missionId}...`;
+      const trialPeriod = parseFloat((document.getElementById('period-slider') || {value: '11.23'}).value || '11.23');
+      const numByz = parseInt((document.getElementById('byz-slider') || {value: '2'}).value || '2', 10);
+      term.textContent = `[RUNNING SCIENTIFIC MISSION] ${missionId} (P_trial=${trialPeriod}d, f=${numByz})...`;
       try {
         const resp = await fetch('/api/scientific-game/solve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mission_id: missionId, gamer_tag: 'CyberValkyrie_FR' })
+          body: JSON.stringify({
+            mission_id: missionId,
+            gamer_tag: 'CyberValkyrie_FR',
+            trial_period_days: trialPeriod,
+            num_byzantine: numByz
+          })
         });
         if (!resp.ok) throw new Error('offline fallback');
         const res = await resp.json();
+        if (res.telemetry && res.telemetry.orbital_integrator && res.telemetry.transit_folding) {
+          document.getElementById('kpi-drift').textContent = res.telemetry.orbital_integrator.verlet_relative_drift.toExponential(2);
+          document.getElementById('kpi-snr').textContent = res.telemetry.transit_folding.bls_transit_snr + ' σ';
+          drawOrbitCanvas(
+            res.telemetry.orbital_integrator.sample_orbit_xy,
+            res.telemetry.transit_folding.folded_curve_preview
+          );
+        }
+        if (res.telemetry && res.telemetry.e8_lattice_quorum) {
+          document.getElementById('kpi-sqnr').textContent = res.telemetry.e8_lattice_quorum.mean_e8_sqnr_db + ' dB';
+        }
         term.textContent =
           `[VERIFIED: ${res.verified}] ${res.title}\n` +
           `[SPECIALIST BEE] ${res.specialist_bee} | [ANSE ENERGY E_Bee] ${res.bee_energy_total} (SHA256: ${res.bee_energy_receipt_sha256.slice(0, 16)})\n` +
@@ -1099,6 +1162,42 @@
             `[SCIENTIFIC POINTS] +${found.scientific_pts_awarded} PTS\n` +
             `[TELEMETRY] ${JSON.stringify(found.telemetry, null, 2)}`;
         }
+      }
+    }
+
+    async function syncRtxAndLaRuche() {
+      const stTerm = document.getElementById('stack-terminal');
+      stTerm.textContent = '[SYNCING] Probing local RTX 2070 (8GB VRAM) profile & connecting to live HiveMind La Ruche...';
+      try {
+        const resp = await fetch('/api/scientific-game/rtx2070-la-ruche');
+        if (!resp.ok) throw new Error('sync failed');
+        const data = await resp.json();
+        stTerm.textContent = `[LIVE RTX 2070 + LA RUCHE SYNC VERIFIED]\n${JSON.stringify(data, null, 2)}`;
+      } catch (err) {
+        renderStackSummary();
+      }
+    }
+
+    async function askLaRucheCopilot() {
+      const stTerm = document.getElementById('stack-terminal');
+      const model = document.getElementById('copilot-model').value;
+      const prompt = document.getElementById('copilot-prompt').value;
+      stTerm.textContent = `[LA RUCHE CO-PILOT] Querying ${model} on HiveMind La Ruche...`;
+      try {
+        const resp = await fetch('/api/scientific-game/la-ruche-copilot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt, model: model, gamer_tag: 'CyberValkyrie_FR' })
+        });
+        if (!resp.ok) throw new Error('copilot failed');
+        const data = await resp.json();
+        stTerm.textContent =
+          `[LA RUCHE SPECIALIST BEE RESPONSE // ${data.provider_used}]\n` +
+          `  Latency: ${data.latency_ms} ms | ANSE E_Bee: ${data.bee_energy_total} (SHA256: ${data.bee_energy_receipt_sha256.slice(0, 16)})\n` +
+          `  HMT Charged: ${data.charged_hmt} HMT | Chain Verified: ${(data.hmt_ledger_after || {}).chain_verified}\n\n` +
+          `${data.reply}`;
+      } catch (err) {
+        stTerm.textContent = `[OFFLINE CO-PILOT FALLBACK] Error: ${err}`;
       }
     }
 

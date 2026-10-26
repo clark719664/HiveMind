@@ -10,6 +10,7 @@ from hivemind.game.scientific_discovery_game import (
     fold_exoplanet_transit_lightcurve,
     inspect_unity_steam_stack,
     integrate_orbital_symplectic_comparison,
+    probe_rtx2070_hardware_and_vram,
     render_scientific_discovery_game_html,
     run_anse_energy_reactor_mission,
     run_e8_lattice_multikrum_mission,
@@ -115,3 +116,38 @@ def test_full_scientific_odyssey_and_fastapi_endpoints() -> None:
     preempt_data = r_preempt.json()
     assert preempt_data["background_worker_paused"] is True
     assert preempt_data["preemption_within_1500ms_sla"] is True
+
+
+def test_rtx2070_hardware_probe_and_custom_mission_params() -> None:
+    rtx = probe_rtx2070_hardware_and_vram(profile_name="rtx2070_7b_worker")
+    assert rtx["vram_ceiling_mb"] == 8192.0
+    assert rtx["within_8gb_golden_invariant"] is True
+    assert rtx["wddm_game_headroom_mb"] >= 1500.0
+    assert rtx["tensor_kernel_throughput_gflops"] > 0.0
+
+    client = TestClient(create_hack_miner_fastapi_app())
+    r_custom = client.post(
+        "/api/scientific-game/solve",
+        json={
+            "mission_id": "MISSION-SCI-01-SYMPLECTIC-EXOPLANET",
+            "gamer_tag": "Xavier_RTX2070_FR",
+            "trial_period_days": 11.23,
+            "steps": 300,
+            "dt": 0.015,
+        },
+    )
+    assert r_custom.status_code == 200
+    assert r_custom.json()["verified"] is True
+
+    r_byz = client.post(
+        "/api/scientific-game/solve",
+        json={
+            "mission_id": "MISSION-SCI-02-E8-LATTICE-QUORUM",
+            "gamer_tag": "Xavier_RTX2070_FR",
+            "num_byzantine": 3,
+        },
+    )
+    assert r_byz.status_code == 200
+    assert r_byz.json()["verified"] is True
+
+
