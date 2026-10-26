@@ -52,7 +52,7 @@ from hivemind.router.accounts import (
     TooManyHolds,
     UnknownAccount,
 )
-from hivemind.router.catalog import catalog_payload
+from hivemind.router.catalog import PREWIRED_PARTNER_MODELS, catalog_payload, normalize_model_alias
 from hivemind.router.google_auth import GoogleAuthError, GoogleIdTokenVerifier
 from hivemind.router.oidc_auth import OidcAuthError, OidcIdTokenVerifier
 from hivemind.router.portal_page import portal_content_security_policy, render_portal_page
@@ -491,7 +491,7 @@ def _public_model(model_id: str) -> str:
 
 
 def _strip_prefix(model: str) -> str:
-    return model.removeprefix(MODEL_PREFIX)
+    return normalize_model_alias(model.removeprefix(MODEL_PREFIX))
 
 
 def _sse(payload: Mapping[str, Any]) -> bytes:
@@ -909,6 +909,18 @@ def create_router_app(
     def catalog() -> dict[str, Any]:
         """Public list of capability tiers (which model fits which GPU); static data, no account needed."""
         return catalog_payload()
+
+    @app.get("/v1/hivemind/partner-models")
+    def partner_models() -> dict[str, Any]:
+        """Pre-wired federated partner models (e.g. CrowdGPT Vxtzq/Crowd-v1) ready for producer & Playground routing."""
+        now = clock()
+        live_set = set(store.live_models(now, PRODUCER_TTL_S))
+        items = []
+        for partner in PREWIRED_PARTNER_MODELS:
+            entry = partner.to_dict()
+            entry["live_on_swarm"] = partner.tier_id in live_set
+            items.append(entry)
+        return {"object": "hivemind.partner_models", "models": items}
 
     @app.get("/v1/models")
     def list_models() -> dict[str, Any]:

@@ -2937,6 +2937,7 @@ uv run python scripts/test_public_gcp_hivemind_client.py --url {PUBLIC_GCP_CLOUD
           <div style="background:rgba(5,8,17,0.7);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:10px;">
             <h4 style="margin:0 0 6px;color:#38bdf8;font-size:0.8rem;text-transform:uppercase;">&#x1F4BB; Supported Capability Tiers</h4>
             <ul style="margin:0;padding-left:18px;font-size:0.78rem;color:#94a3b8;line-height:1.6;">
+              <li><code style="color:#f8fafc;">hivemind/crowd-v1</code> (1B) &mdash; 4 GB VRAM (Vxtzq/Crowd-v1 Generalist Trunk)</li>
               <li><code style="color:#f8fafc;">hivemind/coder-lite</code> (3B) &mdash; 4 GB VRAM (Qwen2.5-Coder:3B)</li>
               <li><code style="color:#f8fafc;">hivemind/coder</code> (7B) &mdash; 6 GB VRAM (Qwen2.5-Coder:7B)</li>
               <li><code style="color:#f8fafc;">hivemind/coder-plus</code> (14B) &mdash; 12 GB VRAM (Qwen2.5-Coder:14B)</li>
@@ -3001,6 +3002,7 @@ python scripts/hivemind_connect.py snippet continue --model coder</pre>
               <div style="display:flex;gap:8px;margin-bottom:6px;">
                 <select id="quick-router-tier" style="flex:1;background:#0d1326;border:1px solid #1e293b;border-radius:4px;color:#e2e8f0;padding:4px 6px;font-size:0.75rem;">
                   <option value="hivemind/coder">hivemind/coder (7B &bull; Fast Code)</option>
+                  <option value="hivemind/crowd-v1">hivemind/crowd-v1 (1B &bull; CrowdGPT Trunk)</option>
                   <option value="hivemind/coder-lite">hivemind/coder-lite (3B &bull; Lightweight)</option>
                   <option value="hivemind/coder-plus">hivemind/coder-plus (14B &bull; Deep Refactor)</option>
                   <option value="hivemind/moe-coder">hivemind/moe-coder (30B &bull; Frontier)</option>

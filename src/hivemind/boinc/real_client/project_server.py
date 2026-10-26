@@ -56,8 +56,9 @@ class ProjectServer:
         class Handler(BaseHTTPRequestHandler):
             protocol_version = "HTTP/1.1"
 
-            def log_message(self, *a: Any) -> None:  # silence
-                pass
+            def log_message(self, *a: Any) -> None:
+                """Silence standard BaseHTTPRequestHandler stderr logging during tests."""
+                _ = len(a)
 
             def _send(self, body: bytes, ctype: str = "text/plain") -> None:
                 self.send_response(200)
