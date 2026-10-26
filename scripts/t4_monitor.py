@@ -93,8 +93,20 @@ def policy_drift(expected: str | None, actual: str | None, dropins: list[str]) -
             "dropins": sorted(dropins), "drift": (expected is not None and actual != expected) or bool(dropins)}
 
 
+def code_drift(manifest_text: str, read_hash) -> list[str]:
+    """Files whose current sha256 differs from the manifest the installer wrote (``sha256sum`` format: '<hash>  <relative path>').
+    ``read_hash(relpath)`` returns the current hash, or None when the file is missing (reported as drift too)."""
+    drift = []
+    for ln in manifest_text.splitlines():
+        parts = ln.split()
+        if len(parts) == 2 and read_hash(parts[1]) != parts[0]:
+            drift.append(parts[1])
+    return sorted(drift)
+
+
 def governor_policy() -> dict:
     import glob
+    import hashlib
 
     exp = Path("/opt/hivemind/t4/expected_governor_args.txt")
     expected = exp.read_text().strip() if exp.exists() else None
@@ -105,7 +117,18 @@ def governor_policy() -> dict:
             actual = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode().split("t4_governor.py", 1)[1].strip()
         except (OSError, IndexError):
             pass
-    return policy_drift(expected, actual, glob.glob("/etc/systemd/system/hivemind-*.service.d/*"))
+    out = policy_drift(expected, actual, glob.glob("/etc/systemd/system/hivemind-*.service.d/*"))
+
+    def current(rel: str) -> str | None:
+        try:
+            return hashlib.sha256((Path("/opt/hivemind/t4") / rel).read_bytes()).hexdigest()
+        except OSError:
+            return None
+
+    man = Path("/opt/hivemind/t4/expected_code_hashes.txt")
+    out["code_drift"] = code_drift(man.read_text(), current) if man.exists() else []
+    out["drift"] = bool(out["drift"] or out["code_drift"])  # an edited governor script defeats the arguments just as well as a drop-in
+    return out
 
 
 class ChatLog:
@@ -211,7 +234,7 @@ def main() -> int:
                     "qlora_progress": progress(a.ledger), "preemption_notice": pre}
             if pol["drift"] != last_drift:  # one event per change, not one per snapshot
                 last_drift = pol["drift"]
-                event("GOVERNOR_POLICY_DRIFT" if pol["drift"] else "governor_policy_ok", **{k: pol[k] for k in ("expected_args", "actual_args", "dropins")})
+                event("GOVERNOR_POLICY_DRIFT" if pol["drift"] else "governor_policy_ok", **{k: pol[k] for k in ("expected_args", "actual_args", "dropins", "code_drift")})
             rotate(a.out_dir / "t4_node.jsonl")
             with open(a.out_dir / "t4_node.jsonl", "a") as f:
                 f.write(json.dumps(snap) + "\n")

@@ -136,6 +136,24 @@ def test_policy_drift_flags_changed_arguments_and_dropins_but_not_the_expected_s
     assert policy_drift(None, exp, [])["drift"] is False  # no recorded expectation (installer never ran): nothing to compare, not an alarm
 
 
+def test_code_drift_flags_edited_and_missing_files_only() -> None:
+    from t4_monitor import code_drift
+
+    manifest = "aaa  scripts/t4_governor.py\nbbb  scripts/t4_monitor.py\nccc  bin/startup.sh\n"
+    now = {"scripts/t4_governor.py": "aaa", "scripts/t4_monitor.py": "bbb", "bin/startup.sh": "ccc"}
+    assert code_drift(manifest, now.get) == []
+    now["scripts/t4_governor.py"] = "edited-by-hand"  # the 02:08Z incident: same arguments, different code
+    del now["bin/startup.sh"]
+    assert code_drift(manifest, now.get) == ["bin/startup.sh", "scripts/t4_governor.py"]
+
+
+def test_governor_policy_comes_only_from_its_arguments() -> None:
+    """Regression guard for the 02:08Z bypass: the resume rule once did min(os.environ.get("HIVEMIND_INTENSE_MOE_IDLE_S", 10), idle), which silently
+    capped the owner's 1800 s / 7200 s to 10 s. The governor's policy must come from its arguments only, never from environment variables."""
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "t4_governor.py").read_text()
+    assert "environ.get(" not in src and "getenv(" not in src and "INTENSE_MOE" not in src
+
+
 def test_wait_for_idle_does_not_block_when_there_is_no_status_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HIVEMIND_IDLE_URL", "http://127.0.0.1:9/nginx_status")  # nothing listens here
     t = time.time()
