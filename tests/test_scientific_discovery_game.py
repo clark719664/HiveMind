@@ -151,3 +151,41 @@ def test_rtx2070_hardware_probe_and_custom_mission_params() -> None:
     assert r_byz.json()["verified"] is True
 
 
+def test_frontend_dom_controls_and_js_handlers_contract() -> None:
+    client = TestClient(create_hack_miner_fastapi_app())
+    r_page = client.get("/scientific-game")
+    assert r_page.status_code == 200
+    html = r_page.text
+
+    required_dom_ids = [
+        'id="orbit-canvas"',
+        'id="animated-svg-ANIMATION_1"',
+        'id="pts-badge"',
+        'id="preempt-badge"',
+        'id="kpi-drift"',
+        'id="kpi-snr"',
+        'id="kpi-sqnr"',
+        'id="kpi-krum"',
+        'id="period-slider"',
+        'id="byz-slider"',
+        'id="btn-mission-1"',
+        'id="btn-mission-2"',
+        'id="btn-mission-3"',
+        'id="btn-preempt"',
+        'id="btn-sync-rtx"',
+        'id="btn-ask-copilot"',
+        'id="copilot-model"',
+        'id="copilot-prompt"',
+        'id="mission-terminal"',
+        'id="stack-terminal"',
+    ]
+    for dom_id in required_dom_ids:
+        assert dom_id in html, f"Missing frontend DOM element: {dom_id}"
+
+    assert "q.byzantine_poisoners" in html
+    assert "data.preemption_eviction_ms" in html
+    assert "/api/scientific-game/rtx2070-la-ruche" in html
+    assert "/api/scientific-game/la-ruche-copilot" in html
+
+
+

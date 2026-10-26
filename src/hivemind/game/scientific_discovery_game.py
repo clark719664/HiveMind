@@ -1314,7 +1314,7 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
         </div>
         <div class="kpi-tile">
           <div class="lbl">Multi-Krum Shield</div>
-          <div class="val" style="color:#34d399;">2/2 Poisoners Cut</div>
+          <div class="val" id="kpi-krum" style="color:#34d399;">2/2 Poisoners Cut</div>
         </div>
       </div>
       <div style="margin-top:10px;padding:10px;background:rgba(22,27,44,0.75);border:1px solid rgba(0,240,255,0.2);border-radius:6px;">
@@ -1328,10 +1328,10 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
         </div>
       </div>
       <div style="margin-top:10px;">
-        <button class="btn btn-gold" onclick="runMission('MISSION-SCI-01-SYMPLECTIC-EXOPLANET')">Mission 1: Symplectic Exoplanet BLS</button>
-        <button class="btn btn-emerald" onclick="runMission('MISSION-SCI-02-E8-LATTICE-QUORUM')">Mission 2: E8 Lattice &amp; Multi-Krum</button>
-        <button class="btn" onclick="runMission('MISSION-SCI-03-ANSE-ENERGY-REACTOR')">Mission 3: ANSE Energy-Bee Reactor</button>
-        <button class="btn" onclick="triggerPreemption()">Test &lt;1.5s Steam GPU Preemption</button>
+        <button id="btn-mission-1" class="btn btn-gold" onclick="runMission('MISSION-SCI-01-SYMPLECTIC-EXOPLANET')">Mission 1: Symplectic Exoplanet BLS</button>
+        <button id="btn-mission-2" class="btn btn-emerald" onclick="runMission('MISSION-SCI-02-E8-LATTICE-QUORUM')">Mission 2: E8 Lattice &amp; Multi-Krum</button>
+        <button id="btn-mission-3" class="btn" onclick="runMission('MISSION-SCI-03-ANSE-ENERGY-REACTOR')">Mission 3: ANSE Energy-Bee Reactor</button>
+        <button id="btn-preempt" class="btn" onclick="triggerPreemption()">Test &lt;1.5s Steam GPU Preemption</button>
       </div>
       <div class="terminal" id="mission-terminal">[READY] Select a Scientific Mission above to run deterministic physics &amp; ANSE energy verification.</div>
     </div>
@@ -1402,13 +1402,13 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
         </svg>
       </div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <button class="btn btn-gold" onclick="syncRtxAndLaRuche()">Sync Local RTX 2070 (8GB) &amp; La Ruche Live</button>
+        <button id="btn-sync-rtx" class="btn btn-gold" onclick="syncRtxAndLaRuche()">Sync Local RTX 2070 (8GB) &amp; La Ruche Live</button>
         <select id="copilot-model" class="mono" style="background:#080d1e;color:#00f0ff;border:1px solid #00f0ff;padding:7px 10px;border-radius:4px;font-size:0.75rem;">
           <option value="hivemind/bee-stars">hivemind/bee-stars (Astrophysics Bee)</option>
           <option value="hivemind/coder">hivemind/coder (Symplectic Code Bee)</option>
           <option value="qwen2.5-coder:3b">qwen2.5-coder:3b (Local GPU Swarm)</option>
         </select>
-        <button class="btn btn-emerald" onclick="askLaRucheCopilot()">Ask La Ruche Co-Pilot</button>
+        <button id="btn-ask-copilot" class="btn btn-emerald" onclick="askLaRucheCopilot()">Ask La Ruche Co-Pilot</button>
       </div>
       <input id="copilot-prompt" class="mono" type="text" value="Write a 2nd-order Symplectic Velocity-Verlet step in Python that conserves Hamiltonian energy H." style="width:100%;margin-top:8px;background:#040711;color:#dde1fa;border:1px solid rgba(0,240,255,0.3);padding:8px 10px;border-radius:4px;font-size:0.76rem;" />
       <div class="terminal" id="stack-terminal"></div>
@@ -1526,7 +1526,11 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
           );
         }}
         if (res.telemetry && res.telemetry.e8_lattice_quorum) {{
-          document.getElementById('kpi-sqnr').textContent = res.telemetry.e8_lattice_quorum.mean_e8_sqnr_db + ' dB';
+          const q = res.telemetry.e8_lattice_quorum;
+          document.getElementById('kpi-sqnr').textContent = q.mean_e8_sqnr_db + ' dB';
+          const krumEl = document.getElementById('kpi-krum');
+          const totalByz = q.byzantine_poisoners !== undefined ? q.byzantine_poisoners : q.num_byzantine;
+          if (krumEl) krumEl.textContent = `${{(q.rejected_workers || []).length}}/${{totalByz}} Poisoners Cut`;
         }}
         term.textContent =
           `[VERIFIED: ${{res.verified}}] ${{res.title}}\\n` +
@@ -1597,7 +1601,8 @@ def render_scientific_discovery_game_html(initial_report: Dict[str, Any] | None 
         }});
         if (!resp.ok) throw new Error('offline fallback');
         const data = await resp.json();
-        document.getElementById('preempt-badge').textContent = `${{data.eviction_latency_ms}} ms (<1500 ms SLA)`;
+        const evictMs = data.preemption_eviction_ms !== undefined ? data.preemption_eviction_ms : data.eviction_latency_ms;
+        document.getElementById('preempt-badge').textContent = `${{evictMs}} ms (<1500 ms SLA)`;
         term.textContent = `[WDDM PREEMPTION VERIFIED]\\n${{JSON.stringify(data, null, 2)}}`;
       }} catch (err) {{
         term.textContent = '[OFFLINE PREEMPTION] Background worker yielded VRAM in 18.4 ms (<1500 ms SLA).';
