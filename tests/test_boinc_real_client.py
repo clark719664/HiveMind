@@ -120,7 +120,7 @@ def test_upload_handler_roundtrip_and_size_query(tmp_path: Path) -> None:
 def test_download_md5_matches_workunit_input(tmp_path: Path) -> None:
     srv = ProjectServer(tmp_path)
     srv.create_work(SPEC)
-    f = srv.workunits["wu_t"]["input"]
+    f = srv.workunits["wu_t"]["inputs"][0]
     data = (tmp_path / "download" / f["name"]).read_bytes()
     assert hashlib.md5(data).hexdigest() == f["md5"] and json.loads(data)["wu_id"] == "wu_t"
 

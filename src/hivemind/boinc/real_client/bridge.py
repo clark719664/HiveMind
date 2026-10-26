@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import base64
 import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +38,7 @@ class Verdict:
     same_class_exact: bool | None
     cross_class_max_ulp: float | None
     grant: dict[str, Any]
+    detail: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

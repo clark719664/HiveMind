@@ -28,11 +28,35 @@ def project_dir_name(master_url: str) -> str:
     return out[:-1] if out.endswith("_") else out
 
 
-def prepare_data_dir(data_dir: Path, master_url: str, src_root: Path, python: str = "python3", gpu_flops: float = 4e12) -> dict[str, Any]:
+def toy_app(python: str = "python3") -> dict[str, Any]:
+    return {"name": APP_NAME, "version": APP_VERSION, "python": python, "module": "hivemind.boinc.real_client.app", "args": [], "env": {}, "gpu_ram_mb": 1000}
+
+
+def moe_apps(venv_python: str, gpu_ram_mb: int = 3600) -> list[dict[str, Any]]:
+    """The QLoRA MoE training and batch-inference apps; they need the venv with peft + bitsandbytes."""
+    env = {"HF_HUB_OFFLINE": "1"}
+    return [
+        {"name": "hivemind_qlora_moe", "version": 100, "python": venv_python, "module": "hivemind.boinc.real_client.moe_app", "args": ["--mode", "train"], "env": env, "gpu_ram_mb": gpu_ram_mb},
+        {"name": "hivemind_moe_infer", "version": 100, "python": venv_python, "module": "hivemind.boinc.real_client.moe_app", "args": ["--mode", "infer"], "env": env, "gpu_ram_mb": gpu_ram_mb},
+    ]
+
+
+def prepare_data_dir(
+    data_dir: Path,
+    master_url: str,
+    src_root: Path,
+    python: str = "python3",
+    gpu_flops: float = 4e12,
+    apps: list[dict[str, Any]] | None = None,
+    authenticator: str | None = None,
+    install_apps: bool = True,
+) -> dict[str, Any]:
+    """Client data dir. ``install_apps=False`` writes no ``app_info.xml``: the client then fetches the project's
+    signed app versions itself (use with a real server and the ``authenticator`` its web stack returned)."""
     data_dir.mkdir(parents=True, exist_ok=True)
     pdir = data_dir / "projects" / project_dir_name(master_url)
     pdir.mkdir(parents=True, exist_ok=True)
-    auth = secrets.token_hex(16)
+    auth = authenticator or secrets.token_hex(16)
     (data_dir / "gui_rpc_auth.cfg").write_text(secrets.token_hex(8))
     (data_dir / "cc_config.xml").write_text(
         "<cc_config>\n <log_flags><task>1</task><file_xfer>1</file_xfer><sched_ops>1</sched_ops>"
@@ -49,27 +73,34 @@ def prepare_data_dir(data_dir: Path, master_url: str, src_root: Path, python: st
         f"<account><master_url>{master_url}</master_url><authenticator>{auth}</authenticator></account>\n"
     )
     # The science app: a launcher script. The client runs it in a slot directory (cwd) with the WU command line.
-    app = pdir / APP_FILE
-    app.write_text(
-        "#!/bin/bash\n"
-        "unset LD_LIBRARY_PATH\n"  # the private libboinc path must not leak into the python app
-        f"export PYTHONPATH={src_root}\n"
-        f"exec {python} -W ignore -m hivemind.boinc.real_client.app \"$@\"\n"
-    )
-    app.chmod(0o755)
-    (pdir / "app_info.xml").write_text(
-        "<app_info>\n"
-        f" <app><name>{APP_NAME}</name><user_friendly_name>HiveMind inner loop</user_friendly_name></app>\n"
-        f" <file_info><name>{APP_FILE}</name><executable/></file_info>\n"
-        " <app_version>\n"
-        f"  <app_name>{APP_NAME}</app_name><version_num>{APP_VERSION}</version_num><platform>{PLATFORM}</platform>\n"
-        f"  <plan_class>{PLAN_CLASS}</plan_class><avg_ncpus>1</avg_ncpus><max_ncpus>1</max_ncpus>\n"
-        f"  <flops>{gpu_flops}</flops><gpu_ram>1000</gpu_ram>\n"
-        "  <coproc><type>NVIDIA</type><count>1</count></coproc>\n"
-        f"  <file_ref><file_name>{APP_FILE}</file_name><main_program/></file_ref>\n"
-        " </app_version>\n"
-        "</app_info>\n"
-    )
+    if not install_apps:
+        return {"project_dir": pdir, "authenticator": auth}
+    xml = ["<app_info>\n"]
+    for a in apps or [toy_app(python)]:
+        fname = f"{a['name']}_{a['version']}_{PLATFORM}"
+        launcher = pdir / fname
+        exports = "".join(f"export {k}={v}\n" for k, v in a["env"].items())
+        launcher.write_text(
+            "#!/bin/bash\n"
+            "unset LD_LIBRARY_PATH\n"  # the private libboinc path must not leak into the python app
+            f"export PYTHONPATH={src_root}\n"
+            f"{exports}"
+            f"exec {a['python']} -W ignore -m {a['module']} {' '.join(a['args'])} \"$@\"\n"
+        )
+        launcher.chmod(0o755)
+        xml.append(
+            f" <app><name>{a['name']}</name><user_friendly_name>{a['name']}</user_friendly_name></app>\n"
+            f" <file_info><name>{fname}</name><executable/></file_info>\n"
+            " <app_version>\n"
+            f"  <app_name>{a['name']}</app_name><version_num>{a['version']}</version_num><platform>{PLATFORM}</platform>\n"
+            f"  <plan_class>{PLAN_CLASS}</plan_class><avg_ncpus>1</avg_ncpus><max_ncpus>1</max_ncpus>\n"
+            f"  <flops>{gpu_flops}</flops><gpu_ram>{a['gpu_ram_mb']}</gpu_ram>\n"
+            "  <coproc><type>NVIDIA</type><count>1</count></coproc>\n"
+            f"  <file_ref><file_name>{fname}</file_name><main_program/></file_ref>\n"
+            " </app_version>\n"
+        )
+    xml.append("</app_info>\n")
+    (pdir / "app_info.xml").write_text("".join(xml))
     return {"project_dir": pdir, "authenticator": auth}
 
 
