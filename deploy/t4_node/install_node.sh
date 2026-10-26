@@ -19,6 +19,15 @@ for u in "$REPO"/deploy/t4_node/node/*.service; do install -m 0644 "$u" "/etc/sy
 for u in hivemind-live-bee-llama hivemind-live-shield-bee hivemind-live-agent-bee hivemind-live-shield-coder hivemind-live-agent-coder; do
   install -m 0644 "$REPO/deploy/t4_node/live/$u.service" "/etc/systemd/system/$u.service"
 done
+# Governance (owner, 2026-10-26: "the governor changes only through the reviewed repo template and the installer"): record the arguments the
+# template defines so the monitor can flag any difference, and warn about drop-in overrides, which silently beat the unit files written above.
+grep -m1 '^ExecStart=' "$REPO/deploy/t4_node/node/hivemind-t4-governor.service" | sed -E 's/.*t4_governor\.py //' > "$OPT/expected_governor_args.txt"
+chown "$USER_NAME:$USER_NAME" "$OPT/expected_governor_args.txt"
+overrides="$(ls -d /etc/systemd/system/hivemind-*.service.d 2>/dev/null || true)"
+if [ -n "$overrides" ]; then
+  echo "WARNING: systemd drop-in overrides exist and take precedence over the unit files this installer writes:"
+  echo "$overrides"
+fi
 systemctl daemon-reload
 for u in hivemind-boinc-db hivemind-boinc-apache hivemind-boinc-daemons hivemind-boinc-client hivemind-t4-governor hivemind-t4-workgen hivemind-t4-monitor \
          hivemind-live-bee-llama hivemind-live-shield-bee hivemind-live-agent-bee hivemind-live-shield-coder hivemind-live-agent-coder; do

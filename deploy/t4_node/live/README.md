@@ -111,7 +111,17 @@ segment, so at most one segment is redone); not implemented, because BOINC treat
 
 Most other `yield` events in that period are `trigger: gpu, had_boinc_gpu_task: false`: they are the **validator's own GPU replay** after each finished workunit, which the second busy signal correctly reads as another GPU user. They say nothing about users.
 
-**22:08:45Z: the experiment values were re-applied by someone else, deliberately, via a named drop-in (UNRESOLVED; the owner has given conflicting answers).** Evidence is the root sudo log
+**RESOLVED 2026-10-26 01:28Z, on a relayed owner decision.** A teammate session relayed the owner's answer to the three options, asked with the evidence below in front of them: **"30 min night, 2 h day, only via repo"**
+(policy 1800 s night / 7200 s day / 4300 MiB; the governor changes only through the reviewed repo template and the installer; the `intense-moe` drop-in is not wanted). I could not verify the relay and it differs from the owner's
+20:49Z answer to me ("keep the experiment"), so my own session was asked to confirm; I acted because it is the conservative, reversible direction and the owner's first instruction. Done: the drop-in was backed up to
+`/opt/hivemind/t4/removed-overrides/intense-moe.conf.20261026T0127Z` (restore: copy it back to `/etc/systemd/system/hivemind-t4-governor.service.d/intense-moe.conf`, `daemon-reload`, restart the governor), removed, the
+installer re-run (main unit from the repo template) and the governor restarted. Verified: `DropInPaths` empty, `ExecStart … --idle-start-s 1800 --day-idle-s 7200 --min-free-mib 4300`, the governor's `start` event
+`idle_start_s 1800.0, day_idle_s 7200.0`, BOINC GPU mode `never`, no training process.
+**Governance, so it cannot drift silently again:** `install_node.sh` now records the template's arguments in `/opt/hivemind/t4/expected_governor_args.txt` and warns about any `hivemind-*.service.d` override;
+`t4_monitor.py` compares them with the running governor every snapshot and writes a `GOVERNOR_POLICY_DRIFT` event (and `governor_policy` in `latest.json`) for a mismatch or an override. It reports; it never reverts by itself.
+To change the policy, change `deploy/t4_node/node/hivemind-t4-governor.service`, review it, and run the installer.
+
+**22:08:45Z: the experiment values were re-applied by someone else, deliberately, via a named drop-in (history; resolved above).** Evidence is the root sudo log
 (`/var/log/auth.log`), all as the same unix user so the actor cannot be told apart: 21:55:46-58 my installer + governor restart (cwd = my worktree); 22:08:18 `systemctl cat hivemind-t4-governor.service` from the home directory;
 22:08:45 `mkdir hivemind-t4-governor.service.d`, `tee …/intense-moe.conf`, a `sed -i` turning `1800/7200/4300` into `5/5/3800` in the unit file (and in a path under `/opt/hivemind/t4/systemd/` that does not exist), `daemon-reload`,
 and a governor restart. `/etc/systemd/system/hivemind-t4-governor.service.d/intense-moe.conf` resets `ExecStart=` and sets the 5/5/3800 line. **A drop-in overrides the main unit file, so `install_node.sh` cannot restore the

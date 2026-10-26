@@ -86,6 +86,28 @@ def gateway_view() -> dict:
     return {"models_http": code, "live_tiers": tiers, "health_http": http(f"{GATEWAY}/health", timeout=8)[0]}
 
 
+def policy_drift(expected: str | None, actual: str | None, dropins: list[str]) -> dict:
+    """The owner's rule: the governor changes only through the reviewed repo template and the installer. Compare what the installer recorded
+    with what is running, and list systemd drop-in overrides (which silently beat the unit file). Report only; never fix automatically."""
+    return {"expected_args": expected, "actual_args": actual, "args_match": expected is not None and actual == expected,
+            "dropins": sorted(dropins), "drift": (expected is not None and actual != expected) or bool(dropins)}
+
+
+def governor_policy() -> dict:
+    import glob
+
+    exp = Path("/opt/hivemind/t4/expected_governor_args.txt")
+    expected = exp.read_text().strip() if exp.exists() else None
+    actual = None
+    pid = sh(["systemctl", "show", "-p", "MainPID", "--value", "hivemind-t4-governor.service"])
+    if pid.isdigit() and int(pid) > 0:
+        try:
+            actual = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode().split("t4_governor.py", 1)[1].strip()
+        except (OSError, IndexError):
+            pass
+    return policy_drift(expected, actual, glob.glob("/etc/systemd/system/hivemind-*.service.d/*"))
+
+
 class ChatLog:
     """Counts completed chat-completion requests from nginx's access log since the previous poll (the monitor runs as root; the log is
     adm-only). In-flight sampling every 15 s misses sub-second requests; this is the real request count. It does NOT give latency
@@ -160,6 +182,7 @@ def main() -> int:
     restarts: dict[str, deque] = defaultdict(deque)
     last_full, preempt_logged, prev_req, prev_t = 0.0, False, None, None
     chat_log = ChatLog()
+    last_drift = None
 
     def event(kind: str, **kw) -> None:
         with open(a.out_dir / "events.jsonl", "a") as f:
@@ -183,9 +206,12 @@ def main() -> int:
                 prev_req, prev_t = ng["requests_total"], now
             snap = {"t": round(now, 2), "uptime_s": float(Path("/proc/uptime").read_text().split()[0]), "loadavg": os.getloadavg(),
                     "disk_free_gb": {p: round(os.statvfs(p).f_bavail * os.statvfs(p).f_frsize / 1e9, 1) for p in ("/", "/mnt/disks/disk-socrateai-local-1")},
-                    "gpu": gpu(), "nginx": {**ng, "req_per_s": rate}, "chat_completions_since_last": chat_log.poll(), "units": units, "gateway": gateway_view(),
+                    "gpu": gpu(), "nginx": {**ng, "req_per_s": rate}, "chat_completions_since_last": chat_log.poll(), "governor_policy": (pol := governor_policy()), "units": units, "gateway": gateway_view(),
                     "governor": json.loads(a.governor_state.read_text()) if a.governor_state.exists() else None,
                     "qlora_progress": progress(a.ledger), "preemption_notice": pre}
+            if pol["drift"] != last_drift:  # one event per change, not one per snapshot
+                last_drift = pol["drift"]
+                event("GOVERNOR_POLICY_DRIFT" if pol["drift"] else "governor_policy_ok", **{k: pol[k] for k in ("expected_args", "actual_args", "dropins")})
             rotate(a.out_dir / "t4_node.jsonl")
             with open(a.out_dir / "t4_node.jsonl", "a") as f:
                 f.write(json.dumps(snap) + "\n")

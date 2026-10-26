@@ -117,10 +117,23 @@ def test_terminate_tree_ends_a_process_and_its_children_quickly() -> None:
     assert terminate_tree(p.pid, grace_s=0.5) is True
     assert time.time() - t < 4.0
     p.wait(timeout=5)
-    assert all(not Path(f"/proc/{k}").exists() for k in kids)
     from t4_governor import pid_alive
 
-    assert pid_alive(os.getpid()) is True and pid_alive(p.pid) is False  # a reaped/zombie process is "gone"
+    # "gone" means not running: an orphaned grandchild is a zombie until init reaps it (a few ms), so /proc/<pid> may still exist
+    assert not any(pid_alive(k) for k in kids)
+    assert pid_alive(os.getpid()) is True and pid_alive(p.pid) is False
+
+
+def test_policy_drift_flags_changed_arguments_and_dropins_but_not_the_expected_state() -> None:
+    from t4_monitor import policy_drift
+
+    exp = "--idle-start-s 1800 --day-idle-s 7200 --min-free-mib 4300"
+    assert policy_drift(exp, exp, [])["drift"] is False
+    changed = policy_drift(exp, "--idle-start-s 5 --day-idle-s 5 --min-free-mib 3800", [])
+    assert changed["drift"] is True and changed["args_match"] is False
+    # the 22:08 incident: arguments may even match, but a drop-in override exists and silently wins at the next restart
+    assert policy_drift(exp, exp, ["/etc/systemd/system/hivemind-t4-governor.service.d/intense-moe.conf"])["drift"] is True
+    assert policy_drift(None, exp, [])["drift"] is False  # no recorded expectation (installer never ran): nothing to compare, not an alarm
 
 
 def test_wait_for_idle_does_not_block_when_there_is_no_status_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
