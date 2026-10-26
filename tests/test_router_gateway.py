@@ -353,6 +353,79 @@ def test_failover_to_the_second_producer(world: World) -> None:
     assert len(good.calls) == 1
 
 
+def _two_endpoint_account(world: World, *, capacity: float = 100.0, agents: tuple[FakeProducer, FakeProducer] | None = None) -> tuple[str, str, FakeProducer, FakeProducer]:
+    account_id, key = world.register("producer")
+    a, b = agents if agents is not None else (FakeProducer(), FakeProducer())
+    world.producers["gpu-a.test"], world.producers["gpu-b.test"] = a, b
+    assert world.beat(key, "gpu-a.test", {"qwen": "q"}, COST, capacity).json()["endpoints"] == 1
+    assert world.beat(key, "gpu-b.test", {"qwen": "q"}, COST, capacity).json()["endpoints"] == 2  # a second heartbeat adds an endpoint, it does not replace the first
+    return account_id, key, a, b
+
+
+def test_one_account_with_two_endpoints_is_one_market_participant_with_summed_capacity(world: World) -> None:
+    account_id, _, _, _ = _two_endpoint_account(world, capacity=40.0)
+    live = world.store.active_producers("qwen", world.clock())
+    assert [r.account_id for r in live] == [account_id]  # the market sees one producer
+    assert live[0].capacity_1k == pytest.approx(80.0) and live[0].cost_per_1k == pytest.approx(COST)
+    assert sorted(e.endpoint_url for e in live[0].endpoints) == ["https://gpu-a.test", "https://gpu-b.test"]
+    assert world.store.live_models(world.clock()) == ["qwen"]
+
+
+def test_requests_spread_over_an_accounts_endpoints_and_credit_the_one_account(world: World) -> None:
+    consumer_id, key = world.consumer(10.0)
+    account_id, _, a, b = _two_endpoint_account(world)
+    for _ in range(6):
+        assert world.chat(key).status_code == 200
+    assert len(a.calls) == 3 and len(b.calls) == 3  # equal capacity: even split
+    assert world.store.balance(account_id) > 0.0 and world.store.total_balances() == pytest.approx(world.store.total_minted(), abs=1e-9)
+
+
+def test_a_failing_endpoint_falls_back_to_the_accounts_other_endpoint(world: World) -> None:
+    _, key = world.consumer(10.0)
+    account_id, _, bad, good = _two_endpoint_account(world, agents=(FakeProducer(status=500), FakeProducer()))
+    for _ in range(4):
+        response = world.chat(key)
+        assert response.status_code == 200, response.text
+        assert response.json()["hivemind"]["producer_id"] == account_id
+    assert len(good.calls) == 4  # every request was served by the healthy GPU, whichever was tried first
+    assert world.store.balance(account_id) > 0.0
+
+
+def test_endpoints_expire_individually_and_the_account_stays_live_on_the_rest(world: World) -> None:
+    account_id, key, _, _ = _two_endpoint_account(world)
+    world.clock.now += 100.0
+    assert world.beat(key, "gpu-b.test", {"qwen": "q"}, COST, 100.0).status_code == 200  # only B keeps beating
+    world.clock.now += 60.0  # A is now 160 s silent (> 120 s TTL), B is 60 s
+    live = world.store.active_producers("qwen", world.clock())
+    assert [r.endpoint_url for r in live] == ["https://gpu-b.test"] and live[0].endpoints == ()
+
+
+def test_endpoint_cap_per_account_is_enforced_but_existing_endpoints_keep_beating(world: World) -> None:
+    from hivemind.router.accounts import MAX_ENDPOINTS_PER_ACCOUNT
+
+    _, key = world.register("producer")
+    for i in range(MAX_ENDPOINTS_PER_ACCOUNT):
+        assert world.beat(key, f"gpu-{i}.test", {"qwen": "q"}, COST, 10.0).status_code == 200
+    refused = world.beat(key, "one-too-many.test", {"qwen": "q"}, COST, 10.0)
+    assert refused.status_code == 400 and refused.json()["error"]["code"] == "too_many_endpoints"
+    assert world.beat(key, "gpu-0.test", {"qwen": "q"}, COST, 10.0).json()["endpoints"] == MAX_ENDPOINTS_PER_ACCOUNT
+
+
+def test_producers_of_the_old_one_row_table_are_migrated_on_open(tmp_path: Any) -> None:
+    import sqlite3
+
+    path = tmp_path / "router.db"
+    store = RouterStore(path, SECRET)
+    store.close()
+    legacy = sqlite3.connect(path)
+    legacy.execute("INSERT INTO producers VALUES ('acc1','https://old.example/','[{\"id\": \"qwen\", \"local_name\": \"q\"}]',0.4,50.0,1000.0,'gpu',NULL)")
+    legacy.commit()
+    legacy.close()
+    reopened = RouterStore(path, SECRET)
+    live = reopened.active_producers("qwen", 1010.0)
+    assert [(r.account_id, r.endpoint_url, r.capacity_1k) for r in live] == [("acc1", "https://old.example", 50.0)]  # trailing slash normalised, so the next heartbeat refreshes the same row
+
+
 def test_unknown_model_bad_body_and_auth_errors(world: World) -> None:
     _, key = world.consumer(10.0)
     world.producer("prod-a.test", {"qwen": "q"})
