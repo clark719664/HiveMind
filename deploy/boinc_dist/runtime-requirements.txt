@@ -1,6 +1,6 @@
 # Pinned to exactly what the production node validates with (replay validation compares to ~1e-4, so library versions must match the server's).
 # Installed into a relocatable standalone CPython 3.10 by scripts/boinc_build_distribution.sh.
-torch==2.7.1+cu118
+torch==2.13.0
 triton==3.3.1
 transformers==5.17.0
 tokenizers==0.23.2
