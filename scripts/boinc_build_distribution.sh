@@ -33,8 +33,14 @@ pack() {  # pack <tar flags/dir...> -> name with content hash
   tar -C "$1" -cf - "${@:2}" | nice -n 19 xz -T"${XZ_THREADS:-2}" -6 > "$tmp"   # few threads: this runs on the inference node
   local h; h="$(sha256sum "$tmp" | cut -c1-12)"; mv "$tmp" "$OUT/hivemind_${kind}_${h}.tar.xz"; echo "hivemind_${kind}_${h}.tar.xz"
 }
-pack runtime "$OUT/build/runtime" .
-pack src "$OUT/build/src" .
-tmp="$OUT/model.tmp"; tar -C "$HF" -cf "$tmp" "$MODEL"; h="$(sha256sum "$tmp" | cut -c1-12)"
+if [ "${ONLY:-}" != "model" ]; then   # ONLY=model rebuilds just the model archive (the runtime pack takes ~25 min)
+  pack runtime "$OUT/build/runtime" .
+  pack src "$OUT/build/src" .
+fi
+# The cached weights are symlinks into a shared blob store: stage a self-contained cache directory (real files, refs/main) and archive that.
+stage="$OUT/build/model"; rm -rf "$stage"; mkdir -p "$stage/$MODEL/snapshots" "$stage/$MODEL/refs"
+cp -rL "$HF/$MODEL/snapshots/." "$stage/$MODEL/snapshots/"
+cp -L "$HF/$MODEL/refs/"* "$stage/$MODEL/refs/"
+tmp="$OUT/model.tmp"; tar -C "$stage" -cf "$tmp" "$MODEL"; h="$(sha256sum "$tmp" | cut -c1-12)"
 mv "$tmp" "$OUT/hivemind_model_${MODEL#models--}_${h}.tar"; echo "hivemind_model_${MODEL#models--}_${h}.tar"
 ls -la "$OUT" | grep hivemind_

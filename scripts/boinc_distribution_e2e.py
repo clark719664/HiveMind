@@ -35,8 +35,38 @@ def md5(path: Path) -> str:
     return h.hexdigest()
 
 
+TELEMETRY = Path("/mnt/disks/disk-socrateai-local-1/hivemind_telemetry")
+
+
+def wait_for_night_idle(idle_s: float, max_wait_s: float, note) -> bool:
+    """Block until the node's own governor rule would allow training: night window (Europe/Paris 22-07), ``idle_s`` without a request, and >= 4300 MiB
+    of free VRAM. Reads the governor's state file, so the definition of 'idle' is the production one. Inference comes first; this test must not take its GPU."""
+    import subprocess
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from t4_governor import in_night  # noqa: E402 - stdlib-only module
+
+    end, announced = time.time() + max_wait_s, False
+    while time.time() < end:
+        try:
+            gov = json.loads((TELEMETRY / "governor_state.json").read_text())
+            free = 15360 - int(subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True).stdout.split()[0])
+            if in_night(time.time(), "Europe/Paris", 22, 7) and float(gov.get("quiet_s", 0)) >= idle_s and free >= 4300 and not gov.get("boinc_procs"):
+                return True
+            if not announced:
+                note(f"waiting for night + {idle_s:.0f} s quiet + 4300 MiB free (now quiet {gov.get('quiet_s')} s, free {free} MiB)")
+                announced = True
+        except (OSError, ValueError, IndexError):
+            pass
+        time.sleep(30)
+    return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--now", action="store_true", help="skip the night/idle gate (only when the node is known to be unused)")
+    ap.add_argument("--idle-s", type=float, default=1800.0)
+    ap.add_argument("--max-wait-s", type=float, default=16 * 3600.0)
     ap.add_argument("--stack-base", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/boinc/stack"))
     ap.add_argument("--boinc-src", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/boinc/src"))
     ap.add_argument("--boinc-root", type=Path, default=Path("/mnt/disks/disk-socrateai-local-1/boinc/root"))
@@ -58,6 +88,19 @@ def main() -> int:
         report["events"].append({"t": round(time.time()), "msg": msg})
         print(time.strftime("%H:%M:%S"), msg, flush=True)
 
+    if not a.now and not wait_for_night_idle(a.idle_s, a.max_wait_s, note):
+        note("gave up waiting for an idle night: nothing was started")
+        return 3
+    hold = TELEMETRY / "HOLD"
+    hold.write_text("boinc_distribution_e2e.py is running one training round on the GPU; the governor stays paused until it finishes\n")  # the governor's documented operator pause
+    try:
+        return run(a, st, report, note)
+    finally:
+        hold.unlink(missing_ok=True)
+        note("HOLD removed")
+
+
+def run(a, st, report, note) -> int:  # noqa: ANN001
     auth = st.create_account(f"volunteer-{int(time.time())}@test.invalid", "dist-test")
     st.sql(f"use {st.dbname}; update user set project_prefs='<project_preferences><allow_beta_work>1</allow_beta_work></project_preferences>' where authenticator='{auth}';")
     uid = int(st.sql(f"use {st.dbname}; select id from user where authenticator='{auth}';").strip().splitlines()[-1])
@@ -78,8 +121,22 @@ def main() -> int:
     t0, done = time.time(), False
     seen: set[str] = set()
     try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from t4_governor import descendants, terminate_tree  # noqa: E402 - the governor's own yield helpers
+
         while time.time() - t0 < a.timeout_s and not done:
             time.sleep(20)
+            try:  # inference first: if a request arrives, yield exactly like the governor (GPU off, training process ended within ~1 s)
+                if float(json.loads((TELEMETRY / "governor_state.json").read_text()).get("quiet_s", 999)) < 5 and client.proc is not None:
+                    client.cmd("--set_gpu_mode", "never")
+                    for pid in descendants(client.proc.pid):
+                        if "moe_app" in Path(f"/proc/{pid}/cmdline").read_text(errors="replace"):
+                            terminate_tree(pid, grace_s=1.0)
+                            note("a user request arrived: the test task was ended; it restarts when the node is quiet again")
+                elif "never" in client.cmd("--get_cc_status"):
+                    client.cmd("--set_gpu_mode", "always")
+            except (OSError, ValueError):
+                pass
             files = {p.name for p in pdir.glob("hivemind_*")} if pdir.exists() else set()
             for n in sorted(files - seen):
                 note(f"project dir now has {n}")
