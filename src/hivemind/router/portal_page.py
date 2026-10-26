@@ -665,7 +665,21 @@ export OPENAI_API_KEY=YOUR_HIVEMIND_API_KEY
   curl: `curl -X POST "${window.location.origin}/v1/chat/completions" \\
   -H "Authorization: Bearer YOUR_HIVEMIND_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{"model": "hivemind/coder", "messages": [{"role": "user", "content": "Hello!"}]}'`
+  -d '{"model": "hivemind/coder", "messages": [{"role": "user", "content": "Hello!"}]}'`,
+  antigravity: `# Google Antigravity SDK (pip install google-antigravity) + Unity/Steam Scientific Game Co-Pilot
+import asyncio
+from google.antigravity import Agent, LocalOpenAIAgentConfig
+
+async def main():
+    config = LocalOpenAIAgentConfig(
+        model="hivemind/bee-stars",
+        base_url="${window.location.origin}/v1",
+    ).lightweight()
+    async with Agent(config=config) as agent:
+        reply = await agent.chat("Optimize our Symplectic Velocity-Verlet N-Body orbital step for KEPLER-HM-442b.")
+        print(await reply.text())
+
+asyncio.run(main())`
 };
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -920,6 +934,7 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
         <button type="button" class="tab-btn" data-tab="aider">Aider Terminal</button>
         <button type="button" class="tab-btn" data-tab="env">Env variables</button>
         <button type="button" class="tab-btn" data-tab="curl">cURL</button>
+        <button type="button" class="tab-btn" data-tab="antigravity">Google Antigravity SDK</button>
       </div>
 
       <pre id="snippetCode" class="code-box"></pre>
