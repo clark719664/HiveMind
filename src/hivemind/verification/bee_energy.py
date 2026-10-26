@@ -15,10 +15,14 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 import hashlib
+import math
 import statistics
 from typing import Any, Mapping, Sequence
 
 MAX_PAIN_ENERGY: float = 1_000_000.0
+LATENCY_SCALE_MS: float = 100.0
+MEMORY_SCALE_MB: float = 64.0
+COST_FRACTION_OF_ONE_TEST: float = 0.99
 
 
 @dataclass(frozen=True)
@@ -149,16 +153,20 @@ def evaluate_bee_candidate_energy(
 
     clamped_passed = max(0, min(int(tests_total), int(tests_passed)))
     fail_ratio = float(tests_total - clamped_passed) / float(tests_total)
-    lat_term = max(0.0, float(latency_ms)) / 100.0
-    mem_term = max(0.0, float(memory_mb)) / 64.0
     inv_term = max(0.0, float(invariant_residual))
 
-    energy = (
-        w_fail * fail_ratio
-        + w_inv * inv_term
-        + w_lat * lat_term
-        + w_mem * mem_term
-    )
+    # Correctness dominates cost (review fix, 2026-10-26): latency and memory are squashed into [0, 1) and scaled
+    # to stay strictly below the energy of ONE failed hidden test, so a correct-but-slow answer can never rank
+    # below a partly-wrong fast one. Cost only orders candidates of equal correctness.
+    lat = max(0.0, float(latency_ms))
+    mem = max(0.0, float(memory_mb))
+    lat_sq = lat / (lat + LATENCY_SCALE_MS)
+    mem_sq = mem / (mem + MEMORY_SCALE_MB)
+    cost_weight = max(1e-9, float(w_lat) + float(w_mem))
+    cost_bound = COST_FRACTION_OF_ONE_TEST * float(w_fail) / float(tests_total)
+    cost_term = cost_bound * (float(w_lat) * lat_sq + float(w_mem) * mem_sq) / cost_weight
+
+    energy = w_fail * fail_ratio + w_inv * inv_term + cost_term
     return BeeEnergyEvaluation(
         candidate_id=candidate_id,
         response_text=response_text,
@@ -274,6 +282,28 @@ def detect_boinc_loss_plateau(
     }
 
 
+def exact_mcnemar_p(only_child_right: int, only_parent_right: int) -> float:
+    """Two-sided exact McNemar p-value on the discordant pairs (binomial, p = 0.5)."""
+    b, c = int(only_child_right), int(only_parent_right)
+    if b < 0 or c < 0:
+        raise ValueError("discordant counts must be non-negative.")
+    n = b + c
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, i) for i in range(0, min(b, c) + 1)) / float(2**n)
+    return min(1.0, 2.0 * tail)
+
+
+def calibrate_noise_margin(aa_median_deltas: Sequence[float]) -> float:
+    """Noise margin from measured A/A runs (parent against itself): the largest |median Delta E| observed.
+
+    The margin must come from A/A measurements on the same host and suite, never from a constant.
+    """
+    if len(aa_median_deltas) < 3:
+        raise ValueError("at least 3 A/A runs are needed to calibrate the noise margin.")
+    return float(max(abs(float(d)) for d in aa_median_deltas))
+
+
 @dataclass(frozen=True)
 class AutopoieticPromotionVerdict:
     """Phase 3 Autopoietic Bee Promotion Gate verdict."""
@@ -283,21 +313,44 @@ class AutopoieticPromotionVerdict:
     parent_regressions_failed: int
     shuffled_control_gained: bool
     reason: str
+    mcnemar_p: float | None = None
 
 
 def evaluate_child_bee_promotion(
     *,
     parent_energies: Sequence[float],
     child_energies: Sequence[float],
+    noise_margin: float,
     parent_regressions_failed: int = 0,
     shuffled_control_gained: bool = False,
-    noise_margin: float = 0.5,
+    paired_discordant: tuple[int, int] | None = None,
+    alpha: float = 0.05,
 ) -> AutopoieticPromotionVerdict:
-    """Promote a child Bee adapter iff 0 regressions on parent suite, shuffled control is NS, and `median(Delta E) < -noise_margin`."""
+    """Promote a child Bee adapter only if every condition holds.
+
+    1. ``parent_regressions_failed == 0`` (no item the parent verified is lost: rejects fast-but-wrong children);
+    2. the shuffled-label control did not gain (else the gain is not attributable to the data);
+    3. when ``paired_discordant = (only_child_right, only_parent_right)`` is given, the exact McNemar test is
+       significant at ``alpha`` in the child's favour (primary rule, same as HM-S14-01);
+    4. ``median(E_child - E_parent) < -noise_margin``, with ``noise_margin`` from :func:`calibrate_noise_margin`.
+    """
     if len(parent_energies) == 0 or len(parent_energies) != len(child_energies):
         raise ValueError("parent_energies and child_energies must be non-empty and equal length.")
     deltas = [float(c - p) for p, c in zip(parent_energies, child_energies)]
     med_delta = float(statistics.median(deltas))
+    p_value: float | None = None
+    if paired_discordant is not None:
+        p_value = exact_mcnemar_p(*paired_discordant)
+        child_better = paired_discordant[0] > paired_discordant[1]
+        if parent_regressions_failed == 0 and not shuffled_control_gained and not (child_better and p_value < alpha):
+            return AutopoieticPromotionVerdict(
+                promoted=False,
+                median_delta_energy=med_delta,
+                parent_regressions_failed=0,
+                shuffled_control_gained=False,
+                reason=f"REJECTED_NOT_SIGNIFICANT (McNemar p={p_value:.4g}, discordant={paired_discordant})",
+                mcnemar_p=p_value,
+            )
 
     if parent_regressions_failed > 0:
         return AutopoieticPromotionVerdict(
@@ -306,6 +359,7 @@ def evaluate_child_bee_promotion(
             parent_regressions_failed=int(parent_regressions_failed),
             shuffled_control_gained=bool(shuffled_control_gained),
             reason=f"REJECTED_FAST_BUT_WRONG ({parent_regressions_failed} parent regressions failed)",
+            mcnemar_p=p_value,
         )
     if shuffled_control_gained:
         return AutopoieticPromotionVerdict(
@@ -314,6 +368,7 @@ def evaluate_child_bee_promotion(
             parent_regressions_failed=0,
             shuffled_control_gained=True,
             reason="VOID_SHUFFLED_CONTROL_GAINED",
+            mcnemar_p=p_value,
         )
     if med_delta >= -abs(float(noise_margin)):
         return AutopoieticPromotionVerdict(
@@ -322,6 +377,7 @@ def evaluate_child_bee_promotion(
             parent_regressions_failed=0,
             shuffled_control_gained=False,
             reason=f"REJECTED_WITHIN_NOISE_MARGIN (median_delta={med_delta:+.4f} >= {-abs(noise_margin):+.4f})",
+            mcnemar_p=p_value,
         )
     return AutopoieticPromotionVerdict(
         promoted=True,
@@ -329,4 +385,5 @@ def evaluate_child_bee_promotion(
         parent_regressions_failed=0,
         shuffled_control_gained=False,
         reason=f"PROMOTED_AUTOPOIETIC_CHILD (median_delta={med_delta:+.4f} < {-abs(noise_margin):+.4f})",
+        mcnemar_p=p_value,
     )
