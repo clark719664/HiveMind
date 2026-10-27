@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Next-Generation Outer-Loop DiLoCo Optimizers, Routers & Aggregators (`SI-06`..`SI-11`).
 
 Implements verified algorithmic improvements synthesized from 2023-2026 arXiv literature

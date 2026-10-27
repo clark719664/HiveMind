@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase B (BOINC Aggregator): Byzantine-Resilient Multi-Krum, Adaptive Norm Clipping & Nesterov Outer Loop.
 
 Implements:

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind Swarm Lab ("SwarmLab-1"): a deterministic toy of a DiLoCo-style swarm with quorum policies, stragglers and non-IID data.
 
 WHAT THIS IS NOT: it is an EDUCATIONAL, QUALITATIVE ANALOGY of an effect measured in the real E13 experiment (Qwen2.5-0.5B, 4 workers, one data domain each,

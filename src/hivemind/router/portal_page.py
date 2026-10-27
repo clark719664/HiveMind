@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """The interactive landing page and AI playground served at ``/`` and ``/playground``. Pure function, no I/O.
 
 The page provides:

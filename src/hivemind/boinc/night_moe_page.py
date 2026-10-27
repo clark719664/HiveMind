@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Public results page for the NIGHT-MOE-1 expert-adapter experiment.
 
 Reads the JSON that ``scripts/build_night_moe_report.py`` writes and renders it as a self-contained HTML page. Nothing is computed

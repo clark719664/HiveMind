@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HM-S5-05: multi-host WAN QUIC 0-RTT & RFC 5766 TURN fault-injection benchmark.
 
 The benchmark drives the real transports of this repository through a deterministic WAN

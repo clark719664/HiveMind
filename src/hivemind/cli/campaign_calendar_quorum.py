@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Synchronized Campaign Calendar, Quorum Coordinator & Non-Technical Onboarding Wizard.
 
 Organizes human end-users (gamers, students, citizen scientists without coding skills),

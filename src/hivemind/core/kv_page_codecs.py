@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Pluggable KV page codecs for the inference ring (roadmap ``HM-S10-05``).
 
 A ``KVPageCodec`` turns one K or V page (last axis = head_dim) into an opaque payload and back, and reports the

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind producer agent: heartbeats a local OpenAI-compatible server into the OpenRouter gateway.
 
 The agent does not run inference. It advertises an endpoint you already run (Ollama, vLLM or llama.cpp server), the

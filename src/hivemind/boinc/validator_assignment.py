@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Architecture-matched spot-check validator assignment (roadmap HM-S10-08).
 
 The eps = 1e-4 replay rule of DeterministicSpotCheckValidator presumes worker and validator run the

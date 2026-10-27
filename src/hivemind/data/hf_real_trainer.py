@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Synthetic regression LoRA/CAS mechanics retained for compatibility.
 
 Despite this module's historical name, these helpers do not train a language

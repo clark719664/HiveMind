@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Welcome, Pioneer Congratulations & GPU Producer Onboarding Email Generator and Dispatcher.
 
 Generates rich bilingual (EN/FR) HTML and plain-text welcome emails explaining:

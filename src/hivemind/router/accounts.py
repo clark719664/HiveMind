@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Accounts, API keys and the HMT (HiveMind points) ledger for the HiveMind OpenRouter, backed by SQLite.
 
 Design notes

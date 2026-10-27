@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """FoMoE sigma-MoE routing with Ghost-Expert Skip-Token accounting (`arXiv:2606.19025`).
 
 FoMoE (Sani, Cao, Kurmanji, Iacob, Jovanovic, Gao, Zhao & Lane, CaMLSys / Flower Labs,

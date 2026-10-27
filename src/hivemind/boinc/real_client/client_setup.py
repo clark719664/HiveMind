@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Prepare and drive a private stock BOINC client data directory (anonymous platform, GPU app).
 
 Nothing here touches a system BOINC install: the client binary is run by the current user with its own

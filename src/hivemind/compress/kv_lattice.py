@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """GPU lattice codecs for KV-cache tensors (experiment E11, ``HM-S10-05``).
 
 Torch ports of the nearest-point decoders of :mod:`hivemind.compress.lattice_quantizer` (Conway & Sloane 1982, via

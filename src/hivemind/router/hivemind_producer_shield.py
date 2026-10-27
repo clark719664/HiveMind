@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind producer shield: a small authenticating proxy in front of your local model server.
 
 Why: to earn points your model server must be reachable from the internet (through a tunnel or a port forward), and

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind compute economy: BOINC-style verified credit, work-backed $HIVE issuance and Nash-equilibrium markets."""
 
 from hivemind.economy.compute_coin import (

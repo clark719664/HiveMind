@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Backend coordinator and wire format for the CrowdGPT GPU loss check (see `crowdgpt_loss_check`).
 
 The CPU-only CrowdGPT backend opens one job per round: the base and candidate weights (by URL, identified by the SHA-256

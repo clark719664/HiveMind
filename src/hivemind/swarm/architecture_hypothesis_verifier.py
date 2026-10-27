@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Main-Team Empirical & Formal Architecture Hypothesis Verifier (`H1`..`H10`).
 
 Executes deterministic, zero-hallucination empirical experiments across all 10 core

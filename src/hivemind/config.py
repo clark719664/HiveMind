@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Hardware & Algorithmic Configuration for Project HiveMind.
 
 Automatically configures local disk caches on D:\\xdev\\DecentralizedAI\\.cache to protect C: drive,

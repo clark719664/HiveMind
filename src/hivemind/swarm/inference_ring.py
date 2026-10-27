@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase 2: Regional DHT Swarm Router & 5-Token Speculative Decoding Engine.
 
 Once an epoch of the 8x Sparse MoE is finalized, idle Steam nodes switch to Inference Mode:

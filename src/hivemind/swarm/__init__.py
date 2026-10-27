@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase 2 & 3: SETI-Swarm Content-Addressed DHT Vault, PoUW `$HIVE` Ledger, Speculative Decoding & Swarm Fabric."""
 
 from hivemind.swarm.decoupled_diloco import (

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """4-bit NormalFloat (NF4) Quantization, Double Quantization, QLoRA Injection, and VRAM Profiler.
 
 Implements the exact QLoRA (Dettmers et al.) 4-bit NormalFloat (NF4) 16-level information-theoretic

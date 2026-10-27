@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase 2.5: Bitcoin-Inspired Proof-of-Useful-Work (PoUW) Cryptographic Ledger (`$HIVE`).
 
 Implements:

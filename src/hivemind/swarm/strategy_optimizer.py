@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Season 5 / Wave 4 Strategy Improvement Engine (`v1.7.0`).
 
 Implements the 5 core algorithmic and game-theoretic strategy improvements for the

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Pseudo-Gradient Delta Compression via Top-k Sparsification & FP8 (E4M3) Quantization.
 
 Implements the Project HiveMind communication compression layer:

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Live visibility for the single Tesla T4 GPU's dual-mode operation:
 1. Interactive Inference Priority (serving hivemind/coder, hivemind/bee-stars, hivemind/coder-lite, hivemind/auto)
    whenever end-user requests arrive or during European daytime peak hours (07:00 - 22:00 Europe/Paris).

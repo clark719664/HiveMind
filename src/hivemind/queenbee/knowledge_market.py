@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """End users share verified knowledge as public data and receive a lump-sum HMT bonus.
 
 A HiveMinder who opts in publishes a verified triple (task, accepted solution, the tests that accepted it) under an

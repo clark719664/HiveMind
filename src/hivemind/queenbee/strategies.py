@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """The three local-learning strategies and the manager that picks one by usage profile.
 
 a. `BanditStrategy` (default): Thompson sampling over experts per task cluster with Beta posteriors. Only verified

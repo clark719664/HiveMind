@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Bridge between a BOINC result and HiveMind's existing verification and credit code.
 
 BOINC validates by quorum (the same workunit is computed twice and the results compared). HiveMind replaces the

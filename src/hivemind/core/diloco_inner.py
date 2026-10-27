@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase B (Worker): DiLoCo-QLoRA Inner Loop with Deterministic Micro-Checkpointing & Hardware Safety Circuit-Breaker.
 
 Executes H local AdamW optimization steps on frozen 4-bit NF4 base weights + trainable LoRA

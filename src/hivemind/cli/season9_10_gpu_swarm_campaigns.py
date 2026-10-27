@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Season 9 & Season 10 Multi-Track GPU & HiveMind Swarm Contributor Campaigns.
 
 Provides four self-contained, hardware-verified GPU + HiveMind Swarm campaigns designed for

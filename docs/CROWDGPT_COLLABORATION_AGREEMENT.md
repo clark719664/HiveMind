@@ -57,8 +57,7 @@ Ruche** (@xaviercallens — `xaviercallens/HiveMind`).
 
 - `Vxtzq/CrowdGPT` est sous GPL-3.0 ; `Vxtzq/Crowd-v1` est sous MIT (carte du modèle). Les fichiers versés dans `Vxtzq/CrowdGPT`
   y sont distribués sous GPL-3.0.
-- **À décider par @xaviercallens** : le dépôt HiveMind n'a pas de fichier LICENSE à la racine ; il en faut un pour que la
-  réutilisation dans l'autre sens soit claire.
+- `xaviercallens/HiveMind` est sous licence open-source **AGPL-3.0** (`LICENSE` à la racine du dépôt, compatible GPL-3.0 section 13) avec double licence entreprise sur demande (`callensxavier@gmail.com`) et accord de contribution CLA (`.github/CLA.md`).
 
 ## 6. Prochaines étapes, à discuter (non engagées)
 

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Hugging Face Community Sharing Hub, Portable Adapter Bundles & Swarm Mining Guilds (`v1.5.0`).
 
 Provides end-to-end community sharing, Hugging Face Hub export/import, and guild

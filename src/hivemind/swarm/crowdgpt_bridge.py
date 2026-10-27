@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """CrowdGPT x HiveMind DiLoCo, Multi-Krum & Loss-Ratchet Synergy Bridge.
 
 Provides drop-in interoperability between CrowdGPT (`Vxtzq/CrowdGPT`, `Vxtzq/Crowd-v1`)

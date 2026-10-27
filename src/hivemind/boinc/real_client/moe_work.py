@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Server-side creation of QLoRA MoE workunits: tokenised, signed data shards (BOINC ``create_work`` for HiveMind).
 
 Training data comes from Hugging Face datasets that are already in the local cache (no downloads, ``HF_HUB_OFFLINE=1``), one

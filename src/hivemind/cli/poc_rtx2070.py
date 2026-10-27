@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Real Open-Weight Hugging Face PoC on Local NVIDIA GeForce RTX 2070 (8 GB VRAM).
 
 Leverages HF_TOKEN from environment variables (.env / process env / Windows HKCU Registry)

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Self-contained WebGL renderer for the HUD's Geo-Ring topology panel (PR #24).
 
 The panel is plain HTML + inline JS: raw WebGL (WebGL2 when available, WebGL1

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Windows Zero-Intrusion Daemon (GetLastInputInfo, Active Game Process & GPU Hardware Safety Monitor).
 
 Monitors OS input hooks (GetLastInputInfo on Windows via ctypes), active process tables,

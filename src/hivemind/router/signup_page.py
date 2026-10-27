@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """The one-page "Sign in with Google" registration screen served at ``/signup``. Pure function, no I/O.
 
 The page loads Google's Identity Services script, sends the ID token to ``/v1/hivemind/register/google`` and shows the API

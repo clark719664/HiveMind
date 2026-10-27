@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """OpenAI-compatible FastAPI gateway of the HiveMind OpenRouter.
 
 Consumers call ``/v1/chat/completions`` with a ``Bearer hm-...`` key; the gateway clears the per-model market
