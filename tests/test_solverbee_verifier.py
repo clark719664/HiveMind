@@ -281,6 +281,44 @@ def test_invariant_kinds():
     assert _inv_cert(lv, [[x, y], [x, y * 1.01]])["status"] == "fail"
 
 
+def test_lv_canonical_params_layout_and_aliases():
+    # canonical (library) layout: params object
+    canon = {"name": "v", "kind": "lv_first_integral",
+             "params": {"alpha": 1.0, "beta": 0.5, "gamma": 1.0, "delta": 0.5}, "tol": 1e-9}
+    assert _inv_cert(canon, [[2.0, 2.0], [2.0, 2.0]])["status"] == "pass"
+    assert _inv_cert(canon, [[2.0, 2.0], [2.0, 2.02]])["status"] == "fail"
+    # params take precedence over a conflicting top-level alias
+    both = dict(canon, alpha=99.0)
+    assert _inv_cert(both, [[2.0, 2.0], [2.0, 2.0]])["status"] == "pass"
+    # a malformed params object fails closed
+    with pytest.raises(verifier._CheckError):
+        _inv_cert(dict(canon, params=[1, 2]), [[2.0, 2.0]])
+    # missing parameter fails closed
+    with pytest.raises(verifier._CheckError):
+        _inv_cert(dict(canon, params={"alpha": 1.0}), [[2.0, 2.0]])
+
+
+def test_library_invariant_layouts_are_understood():
+    """Every invariant written by solvers/problems is evaluated (not rejected) at its own y0."""
+    import glob
+    import os
+    root = os.path.join(os.path.dirname(__file__), "..", "solvers", "problems")
+    files = sorted(glob.glob(os.path.join(root, "*.json")))
+    if not files:
+        pytest.skip("problem library not present")
+    n_checked = 0
+    for f in files:
+        with open(f, encoding="utf-8") as fh:
+            prob = json.load(fh)
+        spec = prob["spec"]
+        for inv in prob.get("invariants", []):
+            fn = verifier._INVARIANT_KINDS[inv["kind"]]
+            got = fn(inv, spec, [float(v) for v in spec["y0"]])
+            assert abs(got - inv["value"]) <= inv["tol"], (prob["id"], inv["name"], got)
+            n_checked += 1
+    assert n_checked >= 9
+
+
 def test_lv_nonpositive_population_fails_closed():
     lv = {"name": "v", "kind": "lv_first_integral", "alpha": 1.0, "beta": 0.5, "gamma": 1.0, "delta": 0.5,
           "tol": 1e-9, "value": 0.0}

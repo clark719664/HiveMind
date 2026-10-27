@@ -40,11 +40,11 @@ Every certificate carries, verbatim: "VERIFIED means the listed checks passed. I
 | kind | fields | quantity compared to `value` |
 |---|---|---|
 | `linear` | `weights` | `w . x` |
-| `quadratic_form` | `matrix` (or `Q`) | `x^T M x` |
-| `energy` | `matrix` (or `Q`) | `0.5 x^T M x` |
-| `lv_first_integral` | `alpha, beta, gamma, delta` (or from `spec.problem.params`); `value` defaults to the value at `y0` | `delta x - gamma ln x + beta y - alpha ln y` for `x' = alpha x - beta x y`, `y' = delta x y - gamma y` |
+| `quadratic_form` | `matrix` (alias `Q`) | `x^T M x` |
+| `energy` | `matrix` (alias `Q`) | `0.5 x^T M x` |
+| `lv_first_integral` | canonical: `params: {alpha, beta, gamma, delta}`; aliases (same four names at the invariant's top level, then `spec.problem.params`); `value` defaults to the value at `y0` | `delta x - gamma ln x + beta y - alpha ln y` for `x' = alpha x - beta x y`, `y' = delta x y - gamma y` |
 
-These field names are the verifier's reading of the contract, which names the kinds but not their fields; reconcile them with the problem library (PR-A) when integrating.
+The canonical layout is the one the problem library (`solvers/problems`) writes: `linear {weights, value, tol}`, `quadratic_form {matrix, value, tol}`, `lv_first_integral {params:{alpha,beta,delta,gamma}, value, tol}`. `tol` is ABSOLUTE for every kind (the check is `|invariant(x(t)) - value| / tol <= 1`). The names `Q` (for `matrix`) and top-level `alpha/beta/gamma/delta` (for `params`) are accepted only as aliases for older callers; when both `params` and a top-level name are present, `params` wins. A malformed or missing field fails the check closed. No tolerance, factor or threshold was changed by this reconciliation.
 
 To add a kind: write `_inv_<kind>(inv, spec, x) -> float` returning the conserved quantity for one state vector `x`, raise `_CheckError` on malformed fields, register it in `_INVARIANT_KINDS`, and add a pass and a fail case to `tests/test_solverbee_verifier.py`.
 

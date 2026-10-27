@@ -283,8 +283,23 @@ def _inv_lv_first_integral(inv, spec, x):
     # x' = alpha x - beta x y ; y' = delta x y - gamma y ; V = delta x - gamma ln x + beta y - alpha ln y
     if len(x) != 2:
         raise _CheckError("lv_first_integral needs 2 species")
-    params = (spec.get("problem") or {}).get("params") or {}
-    p = {k: inv.get(k, params.get(k)) for k in ("alpha", "beta", "gamma", "delta")}
+    # Canonical layout (what solvers/problems writes): inv["params"] = {alpha,beta,gamma,delta}.
+    # Documented aliases, in order: the same four names at the top level of the invariant,
+    # then spec.problem.params.
+    spec_params = (spec.get("problem") or {}).get("params") or {}
+    inv_params = inv.get("params")
+    if inv_params is None:
+        inv_params = {}
+    if not isinstance(inv_params, dict):
+        raise _CheckError(f"invariant {inv.get('name')!r}: params must be an object")
+    p = {}
+    for k in ("alpha", "beta", "gamma", "delta"):
+        if k in inv_params:
+            p[k] = inv_params[k]
+        elif k in inv:
+            p[k] = inv[k]
+        else:
+            p[k] = spec_params.get(k)
     if not all(_finite(v) for v in p.values()):
         raise _CheckError("lv_first_integral needs finite alpha, beta, gamma, delta")
     if x[0] <= 0 or x[1] <= 0:
