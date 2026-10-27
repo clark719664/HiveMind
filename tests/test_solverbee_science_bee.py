@@ -233,3 +233,188 @@ def test_specs_match_semantics():
     assert sb.specs_match(a, b)
     b["y0"][1] = 0.02
     assert not sb.specs_match(a, b)
+    assert not sb.specs_match(a, {"bad": "spec"})
+    assert sb._canon_num(3) == 3.0
+
+
+def test_additional_coverage_for_validator_ollama_and_baseline(monkeypatch):
+    # FakeBackend exhaustion
+    fb = sb.FakeBackend(["one"])
+    assert fb.complete([]) == "one"
+    with pytest.raises(sb.BackendError):
+        fb.complete([])
+
+    # check_loopback_url edge cases & _NoRedirect
+    with pytest.raises(sb.BackendError):
+        sb.check_loopback_url("http://" + "a" * 210)
+    assert sb._NoRedirect().redirect_request(None, None, 302, "Moved", {}, "http://127.0.0.1") is None
+
+    # OllamaBackend with think=True and mocked opener responses
+    ob = sb.OllamaBackend("qwen:7b", think=True, max_response_bytes=64)
+    assert ob.payload([])["think"] is True
+
+    class _DummyResp:
+        def __init__(self, payload_bytes: bytes):
+            self._data = payload_bytes
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, n: int = -1) -> bytes:
+            return self._data[:n] if n >= 0 else self._data
+
+    monkeypatch.setattr(ob._opener, "open", lambda req, timeout=None: _DummyResp(b'{"message":{"content":"ok"}}'))
+    assert ob.complete([{"role": "user", "content": "hi"}]) == "ok"
+
+    monkeypatch.setattr(ob._opener, "open", lambda req, timeout=None: _DummyResp(b"x" * 100))
+    with pytest.raises(sb.BackendError, match="too large"):
+        ob.complete([])
+
+    monkeypatch.setattr(ob._opener, "open", lambda req, timeout=None: _DummyResp(b'{"bad":1}'))
+    with pytest.raises(sb.BackendError, match="not an Ollama chat reply"):
+        ob.complete([])
+
+    monkeypatch.setattr(ob._opener, "open", lambda req, timeout=None: _DummyResp(b'{"message":{"content":123}}'))
+    with pytest.raises(sb.BackendError, match="not text"):
+        ob.complete([])
+
+    def _raise_oserror(req, timeout=None):
+        raise OSError("conn refused")
+
+    monkeypatch.setattr(ob._opener, "open", _raise_oserror)
+    with pytest.raises(sb.BackendError, match="failed"):
+        ob.complete([])
+
+    # _balanced_objects escaped characters and extract_json max length
+    escaped_json = r'prefix {"a": "hello \"world\" \\ end"} suffix'
+    objs = sb._balanced_objects(escaped_json)
+    assert len(objs) == 1
+    with pytest.raises(sb.SpecInvalid, match="too long"):
+        sb.extract_json("x" * (sb.MAX_RAW_CHARS + 10))
+
+    # validate_spec error branches
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec([1, 2, 3])
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "bad"}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "named", "extra": 1}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "named", "family": "unknown"}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "named", "family": "pendulum", "params": []}, "y0": [1.0, 0.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "linear", "extra": 1}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "linear", "A": [], "b": []}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "linear", "A": [[1.0, 2.0]], "b": [1.0]}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "linear", "A": [[1.0]], "b": [1.0, 2.0]}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "mass_action", "extra": 1}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "mass_action", "species": [], "reactions": []}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "mass_action", "species": ["A"], "reactions": []}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "mass_action", "species": ["A"], "reactions": [{"bad": 1}]}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "mass_action", "species": ["A"], "reactions": [{"reactants": [], "products": {}, "k": 1.0}]}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        sb.validate_spec({"schema": sb.SPEC_SCHEMA, "id": "x", "problem": {"kind": "mass_action", "species": ["A", "B"], "reactions": [{"reactants": {"A": 1}, "products": {"B": 1}, "k": 1.0}]}, "y0": [1.0], "t_out": [1.0]})
+    with pytest.raises(sb.SpecInvalid):
+        bad_atol = dict(GOOD, atol=[1e-8])
+        sb.validate_spec(bad_atol)
+    with pytest.raises(sb.SpecInvalid):
+        bad_atol2 = dict(GOOD, atol=-1.0)
+        sb.validate_spec(bad_atol2)
+
+    # explain with > 8 time points
+    long_spec = fam.pendulum_spec(0.5, 0.0, [float(i) for i in range(1, 12)])
+    long_rep = {"verdict": "AUDITED", "result": {"t": [float(i) for i in range(1, 12)], "y": [[0.1, 0.0]] * 11}, "certificate": {"checks": []}}
+    assert "intermediate times omitted" in sb.explain("q", long_spec, long_rep, language="en")
+
+    # ScienceBee empty question error
+    with pytest.raises(ValueError):
+        sb.ScienceBee(sb.BaselineBackend(), StubPipeline()).ask("   ")
+
+    # baseline_formulate across all families
+    assert sb.baseline_formulate("SEIR epidemic with beta = 0.5, sigma = 0.3, gamma = 0.1, i0 = 0.01 at t = 1, 2, 5") is not None
+    assert sb.baseline_formulate("SEIR epidemic with beta = 0.5 at t = 1, 2") is None
+    assert sb.baseline_formulate("SIR epidemic with beta = 0.5 at t = 1, 2") is None
+    assert sb.baseline_formulate("RLC circuit with R = 10, L = 0.5, C = 0.01, V = 5 at t = 1, 2") is not None
+    assert sb.baseline_formulate("RLC circuit with R = 10 at t = 1, 2") is None
+    assert sb.baseline_formulate("Spring with m = 1, c = 0.1, k = 4, x0 = 0.5 at t = 1, 2") is not None
+    assert sb.baseline_formulate("Spring with m = 1 at t = 1, 2") is None
+    assert sb.baseline_formulate("Pendulum without angle at t = 1, 2") is None
+    assert sb.baseline_formulate("Projectile with vx0 = 10, vy0 = 20, k = 0.01 at t = 1, 2") is not None
+    assert sb.baseline_formulate("Projectile with vx0 = 10 at t = 1, 2") is None
+    assert sb.baseline_formulate("Kepler orbit with x0 = 1, y0 = 0, vx0 = 0, vy0 = 1 at t = 1, 2") is not None
+    assert sb.baseline_formulate("Kepler orbit with x0 = 1 at t = 1, 2") is None
+    assert sb.baseline_formulate("Logistic growth with r = 0.5 at t = 1, 2") is None
+    assert sb.baseline_formulate("Decay chain with k1 = 1.0, k2 = 0.2, a0 = 1.0 at t = 1, 2") is not None
+    assert sb.baseline_formulate("Decay chain with k1 = 1.0 at t = 1, 2") is None
+
+    # SolverPipeline._library_problem and .run mocked execution
+    pipe = sb.SolverPipeline("/bin/true", problems_dir="/tmp")
+
+    class _FakeSvc:
+        @staticmethod
+        def load_problem_library(_d):
+            return {"pendulum_1": {"spec": GOOD}}
+
+        @staticmethod
+        def canonical_sha256(obj):
+            return json.dumps(obj, sort_keys=True)
+
+    class _FakeOut:
+        ok = True
+        limit = None
+        rc = 0
+        error = None
+        stderr_tail = ""
+        stdout = b'{"status":"ok","t":[1.0,2.0,5.0],"y":[[0.1,0.0],[0.1,0.0],[0.1,0.0]]}'
+
+    class _FakeSbx:
+        @staticmethod
+        def file_sha256(_b):
+            return "abc123"
+
+        class Limits:
+            def __init__(self, **kw):
+                pass
+
+        @staticmethod
+        def run_binary(cmd, raw, limits=None, expected_sha256=None):
+            return _FakeOut()
+
+    class _FakeVer:
+        @staticmethod
+        def verify(spec_bytes, result, problem=None, rerun=None, binary_sha256=None):
+            if rerun is not None:
+                rerun(spec_bytes)
+            return {"verdict": "AUDITED", "checks": [], "reasons": []}
+
+    monkeypatch.setattr(
+        pipe,
+        "_mod",
+        lambda name: {"service": _FakeSvc, "sandbox": _FakeSbx, "verifier": _FakeVer}[name],
+    )
+    spec_with_lib = dict(GOOD, id="pendulum_1")
+    out_ok = pipe.run(sb.canonical_bytes(spec_with_lib))
+    assert out_ok["verdict"] == "AUDITED"
+    spec_no_lib = dict(GOOD, id="missing_id")
+    assert pipe._library_problem(spec_no_lib) is None
+
+    # Solver error branch
+    _FakeOut.stdout = b'{"status":"error","error":"diverged"}'
+    out_err = pipe.run(sb.canonical_bytes(GOOD))
+    assert out_err["verdict"] == "UNVERIFIED"
+
+
