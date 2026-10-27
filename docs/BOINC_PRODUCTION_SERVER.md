@@ -75,6 +75,32 @@ script version (`del torch`) happened after the report was written and affected 
 * **BOINC's native credit and HiveMind's `verified_credit` disagree by an order of magnitude.** The same workunit earned 267.7 from BOINC (it trusts the client's claimed work, capped at the project maximum) and 56.9 cobblestones from `verified_credit` (which caps by the card's measured peak); the inference workunit 55.2 vs 0.09. The ledger (`hivemind_ledger/verdict_*.json`) records the HiveMind value next to BOINC's. Making BOINC grant the HiveMind value (a custom validator or `--credit` handling) is not done.
 * **The validator loads the model for every result** (~10–25 s) and shares the GPU with the volunteer's task. Fine for one host; a pool would keep a resident validator.
 
+### Resident validator (optional)
+
+Off by default; nothing changes on a node until its owner turns it on. `src/hivemind/boinc/real_client/resident_validator.py` adds a small
+local service that keeps the validator's base model loaded between results, so the ~10-25 s load above (that figure is this document's own,
+not re-measured by the change) is paid once per model instead of once per result.
+
+* **Server.** `python3 -m hivemind.boinc.real_client.resident_validator serve --socket /run/hivemind/rv/rv.sock --work-root <upload dir>`
+  (optional `--max-entries`, `--max-bytes`, `--timeout`, `--preload MODEL_ID [--rank --alpha --init-seed]`). It loads nothing until the first
+  request. The socket is a UNIX domain socket only (no TCP listener, nothing on a network interface), its directory must be owned by the
+  user with mode 0700, the socket is mode 0600. The server must run with the same environment as the validator shim
+  (`HIVEMIND_SPEC_DIR`, `HIVEMIND_LEDGER_DIR`, and for community mode `HIVEMIND_STACK_BASE`/`HIVEMIND_BOINC_SRC`). SIGTERM unloads the models
+  and removes the socket. `ping` and `stats` (cache hits, misses, loads, evictions, estimated seconds saved) go through the same CLI.
+* **Client.** `hivemind_validate` forwards to the server when `HIVEMIND_RESIDENT_VALIDATOR_SOCKET` is set (or with `--resident[=SOCKET]` as the
+  first argument). If the socket is missing, refuses or fails, it prints one warning line and runs today's one-shot validation, so a
+  validation never fails because the resident server is down. With the variable unset the code path is the old one (a test proves the
+  resident module is not even imported).
+* **Same verdicts.** Both paths call `boinc_server_scripts.run_validation`; only the source of the base model differs (a cache keyed by model id,
+  quantisation + LoRA-init signature and device). `tests/test_resident_validator.py` runs three results both ways with a fake model and requires
+  identical exit codes, log lines and ledger verdicts, and one model load instead of three.
+* **Limits of the service.** Paths outside `--work-root` are refused, messages are capped at 1 MiB, each request has a timeout (a validation
+  that outlives it keeps running in the server, the client falls back to one-shot). Validations are serialised. Inference workunits
+  (`hivemind_moe_infer`) still load their own model copy in `infer`, as before.
+* **Not solved here: GPU memory sharing.** A resident model stays in VRAM while a volunteer's task runs on the same card; this layer only removes
+  the repeated load and does nothing about contention or about fitting both in memory. The owner decides whether and when to enable it on the live
+  node (and whether to give it a `--max-bytes` budget); it has not been run against a real model or GPU.
+
 ## Limits
 
 One host, one GPU, one seed, five results. Base model, toy-scale training. The server keeps its signing key online. No TLS, no
