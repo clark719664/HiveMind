@@ -123,6 +123,68 @@ CREATE TABLE IF NOT EXISTS holds(
     state TEXT NOT NULL CHECK (state IN ('active','released'))
 );
 CREATE INDEX IF NOT EXISTS holds_account ON holds(account_id, state);
+CREATE TABLE IF NOT EXISTS usage_telemetry(
+    request_id TEXT PRIMARY KEY,
+    consumer_id TEXT NOT NULL,
+    producer_id TEXT NOT NULL,
+    requested_model TEXT NOT NULL,
+    routed_model TEXT NOT NULL,
+    routing_mode TEXT NOT NULL,
+    task_domain TEXT NOT NULL,
+    language TEXT NOT NULL,
+    client_sdk TEXT NOT NULL,
+    app_title TEXT NOT NULL,
+    is_stream INTEGER NOT NULL,
+    latency_ms REAL NOT NULL,
+    prompt_tokens INTEGER NOT NULL,
+    completion_tokens INTEGER NOT NULL,
+    billed_tokens INTEGER NOT NULL,
+    charged_hmt REAL NOT NULL,
+    utc REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS usage_telemetry_utc ON usage_telemetry(utc);
+CREATE TABLE IF NOT EXISTS usage_feedback(
+    request_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating IN (-1, 1)),
+    task_domain TEXT NOT NULL,
+    comment TEXT NOT NULL DEFAULT '',
+    utc REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS campaign_poll_votes(
+    account_id TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    participant_handle TEXT NOT NULL,
+    participant_kind TEXT NOT NULL,
+    pledged_vram_gb REAL NOT NULL DEFAULT 0.0,
+    availability_slot TEXT NOT NULL DEFAULT 'eu_evening_cet',
+    comment TEXT NOT NULL DEFAULT '',
+    utc REAL NOT NULL,
+    PRIMARY KEY(account_id, subject_id)
+);
+CREATE TABLE IF NOT EXISTS amcp_kafka_events(
+    event_id TEXT PRIMARY KEY,
+    topic TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    sender_kind TEXT NOT NULL,
+    recipient_id TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    correlation_id TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    utc REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS amcp_kafka_events_topic_utc ON amcp_kafka_events(topic, utc);
+CREATE TABLE IF NOT EXISTS bee_trade_orders(
+    order_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    bee_id TEXT NOT NULL,
+    side TEXT NOT NULL CHECK (side IN ('OFFER', 'BID')),
+    subject_id TEXT NOT NULL,
+    capacity_1k REAL NOT NULL,
+    price_per_1k REAL NOT NULL,
+    utc REAL NOT NULL
+);
 """
 
 
@@ -987,3 +1049,359 @@ class RouterStore:
     def key_digest(self, text: str) -> str:
         """``HMAC-SHA256(secret, text)`` as hex: the digest stored for API keys and expected for the admin key."""
         return self._hmac_hex(text)
+
+    # ------------------------------------------------------------------ usage capture & feedback (HM-S19-USAGE)
+    def record_usage_telemetry(
+        self,
+        *,
+        request_id: str,
+        consumer_id: str,
+        producer_id: str,
+        requested_model: str,
+        routed_model: str,
+        routing_mode: str,
+        task_domain: str,
+        language: str,
+        client_sdk: str,
+        app_title: str,
+        is_stream: bool,
+        latency_ms: float,
+        prompt_tokens: int,
+        completion_tokens: int,
+        billed_tokens: int,
+        charged_hmt: float,
+        now_utc: float | None = None,
+    ) -> None:
+        """Store privacy-preserving usage metadata for one settled request (never raw prompt text or IP)."""
+        stamp = time.time() if now_utc is None else float(now_utc)
+        lat = max(0.0, float(latency_ms)) if math.isfinite(latency_ms) else 0.0
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO usage_telemetry(request_id, consumer_id, producer_id, requested_model, "
+                "routed_model, routing_mode, task_domain, language, client_sdk, app_title, is_stream, latency_ms, "
+                "prompt_tokens, completion_tokens, billed_tokens, charged_hmt, utc) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    str(request_id),
+                    str(consumer_id),
+                    str(producer_id),
+                    str(requested_model)[:128],
+                    str(routed_model)[:128],
+                    str(routing_mode)[:32],
+                    str(task_domain)[:64],
+                    str(language)[:16],
+                    str(client_sdk)[:64],
+                    str(app_title)[:64],
+                    1 if is_stream else 0,
+                    lat,
+                    int(prompt_tokens),
+                    int(completion_tokens),
+                    int(billed_tokens),
+                    float(charged_hmt),
+                    stamp,
+                ),
+            )
+
+    def record_usage_feedback(
+        self,
+        request_id: str,
+        account_id: str,
+        rating: int,
+        comment: str = "",
+        *,
+        now_utc: float | None = None,
+    ) -> dict[str, Any]:
+        """Record a consumer's thumbs-up (+1) or thumbs-down (-1) rating on their own settled request."""
+        if rating not in (-1, 1):
+            raise ValueError("rating must be 1 or -1")
+        stamp = time.time() if now_utc is None else float(now_utc)
+        clean_comment = str(comment).strip()[:256]
+        with self._tx() as conn:
+            usage_row = conn.execute(
+                "SELECT consumer_id, model_id FROM usage WHERE request_id=?",
+                (request_id,),
+            ).fetchone()
+            if usage_row is None or str(usage_row["consumer_id"]) != account_id:
+                raise KeyError(request_id)
+            tel_row = conn.execute(
+                "SELECT task_domain FROM usage_telemetry WHERE request_id=?",
+                (request_id,),
+            ).fetchone()
+            domain = str(tel_row["task_domain"]) if tel_row is not None else "general_chat"
+            conn.execute(
+                "INSERT INTO usage_feedback(request_id, account_id, rating, task_domain, comment, utc) "
+                "VALUES (?,?,?,?,?,?) ON CONFLICT(request_id) DO UPDATE SET "
+                "rating=excluded.rating, comment=excluded.comment, utc=excluded.utc",
+                (request_id, account_id, int(rating), domain, clean_comment, stamp),
+            )
+        return {
+            "request_id": request_id,
+            "account_id": account_id,
+            "rating": int(rating),
+            "task_domain": domain,
+            "comment": clean_comment,
+            "utc": stamp,
+        }
+
+    def usage_capture_summary(
+        self,
+        *,
+        now_utc: float | None = None,
+        window_s: float = 86_400.0,
+        include_non_user: bool = False,
+    ) -> dict[str, Any]:
+        """Aggregate anonymized usage telemetry over the last ``window_s`` seconds."""
+        from hivemind.router.usage_capture import compute_nocturnal_moe_workunit_weights
+
+        now = time.time() if now_utc is None else float(now_utc)
+        since = now - max(0.0, float(window_s))
+        with self._lock:
+            if include_non_user:
+                rows = self._conn.execute(
+                    "SELECT * FROM usage_telemetry WHERE utc >= ? ORDER BY utc DESC",
+                    (since,),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT t.* FROM usage_telemetry t JOIN accounts a ON a.account_id = t.consumer_id "
+                    "WHERE t.utc >= ? AND a.kind = 'user' ORDER BY t.utc DESC",
+                    (since,),
+                ).fetchall()
+            feedback_rows = self._conn.execute(
+                "SELECT rating, task_domain FROM usage_feedback WHERE utc >= ?",
+                (since,),
+            ).fetchall()
+
+        by_domain: dict[str, dict[str, Any]] = {}
+        by_language: dict[str, int] = {}
+        by_client_sdk: dict[str, int] = {}
+        by_model: dict[str, dict[str, Any]] = {}
+        by_routing_mode: dict[str, int] = {}
+        domain_tokens: dict[str, int] = {}
+        latencies: list[float] = []
+        total_tokens = 0
+        total_hmt = 0.0
+        stream_count = 0
+
+        for r in rows:
+            domain = str(r["task_domain"])
+            lang = str(r["language"])
+            sdk = str(r["client_sdk"])
+            model = str(r["routed_model"])
+            mode = str(r["routing_mode"])
+            tokens = int(r["billed_tokens"])
+            hmt = float(r["charged_hmt"])
+            lat = float(r["latency_ms"])
+
+            total_tokens += tokens
+            total_hmt += hmt
+            if int(r["is_stream"]):
+                stream_count += 1
+            latencies.append(lat)
+
+            d_entry = by_domain.setdefault(domain, {"requests": 0, "billed_tokens": 0})
+            d_entry["requests"] += 1
+            d_entry["billed_tokens"] += tokens
+            domain_tokens[domain] = domain_tokens.get(domain, 0) + tokens
+
+            by_language[lang] = by_language.get(lang, 0) + 1
+            by_client_sdk[sdk] = by_client_sdk.get(sdk, 0) + 1
+            by_routing_mode[mode] = by_routing_mode.get(mode, 0) + 1
+
+            m_entry = by_model.setdefault(model, {"requests": 0, "billed_tokens": 0, "charged_hmt": 0.0})
+            m_entry["requests"] += 1
+            m_entry["billed_tokens"] += tokens
+            m_entry["charged_hmt"] = round(m_entry["charged_hmt"] + hmt, 6)
+
+        latencies.sort()
+        if latencies:
+            p50 = latencies[int(0.50 * (len(latencies) - 1))]
+            p95 = latencies[int(0.95 * (len(latencies) - 1))]
+            mean_lat = sum(latencies) / len(latencies)
+        else:
+            p50, p95, mean_lat = 0.0, 0.0, 0.0
+
+        thumbs_up = sum(1 for f in feedback_rows if int(f["rating"]) == 1)
+        thumbs_down = sum(1 for f in feedback_rows if int(f["rating"]) == -1)
+        total_fb = thumbs_up + thumbs_down
+
+        return {
+            "object": "hivemind.usage_capture",
+            "window_s": float(window_s),
+            "total_requests": len(rows),
+            "stream_requests": stream_count,
+            "total_billed_tokens": total_tokens,
+            "total_charged_hmt": round(total_hmt, 6),
+            "by_task_domain": by_domain,
+            "by_language": by_language,
+            "by_client_sdk": by_client_sdk,
+            "by_routed_model": by_model,
+            "by_routing_mode": by_routing_mode,
+            "latency_ms": {
+                "p50": round(p50, 2),
+                "p95": round(p95, 2),
+                "mean": round(mean_lat, 2),
+            },
+            "feedback": {
+                "thumbs_up": thumbs_up,
+                "thumbs_down": thumbs_down,
+                "total_ratings": total_fb,
+                "satisfaction_rate": round(thumbs_up / total_fb, 4) if total_fb > 0 else 1.0,
+            },
+            "nocturnal_moe_workunit_weights": compute_nocturnal_moe_workunit_weights(domain_tokens),
+        }
+
+    # ------------------------------------------------------------------ joint campaigns, poll & AMCP/Kafka bus (HM-S19-CAMPAIGNS)
+    def record_campaign_poll_vote(
+        self,
+        *,
+        account_id: str,
+        participant_handle: str,
+        participant_kind: str,
+        subject_id: str,
+        pledged_vram_gb: float = 0.0,
+        availability_slot: str = "eu_evening_cet",
+        comment: str = "",
+        now_utc: float | None = None,
+    ) -> dict[str, Any]:
+        """Insert or update a participant's interest & VRAM pledge for one Subject Campaign."""
+        stamp = time.time() if now_utc is None else float(now_utc)
+        vram = max(0.0, min(float(pledged_vram_gb), 1024.0)) if math.isfinite(pledged_vram_gb) else 0.0
+        clean_comment = str(comment).strip()[:256]
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO campaign_poll_votes(account_id, subject_id, participant_handle, participant_kind, "
+                "pledged_vram_gb, availability_slot, comment, utc) VALUES (?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(account_id, subject_id) DO UPDATE SET "
+                "participant_kind=excluded.participant_kind, pledged_vram_gb=excluded.pledged_vram_gb, "
+                "availability_slot=excluded.availability_slot, comment=excluded.comment, utc=excluded.utc",
+                (
+                    str(account_id),
+                    str(subject_id)[:64],
+                    str(participant_handle)[:64],
+                    str(participant_kind)[:32],
+                    vram,
+                    str(availability_slot)[:32],
+                    clean_comment,
+                    stamp,
+                ),
+            )
+        return {
+            "account_id": account_id,
+            "subject_id": subject_id,
+            "participant_handle": participant_handle,
+            "participant_kind": participant_kind,
+            "pledged_vram_gb": vram,
+            "availability_slot": availability_slot,
+            "comment": clean_comment,
+            "utc": stamp,
+        }
+
+    def list_campaign_poll_votes(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM campaign_poll_votes ORDER BY utc DESC").fetchall()
+        return [{k: row[k] for k in row.keys()} for row in rows]
+
+    def record_amcp_kafka_event(
+        self,
+        *,
+        event_id: str,
+        topic: str,
+        event_type: str,
+        sender_id: str,
+        sender_kind: str,
+        recipient_id: str,
+        subject_id: str,
+        correlation_id: str,
+        payload: Mapping[str, Any],
+        now_utc: float | None = None,
+    ) -> None:
+        stamp = time.time() if now_utc is None else float(now_utc)
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO amcp_kafka_events(event_id, topic, event_type, sender_id, sender_kind, "
+                "recipient_id, subject_id, correlation_id, payload_json, utc) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (
+                    str(event_id)[:64],
+                    str(topic)[:64],
+                    str(event_type)[:64],
+                    str(sender_id)[:64],
+                    str(sender_kind)[:32],
+                    str(recipient_id)[:64],
+                    str(subject_id)[:64],
+                    str(correlation_id)[:64],
+                    json.dumps(dict(payload), sort_keys=True)[:4096],
+                    stamp,
+                ),
+            )
+
+    def list_amcp_kafka_events(self, topic: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        lim = max(1, min(int(limit), 200))
+        with self._lock:
+            if topic:
+                rows = self._conn.execute(
+                    "SELECT * FROM amcp_kafka_events WHERE topic=? ORDER BY utc DESC LIMIT ?",
+                    (str(topic), lim),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT * FROM amcp_kafka_events ORDER BY utc DESC LIMIT ?",
+                    (lim,),
+                ).fetchall()
+        out: list[dict[str, Any]] = []
+        for r in rows:
+            item = {k: r[k] for k in r.keys() if k != "payload_json"}
+            try:
+                item["payload"] = json.loads(str(r["payload_json"]))
+            except ValueError:
+                item["payload"] = {}
+            out.append(item)
+        return out
+
+    def record_bee_trade_order(
+        self,
+        *,
+        order_id: str,
+        account_id: str,
+        bee_id: str,
+        side: str,
+        subject_id: str,
+        capacity_1k: float,
+        price_per_1k: float,
+        now_utc: float | None = None,
+    ) -> dict[str, Any]:
+        stamp = time.time() if now_utc is None else float(now_utc)
+        side_up = str(side).upper()
+        if side_up not in ("OFFER", "BID"):
+            raise ValueError("side must be OFFER or BID")
+        cap = _finite(capacity_1k, "capacity_1k")
+        price = _finite(price_per_1k, "price_per_1k")
+        if cap <= 0.0 or price <= 0.0:
+            raise ValueError("capacity_1k and price_per_1k must be positive")
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO bee_trade_orders(order_id, account_id, bee_id, side, subject_id, "
+                "capacity_1k, price_per_1k, utc) VALUES (?,?,?,?,?,?,?,?)",
+                (str(order_id)[:64], str(account_id), str(bee_id)[:64], side_up, str(subject_id)[:64], cap, price, stamp),
+            )
+        return {
+            "order_id": order_id,
+            "account_id": account_id,
+            "bee_id": bee_id,
+            "side": side_up,
+            "subject_id": subject_id,
+            "capacity_1k": cap,
+            "price_per_1k": price,
+            "utc": stamp,
+        }
+
+    def list_bee_trade_orders(self, window_s: float = 86_400.0, now_utc: float | None = None) -> list[dict[str, Any]]:
+        now = time.time() if now_utc is None else float(now_utc)
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM bee_trade_orders WHERE utc >= ? ORDER BY utc ASC",
+                (now - max(0.0, float(window_s)),),
+            ).fetchall()
+        return [{k: row[k] for k in row.keys()} for row in rows]
+
+
