@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Validators and the assimilator for the QLoRA MoE apps (needs torch, peft, bitsandbytes and a GPU).
 
 Training results are checked by a **random-segment replay** (the spot-check of ``validator.py``, with the segment

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Large-Scale Multi-MoE & Hugging Face Dataset GPU Validation Campaign ("Operation Polyglot-Singularity-128").
 
 Validates the Project HiveMind decentralized Sparse MoE thesis end-to-end across 8 curated

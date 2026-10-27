@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Verification of OpenID Connect ID tokens from ANY provider (Google, Microsoft, Auth0, Keycloak, GitLab, ...) for registration.
 Torch-free; needs only ``cryptography`` and ``httpx``. ``google_auth`` is this engine with Google's settings.
 

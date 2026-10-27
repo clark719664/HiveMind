@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Deterministic Micro-Checkpoint Spot-Check Validator.
 
 Instead of classic BOINC quorum=2 (which wastes 50% of global compute), HiveMind validators

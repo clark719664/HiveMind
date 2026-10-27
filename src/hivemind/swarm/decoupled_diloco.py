@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """SI-12: Decoupled DiLoCo syncer primitives (Google DeepMind, `arXiv:2604.21428`).
 
 Decoupled DiLoCo (Douillard, Rush, Donchev, Charles et al., Google DeepMind / Google

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Held-out loss check for CrowdGPT (`Vxtzq/Crowd-v1`), computed on a community GPU and verified on a CPU-only backend.
 
 CrowdGPT's coordinator decides whether a merged update may become the new checkpoint by comparing the held-out loss

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Training profiles for the QLoRA MoE app: the standard one for small GPUs and a larger one for GPUs with more memory.
 
 BOINC hands a workunit to any host that can run one of the app's versions, and a workunit cannot name a plan class. The only way to

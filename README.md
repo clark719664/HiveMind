@@ -18,6 +18,8 @@
 [![Strategy Engine](https://img.shields.io/badge/Strategy%20Engine-Pareto%20SI--01..11%20%2B%20H1..H10%20%2B%20E1..E4-ffd21e?style=for-the-badge)](docs/DILOCO_ARXIV_LITERATURE_AND_IMPROVEMENTS.md)
 [![Branch Protection](https://img.shields.io/badge/Main%20%26%20Tags-Protected%20%2B%20Immutable-10b981?style=for-the-badge)](GOVERNANCE.md)
 [![PR Security Gate](https://img.shields.io/badge/5--Layer%20PR%20Security-Anti--Boubou%20%26%20Anti--Extortion%20Active-ef4444?style=for-the-badge)](SECURITY.md)
+[![License: AGPL-3.0 Dual](https://img.shields.io/badge/License-AGPL--3.0_Dual_License-blue?style=for-the-badge)](LICENSE)
+[![CLA Gate](https://img.shields.io/badge/CLA_Gate-Contributor_License_Agreement-0ea5e9?style=for-the-badge)](.github/CLA.md)
 
 </div>
 
@@ -40,6 +42,9 @@ Instead of requiring datacenter InfiniBand, each node trains specialized **4-bit
 > [!IMPORTANT]
 > **⚖️ Binding Legal Notice — No Money Involved & Reciprocal Compute-Power Retribution ([`LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md`](LEGAL_DISCLAIMER_AND_COMPUTE_RECIPROCITY.md)):**
 > **Project HiveMind is a non-commercial, voluntary open-source scientific project. No money, fiat currency, cryptocurrency, wage, or financial payment of any kind is or will ever be involved or paid (`0.00 EUR / USD`).** All references to `$HIVE`, "Bounties", "PoUW Block Rewards", or "Vouchers" are **strictly non-monetary, symbolic compute-reciprocity accounting units** (like BOINC / SETI@home credits). Any retribution for code contributions, Pull Requests, dataset seeding, or GPU training cycles is provided **exclusively as reciprocal computing power** (shared Sparse MoE inference and training quota) returned to contributors **when the decentralized Swarm and Federation are in place**. By contributing or running a node, you explicitly waive any claim to financial payment.
+>
+> **📜 AGPL-3.0 Dual License & IP Protection ([`LICENSE`](LICENSE) | [`CLA`](.github/CLA.md)):**
+> **Project HiveMind is open-source under the AGPL-3.0 license. For enterprise use cases requiring a proprietary license exception, please contact: callensxavier@gmail.com** All outside Pull Requests require signing the [Project HiveMind Contributor License Agreement (`.github/CLA.md`)](.github/CLA.md) verified by [`scripts/check_cla.py`](scripts/check_cla.py).
 >
 > **??? Automated 5-Layer PR Security & Anti-Code-Boubou Gate ([`SECURITY.md`](SECURITY.md)):** Every Pull Request is automatically scanned before merge by [`PRSecurityScanner`](src/hivemind/security/pr_security_scanner.py) (`hivemind scan-pr-security` & [`.github/workflows/pr_security_gate.yml`](.github/workflows/pr_security_gate.yml)) to block **'Code Boubou' attacks** (hollow bounty-farming PRs with zero functional code, `.coverage`/`.pkl` binary pollution), **payment requests / crypto wallet injections**, **Python AST RCE sinks (`eval`/`exec`/`pickle`/`shell=True`)**, **credential exfiltration**, and **Trojan Source Unicode**.
 
@@ -609,3 +614,6 @@ See **[`ROADMAP.md`](ROADMAP.md)**, **[`vision.md`](vision.md)**, **[`docs/DILOC
 
 > **⚖️ Reminder — No Payment Involved; Computing Processing Benefits Only via "Points":**
 > There is **no financial payment (`0.00 EUR / 0.00 USD`)** of any kind. Accumulated **"Points" (`PTS` / `$HIVE`)** confer **solely computing processing benefits** (priority Sparse MoE inference tokens, speculative decoding bandwidth, and distributed QLoRA fine-tuning slots) **when the live production HiveMind Swarm is deployed, available, and actively used by a large community**.
+>
+> **📜 License & Enterprise Dual-Licensing ([`LICENSE`](LICENSE) | [`.github/CLA.md`](.github/CLA.md)):**
+> Project HiveMind is open-source under the AGPL-3.0 license. For enterprise use cases requiring a proprietary license exception, please contact: callensxavier@gmail.com

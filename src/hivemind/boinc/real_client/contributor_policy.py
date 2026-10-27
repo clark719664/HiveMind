@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Who may contribute to the QLoRA MoE training, when, and how closely their results are checked.
 
 Outside contributors (any BOINC host whose account is not an owner account) can train for the project. Three rules keep that safe:

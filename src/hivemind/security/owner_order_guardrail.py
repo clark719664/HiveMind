@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Deterministic Owner-Order Identification, Filtering, and Authorization Guardrail.
 
 Enforces the strict governance invariant that administrative, operational, architectural,

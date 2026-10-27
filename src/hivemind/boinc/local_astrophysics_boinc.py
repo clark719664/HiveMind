@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Local GPU BOINC Astrophysics Campaign Runner (`hivemind.boinc.local_astrophysics_boinc`).
 
 Executes an end-to-end Modified BOINC Distributed Computing campaign on the local NVIDIA RTX GPU

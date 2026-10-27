@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """RFC 5389 STUN, RFC 5766 TURN and UDP hole punching for HiveMind swarm peers (`HM-S3-01`).
 
 Everything in this module speaks the real wire protocols over real UDP sockets:

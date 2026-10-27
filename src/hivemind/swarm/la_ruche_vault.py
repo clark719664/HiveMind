@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """La Ruche (`HiveMind Ruche`) — Community Beehive MoE Model Vault & Post-QLoRA Hub (`v2.6.0`).
 
 Provides a content-addressed, cryptographically verified Beehive (`La Ruche`) storage

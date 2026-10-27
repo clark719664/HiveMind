@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """A minimal BOINC project server for a single local machine (127.0.0.1 only).
 
 It speaks the wire formats a stock BOINC client uses, taken from the BOINC sources

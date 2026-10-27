@@ -9,7 +9,7 @@ authors:
   - name: "Project HiveMind Open-Source Human & AI Contributor Community (@clark719664 et al.)"
 repository-code: "https://github.com/xaviercallens/HiveMind"
 url: "https://github.com/xaviercallens/HiveMind"
-license: MIT
+license: AGPL-3.0-or-later
 version: 2.3.1
 doi: 10.5281/zenodo.23607597
 date-released: "2026-10-23"

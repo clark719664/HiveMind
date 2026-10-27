@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Verification of Google ID tokens ("Sign in with Google"): the generic OIDC engine in ``oidc_auth`` with Google's settings.
 
 The checks (RS256 only, signature, issuer, audience, expiry, freshness, verified e-mail, single use) and their negative

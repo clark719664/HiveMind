@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Automated 5-Layer Pull Request & Repository Security Scanner for Project HiveMind.
 
 Protects the decentralized AI swarm repository against:

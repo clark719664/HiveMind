@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Win-win two-sided market for the HiveMind OpenRouter (pure functions, stdlib + `hivemind.economy.compute_coin`).
 
 Prices are in HMT per 1,000 tokens; producers receive `1 - f` of every payment, `f = validator_share + burn_share`.

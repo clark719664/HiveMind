@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HM-S6-01 synthetic benchmark: Top-k + FP8 outer-loop compression with and without error feedback.
 
 This is a small, deterministic CPU experiment on a synthetic multi-worker least-squares

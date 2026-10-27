@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase 2.0: Distributed Disk Vault (Kademlia DHT + Content-Addressed Storage) & Proof-of-Storage.
 
 Stores sharded Hugging Face datasets and converged LoRA domain adapters on local NVMe/SSD storage

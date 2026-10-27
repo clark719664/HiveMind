@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Autopoietic Neuro-Symbolic Energy Model (ANSE) for HiveMind Specialist Bees (Season 18).
 
 Ports the measured, gate-verified mechanisms from `xaviercallens/AutoevolveAI` (`docs/EVOLUTION_LAB.md`)

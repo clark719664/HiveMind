@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase 2 & 3 Runner: Decentralized Hugging Face Domain Training, PoUW Block Mining & Shared Swarm Inference.
 
 Supports both:

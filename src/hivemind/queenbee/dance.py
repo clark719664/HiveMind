@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Dance records: how an expert's verified results are reported and how routers recruit toward them.
 
 A honeybee's waggle dance encodes a direction, a distance and a quality, recruits followers in proportion to that

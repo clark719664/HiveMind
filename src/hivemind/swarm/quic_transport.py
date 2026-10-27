@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Swarm Fabric M1: AsyncQUICGeoRingTransport with 0-RTT Session Resumption & WebSocket Fallback (`HM-M1-01`).
 
 Integrates contributor PRs #9 and #22 (@clark719664), closing Issues #1 and #14:

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Display wording: HiveMind runs on HiveMind Reflexion Points (HMT) only; no euro or dollar amount is ever shown.
 
 `to_points_wording` rewrites user-facing text (pages and account JSON, never model output). Rules, in order:

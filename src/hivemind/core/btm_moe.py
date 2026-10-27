@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Season 3 (`HM-S3-04`), Season 4 (`HM-S4-05`) & Season 5 (`HM-S5-02`) BTM Sparse MoE.
 
 Re-exports the core Branch-Train-Merge (`btm_upcycle`) primitives and provides

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """A real BOINC server (BOINC 7.24 built from source) running unprivileged on loopback, driven from Python.
 
 Everything runs as the current user: a private MariaDB (socket only, no TCP), a private Apache with mod_php on

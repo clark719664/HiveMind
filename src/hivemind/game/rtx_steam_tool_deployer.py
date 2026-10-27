@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Intense RTX GPU Stress & Torture Test Suite + v1.0.0 Free Steam Tool Deployment Engine.
 
 Executes a 6-stage hardware and cryptographic stress test on the local NVIDIA RTX GPU

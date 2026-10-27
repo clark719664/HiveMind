@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """24-Cycle Intensive GPU Astrophysics & Cosmology BOINC Campaign (`hivemind.boinc.astrophysics_24h_campaign`).
 
 Executes a 24-Cycle (cycle labels 01:00..24:00 are schedule labels, not elapsed hours; the recorded run in

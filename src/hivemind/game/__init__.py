@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind: Neural Breach — Gamified Hugging Face Hack-Miner & Free-to-Play Steam Edition."""
 
 from hivemind.game.hf_hack_miner import (

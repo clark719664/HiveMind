@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Hooks run by a real BOINC server's ``script_validator`` and ``script_assimilator`` daemons.
 
 ``script_validator --init_script "hivemind_validate files result_id"`` calls ``hivemind_validate <out files...> <id>``

@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Nocturnal MoE Auto-Improvement & Proof-of-Useful-Work (PoUW) Points Retrofit Engine.
 
 Part of Project HiveMind (`hivemind.core.auto_improvement`).

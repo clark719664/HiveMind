@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """End-to-End Local RTX 2070 Pipeline Runner for Project HiveMind.
 
 Executes all phases of the Technical Specification on the local GPU:

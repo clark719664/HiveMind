@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Serving-layer experts: verified generators that sit beside the Season 3 LoRA domain experts.
 
 A LoRA domain expert (``SEASON_3_DOMAIN_EXPERT_SPECS``) is a trained adapter that is hot-plugged into the sparse MoE. A

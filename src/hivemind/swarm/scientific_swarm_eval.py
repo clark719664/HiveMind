@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Synthetic swarm/CAS/game mechanics, not scientific language benchmarks.
 
 Historical public names are retained for compatibility. MSE values below are

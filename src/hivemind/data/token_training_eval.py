@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Offline, measured token-training/adapter-transfer smoke test, not a capability benchmark.
 
 A tiny random-initialized Qwen2 model consumes real UTF-8 bytes, never random

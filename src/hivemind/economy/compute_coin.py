@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind computing coin: BOINC-style verified credit, work-backed issuance, and a Nash-equilibrium compute market
 (`hivemind.economy.compute_coin`).
 

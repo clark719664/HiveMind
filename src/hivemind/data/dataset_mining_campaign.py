@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Community Scientific Dataset Mining & QLoRA-to-La-Ruche Campaign (`v2.6.0`).
 
 Organizes the distributed scientific dataset curation ("Knowledge Mining") campaign

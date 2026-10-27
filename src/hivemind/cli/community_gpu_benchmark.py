@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Opt-in Community GPU Benchmark & Hardware Verification Suite for Project HiveMind.
 
 Allows interested developers in the community to benchmark their consumer GPU

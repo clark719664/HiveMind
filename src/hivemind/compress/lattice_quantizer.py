@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Lattice and sign quantisers for DiLoCo outer deltas (experiment E10).
 
 The nearest-point decoders for ℤⁿ, Dₙ and E₈ = D₈ ∪ (D₈ + ½) follow Conway & Sloane, "Fast quantizing and

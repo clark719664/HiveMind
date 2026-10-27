@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """QLoRA MoE science apps for a stock BOINC client: ``hivemind_qlora_moe`` (training) and ``hivemind_moe_infer``.
 
 Training: the workunit is ``K`` segments of ``S`` inner steps run through the repository's own

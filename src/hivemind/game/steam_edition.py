@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Free-to-Play Steam Edition Builder & Interactive Cyberpunk HUD for HiveMind: Neural Breach.
 
 Packages the game as a Free-to-Play Steam distribution (`D:\\xdev\\DecentralizedAI\\steam_dist\\HiveMind_Steam_FreeEdition`):

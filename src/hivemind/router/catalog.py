@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Capability tiers for the HiveMind OpenRouter: which model a GPU of a given size should serve, under which public id.
 
 Why tiers and not one id per model tag: the market clears per public model id, so every producer that serves the same id

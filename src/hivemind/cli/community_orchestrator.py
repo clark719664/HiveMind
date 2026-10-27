@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Autonomous 1-Hour PR Review, Merge, Roadmap, Experimentation & GitHub Discussions Orchestrator.
 
 Scans open Pull Requests, Roadmap progress, Experimental receipts, and GitHub Discussions every 1 hour (or on-demand):

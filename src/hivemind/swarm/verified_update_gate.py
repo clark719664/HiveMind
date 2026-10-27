@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Level B of the GWAYA Code expert: a sandbox pass rate on held-out Python tasks gates acceptance of a LoRA / DiLoCo update.
 
 A candidate update (for example the E15 LoRA on Qwen2.5-Coder-1.5B) is accepted only if, on the SAME held-out tasks, it does

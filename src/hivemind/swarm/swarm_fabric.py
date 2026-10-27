@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """Phase 2 'Swarm Fabric' (M1–M4): Geo-Ring Transport, 3-Tier DMA Memory, Tree Speculation & OpenAI/OPoI Gateway.
 
 Implements the 4 Phase 2 Swarm Fabric milestones:

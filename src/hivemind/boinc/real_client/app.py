@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """HiveMind GPU science app run by a real BOINC client (anonymous platform).
 
 The BOINC client starts this program inside a slot directory. The workunit input and the result output are

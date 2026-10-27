@@ -1,3 +1,4 @@
+# Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 """QUIC hidden-state link with TLS 1.3 0-RTT resumption and a libp2p WebSocket fallback (`HM-M1-01`).
 
 - Frames travel on a QUIC (RFC 9000) stream, length-prefixed, via `aioquic`.
