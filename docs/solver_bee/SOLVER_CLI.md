@@ -78,6 +78,7 @@ The contract names `linear` and leaves the other kinds' fields open; this librar
 | `linear` | `weights` (n numbers), `value`, `tol` | sum(weights_i y_i) = value |
 | `quadratic_form` | `matrix` (n x n), `value`, `tol` | y^T M y = value (used for the undamped oscillator energy) |
 | `lv_first_integral` | `params` {alpha,beta,delta,gamma}, `value`, `tol` | delta x - gamma ln x + beta y - alpha ln y = value |
+| `energy` | `model` (`pendulum`, `kepler`, `projectile`), `params` (that model's parameters), `value`, `tol` | held-out set only: pendulum omega^2/2+g_over_l(1-cos theta) (damping 0), kepler abs(v)^2/2-mu/r, projectile abs(v)^2/2+g y (k = 0) |
 
 `tol` is absolute. It follows a rule fixed before any solver output was inspected: linear invariants `10*rtol*max(1,|value|)`, nonlinear invariants `1000*rtol*max(1,|value|)`. (Extra, non-contract fields in a problem file: top-level `description`, and `reference.cross_check`.)
 
@@ -137,3 +138,7 @@ Metric: max over all elements and output times of `|y - y_ref| / (rtol*|y_ref| +
 **Three of 15 problems are outside the stated policy** (damped oscillator 132, Lotka-Volterra 165, Van der Pol mu=1 481 against a limit of 100). Nothing was loosened to hide this: the references are doubly cross-checked, and the solver error shrinks steadily when the tolerance is tightened (probe, not part of the test suite, max absolute error at `rtol` 1e-8 / 1e-10 / 1e-12: Van der Pol mu=1 2.5e-7 / 8.5e-9 / 1.4e-10; Lotka-Volterra 1.4e-6 / 3.6e-8 / 6.9e-10; damped oscillator 1.3e-7 / 3.1e-9 / 6.8e-11). So this is accumulation of global error over long oscillatory horizons by the solver at the stated tolerance, not a wrong reference or a wrong right-hand side. Whether the policy factor 100 is the right acceptance rule for these problems is a decision for the owner/verifier design (PR-B); the library keeps the contract's value.
 
 All declared invariants (including the Lotka-Volterra first integral, at 6% of its tolerance) stay within their pre-registered tolerances.
+
+## Held-out problem set (`solvers/problems/heldout/`, 16 problems, frozen)
+
+A second, frozen set of 16 problems (pendulum, projectile, Kepler, logistic, SIR/SEIR, series RLC, spring-mass-damper, a stiff reaction and long-horizon oscillators) with its sha256 manifest `FROZEN.json` (`python3 solvers/tools/freeze_heldout.py --verify`). It was committed before the solver was run on it; results of that first run, including the 100x tolerance-tightening probe, are in `docs/solver_bee/SOLVER_HELDOUT.md`. Nine of the 16 are outside the factor-100 policy; the policy was not changed.
