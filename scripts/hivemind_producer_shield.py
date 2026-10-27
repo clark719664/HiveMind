@@ -55,6 +55,7 @@ def create_shield_app(
     allowed_models: Sequence[str] = (),
     transport: httpx.AsyncBaseTransport | None = None,
     routes: Mapping[str, str] | None = None,
+    control_state_file: str | None = None,
 ) -> FastAPI:
     """Build the proxy app. ``transport`` lets tests stand in for the model server.
 
@@ -62,6 +63,8 @@ def create_shield_app(
     endpoint (the gateway keeps one endpoint per account). Models not listed go to ``upstream``; routed models are allowed implicitly and are listed in
     ``/v1/models`` only while their server answers.
     """
+    # ``control_state_file`` is the small JSON file the producer agent writes (``--control-state-file``): while it says ``"paused": true`` chat requests get
+    # 503 ``producer_paused``. A missing or unreadable file means "not paused" (the behaviour without remote control); ``/v1/models`` is never affected.
     if len(token) < MIN_TOKEN_CHARS:
         raise ValueError(f"the endpoint token must be at least {MIN_TOKEN_CHARS} characters")
     if max_concurrent < 1 or max_body_bytes < 1:
@@ -80,6 +83,15 @@ def create_shield_app(
         await client.aclose()
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+
+    def paused() -> bool:
+        if not control_state_file:
+            return False
+        try:
+            with open(control_state_file, encoding="utf-8") as handle:
+                return json.loads(handle.read(4096)).get("paused") is True
+        except (OSError, ValueError, AttributeError):
+            return False
 
     def authorised(request: Request) -> bool:
         supplied = request.headers.get("authorization", "").encode()
@@ -116,6 +128,8 @@ def create_shield_app(
     async def chat(request: Request) -> Any:
         if not authorised(request):
             return _error(401, "Missing or wrong endpoint token.", "unauthorized")
+        if paused():
+            return _error(503, "This producer is paused by its owner.", "producer_paused")
         declared = request.headers.get("content-length")
         if declared is not None and declared.isdigit() and int(declared) > max_body_bytes:
             return _error(413, "Request body too large.", "body_too_large")
@@ -176,6 +190,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="Only run this local model name (repeat). Recommended: it keeps your GPU for the model you advertise.")
     parser.add_argument("--route", action="append", default=[], metavar="MODEL=URL",
                         help="Send this model to another local server (repeat), e.g. hivemind-bee-stars=http://127.0.0.1:8294. Implies --allow-model for it.")
+    parser.add_argument("--control-state-file", metavar="PATH", help="State file written by the producer agent (--control-state-file); while it says paused, chat requests get 503 producer_paused")
     args = parser.parse_args(argv)
     routes: dict[str, str] = {}
     for item in args.route:
@@ -189,7 +204,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     import uvicorn  # imported late so the module can be imported (and tested) without a server
 
     app = create_shield_app(args.upstream, token, max_concurrent=args.max_concurrent,
-                            max_body_bytes=args.max_body_bytes, allowed_models=args.allow_model, routes=routes)
+                            max_body_bytes=args.max_body_bytes, allowed_models=args.allow_model, routes=routes,
+                            control_state_file=args.control_state_file)
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 

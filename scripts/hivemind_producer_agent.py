@@ -112,6 +112,83 @@ def apply_residency(
     return payload
 
 
+MAX_CONTROL_VRAM_MIB: int = 1_048_576  # same ceiling the gateway applies to card sizes
+
+
+def parse_control(raw: object) -> dict[str, Any]:
+    """Validate the ``control`` object of a heartbeat ack. Only ``paused`` and ``vram_cap_mib`` are ever read; anything else is ignored.
+
+    Raises ``ValueError`` for a malformed object (the caller ignores it and logs once). No command, path or process information is accepted.
+    """
+    if not isinstance(raw, dict):
+        raise ValueError("control is not an object")
+    paused = raw.get("paused")
+    cap = raw.get("vram_cap_mib")
+    if not isinstance(paused, bool):
+        raise ValueError("control.paused is not a boolean")
+    if cap is not None and (isinstance(cap, bool) or not isinstance(cap, int) or not 1 <= cap <= MAX_CONTROL_VRAM_MIB):
+        raise ValueError("control.vram_cap_mib is not a sane positive integer")
+    version = raw.get("version")
+    return {"paused": paused, "vram_cap_mib": cap, "version": version if isinstance(version, int) and not isinstance(version, bool) else None}
+
+
+def write_control_state(path: str, control: dict[str, Any]) -> None:
+    """Atomically publish the control state for the local shield (owner-only file, mode 0600). Raises ``OSError`` on failure."""
+    body = json.dumps({"paused": control["paused"], "vram_cap_mib": control["vram_cap_mib"], "version": control.get("version")}, sort_keys=True)
+    tmp = f"{path}.tmp.{os.getpid()}"
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(body)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def read_control_state(path: str) -> dict[str, Any] | None:
+    """The control state saved by an earlier run, or ``None`` when there is none or it is unreadable."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return parse_control(json.loads(handle.read(4096)))
+    except (OSError, ValueError):
+        return None
+
+
+def apply_control(payload: dict[str, Any], control: dict[str, Any] | None) -> dict[str, Any]:
+    """Make the heartbeat obey the remote control state (in place and returned). ``None`` changes nothing.
+
+    Paused: advertise zero capacity and mark ``paused``. VRAM cap: models reported loaded whose ``vram_mib`` would not fit (kept in order while the sum
+    fits) are left out of the heartbeat, and the cap is reported back as ``vram_cap_mib``; if none is left the capacity is zero.
+    """
+    if control is None:
+        return payload
+    if control["paused"]:
+        payload["capacity_1k"] = 0.0
+        payload["paused"] = True
+    cap = control["vram_cap_mib"]
+    if cap is not None:
+        payload["vram_cap_mib"] = cap
+        used = 0
+        kept: list[dict[str, Any]] = []
+        for entry in payload["models"]:
+            need = entry.get("vram_mib") if entry.get("loaded") is True else None
+            if isinstance(need, int) and not isinstance(need, bool):
+                if used + need > cap:
+                    continue
+                used += need
+            kept.append(entry)
+        if not kept:
+            payload["capacity_1k"] = 0.0  # the gateway wants at least one model entry; zero capacity advertises nothing
+        else:
+            payload["models"] = kept
+    return payload
+
+
 def build_heartbeat_payload(
     *,
     endpoint: str,
@@ -230,6 +307,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--local-endpoint", default=DEFAULT_LOCAL_ENDPOINT, help=f"Local Ollama base URL for the read-only GET /api/ps residency probe (default {DEFAULT_LOCAL_ENDPOINT})")
     parser.add_argument("--cold-start-s", type=float, default=DEFAULT_COLD_START_S, help=f"Your estimate of the seconds needed to load a model that is not resident (default {DEFAULT_COLD_START_S:g}, max 600)")
     parser.add_argument("--gpu-vram-mib", type=int, help="Card memory in MiB to report with residency (default: read from nvidia-smi when possible)")
+    parser.add_argument("--control-state-file", metavar="PATH", help="Where to publish the remote pause/VRAM-cap state (owner-only file, mode 0600) for the producer shield's --control-state-file; omit to not write it")
     parser.add_argument("--skip-preflight", action="store_true", help="Do not check that your endpoint lists the model before the first heartbeat")
     return parser
 
@@ -338,10 +416,33 @@ def main(
             resident = probe_residency(args.local_endpoint, transport=residency_transport)
             return apply_residency(built, resident, cold_start_s=args.cold_start_s, gpu_vram_mib=gpu_mib)
 
+        # Remote control (HM-S16-05): the gateway's heartbeat ack may carry {"paused", "vram_cap_mib"}; the next heartbeat obeys it and the state is
+        # published for the shield. Only those two values are ever read. A state saved by an earlier run is honoured until the gateway says otherwise.
+        control: dict[str, Any] | None = read_control_state(args.control_state_file) if args.control_state_file else None
+        warned = False
+
+        def beat() -> dict[str, Any]:
+            nonlocal control, warned
+            body = send_heartbeat(client, args.gateway, api_key, apply_control(make_payload(), control))
+            if "control" in body:
+                try:
+                    received = parse_control(body["control"])
+                except ValueError as exc:
+                    if not warned:
+                        warned = True
+                        print(f"ignoring malformed control object in the heartbeat ack ({exc}); continuing as before", file=sys.stderr, flush=True)
+                else:
+                    control = received
+                    if args.control_state_file:
+                        try:
+                            write_control_state(args.control_state_file, received)
+                        except OSError as exc:
+                            print(f"could not write {args.control_state_file}: {type(exc).__name__}", file=sys.stderr, flush=True)
+            return body
+
         if args.once:
-            payload = make_payload()
             try:
-                body = send_heartbeat(client, args.gateway, api_key, payload)
+                body = beat()
             except (httpx.HTTPError, ValueError) as exc:
                 print(f"heartbeat failed: {type(exc).__name__}: {exc}", file=sys.stderr)
                 return 1
@@ -351,7 +452,7 @@ def main(
         try:
             while True:
                 try:
-                    body = send_heartbeat(client, args.gateway, api_key, make_payload())
+                    body = beat()
                     print(f"heartbeat ok: {json.dumps(body, sort_keys=True)}", flush=True)
                 except (httpx.HTTPError, ValueError) as exc:
                     print(f"heartbeat failed, retrying: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
