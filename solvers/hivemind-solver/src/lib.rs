@@ -1,9 +1,14 @@
 // Copyright (c) 2024-2026 Xavier Callens / Project HiveMind. Licensed under the AGPL-3.0.
 //! hivemind-solver: Solver Bee wave 1. JSON spec in, JSON result out, nothing evaluated as code.
 //!
-//! All right-hand sides use only `+ - *` (and exact integer powers by repeated multiplication),
-//! which IEEE-754 rounds identically on every conforming CPU, so no system libm call is made by
-//! this crate. (The pinned CVODE internals still call `powf`/`sqrt`; see docs/solver_bee/SOLVER_CLI.md.)
+//! The six original families, `linear` and `mass_action` use only `+ - * /` (and integer powers by
+//! repeated multiplication), which IEEE-754 rounds identically on every conforming CPU. The four
+//! science families (pendulum, projectile_drag, kepler, logistic) additionally use `sin`, `cos` and
+//! `sqrt`, and ONLY through the `mathfn` module: `sqrt` is correctly rounded, `sin`/`cos` go to the
+//! system libm (not correctly rounded; see docs/solver_bee/SOLVER_CLI.md). The pinned CVODE internals
+//! also call `powf`/`sqrt`.
+
+mod mathfn;
 
 use cvode::{Cvode, DenseMat, Method, Task};
 use nvector::SerialVector;
@@ -123,16 +128,24 @@ fn family_params(family: &str) -> Option<&'static [(&'static str, f64)]> {
         "lotka_volterra" => &[("alpha", 1.5), ("beta", 1.0), ("delta", 1.0), ("gamma", 3.0)],
         "harmonic" => &[("omega", 1.0), ("zeta", 0.0)],
         "stiff_chain" => &[("n", 10.0), ("k", 100.0)],
+        "pendulum" => &[("g_over_l", 9.81), ("damping", 0.0)],
+        "projectile_drag" => &[("g", 9.81), ("k", 0.0)],
+        "kepler" => &[("mu", 1.0)],
+        "logistic" => &[("r", 1.0), ("K", 1.0)],
         _ => return None,
     })
 }
-const FAMILIES: [&str; 6] = [
+const FAMILIES: [&str; 10] = [
     "robertson",
     "van_der_pol",
     "brusselator",
     "lotka_volterra",
     "harmonic",
     "stiff_chain",
+    "pendulum",
+    "projectile_drag",
+    "kepler",
+    "logistic",
 ];
 
 enum Model {
@@ -142,6 +155,10 @@ enum Model {
     LotkaVolterra { alpha: f64, beta: f64, delta: f64, gamma: f64 },
     Harmonic { omega: f64, zeta: f64 },
     StiffChain { n: usize, k: f64 },
+    Pendulum { g_over_l: f64, damping: f64 },
+    ProjectileDrag { g: f64, k: f64 },
+    Kepler { mu: f64 },
+    Logistic { r: f64, big_k: f64 },
     Linear { n: usize, a: Vec<f64>, b: Vec<f64> }, // a is row-major n x n
     Mass(MassModel),
 }
@@ -192,7 +209,9 @@ impl Model {
         match self {
             Model::Robertson { .. } => 3,
             Model::VanDerPol { .. } | Model::Brusselator { .. } => 2,
-            Model::LotkaVolterra { .. } | Model::Harmonic { .. } => 2,
+            Model::LotkaVolterra { .. } | Model::Harmonic { .. } | Model::Pendulum { .. } => 2,
+            Model::ProjectileDrag { .. } | Model::Kepler { .. } => 4,
+            Model::Logistic { .. } => 1,
             Model::StiffChain { n, .. } | Model::Linear { n, .. } => *n,
             Model::Mass(m) => m.n,
         }
@@ -226,6 +245,30 @@ impl Model {
             Model::Harmonic { omega, zeta } => {
                 f[0] = y[1];
                 f[1] = -(omega * omega) * y[0] - 2.0 * zeta * omega * y[1];
+            }
+            Model::Pendulum { g_over_l, damping } => {
+                f[0] = y[1];
+                f[1] = -g_over_l * mathfn::sin(y[0]) - damping * y[1];
+            }
+            Model::ProjectileDrag { g, k } => {
+                // quadratic drag a = -k |v| v, gravity -g in y
+                let s = mathfn::sqrt(y[2] * y[2] + y[3] * y[3]);
+                f[0] = y[2];
+                f[1] = y[3];
+                f[2] = -k * s * y[2];
+                f[3] = -g - k * s * y[3];
+            }
+            Model::Kepler { mu } => {
+                // r^3 = r2 * sqrt(r2)
+                let r2 = y[0] * y[0] + y[1] * y[1];
+                let r3 = r2 * mathfn::sqrt(r2);
+                f[0] = y[2];
+                f[1] = y[3];
+                f[2] = -mu * y[0] / r3;
+                f[3] = -mu * y[1] / r3;
+            }
+            Model::Logistic { r, big_k } => {
+                f[0] = r * y[0] * (1.0 - y[0] / big_k);
             }
             Model::StiffChain { n, k } => {
                 // Reflecting (Neumann) discrete diffusion chain; sum(y) is conserved.
@@ -302,6 +345,38 @@ impl Model {
                 j.cols[1][0] = 1.0;
                 j.cols[0][1] = -(omega * omega);
                 j.cols[1][1] = -2.0 * zeta * omega;
+            }
+            Model::Pendulum { g_over_l, damping } => {
+                j.cols[1][0] = 1.0;
+                j.cols[0][1] = -g_over_l * mathfn::cos(y[0]);
+                j.cols[1][1] = -damping;
+            }
+            Model::ProjectileDrag { k, .. } => {
+                let (vx, vy) = (y[2], y[3]);
+                let s = mathfn::sqrt(vx * vx + vy * vy);
+                j.cols[2][0] = 1.0;
+                j.cols[3][1] = 1.0;
+                if s > 0.0 {
+                    // d(|v| vx)/dvx = |v| + vx^2/|v|, d(|v| vx)/dvy = vx vy/|v|; the limit at v=0 is 0
+                    j.cols[2][2] = -k * (s + vx * vx / s);
+                    j.cols[3][2] = -k * vx * vy / s;
+                    j.cols[2][3] = -k * vx * vy / s;
+                    j.cols[3][3] = -k * (s + vy * vy / s);
+                }
+            }
+            Model::Kepler { mu } => {
+                let (x, yy) = (y[0], y[1]);
+                let r2 = x * x + yy * yy;
+                let r5 = r2 * r2 * mathfn::sqrt(r2);
+                j.cols[2][0] = 1.0;
+                j.cols[3][1] = 1.0;
+                j.cols[0][2] = -mu * (r2 - 3.0 * x * x) / r5;
+                j.cols[1][2] = 3.0 * mu * x * yy / r5;
+                j.cols[0][3] = 3.0 * mu * x * yy / r5;
+                j.cols[1][3] = -mu * (r2 - 3.0 * yy * yy) / r5;
+            }
+            Model::Logistic { r, big_k } => {
+                j.cols[0][0] = r * (1.0 - 2.0 * y[0] / big_k);
             }
             Model::StiffChain { n, k } => {
                 for i in 0..*n {
@@ -397,6 +472,22 @@ fn build_named(ns: &NamedSpec) -> Result<Model, String> {
             gamma: p("gamma"),
         },
         "harmonic" => Model::Harmonic { omega: p("omega"), zeta: nonneg("zeta")? },
+        "pendulum" => Model::Pendulum { g_over_l: nonneg("g_over_l")?, damping: nonneg("damping")? },
+        "projectile_drag" => Model::ProjectileDrag { g: nonneg("g")?, k: nonneg("k")? },
+        "kepler" => {
+            let mu = p("mu");
+            if mu <= 0.0 {
+                return Err("param mu must be > 0".into());
+            }
+            Model::Kepler { mu }
+        }
+        "logistic" => {
+            let big_k = p("K");
+            if big_k <= 0.0 {
+                return Err("param K must be > 0".into());
+            }
+            Model::Logistic { r: p("r"), big_k }
+        }
         "stiff_chain" => {
             let nf = p("n");
             if nf.fract() != 0.0 || !(2.0..=MAX_DIM as f64).contains(&nf) {
@@ -513,6 +604,9 @@ fn validate(spec: Spec) -> Result<Validated, String> {
     }
     for (i, v) in spec.y0.iter().enumerate() {
         finite(&format!("y0[{i}]"), *v)?;
+    }
+    if matches!(model, Model::Kepler { .. }) && spec.y0[0] == 0.0 && spec.y0[1] == 0.0 {
+        return Err("kepler: the initial position must not be the origin (r = 0)".into());
     }
     finite("t0", spec.t0)?;
     if spec.t_out.is_empty() || spec.t_out.len() > MAX_T_OUT {
@@ -684,6 +778,10 @@ impl Validated {
             }
             Model::Harmonic { omega, zeta } => Model::Harmonic { omega: *omega, zeta: *zeta },
             Model::StiffChain { n, k } => Model::StiffChain { n: *n, k: *k },
+            Model::Pendulum { g_over_l, damping } => Model::Pendulum { g_over_l: *g_over_l, damping: *damping },
+            Model::ProjectileDrag { g, k } => Model::ProjectileDrag { g: *g, k: *k },
+            Model::Kepler { mu } => Model::Kepler { mu: *mu },
+            Model::Logistic { r, big_k } => Model::Logistic { r: *r, big_k: *big_k },
             Model::Linear { n, a, b } => Model::Linear { n: *n, a: a.clone(), b: b.clone() },
             Model::Mass(m) => Model::Mass(MassModel {
                 n: m.n,
@@ -773,6 +871,10 @@ pub fn families_json() -> String {
             "brusselator" => ("2", "u'=a+u^2 v-(b+1)u; v'=b u-u^2 v"),
             "lotka_volterra" => ("2", "x'=alpha x-beta x y; y'=delta x y-gamma y (first integral delta x-gamma ln x+beta y-alpha ln y)"),
             "harmonic" => ("2", "x'=v; v'=-omega^2 x-2 zeta omega v"),
+            "pendulum" => ("2", "y=[theta, omega]; theta'=omega; omega'=-g_over_l sin(theta)-damping omega (energy omega^2/2+g_over_l (1-cos theta) conserved when damping=0)"),
+            "projectile_drag" => ("4", "y=[x, y, vx, vy]; x'=vx; y'=vy; v'=-k |v| v-[0,g] (quadratic drag; no ground-hit event, the caller chooses t_out)"),
+            "kepler" => ("4", "y=[x, y, vx, vy]; planar two-body, x''=-mu x/r^3, y''=-mu y/r^3 (conserves energy |v|^2/2-mu/r and angular momentum x vy-y vx)"),
+            "logistic" => ("1", "y=[N]; N'=r N (1-N/K)"),
             _ => ("n", "reflecting diffusion chain y_i'=k(y_{i-1}-2y_i+y_{i+1}), ends reflecting (conserves sum), n integer in 2..=20"),
         };
         fams.push(serde_json::json!({"family": f, "dim": dim, "equations": desc, "params": params}));
@@ -958,6 +1060,10 @@ mod tests {
             Model::LotkaVolterra { alpha: 1.5, beta: 1.0, delta: 1.0, gamma: 3.0 },
             Model::Harmonic { omega: 2.0, zeta: 0.3 },
             Model::StiffChain { n: 4, k: 7.0 },
+            Model::Pendulum { g_over_l: 9.81, damping: 0.4 },
+            Model::ProjectileDrag { g: 9.81, k: 0.3 },
+            Model::Kepler { mu: 2.5 },
+            Model::Logistic { r: 0.7, big_k: 3.0 },
             build_mass(&MassSpec {
                 species: vec!["A".into(), "B".into(), "C".into()],
                 reactions: vec![ReactionSpec {
@@ -1106,6 +1212,155 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&version_json()).unwrap();
         assert_eq!(v["solver_rev"], SOLVER_REV);
         let f: serde_json::Value = serde_json::from_str(&families_json()).unwrap();
-        assert_eq!(f["families"].as_array().unwrap().len(), 6);
+        assert_eq!(f["families"].as_array().unwrap().len(), 10);
+    }
+
+    // ---- science families -------------------------------------------------------------------
+
+    fn spec_named(id: &str, family: &str, params: &str, y0: &str, t_out: &str, tol: &str) -> String {
+        format!(
+            r#"{{"schema":"hivemind-solver-spec/1","id":"{id}","problem":{{"kind":"named","family":"{family}","params":{params}}},"y0":{y0},"t_out":{t_out}{tol}}}"#
+        )
+    }
+
+    #[test]
+    fn pendulum_small_angle_matches_linear_closed_form() {
+        // theta0 = 1e-3: the neglected amplitude-dependent frequency shift gives < 1e-9 absolute error.
+        let spec = spec_named("pn", "pendulum", r#"{"g_over_l":4.0}"#, "[0.001,0.0]", "[0.5,1.0,2.0,3.0]",
+            r#","rtol":1e-11,"atol":1e-15"#);
+        let v = run(&spec);
+        ok(&v);
+        for (row, t) in ys(&v).iter().zip([0.5f64, 1.0, 2.0, 3.0]) {
+            assert!((row[0] - 0.001 * (2.0 * t).cos()).abs() < 1e-9, "theta at {t}: {}", row[0]);
+            assert!((row[1] + 0.002 * (2.0 * t).sin()).abs() < 1e-9, "omega at {t}: {}", row[1]);
+        }
+    }
+
+    #[test]
+    fn pendulum_conserves_energy_and_damping_dissipates() {
+        let spec = spec_named("pe", "pendulum", r#"{"g_over_l":9.81}"#, "[2.5,0.0]", "[1.0,5.0,10.0]",
+            r#","rtol":1e-10,"atol":1e-12"#);
+        let v = run(&spec);
+        ok(&v);
+        let e0 = 9.81 * (1.0 - 2.5f64.cos());
+        for row in ys(&v) {
+            let e = 0.5 * row[1] * row[1] + 9.81 * (1.0 - row[0].cos());
+            assert!((e - e0).abs() < 1e-6, "energy drift {}", e - e0);
+        }
+        let spec = spec_named("pd", "pendulum", r#"{"g_over_l":9.81,"damping":0.5}"#, "[1.0,0.0]", "[5.0,80.0]",
+            r#","rtol":1e-9,"atol":1e-12"#);
+        let rows = ys(&run(&spec));
+        assert!(rows[1][0].abs() < 1e-6, "damped pendulum must settle: {:?}", rows[1]);
+    }
+
+    #[test]
+    fn projectile_without_drag_is_a_parabola() {
+        let spec = spec_named("pj", "projectile_drag", r#"{"g":9.81}"#, "[0.0,0.0,30.0,40.0]", "[1.0,2.0,4.0,8.0]",
+            r#","rtol":1e-11,"atol":1e-12"#);
+        let v = run(&spec);
+        ok(&v);
+        for (row, t) in ys(&v).iter().zip([1.0f64, 2.0, 4.0, 8.0]) {
+            assert!((row[0] - 30.0 * t).abs() < 1e-7);
+            assert!((row[1] - (40.0 * t - 0.5 * 9.81 * t * t)).abs() < 1e-7);
+            assert!((row[2] - 30.0).abs() < 1e-7);
+            assert!((row[3] - (40.0 - 9.81 * t)).abs() < 1e-7);
+        }
+    }
+
+    #[test]
+    fn projectile_with_quadratic_drag_matches_vertical_fall_closed_form() {
+        // dropped from rest: vy = -vt tanh(g t / vt), vt = sqrt(g/k)
+        let (g, k) = (9.81f64, 0.1f64);
+        let vt = (g / k).sqrt();
+        let spec = spec_named("pf", "projectile_drag", r#"{"g":9.81,"k":0.1}"#, "[0.0,0.0,0.0,0.0]", "[0.5,1.0,3.0,10.0]",
+            r#","rtol":1e-11,"atol":1e-12"#);
+        let v = run(&spec);
+        ok(&v);
+        for (row, t) in ys(&v).iter().zip([0.5f64, 1.0, 3.0, 10.0]) {
+            assert!((row[3] + vt * (g * t / vt).tanh()).abs() < 1e-8, "vy at {t}");
+            assert!(row[2].abs() < 1e-12 && row[0].abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn kepler_circular_orbit_has_the_right_period() {
+        // mu = 4, r = 1: omega = sqrt(mu/r^3) = 2, period = pi.
+        let pi = std::f64::consts::PI;
+        let t_out = format!("[{},{},{},{},{}]", pi / 4.0, pi / 2.0, pi, 2.0 * pi, 5.0 * pi);
+        let spec = spec_named("kc", "kepler", r#"{"mu":4.0}"#, "[1.0,0.0,0.0,2.0]", &t_out, r#","rtol":1e-11,"atol":1e-13"#);
+        let v = run(&spec);
+        ok(&v);
+        let rows = ys(&v);
+        let y0 = [1.0, 0.0, 0.0, 2.0];
+        // quarter period, half period, then whole periods (pi, 2 pi, 5 pi): back to the start
+        let want = [[0.0, 1.0, -2.0, 0.0], [-1.0, 0.0, 0.0, -2.0], y0, y0, y0];
+        for (row, w) in rows.iter().zip(want) {
+            for (a, b) in row.iter().zip(w) {
+                assert!((a - b).abs() < 1e-6, "circular orbit {row:?} vs {w:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn kepler_eccentric_conserves_energy_and_angular_momentum() {
+        let e = 0.5f64;
+        let vp = ((1.0 + e) / (1.0 - e)).sqrt();
+        let y0 = format!("[{},0.0,0.0,{}]", 1.0 - e, vp);
+        let spec = spec_named("ke", "kepler", "{}", &y0, "[1.0,3.0,6.0,12.0,25.0]", r#","rtol":1e-11,"atol":1e-13"#);
+        let v = run(&spec);
+        ok(&v);
+        let en = |r: &[f64]| 0.5 * (r[2] * r[2] + r[3] * r[3]) - 1.0 / (r[0] * r[0] + r[1] * r[1]).sqrt();
+        let ang = |r: &[f64]| r[0] * r[3] - r[1] * r[2];
+        let (e0, l0) = (en(&[1.0 - e, 0.0, 0.0, vp]), ang(&[1.0 - e, 0.0, 0.0, vp]));
+        assert!((e0 + 0.5).abs() < 1e-12, "a = 1 so E = -1/2");
+        for row in ys(&v) {
+            assert!((en(&row) - e0).abs() < 1e-7, "energy drift {}", en(&row) - e0);
+            assert!((ang(&row) - l0).abs() < 1e-7, "angular momentum drift {}", ang(&row) - l0);
+        }
+    }
+
+    #[test]
+    fn logistic_matches_closed_form() {
+        let (r, big_k, n0) = (0.8f64, 50.0f64, 2.0f64);
+        let spec = spec_named("lg", "logistic", r#"{"r":0.8,"K":50.0}"#, "[2.0]", "[1.0,5.0,10.0,30.0]",
+            r#","rtol":1e-11,"atol":1e-13"#);
+        let v = run(&spec);
+        ok(&v);
+        for (row, t) in ys(&v).iter().zip([1.0f64, 5.0, 10.0, 30.0]) {
+            let exact = big_k / (1.0 + (big_k / n0 - 1.0) * (-r * t).exp());
+            assert!((row[0] - exact).abs() < 1e-8 * exact.max(1.0), "N at {t}: {} vs {exact}", row[0]);
+        }
+    }
+
+    #[test]
+    fn science_family_parameter_validation_is_strict() {
+        let y4 = "[1.0,0.0,0.0,1.0]";
+        err_contains(&run(&spec_named("e", "pendulum", r#"{"damping":-0.1}"#, "[1,0]", "[1]", "")), "damping");
+        err_contains(&run(&spec_named("e", "pendulum", r#"{"g_over_l":-1}"#, "[1,0]", "[1]", "")), "g_over_l");
+        err_contains(&run(&spec_named("e", "pendulum", r#"{"mu":1}"#, "[1,0]", "[1]", "")), "unknown parameter");
+        err_contains(&run(&spec_named("e", "projectile_drag", r#"{"k":-1}"#, y4, "[1]", "")), "must be >= 0");
+        err_contains(&run(&spec_named("e", "projectile_drag", r#"{"g":-1}"#, y4, "[1]", "")), "must be >= 0");
+        err_contains(&run(&spec_named("e", "kepler", r#"{"mu":0}"#, y4, "[1]", "")), "mu");
+        err_contains(&run(&spec_named("e", "kepler", r#"{"mu":-1}"#, y4, "[1]", "")), "mu");
+        err_contains(&run(&spec_named("e", "kepler", "{}", "[0.0,0.0,1.0,1.0]", "[1]", "")), "origin");
+        err_contains(&run(&spec_named("e", "logistic", r#"{"K":0}"#, "[1]", "[1]", "")), "K");
+        err_contains(&run(&spec_named("e", "logistic", r#"{"K":-3}"#, "[1]", "[1]", "")), "K");
+        err_contains(&run(&spec_named("e", "logistic", "{}", "[1,2]", "[1]", "")), "y0 has length");
+        err_contains(&run(&spec_named("e", "kepler", "{}", "[1,0]", "[1]", "")), "y0 has length");
+        // defaults are accepted
+        ok(&run(&spec_named("d", "pendulum", "{}", "[0.1,0]", "[1]", "")));
+        ok(&run(&spec_named("d", "logistic", "{}", "[0.1]", "[1]", "")));
+    }
+
+    #[test]
+    fn drag_jacobian_is_finite_at_zero_velocity() {
+        let m = Model::ProjectileDrag { g: 9.81, k: 0.5 };
+        let mut j = DenseMat::zeros(4, 4);
+        m.jac(&[0.0, 0.0, 0.0, 0.0], &mut j);
+        for c in 0..4 {
+            for r in 0..4 {
+                assert!(j.cols[c][r].is_finite());
+            }
+        }
     }
 }
