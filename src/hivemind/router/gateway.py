@@ -971,6 +971,13 @@ def create_router_app(
             "seven_day_roadmap": build_seven_day_orchestration_plan(),
         }
 
+    @app.get("/v1/hivemind/international-launch-readiness")
+    def international_launch_readiness() -> dict[str, Any]:
+        """Public mathematical, social, and economic readiness model for the International English Launch (HM-S19-INTL)."""
+        from hivemind.economy.international_launch_model import evaluate_international_launch_readiness
+
+        return evaluate_international_launch_readiness()
+
     @app.get("/v1/hivemind/partner-models")
     def partner_models() -> dict[str, Any]:
         """Pre-wired federated partner models (e.g. CrowdGPT Vxtzq/Crowd-v1) ready for producer & Playground routing."""
