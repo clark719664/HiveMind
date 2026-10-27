@@ -96,6 +96,13 @@ CREATE TABLE IF NOT EXISTS producer_endpoints(
     residency_json TEXT,
     PRIMARY KEY(account_id, endpoint_url)
 );
+CREATE TABLE IF NOT EXISTS producer_control(
+    account_id TEXT PRIMARY KEY,
+    paused INTEGER NOT NULL DEFAULT 0,
+    vram_cap_mib INTEGER,
+    updated_at REAL NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1
+);
 CREATE TABLE IF NOT EXISTS usage(
     request_id TEXT PRIMARY KEY,
     consumer_id TEXT NOT NULL,
@@ -236,6 +243,11 @@ class ProducerRecord:
         return None
 
 
+def _control_dict(row: sqlite3.Row) -> dict[str, Any]:
+    return {"paused": bool(row["paused"]), "vram_cap_mib": None if row["vram_cap_mib"] is None else int(row["vram_cap_mib"]),
+            "updated_at": float(row["updated_at"]), "version": int(row["version"])}
+
+
 def _load_residency(raw: object) -> dict[str, Any] | None:
     """Decode a stored residency report; anything malformed counts as "not reported"."""
     if raw is None:
@@ -245,6 +257,37 @@ def _load_residency(raw: object) -> dict[str, Any] | None:
     except ValueError:
         return None
     return value if isinstance(value, dict) else None
+
+
+def fit_loaded_models(models: dict[str, dict[str, Any]], limit_mib: int, capacity_1k: float, what: str) -> tuple[float, str | None]:
+    """Clamp the models reported loaded to ``limit_mib`` of video memory (shared by the card check and the remote VRAM cap, HM-S16-05/06).
+
+    ``models`` is the residency ``models`` mapping and is changed in place: loaded models are kept in the order listed while their ``vram_mib`` fits
+    and the rest are demoted to ``loaded = False``. A model with no declared size cannot be checked and is taken at face value. Returns the capacity
+    scaled by the share of loaded models that were kept, and a ``capacity_note`` (``None`` when nothing had to be dropped).
+    """
+    loaded_ids = [m for m, v in models.items() if v.get("loaded") is True]
+    used = 0
+    kept = 0
+    dropped: list[str] = []
+    for model_id in loaded_ids:
+        need = models[model_id].get("vram_mib")
+        if need is None:
+            kept += 1
+        elif used + need <= limit_mib:
+            used += need
+            kept += 1
+        else:
+            dropped.append(model_id)
+            models[model_id]["loaded"] = False
+    if not dropped:
+        return capacity_1k, None
+    effective = capacity_1k * kept / len(loaded_ids)
+    note = (
+        f"declared loaded models exceed the {limit_mib} MiB {what}; treated as not loaded: {', '.join(dropped)}; "
+        f"capacity scaled {capacity_1k:g} -> {effective:g}"
+    )[:512]
+    return effective, note
 
 
 @dataclass(frozen=True)
@@ -816,6 +859,36 @@ class RouterStore:
             )
             return len(known | {url})
 
+    # ------------------------------------------------------------------ remote control (HM-S16-05)
+    def set_producer_control(self, account_id: str, paused: bool, vram_cap_mib: int | None, now_utc: float | None = None) -> dict[str, Any]:
+        """Replace the remote-control state of a producer account (pause flag and optional VRAM cap) and return it. Unknown account: ``UnknownAccount``."""
+        if vram_cap_mib is not None and (isinstance(vram_cap_mib, bool) or not isinstance(vram_cap_mib, int) or vram_cap_mib < 1):
+            raise ValueError("vram_cap_mib must be a positive integer or None")
+        stamp = time.time() if now_utc is None else float(now_utc)
+        with self._tx() as conn:
+            if conn.execute("SELECT 1 FROM accounts WHERE account_id=?", (account_id,)).fetchone() is None:
+                raise UnknownAccount(account_id)
+            conn.execute(
+                "INSERT INTO producer_control(account_id, paused, vram_cap_mib, updated_at, version) VALUES (?,?,?,?,1) "
+                "ON CONFLICT(account_id) DO UPDATE SET paused=excluded.paused, vram_cap_mib=excluded.vram_cap_mib, "
+                "updated_at=excluded.updated_at, version=producer_control.version+1",
+                (account_id, 1 if paused else 0, vram_cap_mib, stamp),
+            )
+        control = self.producer_control(account_id)
+        assert control is not None
+        return control
+
+    def producer_control(self, account_id: str) -> dict[str, Any] | None:
+        """The stored control state of one account, or ``None`` when none was ever set (such an account behaves exactly as before)."""
+        with self._lock:
+            row = self._conn.execute("SELECT * FROM producer_control WHERE account_id=?", (account_id,)).fetchone()
+        return None if row is None else _control_dict(row)
+
+    def _control_by_account(self) -> dict[str, dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM producer_control WHERE paused=1 OR vram_cap_mib IS NOT NULL").fetchall()
+        return {str(row["account_id"]): _control_dict(row) for row in rows}
+
     def active_producers(self, model_id: str, now_utc: float, ttl_s: float = 120) -> list[ProducerRecord]:
         """One record per producer ACCOUNT serving ``model_id`` with at least one endpoint whose heartbeat is within ``ttl_s`` seconds of ``now_utc``.
 
@@ -826,22 +899,34 @@ class RouterStore:
             rows = self._conn.execute(
                 "SELECT * FROM producer_endpoints WHERE last_heartbeat_utc >= ? ORDER BY account_id, endpoint_url", (now_utc - ttl_s,)
             ).fetchall()
+        controls = self._control_by_account()
         by_account: dict[str, list[ProducerRecord]] = {}
         for row in rows:
+            control = controls.get(str(row["account_id"]))
+            if control is not None and control["paused"]:
+                continue  # remote pause: never selected and not counted as supply, whatever the agent does
             models = tuple((str(m["id"]), str(m["local_name"])) for m in json.loads(str(row["models_json"])))
             if all(public != model_id for public, _ in models):
                 continue
+            residency = _load_residency(row["residency_json"])
+            capacity_1k = float(row["capacity_1k"])
+            cap = None if control is None else control["vram_cap_mib"]
+            if cap is not None and residency is not None and isinstance(residency.get("models"), dict):
+                # remote VRAM cap: same clamp as the card check (a fresh copy is decoded per call, so changing it here is safe)
+                capacity_1k, note = fit_loaded_models(residency["models"], cap, capacity_1k, "remote VRAM cap")
+                if note is not None:
+                    residency["capacity_note"] = note
             by_account.setdefault(str(row["account_id"]), []).append(
                 ProducerRecord(
                     account_id=str(row["account_id"]),
                     endpoint_url=str(row["endpoint_url"]),
                     models=models,
                     cost_per_1k=float(row["cost_per_1k"]),
-                    capacity_1k=float(row["capacity_1k"]),
+                    capacity_1k=capacity_1k,
                     last_heartbeat_utc=float(row["last_heartbeat_utc"]),
                     execution_class=str(row["execution_class"]),
                     endpoint_token=None if row["endpoint_token"] is None else str(row["endpoint_token"]),
-                    residency=_load_residency(row["residency_json"]),
+                    residency=residency,
                 )
             )
         out: list[ProducerRecord] = []
@@ -873,7 +958,8 @@ class RouterStore:
         """Per live model that at least one live endpoint reports residency for: whether any endpoint has it loaded. No producer identities."""
         with self._lock:
             rows = self._conn.execute(
-                "SELECT residency_json FROM producer_endpoints WHERE last_heartbeat_utc >= ? AND residency_json IS NOT NULL", (now_utc - ttl_s,)
+                "SELECT residency_json FROM producer_endpoints WHERE last_heartbeat_utc >= ? AND residency_json IS NOT NULL "
+                "AND account_id NOT IN (SELECT account_id FROM producer_control WHERE paused=1)", (now_utc - ttl_s,)
             ).fetchall()
         out: dict[str, bool] = {}
         for row in rows:
@@ -890,7 +976,8 @@ class RouterStore:
         """Sorted public model ids served by at least one producer whose heartbeat is within ``ttl_s`` seconds."""
         with self._lock:
             rows = self._conn.execute(
-                "SELECT models_json FROM producer_endpoints WHERE last_heartbeat_utc >= ?", (now_utc - ttl_s,)
+                "SELECT models_json FROM producer_endpoints WHERE last_heartbeat_utc >= ? "
+                "AND account_id NOT IN (SELECT account_id FROM producer_control WHERE paused=1)", (now_utc - ttl_s,)
             ).fetchall()
         found: set[str] = set()
         for row in rows:

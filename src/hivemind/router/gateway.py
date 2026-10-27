@@ -39,7 +39,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
-from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from hivemind.router.accounts import (
@@ -53,6 +53,7 @@ from hivemind.router.accounts import (
     TooManyEndpoints,
     TooManyHolds,
     UnknownAccount,
+    fit_loaded_models,
 )
 from hivemind.router.catalog import PREWIRED_PARTNER_MODELS, catalog_payload, normalize_model_alias
 from hivemind.router.google_auth import GoogleAuthError, GoogleIdTokenVerifier
@@ -491,6 +492,19 @@ class HeartbeatRequest(BaseModel):
     # Secret the gateway presents to the producer's own server (``Authorization: Bearer``) so that only the gateway can
     # use it. Optional for compatibility; without it the producer's endpoint is open to anyone who learns its URL.
     endpoint_token: str | None = Field(default=None, min_length=16, max_length=200, pattern=r"^[A-Za-z0-9._~+/=-]+$")
+    # What the agent says it is doing about the remote control state (HM-S16-05). Informational only: the gateway enforces its own stored state.
+    paused: StrictBool | None = None
+    vram_cap_mib: StrictInt | None = Field(default=None, ge=1, le=MAX_GPU_VRAM_MIB)
+
+
+class ControlRequest(BaseModel):
+    """Remote control of a producer: pause/resume and a VRAM cap. Nothing else can be set through it (extra fields are refused)."""
+
+    model_config = ConfigDict(extra="forbid")
+    paused: StrictBool
+    vram_cap_mib: StrictInt | None = Field(default=None, ge=1, le=MAX_GPU_VRAM_MIB)  # None clears the cap
+    account_id: str | None = Field(default=None, max_length=128)  # admin only: the account to control
+    handle: str | None = Field(default=None, max_length=128)  # admin only
 
 
 class GrantRequest(BaseModel):
@@ -545,28 +559,8 @@ def residency_report(
         return None, capacity_1k
     note: str | None = None
     effective = capacity_1k
-    loaded_ids = [m for m, v in models.items() if v["loaded"] is True]
-    if gpu_vram_mib is not None and loaded_ids:
-        used = 0
-        kept = 0
-        dropped: list[str] = []
-        for model_id in loaded_ids:
-            need = models[model_id]["vram_mib"]
-            if need is None:  # no size declared: cannot be checked against the card, so it is taken at face value
-                kept += 1
-                continue
-            if used + need <= gpu_vram_mib:
-                used += need
-                kept += 1
-            else:
-                dropped.append(model_id)
-                models[model_id]["loaded"] = False
-        if dropped:
-            effective = capacity_1k * kept / len(loaded_ids)
-            note = (
-                f"declared loaded models exceed the {gpu_vram_mib} MiB card; treated as not loaded: {', '.join(dropped)}; "
-                f"capacity scaled {capacity_1k:g} -> {effective:g}"
-            )[:512]
+    if gpu_vram_mib is not None and any(v["loaded"] is True for v in models.values()):
+        effective, note = fit_loaded_models(models, gpu_vram_mib, capacity_1k, "card")
     return {"gpu_vram_mib": gpu_vram_mib, "capacity_note": note, "models": models}, effective
 
 
@@ -1166,6 +1160,13 @@ def create_router_app(
             "seven_day_roadmap": build_seven_day_orchestration_plan(),
         }
 
+    @app.get("/v1/hivemind/international-launch-readiness")
+    def international_launch_readiness() -> dict[str, Any]:
+        """Public mathematical, social, and economic readiness model for the International English Launch (HM-S19-INTL)."""
+        from hivemind.economy.international_launch_model import evaluate_international_launch_readiness
+
+        return evaluate_international_launch_readiness()
+
     @app.get("/v1/hivemind/partner-models")
     def partner_models() -> dict[str, Any]:
         """Pre-wired federated partner models (e.g. CrowdGPT Vxtzq/Crowd-v1) ready for producer & Playground routing."""
@@ -1354,9 +1355,38 @@ def create_router_app(
         except TooManyEndpoints as exc:
             raise RouterError(400, str(exc), "invalid_request_error", "too_many_endpoints") from None
         ack: dict[str, Any] = {"account_id": account.account_id, "status": "live", "models": [m["id"] for m in models], "ttl_s": PRODUCER_TTL_S, "endpoints": endpoints}
+        control = store.producer_control(account.account_id)
+        if control is not None:  # absent when never set: old agents and untouched accounts see exactly the old ack
+            ack["control"] = {**control, "acknowledged": bool(payload.paused) == control["paused"] and payload.vram_cap_mib == control["vram_cap_mib"]}
         if residency is not None:
             ack["residency"] = {"loaded": sorted(m for m, v in residency["models"].items() if v["loaded"] is True), "effective_capacity_1k": capacity, "capacity_note": residency["capacity_note"]}
         return ack
+
+    @app.post("/v1/hivemind/producer/control")
+    def set_control(request: Request, payload: ControlRequest) -> dict[str, Any]:
+        """Pause/resume a producer and set or clear its VRAM cap (HM-S16-05). Own API key (own account only) or the admin key (any account)."""
+        if request.headers.get("x-admin-key") is not None:
+            require_admin(request)
+            target = account_target(payload.account_id, payload.handle)
+        else:
+            account = authenticate(request)
+            if account.role not in ("producer", "prosumer"):
+                raise RouterError(403, "Only producer or prosumer accounts have remote control.", "permission_error", "role_forbidden")
+            if (payload.account_id and payload.account_id != account.account_id) or (payload.handle and payload.handle != account.handle):
+                raise RouterError(403, "Only the admin key may control another account.", "permission_error", "control_forbidden")
+            target = account.account_id
+        try:
+            control = store.set_producer_control(target, payload.paused, payload.vram_cap_mib, now_utc=clock())
+        except UnknownAccount:
+            raise RouterError(404, "Unknown account.", "invalid_request_error", "account_not_found") from None
+        with market_lock:
+            market_cache.clear()  # the published market was computed with the old supply
+        return {"account_id": target, "control": control}
+
+    @app.get("/v1/hivemind/producer/control")
+    def get_control(request: Request) -> dict[str, Any]:
+        account = authenticate(request)
+        return {"account_id": account.account_id, "control": store.producer_control(account.account_id)}
 
     @app.get("/v1/hivemind/market")
     def market(request: Request, model: str = AUTO_MODEL) -> dict[str, Any]:
