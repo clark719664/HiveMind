@@ -163,3 +163,138 @@ def test_make_references_lists_every_committed_problem():
     assert sorted(e["id"] for e in mk.problems()) == sorted(_docs())
     for e in mk.problems():
         assert e["spec"] == _docs()[e["id"]]["spec"], e["id"]
+
+
+# ---------------------------------------------------------------- held-out set (frozen before any solver run)
+
+HELDOUT = PROBLEMS / "heldout"
+freeze = _load("freeze_heldout")
+
+
+def _heldout_docs():
+    return {p.stem: json.loads(p.read_text(encoding="utf-8"))
+            for p in sorted(HELDOUT.glob("*.json")) if p.name != freeze.MANIFEST}
+
+
+def test_heldout_set_has_at_least_fourteen_valid_new_problems():
+    n, problems = check.check_dir(HELDOUT, 14)
+    assert n >= 14  # FROZEN.json is not counted as a problem by the checker
+    assert problems == []
+    assert not (set(_heldout_docs()) & set(_docs())), "held-out ids must be new"
+
+
+def test_heldout_set_covers_the_required_physics_and_horizons():
+    docs = _heldout_docs()
+    need = {"pendulum_small_angle", "pendulum_large_angle", "pendulum_damped", "projectile_no_drag", "projectile_drag",
+            "kepler_circular", "kepler_eccentric", "kepler_eccentric_long", "logistic_growth", "sir_epidemic",
+            "seir_epidemic", "series_rlc", "spring_mass_damper", "stiff_reaction", "harmonic_long",
+            "coupled_oscillators_long"}
+    assert need <= set(docs)
+    kinds = {d["spec"]["problem"]["kind"] for d in docs.values()}
+    assert kinds == {"named", "linear", "mass_action"}
+    fams = {d["spec"]["problem"].get("family") for d in docs.values()} - {None}
+    assert {"pendulum", "projectile_drag", "kepler", "logistic", "harmonic"} <= fams
+    horizons = sorted(d["spec"]["t_out"][-1] for d in docs.values())
+    assert horizons[0] <= 10 and horizons[-1] >= 1000, horizons  # short and long horizons are both present
+    assert sum(h >= 100 for h in horizons) >= 6
+
+
+def test_heldout_policy_is_the_library_policy_and_references_are_cross_checked():
+    for pid, d in _heldout_docs().items():
+        assert d["tolerance_policy"] == {"max_rel_err_factor": 100.0}, pid
+        r = d["reference"]
+        assert r["method"] != r["cross_check"]["method"], pid
+        assert r["tool"] == "solvers/tools/make_references.py", pid
+        tol_min = min(d["spec"]["rtol"] * abs(v) + d["spec"]["atol"] for row in r["y"] for v in row)
+        assert r["max_abs_error_bound"] * 100 <= tol_min, pid
+
+
+def test_heldout_files_match_their_frozen_sha256():
+    """Fails if any frozen file changes, goes missing, or an unlisted problem file appears."""
+    assert freeze.verify(HELDOUT) == []
+    manifest = json.loads((HELDOUT / freeze.MANIFEST).read_text(encoding="utf-8"))
+    assert manifest["schema"] == "hivemind-solver-heldout-frozen/1"
+    assert len(manifest["files"]) >= 14
+    assert set(manifest["files"]) == {p.name for p in HELDOUT.glob("*.json") if p.name != freeze.MANIFEST}
+
+
+def test_freeze_verification_detects_edits_removals_and_additions(tmp_path):
+    import shutil
+
+    work = tmp_path / "heldout"
+    shutil.copytree(HELDOUT, work)
+    assert freeze.verify(work) == []
+    victim = work / "kepler_circular.json"
+    victim.write_text(victim.read_text(encoding="utf-8").replace('"rtol": 1e-08', '"rtol": 1e-07'), encoding="utf-8")
+    assert any("kepler_circular.json" in e and "differs" in e for e in freeze.verify(work))
+    shutil.copy(HELDOUT / "kepler_circular.json", victim)
+    assert freeze.verify(work) == []
+    (work / "pendulum_damped.json").unlink()
+    assert any("missing" in e for e in freeze.verify(work))
+    shutil.copy(HELDOUT / "pendulum_damped.json", work / "pendulum_damped.json")
+    (work / "extra.json").write_text("{}", encoding="utf-8")
+    assert any("not listed" in e for e in freeze.verify(work))
+
+
+def test_energy_invariant_kind_is_checked_and_rejects_corruption():
+    d = copy.deepcopy(_heldout_docs()["kepler_eccentric"])
+    assert any(i["kind"] == "energy" for i in d["invariants"])
+    assert check.validate_problem(d, "kepler_eccentric") == []
+    bad = copy.deepcopy(d)
+    next(i for i in bad["invariants"] if i["kind"] == "energy")["value"] = -0.1
+    assert any("invariant" in e for e in check.validate_problem(bad, "kepler_eccentric"))
+    bad = copy.deepcopy(d)
+    next(i for i in bad["invariants"] if i["kind"] == "energy")["model"] = "nope"
+    assert any("malformed" in e for e in check.validate_problem(bad, "kepler_eccentric"))
+
+
+def test_checker_knows_the_science_families_and_their_dimensions():
+    base = copy.deepcopy(_heldout_docs()["logistic_growth"])
+    bad = copy.deepcopy(base)
+    bad["spec"]["problem"]["params"] = {"r": 0.8, "bogus": 1.0}
+    assert any("unknown parameter" in e for e in check.validate_problem(bad, "logistic_growth"))
+    bad = copy.deepcopy(base)
+    bad["spec"]["y0"] = [2.0, 1.0]
+    assert any("y0" in e for e in check.validate_problem(bad, "logistic_growth"))
+    assert check.FIXED_DIM["kepler"] == check.FIXED_DIM["projectile_drag"] == 4
+
+
+def test_run_problems_tightened_spec_divides_both_tolerances():
+    run = _load("run_problems")
+    s = {"rtol": 1e-8, "atol": 1e-10, "y0": [1.0], "t_out": [1.0]}
+    t = run.tightened_spec(s, 100.0)
+    assert t["rtol"] == pytest.approx(1e-10) and t["atol"] == pytest.approx(1e-12)
+    assert t["y0"] == s["y0"] and s["rtol"] == 1e-8  # the original is untouched
+    t = run.tightened_spec({"rtol": 1e-6, "atol": [1e-9, 2e-9]}, 10.0)
+    assert t["atol"] == pytest.approx([1e-10, 2e-10])
+
+
+def test_run_problems_skips_the_freeze_manifest():
+    run = _load("run_problems")
+    assert freeze.MANIFEST in check.NON_PROBLEM_FILES
+    assert hasattr(run, "NON_PROBLEM_FILES")
+
+
+def test_regenerating_heldout_exact_references_reproduces_committed_files(tmp_path):
+    pytest.importorskip("mpmath")
+    pytest.importorskip("scipy")
+    pytest.importorskip("numpy")
+    mk = _load("make_references")
+    ids = ["projectile_no_drag", "logistic_growth", "series_rlc", "spring_mass_damper", "coupled_oscillators_long",
+           "harmonic_long", "pendulum_small_angle"]
+    assert mk.main(["--heldout", "--ids", *ids, "--out", str(tmp_path)]) == 0
+    docs = _heldout_docs()
+    for pid in ids:
+        new = json.loads((tmp_path / f"{pid}.json").read_text(encoding="utf-8"))
+        assert _strip_versions(new) == _strip_versions(docs[pid]), pid
+
+
+def test_make_references_heldout_specs_equal_the_committed_specs():
+    pytest.importorskip("mpmath")
+    pytest.importorskip("scipy")
+    pytest.importorskip("numpy")
+    mk = _load("make_references")
+    entries = mk.heldout_problems()
+    assert sorted(e["id"] for e in entries) == sorted(_heldout_docs())
+    for e in entries:
+        assert e["spec"] == _heldout_docs()[e["id"]]["spec"], e["id"]

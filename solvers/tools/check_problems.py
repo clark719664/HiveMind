@@ -27,8 +27,16 @@ FAMILIES = {
     "lotka_volterra": ("alpha", "beta", "delta", "gamma"),
     "harmonic": ("omega", "zeta"),
     "stiff_chain": ("n", "k"),
+    "pendulum": ("g_over_l", "damping"),
+    "projectile_drag": ("g", "k"),
+    "kepler": ("mu",),
+    "logistic": ("r", "K"),
 }
-FIXED_DIM = {"robertson": 3, "van_der_pol": 2, "brusselator": 2, "lotka_volterra": 2, "harmonic": 2}
+FIXED_DIM = {"robertson": 3, "van_der_pol": 2, "brusselator": 2, "lotka_volterra": 2, "harmonic": 2,
+             "pendulum": 2, "projectile_drag": 4, "kepler": 4, "logistic": 1}
+ENERGY_MODELS = {"pendulum": ("g_over_l",), "kepler": ("mu",), "projectile": ("g",)}
+# Files in a problem directory that are not problems (the held-out directory carries its freeze manifest).
+NON_PROBLEM_FILES = {"FROZEN.json"}
 MAX_DIM, MAX_REACTIONS, MAX_T_OUT, MAX_STOICH = 20, 50, 1000, 6
 SPEC_KEYS = {"schema", "id", "problem", "y0", "t0", "t_out", "rtol", "atol", "method", "max_steps"}
 REQUIRED_SPEC = {"schema", "id", "problem", "y0", "t_out"}
@@ -173,6 +181,15 @@ def eval_invariant(inv: dict, y: list) -> float:
     if kind == "lv_first_integral":
         p = inv["params"]
         return p["delta"] * y[0] - p["gamma"] * math.log(y[0]) + p["beta"] * y[1] - p["alpha"] * math.log(y[1])
+    if kind == "energy":
+        # model-specific conserved energy (held-out set): pendulum (damping 0), kepler, projectile (k = 0)
+        m, p = inv["model"], inv["params"]
+        if m == "pendulum":
+            return y[1] * y[1] / 2 + p["g_over_l"] * (1 - math.cos(y[0]))
+        if m == "kepler":
+            return (y[2] * y[2] + y[3] * y[3]) / 2 - p["mu"] / math.sqrt(y[0] * y[0] + y[1] * y[1])
+        if m == "projectile":
+            return (y[2] * y[2] + y[3] * y[3]) / 2 + p["g"] * y[1]
     raise ValueError(kind)
 
 
@@ -201,9 +218,13 @@ def validate_invariants(invs, n, ref_y, errs: list):
         elif kind == "lv_first_integral":
             p = inv.get("params")
             ok = n == 2 and isinstance(p, dict) and all(_num(p.get(k)) and p[k] > 0 for k in ("alpha", "beta", "delta", "gamma"))
-        else:
-            ok = False
-            errs.append(f"{tag}: kind 'energy' is reserved and not used by this library")
+        elif kind == "energy":
+            p = inv.get("params")
+            need = ENERGY_MODELS.get(inv.get("model"))
+            ok = need is not None and n == (2 if inv.get("model") == "pendulum" else 4) and isinstance(p, dict) \
+                and set(p) == set(need) and all(_num(p[k]) for k in need)
+            if ok and inv["model"] == "kepler":
+                ok = p["mu"] > 0
         if not ok:
             errs.append(f"{tag}: malformed fields for kind {kind}")
             continue
@@ -281,7 +302,7 @@ def validate_problem(doc, filename: str | None = None) -> list:
 
 def check_dir(directory: Path, minimum: int = 12) -> tuple[int, list]:
     problems = []
-    files = sorted(directory.glob("*.json"))
+    files = sorted(f for f in directory.glob("*.json") if f.name not in NON_PROBLEM_FILES)
     if len(files) < minimum:
         problems.append(f"{directory}: {len(files)} problem files, need at least {minimum}")
     seen = set()

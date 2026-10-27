@@ -108,7 +108,7 @@ fn version_and_families_subcommands() {
     let (code, out, _) = run_cli(&["families"], b"");
     assert_eq!(code, 0);
     let f: serde_json::Value = serde_json::from_str(out.trim_end()).unwrap();
-    assert_eq!(f["families"].as_array().unwrap().len(), 6);
+    assert_eq!(f["families"].as_array().unwrap().len(), 10);
 }
 
 #[test]
