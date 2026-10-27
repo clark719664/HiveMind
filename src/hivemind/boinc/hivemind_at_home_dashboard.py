@@ -1466,6 +1466,10 @@ def build_hivemind_at_home_state(
             "workunits_completed": 142,
             "idle_gpu_hours_shared": 318.5,
             "compute_points_earned": 35500,
+            "prorated_hourly_yield": 111.5,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 887.5,
             "badge": "👑 QUEEN-HIVE FOUNDER",
         },
         {
@@ -1477,6 +1481,10 @@ def build_hivemind_at_home_state(
             "workunits_completed": 96,
             "idle_gpu_hours_shared": 214.0,
             "compute_points_earned": 24000,
+            "prorated_hourly_yield": 112.1,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 600.0,
             "badge": "🐝 GOLDEN FORAGER BEE",
         },
         {
@@ -1488,6 +1496,10 @@ def build_hivemind_at_home_state(
             "workunits_completed": 84,
             "idle_gpu_hours_shared": 186.5,
             "compute_points_earned": 21000,
+            "prorated_hourly_yield": 112.6,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 525.0,
             "badge": "🪐 ASTRO-SWARM PIONEER",
         },
         {
@@ -1499,10 +1511,44 @@ def build_hivemind_at_home_state(
             "workunits_completed": 72,
             "idle_gpu_hours_shared": 159.0,
             "compute_points_earned": 18000,
+            "prorated_hourly_yield": 113.2,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 450.0,
             "badge": "🧬 BIOMED & MOE BEE",
         },
         {
             "rank": 5,
+            "handle": "@producer.rtx3090-prosumer",
+            "role": "High-Throughput Nocturnal MoE Trainer",
+            "hardware": "NVIDIA GeForce RTX 3090 (24GB CUDA FP16)",
+            "alveoles_trained": "maths_formal, gsm8k, cti-bench, zinc250k",
+            "workunits_completed": 68,
+            "idle_gpu_hours_shared": 148.0,
+            "compute_points_earned": 17000,
+            "prorated_hourly_yield": 114.9,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 425.0,
+            "badge": "🚀 BIG-GPU SWARM BEACON",
+        },
+        {
+            "rank": 6,
+            "handle": "@pioneer.node1",
+            "role": "Pioneer Community Ada Lovelace Contributor",
+            "hardware": "NVIDIA GeForce RTX 4070 (12GB Ada Lovelace)",
+            "alveoles_trained": "code_rust_kernel, sdss_dr12_stars, PubMedQA",
+            "workunits_completed": 66,
+            "idle_gpu_hours_shared": 145.0,
+            "compute_points_earned": 16500,
+            "prorated_hourly_yield": 113.8,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 412.5,
+            "badge": "🌟 PIONEER FIRST-USER HONORED",
+        },
+        {
+            "rank": 7,
             "handle": "@socrateai-agora-hermes-t4",
             "role": "GCP Spot Preemptible Relay & Verification Bee",
             "hardware": "NVIDIA Tesla T4 (16GB Spot us-east4-b)",
@@ -1510,7 +1556,41 @@ def build_hivemind_at_home_state(
             "workunits_completed": 64,
             "idle_gpu_hours_shared": 140.0,
             "compute_points_earned": 16000,
+            "prorated_hourly_yield": 114.3,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 400.0,
             "badge": "⚡ SPOT-CHECK GUARDIAN",
+        },
+        {
+            "rank": 8,
+            "handle": "@producer.rtx2070",
+            "role": "Dedicated Consumer Turing Worker & Daytime Server",
+            "hardware": "NVIDIA GeForce RTX 2070 (8GB Turing GDDR6)",
+            "alveoles_trained": "code_python_perf, gsm8k, tool_calling",
+            "workunits_completed": 60,
+            "idle_gpu_hours_shared": 132.0,
+            "compute_points_earned": 15000,
+            "prorated_hourly_yield": 113.6,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 375.0,
+            "badge": "🛡️ TURING CITIZEN SENTINEL",
+        },
+        {
+            "rank": 9,
+            "handle": "@cybervalkyrie-fr-5ecb",
+            "role": "French Scientific & Academic Prosumer Bee",
+            "hardware": "Consumer RTX GPU Node (WSL2 / Ubuntu)",
+            "alveoles_trained": "linguistics_french, tulu-v2, arc_challenge",
+            "workunits_completed": 48,
+            "idle_gpu_hours_shared": 105.0,
+            "compute_points_earned": 12000,
+            "prorated_hourly_yield": 114.3,
+            "prorated_wu_efficiency": 250.0,
+            "normalized_fidelity_pct": 100.0,
+            "tflops_attested": 300.0,
+            "badge": "⚜️ VALKYRIE CITIZEN BEE",
         },
     ]
 
@@ -2024,6 +2104,8 @@ def render_hivemind_at_home_html(
     # Build Leaderboard rows for Screen 5
     lb_rows = []
     for row in leaderboard:
+        hourly_yield = row.get("prorated_hourly_yield", round(row.get("compute_points_earned", 0) / max(row.get("idle_gpu_hours_shared", 1), 0.1), 1))
+        fidelity = row.get("normalized_fidelity_pct", 100.0)
         lb_rows.append(
             f"<tr>"
             f"<td><strong style='color:#fbbf24;'>#{row.get('rank')}</strong></td>"
@@ -2031,7 +2113,8 @@ def render_hivemind_at_home_html(
             f"<td><span class='pill-gold' style='padding:2px 8px;border-radius:999px;font-size:0.7rem;'>{row.get('badge')}</span></td>"
             f"<td><code>{row.get('hardware')}</code></td>"
             f"<td>{row.get('alveoles_trained')}</td>"
-            f"<td><strong>{row.get('workunits_completed')}</strong> WUs ({row.get('idle_gpu_hours_shared')} hrs)</td>"
+            f"<td><strong>{row.get('workunits_completed')}</strong> WUs<br/><span style='font-size:0.72rem;color:#94a3b8;'>({row.get('idle_gpu_hours_shared')} hrs shared)</span></td>"
+            f"<td><strong style='color:#38bdf8;'>{hourly_yield:,.1f} pts/hr</strong><br/><span style='font-size:0.7rem;color:#34d399;'>{fidelity:.1f}% Verified Fidelity</span></td>"
             f"<td><strong style='color:#34d399;font-size:0.95rem;'>{row.get('compute_points_earned'):,} pts</strong><br/><span style='font-size:0.68rem;color:#94a3b8;'>HiveMind Reflexion Points (HMT)</span></td>"
             f"</tr>"
         )
@@ -3214,8 +3297,14 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
       <section class="card card-amber col-12">
         <h2>
           <span data-i18n="s5b_title">&#x1F451; Screen 05B &mdash; Cyber-Bee GPU Contributor Leaderboard &amp; Compute Reciprocity Hall of Fame</span>
-          <span style="font-size:0.75rem;color:#fbbf24;">Strictly Non-Monetary Reciprocity</span>
+          <span style="font-size:0.75rem;color:#fbbf24;">Prorated Fair-Share Non-Monetary Reciprocity</span>
         </h2>
+        <div style="background:rgba(16, 185, 129, 0.1);border:1px solid #10b981;border-radius:8px;padding:12px 16px;margin:12px 0 16px 0;">
+          <strong style="color:#34d399;">&#x2696;&#xFE0F; Prorated Fair-Share Leaderboard &amp; Non-Monetary Compute Reciprocity</strong>
+          <p style="color:#cbd5e1;font-size:0.83rem;margin:4px 0 0 0;line-height:1.4;">
+            Rankings and Reflexion Points (HMT) are prorated by idle compute hours, verified workunit fidelity (100% zero-drift spot-check), and normalized hardware capacity. An 8 GB consumer GPU (RTX 2070 / RTX 3060 / Apple Silicon MPS) contributing reliably during nocturnal quiet hours earns the exact same high prorated yield per verified TFLOP as multi-GPU rigs.
+          </p>
+        </div>
         <table>
           <thead>
             <tr>
@@ -3225,6 +3314,7 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
               <th>Consumer / Cloud GPU Hardware</th>
               <th>La Ruche Alv&eacute;oles Trained</th>
               <th>Workunits &amp; Idle Hours</th>
+              <th>Prorated Yield / Hour</th>
               <th>HiveMind Reflexion Points</th>
             </tr>
           </thead>
@@ -3232,6 +3322,60 @@ moe_model, manifest = load_community_moe_from_gcs_or_https()</pre>
             {lb_rows_html}
           </tbody>
         </table>
+      </section>
+
+      <!-- PRODUCER MoE TRAINING CAPABILITIES, CUSTOM BEES & CALL FOR CONTRIBUTIONS -->
+      <section class="card card-purple col-12" style="border-color:#8b5cf6;">
+        <h2>
+          <span>&#x1F41D; Bring Your Own MoE Bee &amp; Dataset &mdash; Open-Source Decentralized Training</span>
+          <span class="badge-ok" style="background:#8b5cf6;color:#fff;">PUBLIC &amp; OPEN SOURCE CHARTER</span>
+        </h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px;margin-top:12px;font-size:0.85rem;">
+          <div class="kpi-box" style="background:rgba(139, 92, 246, 0.08);border:1px solid #8b5cf6;">
+            <strong style="color:#c084fc;font-size:0.95rem;">&#x26A1; Hardware Capabilities for Community Producers</strong>
+            <p style="color:#cbd5e1;margin:6px 0;line-height:1.4;">
+              Any connected producer node with &ge; 6 GB VRAM (RTX 2070, 3060, 3080, 4070, 4090, Apple Silicon MPS) can train and refine MoE micro-experts (&quot;Bees&quot;) locally using <strong>4-bit NormalFloat (NF4) double quantization</strong> under a strict <strong>&lt; 8 GB VRAM ceiling</strong>.
+            </p>
+            <ul style="color:#94a3b8;padding-left:18px;margin:4px 0;">
+              <li><strong>Frontier Base Models</strong>: Google Gemma 2 9B, Gemma 3 4B/1B, Qwen 2.5 7B Coder, Qwen 3.5 9B Base.</li>
+              <li><strong>Dual-Mode Autopilot</strong>: Interactive daytime inference priority with &lt; 1.5s preemption circuit breaker; nocturnal QLoRA auto-improvement during European night (22:00-07:00 CET) or quiet windows (&ge; 30s).</li>
+            </ul>
+          </div>
+
+          <div class="kpi-box" style="background:rgba(56, 189, 248, 0.08);border:1px solid #38bdf8;">
+            <strong style="color:#38bdf8;font-size:0.95rem;">&#x1F9E0; Bring Your Own Bee &amp; Hugging Face Dataset</strong>
+            <p style="color:#cbd5e1;margin:6px 0;line-height:1.4;">
+              Producers, researchers, and domain specialists can bring their own specialized Bee domain requests and their own datasets (Hugging Face repo or structured JSONL):
+            </p>
+            <ul style="color:#94a3b8;padding-left:18px;margin:4px 0;">
+              <li><strong>Domains Open</strong>: Mathematics (Lean 4 proofs), frontier science (astrophysics, climate, chemistry docking), cybersecurity (CTI, smart contracts, binary analysis), biomedical genomics, or regional linguistics.</li>
+              <li><strong>Automatic Pipeline</strong>: Paired McNemar non-regression gate, E8 lattice wire compression, and decentralized aggregation across the swarm.</li>
+            </ul>
+          </div>
+
+          <div class="kpi-box" style="background:rgba(16, 185, 129, 0.08);border:1px solid #10b981;">
+            <strong style="color:#34d399;font-size:0.95rem;">&#x1F310; Public &amp; Open Source Agreement</strong>
+            <p style="color:#cbd5e1;margin:6px 0;line-height:1.4;">
+              By submitting a specialized Bee training request or contributing compute, contributors agree that:
+            </p>
+            <ul style="color:#94a3b8;padding-left:18px;margin:4px 0;">
+              <li>All trained MoE adapter weights, delta checkpoints, and benchmark telemetry become <strong>100% public and open source</strong> (Apache 2.0 / MIT / OpenRAIL) in the SocrateAI GCS Vault and Hugging Face Hub.</li>
+              <li>Zero proprietary lock-in: community compute generates open scientific models for all humanity.</li>
+            </ul>
+          </div>
+
+          <div class="kpi-box" style="background:rgba(245, 158, 11, 0.08);border:1px solid #f59e0b;">
+            <strong style="color:#fbbf24;font-size:0.95rem;">&#x1F91D; Call for HiveMinders Contributions</strong>
+            <p style="color:#cbd5e1;margin:6px 0;line-height:1.4;">
+              Join the swarm! Here is how you can contribute today:
+            </p>
+            <ol style="color:#94a3b8;padding-left:18px;margin:4px 0;">
+              <li><strong>Propose a Bee</strong>: Open a GitHub Issue tagged <code>[Bee-Proposal]</code> with your domain and Hugging Face dataset.</li>
+              <li><strong>Run a Producer Node</strong>: Connect your GPU via BOINC or Python client, crunch nocturnal WUs, and earn prorated HMT Reflexion Points.</li>
+              <li><strong>Test &amp; Refine</strong>: Use the La Ruche dashboard to query specialist Bees and help review model candidates.</li>
+            </ol>
+          </div>
+        </div>
       </section>
 
       <!-- DATASET MINING CAMPAIGN TABLE -->
