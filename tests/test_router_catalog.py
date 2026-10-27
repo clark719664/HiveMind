@@ -144,3 +144,24 @@ def test_crowdgpt_crowd_v1_partner_model_is_prewired_and_routable(tmp_path: Path
         assert mkt.status_code == 200
         assert mkt.json()["model"] == "hivemind/crowd-v1"
 
+
+def test_season19_swarm_plan_endpoint_for_bees_and_miners(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    store = RouterStore(tmp_path / "router.db", b"k" * 32)
+    app = create_router_app(store, allow_private_producers=True)
+    client = TestClient(app)
+
+    cat = client.get("/v1/hivemind/catalog").json()
+    assert cat["season"] == "HM-S19-Q35"
+    assert cat["swarm_plan_endpoint"] == "/v1/hivemind/swarm-plan"
+
+    plan = client.get("/v1/hivemind/swarm-plan").json()
+    assert plan["object"] == "hivemind.swarm_plan"
+    assert plan["season"] == "HM-S19-Q35"
+    assert set(plan["miner_hardware_tiers"].keys()) == {"std_8gb", "big_12gb", "xl_16gb_plus"}
+    assert len(plan["specialized_bees"]) == 13
+    assert len(plan["seven_day_roadmap"]["days"]) == 6
+    assert plan["target_cluster_shares"]["coding"] > 0.55
+
+

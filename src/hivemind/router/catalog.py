@@ -158,6 +158,8 @@ def catalog_payload() -> dict[str, Any]:
     return {
         "object": "hivemind.catalog",
         "note": "Tags are recommendations; verify them with your server. HMT are points with no cash value.",
+        "season": "HM-S19-Q35",
+        "swarm_plan_endpoint": "/v1/hivemind/swarm-plan",
         "tiers": [tier.to_dict() for tier in TIERS],
         "prewired_partner_models": [partner.to_dict() for partner in PREWIRED_PARTNER_MODELS],
     }
