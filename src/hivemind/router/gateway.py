@@ -943,6 +943,34 @@ def create_router_app(
         """Public list of capability tiers (which model fits which GPU); static data, no account needed."""
         return catalog_payload()
 
+    @app.get("/v1/hivemind/swarm-plan")
+    def swarm_plan() -> dict[str, Any]:
+        """Public Season 19 (HM-S19-Q35) Qwen 3.5 Coding & Usage-Driven Idle/Nocturnal MoE Plan for Bees and Hive Miners."""
+        from hivemind.core.qwen35_usage_moe_orchestrator import (
+            QWEN35_HARDWARE_TIERS,
+            QWEN35_SPECIALIZED_BEES,
+            UsageDrivenQwen35MoEOrchestrator,
+            build_seven_day_orchestration_plan,
+        )
+
+        orch = UsageDrivenQwen35MoEOrchestrator()
+        return {
+            "object": "hivemind.swarm_plan",
+            "season": "HM-S19-Q35",
+            "title": "Operation Qwen 3.5 Coding Mastery, Big-GPU Producer Tiers & Usage-Driven Idle/Nocturnal MoE",
+            "epic_issue": "https://github.com/xaviercallens/HiveMind/issues/238",
+            "doc_path": "docs/SWARM_MINERS_AND_BEES_PROPOSAL_S19.md",
+            "miner_hardware_tiers": QWEN35_HARDWARE_TIERS,
+            "specialized_bees": list(QWEN35_SPECIALIZED_BEES),
+            "target_cluster_shares": orch.compute_cluster_target_shares(),
+            "bee_priority_scores": orch.compute_bee_priority_scores(),
+            "training_windows": {
+                "nocturnal_deep_window_local": "22:00-07:00 (idle >= 120s, temp < 76C, 80-160 QLoRA steps, 45m Multi-Krum + ISO-CTS sync)",
+                "daytime_micro_idle_window_local": "07:00-22:00 (idle >= 30s, 20-40 step micro-batches, <1.0s preemption with host-RAM EF21 flush)",
+            },
+            "seven_day_roadmap": build_seven_day_orchestration_plan(),
+        }
+
     @app.get("/v1/hivemind/partner-models")
     def partner_models() -> dict[str, Any]:
         """Pre-wired federated partner models (e.g. CrowdGPT Vxtzq/Crowd-v1) ready for producer & Playground routing."""
