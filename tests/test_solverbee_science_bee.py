@@ -44,7 +44,7 @@ def test_valid_first_time():
     b = sb.ScienceBee(sb.FakeBackend([j(GOOD)]), StubPipeline())
     a = b.ask("A pendulum with g_over_l = 9.81 and damping 0.1, theta0 = 0.5 rad. theta at t = 1, 2, 5 s?")
     assert a["formulated"] and a["attempts"] == 1 and a["retries"] == 0 and a["verdict"] == "AUDITED"
-    assert a["spec_sha256"] == sb.spec_sha256(GOOD)
+    assert a["spec_sha256"] == sb.spec_sha256(sb.with_house_tolerances(GOOD)) and a["spec"]["rtol"] == 1e-10 and a["spec"]["atol"] == 1e-12
 
 
 def test_invalid_then_valid_feeds_back_the_exact_error():

@@ -28,6 +28,8 @@ from .families import LIMITS_SENTENCE, SPEC_SCHEMA
 MAX_SPEC_BYTES = 64 * 1024
 MAX_RAW_CHARS = 200_000
 MAX_RETRIES = 3
+HOUSE_RTOL = 1e-10
+HOUSE_ATOL = 1e-12
 RAW_KEEP = 600
 TOP_KEYS = {"schema", "id", "problem", "y0", "t0", "t_out", "rtol", "atol", "method", "max_steps"}
 LIMITS_SENTENCE_FR = ("Les nombres résolvent les équations qui ont été posées ; que ces équations décrivent votre situation réelle n'est pas vérifié.")
@@ -351,6 +353,14 @@ def canonical_bytes(spec: Dict[str, Any]) -> bytes:
     return json.dumps(spec, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
 
 
+def with_house_tolerances(spec: Dict[str, Any]) -> Dict[str, Any]:
+    """A copy of the validated spec with the Science Bee house tolerances added when the proposal omitted them (tighter than the CLI defaults 1e-8 / 1e-10)."""
+    out = dict(spec)
+    out.setdefault("rtol", HOUSE_RTOL)
+    out.setdefault("atol", HOUSE_ATOL)
+    return out
+
+
 def spec_sha256(spec: Dict[str, Any]) -> str:
     return hashlib.sha256(canonical_bytes(spec)).hexdigest()
 
@@ -364,7 +374,7 @@ If the question cannot be expressed in the grammar below, reply with {"cannot_fo
 
 GRAMMAR (unknown fields are rejected; all numbers finite):
 {"schema":"hivemind-solver-spec/1","id":"<[A-Za-z0-9_.-]{1,64}>","problem":<PROBLEM>,"y0":[<n numbers, n<=20>],"t0":0,"t_out":[<strictly increasing numbers > t0, at most 1000>]}
-optional extra keys: "rtol" (default 1e-8), "atol" (default 1e-10), "method" ("bdf" or "adams"), "max_steps" (1..1000000).
+optional extra keys: "rtol", "atol" (if you omit them the Science Bee adds rtol 1e-10 and atol 1e-12; do not loosen them), "method" ("bdf" or "adams"), "max_steps" (1..1000000).
 <PROBLEM> is ONE of:
  1. {"kind":"named","family":"<family>","params":{<only the parameters listed for that family>}}   (omitted params take the stated defaults)
  2. {"kind":"linear","A":[[n x n numbers]],"b":[n numbers]}           meaning x' = A x + b
@@ -430,7 +440,7 @@ def formulate(messages: List[Dict[str, str]], backend: Backend, *, max_retries: 
                 reason = why[:300] if isinstance(why, str) else "no reason given"
                 errors.append("model declined: " + reason)
                 return _fail(errors, raws, attempt, reason)
-            spec = validate_spec(obj)
+            spec = with_house_tolerances(validate_spec(obj))
             return {"ok": True, "spec": spec, "spec_bytes": canonical_bytes(spec), "attempts": attempt, "retries": attempt - 1, "errors": errors,
                     "raw_outputs": raws, "reason": ""}
         except SpecInvalid as exc:
@@ -577,6 +587,8 @@ def _describe_setup(spec: Dict[str, Any], lang: str) -> List[str]:
         lines.append(("Problème résolu : système linéaire x' = A x + b. " if fr else "What was solved: a linear system x' = A x + b. ")
                      + f"A = [{rows}], b = [" + ", ".join(_g(v) for v in prob["b"]) + "].")
         lines.append(("État initial : " if fr else "Initial state: ") + ", ".join(f"x{i + 1} = {_g(v)}" for i, v in enumerate(y0)) + ".")
+    tol = f"rtol = {_g(spec.get('rtol', fam.DEFAULT_RTOL))}, atol = {_g(spec.get('atol', fam.DEFAULT_ATOL))}"
+    lines.append(("Tolérances du solveur : " if fr else "Solver tolerances: ") + tol + ".")
     return lines
 
 
@@ -600,8 +612,8 @@ _CHECK_WORDS = {
 _VERDICT_WORDS = {
     "VERIFIED": ("VERIFIED: this exact problem is in the reference library and every listed check passed. VERIFIED never means that the answer is correct for your real situation.",
                  "VERIFIED : ce problème exact figure dans la bibliothèque de référence et tous les contrôles listés ont réussi. VERIFIED ne signifie jamais que la réponse est juste pour votre situation réelle."),
-    "AUDITED": ("AUDITED: no stored reference exists for a free-form problem, so the answer was audited instead: the checks below passed, but nothing compared it with a known solution.",
-                "AUDITED : il n'existe pas de référence enregistrée pour un problème libre ; la réponse a été auditée : les contrôles ci-dessous ont réussi, mais rien ne l'a comparée à une solution connue."),
+    "AUDITED": ("AUDITED: no stored reference exists for a free-form problem, so the answer was audited instead: the checks listed above passed, but nothing compared it with a known solution.",
+                "AUDITED : il n'existe pas de référence enregistrée pour un problème libre ; la réponse a été auditée : les contrôles listés ci-dessus ont réussi, mais rien ne l'a comparée à une solution connue."),
     "FAILED": ("FAILED: at least one check failed. Do not use these numbers.", "FAILED : au moins un contrôle a échoué. N'utilisez pas ces nombres."),
     "UNVERIFIED": ("UNVERIFIED: the result could not be obtained or checked, so no number is offered as an answer.",
                    "UNVERIFIED : le résultat n'a pas pu être obtenu ou contrôlé, donc aucun nombre n'est proposé comme réponse."),
