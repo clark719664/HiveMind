@@ -160,7 +160,7 @@ def test_season19_swarm_plan_endpoint_for_bees_and_miners(tmp_path: Path) -> Non
     assert plan["object"] == "hivemind.swarm_plan"
     assert plan["season"] == "HM-S19-Q35"
     assert set(plan["miner_hardware_tiers"].keys()) == {"std_8gb", "big_12gb", "xl_16gb_plus"}
-    assert len(plan["specialized_bees"]) == 13
+    assert len(plan["specialized_bees"]) == 14
     assert len(plan["seven_day_roadmap"]["days"]) == 6
     assert plan["target_cluster_shares"]["coding"] > 0.55
 

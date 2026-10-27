@@ -117,4 +117,4 @@ def test_seven_day_orchestration_plan_completeness() -> None:
     assert plan["epic_code"] == "HM-S19-Q35"
     assert len(plan["days"]) == 6
     assert len(plan["plan_sha256"]) == 64
-    assert len(QWEN35_SPECIALIZED_BEES) == 13
+    assert len(QWEN35_SPECIALIZED_BEES) == 14
