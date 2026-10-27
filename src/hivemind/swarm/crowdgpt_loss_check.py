@@ -185,9 +185,10 @@ def heldout_windows(n_tokens: int, window: int, n: int, seed: int) -> list[int]:
 
 
 def window_losses(model: nn.Module, tokens: np.ndarray, starts: Sequence[int], window: int, *, device: torch.device | str = "cpu",
-                  dtype: torch.dtype = torch.float32, batch: int = 1) -> list[float]:
+                  dtype: torch.dtype = torch.float32, batch: int = 1, stop: Callable[[], bool] | None = None) -> list[float]:
     """Mean next-token cross-entropy (nats) of each window: input tokens[s : s+window-1], targets tokens[s+1 : s+window],
-    the same split as `StreamingShardDataset.get_batch`."""
+    the same split as `StreamingShardDataset.get_batch`. `stop()` is asked before each batch; True raises `Interrupted`
+    (so a shared GPU can be handed back to inference between windows)."""
     vocab = int(getattr(model, "config", {}).get("vocabSize", 0)) or None
     arr = np.asarray(tokens)
     if vocab is not None and len(arr) and int(arr.max()) >= vocab:
@@ -196,12 +197,18 @@ def window_losses(model: nn.Module, tokens: np.ndarray, starts: Sequence[int], w
     out: list[float] = []
     with torch.inference_mode():
         for i in range(0, len(starts), batch):
+            if stop is not None and stop():
+                raise Interrupted(f"stopped after {len(out)} of {len(starts)} windows")
             chunk = np.stack([arr[s: s + window] for s in starts[i: i + batch]]).astype(np.int64)
             t = torch.from_numpy(chunk).to(device)
             logits = model(t[:, :-1]).float()
             ce = F.cross_entropy(logits.reshape(-1, logits.shape[-1]), t[:, 1:].reshape(-1), reduction="none")
             out.extend(float(v) for v in ce.view(t.shape[0], -1).mean(dim=1).cpu())
     return out
+
+
+class Interrupted(RuntimeError):
+    """The evaluation was stopped on request before it finished."""
 
 
 # ---------------------------------------------------------------------------------------------------------- the receipt
@@ -272,14 +279,14 @@ def _replace(r: LossCheckReceipt, **kw: object) -> LossCheckReceipt:
 
 def make_receipt(*, evaluator_id: str, key: bytes, base: torch.Tensor, candidate: torch.Tensor, heldout: np.ndarray, window: int, n: int,
                  seed: int, model_factory: Callable[[], nn.Module], device: torch.device | str, dtype: torch.dtype = torch.float32,
-                 round_id: str = "", batch: int = 1) -> LossCheckReceipt:
+                 round_id: str = "", batch: int = 1, stop: Callable[[], bool] | None = None) -> LossCheckReceipt:
     """Evaluator side: losses of the base and the candidate on the same n windows, signed."""
     starts = heldout_windows(len(heldout), window, n, seed)
     losses = []
     for flat in (base, candidate):
         m = model_factory()
         m.load_flat(flat)
-        losses.append(tuple(window_losses(m, heldout, starts, window, device=device, dtype=dtype, batch=batch)))
+        losses.append(tuple(window_losses(m, heldout, starts, window, device=device, dtype=dtype, batch=batch, stop=stop)))
         del m
         if str(device).startswith("cuda"):
             torch.cuda.empty_cache()
