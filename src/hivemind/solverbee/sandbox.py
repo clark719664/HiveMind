@@ -54,6 +54,7 @@ class Limits:
     stderr_tail: int = 4096
     tmpfs_mb: int = 64  # room for the binary copy is added on top
     allow_unsandboxed: bool = False
+    force_none: bool = False  # run WITHOUT namespaces even when they are available (the MCP server's --allow-unsandboxed mode); every outcome says 'none'
 
 
 @dataclass
@@ -314,7 +315,7 @@ def run_binary(argv_binary: Sequence[str], stdin_bytes: bytes, *, limits: Limits
     py = system_python()
     if py is None:
         return _refuse("no system python3 for the launcher")
-    ns = namespace_available()
+    ns = namespace_available() and not limits.force_none
     if not ns and not limits.allow_unsandboxed:
         return _refuse("user namespaces unavailable and allow_unsandboxed is off (" + (_NS_WHY or "probe failed") + ")")
     mode = SANDBOX_NAMESPACE if ns else SANDBOX_NONE
