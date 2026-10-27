@@ -574,6 +574,11 @@ def _residency_rank(record: ProducerRecord, model_id: str) -> int:
     return 0 if state is True else (2 if state is False else 1)
 
 
+def _holds_loaded_model(record: ProducerRecord) -> bool:
+    models = record.residency.get("models") if record.residency else None
+    return isinstance(models, Mapping) and any(isinstance(v, Mapping) and v.get("loaded") is True for v in models.values())
+
+
 def _cold_start_of(record: ProducerRecord, model_id: str) -> float:
     estimate = record.cold_start_s(model_id)
     return DEFAULT_COLD_START_S if estimate is None else min(estimate, MAX_COLD_START_S)
@@ -777,7 +782,11 @@ def create_router_app(
 
     def kick_warmup(model_id: str, servers: Sequence[ProducerRecord]) -> None:
         """Ask the quickest-to-load producer to start loading ``model_id`` in the background (one tiny request, rate-limited per server and model)."""
-        target = min(servers, key=lambda s: _cold_start_of(s, model_id))
+        # never evict: warm only a server that reports no model loaded at all (Ollama with MAX_LOADED_MODELS=1 would unload the resident one)
+        idle = [s for s in servers if not _holds_loaded_model(s)]
+        if not idle:
+            return
+        target = min(idle, key=lambda s: _cold_start_of(s, model_id))
         key = (target.endpoint_url, model_id)
         now = clock()
         with warm_lock:
@@ -926,11 +935,11 @@ def create_router_app(
         }
 
     def upstream_exhausted(plan: _Plan, timed_out: ProducerRecord | None) -> RouterError:
-        """The explicit error once every candidate failed; a timeout is never an opaque 504 and a model not known to be loaded is ``model_loading``."""
+        """The explicit error once every candidate failed; a timeout is never opaque: ``model_loading`` only when the producer reported the model not loaded, else an explicit 504."""
         if timed_out is not None:
-            if timed_out.model_state(plan.model_id) is not True:
+            if timed_out.model_state(plan.model_id) is False:
                 return model_loading_error(plan.model_id, _cold_start_of(timed_out, plan.model_id))
-            return RouterError(504, "The producer did not answer in time although the model is loaded; you were not charged.", "api_error", "upstream_timeout")
+            return RouterError(504, "The producer did not answer in time; you were not charged.", "api_error", "upstream_timeout")
         return RouterError(502, "Every producer for this model failed; you were not charged.", "api_error", "upstream_failure")
 
     def chat_blocking(plan: _Plan, account: Account, body: Mapping[str, Any]) -> JSONResponse:

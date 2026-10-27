@@ -206,12 +206,22 @@ def test_unloaded_model_request_starts_a_background_warmup() -> None:
 
 
 # ------------------------------------------------------------------------------------------ upstream timeouts
-def test_timeout_on_a_not_known_loaded_model_is_model_loading_not_a_bare_error(w: World) -> None:
+def test_timeout_on_a_known_not_loaded_model_is_model_loading(w: World) -> None:
     cid, ckey = w.consumer(10.0)
-    add_producer(w, "slow.test", agent=TimeoutProducer())  # unknown residency
+    add_producer(w, "slow.test", loaded=False, cold=5.0, agent=TimeoutProducer())  # short cold start: forwarded, then times out
     response = w.chat(ckey, f"hivemind/{MODEL}")
     assert response.status_code == 503
-    assert response.json()["error"]["code"] == "model_loading" and "Retry-After" in response.headers
+    assert response.json()["error"]["code"] == "model_loading" and response.headers["Retry-After"] == "5"
+    no_charge(w, cid, 10.0)
+
+
+def test_timeout_on_an_unknown_residency_producer_is_a_plain_504_without_a_cause(w: World) -> None:
+    cid, ckey = w.consumer(10.0)
+    add_producer(w, "slow.test", agent=TimeoutProducer())
+    response = w.chat(ckey, f"hivemind/{MODEL}")
+    assert response.status_code == 504
+    assert response.json()["error"]["code"] == "upstream_timeout" and "loading" not in response.json()["error"]["message"]
+    assert "Retry-After" not in response.headers
     no_charge(w, cid, 10.0)
 
 
@@ -223,12 +233,18 @@ def test_timeout_on_a_loaded_model_is_a_clear_504(w: World) -> None:
     no_charge(w, cid, 10.0)
 
 
-def test_streaming_timeout_is_explicit_too(w: World) -> None:
+def test_streaming_timeout_distinguishes_known_not_loaded_from_unknown(w: World) -> None:
     cid, ckey = w.consumer(10.0)
     add_producer(w, "slow.test", agent=TimeoutProducer())
     response = w.chat(ckey, f"hivemind/{MODEL}", stream=True)
-    assert response.status_code == 503 and response.json()["error"]["code"] == "model_loading"
+    assert response.status_code == 504 and response.json()["error"]["code"] == "upstream_timeout"
     no_charge(w, cid, 10.0)
+    world = _build_world(warmup_unloaded=False)
+    cid2, ckey2 = world.consumer(10.0)
+    add_producer(world, "slow2.test", loaded=False, cold=5.0, agent=TimeoutProducer())
+    response = world.chat(ckey2, f"hivemind/{MODEL}", stream=True)
+    assert response.status_code == 503 and response.json()["error"]["code"] == "model_loading"
+    no_charge(world, cid2, 10.0)
 
 
 def test_a_plain_connection_failure_stays_502(w: World) -> None:
@@ -325,3 +341,45 @@ def test_residency_survives_a_reopened_database_and_old_tables_gain_the_column(t
     upgraded = RouterStore(path, b"g" * 32)
     record = upgraded.active_producers(MODEL, 1001.0, 120)[0]
     assert record.residency is None and record.model_state(MODEL) is None
+
+
+# ------------------------------------------------------------------------------------------ warm-up never evicts
+def _wait_calls(fake: FakeProducer, n: int) -> None:
+    deadline = time.monotonic() + 3.0
+    while len(fake.calls) < n and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+
+def test_no_warmup_when_the_target_has_another_model_loaded() -> None:
+    world = _build_world(warmup_unloaded=True)
+    _, ckey = world.consumer(10.0)
+    _, _, fake = add_producer(world, "busy.test", loaded=False, cold=90.0, extra_models={"coder": {"loaded": True, "vram_mib": 5200}})
+    response = world.chat(ckey, f"hivemind/{MODEL}")
+    assert response.status_code == 503 and response.json()["error"]["code"] == "model_loading"
+    time.sleep(0.2)
+    assert not fake.calls  # Ollama would have evicted the resident coder
+
+
+def test_warmup_goes_to_an_idle_server_and_skips_a_busy_one() -> None:
+    world = _build_world(warmup_unloaded=True)
+    _, ckey = world.consumer(10.0)
+    _, _, busy = add_producer(world, "busy.test", loaded=False, cold=30.0, extra_models={"coder": {"loaded": True, "vram_mib": 5200}})
+    _, _, idle = add_producer(world, "idle.test", loaded=False, cold=90.0, extra_models={"coder": {"loaded": False}})
+    assert world.chat(ckey, f"hivemind/{MODEL}").status_code == 503
+    _wait_calls(idle, 1)
+    assert len(idle.calls) == 1 and not busy.calls
+
+
+def test_warmup_rate_limit_holds_and_expires() -> None:
+    world = _build_world(warmup_unloaded=True)
+    _, ckey = world.consumer(10.0)
+    _, _, fake = add_producer(world, "idle.test", loaded=False, cold=90.0)
+    assert world.chat(ckey, f"hivemind/{MODEL}").status_code == 503
+    _wait_calls(fake, 1)
+    assert world.chat(ckey, f"hivemind/{MODEL}").status_code == 503
+    time.sleep(0.2)
+    assert len(fake.calls) == 1
+    world.clock.now += 31.0  # inside the 120 s producer TTL, past the 30 s warm-up interval
+    assert world.chat(ckey, f"hivemind/{MODEL}").status_code == 503
+    _wait_calls(fake, 2)
+    assert len(fake.calls) == 2
