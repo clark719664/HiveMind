@@ -847,7 +847,7 @@ class PointsRetrofitManager:
                 try:
                     with store._tx() as conn:
                         conn.execute(
-                            "INSERT OR IGNORE INTO accounts (account_id, handle, role, key_hash, created_utc, max_price_per_1k, is_test) VALUES (?,?,?,?,?,?,0)",
+                            "INSERT OR IGNORE INTO accounts (account_id, handle, role, key_hash, created_utc, max_price_per_1k) VALUES (?,?,?,?,?,?)",
                             (r.account_id, handle, "producer", f"!{r.account_id}", time.time(), 2.0),
                         )
                 except Exception as ex:

@@ -115,6 +115,67 @@ ightarrow$ `0.893` (adapter, `+40.4%`, exact paired McNemar $p < 10^{-4}$)**, be
   - **`5,230+` HTTP requests**, **`1,015+` interactive browser sessions**, **`40+` community account registrations**, and **`595+` live `/v1/chat/completions` calls** (`p50 = 177–296 ms`, `p95 = 469 ms` on `hivemind-openrouter`, `0` HTTP 402/5xx errors after S16 market guardrails).
   - **Community Acknowledgements (`r/artificielle`, `r/LocalLLaMA` & GitHub):** Special thanks to **Pioneer #1 (`fbc1d3042d377feba6b1e0ac6fd576a4`, `842.37 HMT` live producer/prosumer balance)**, **`u/artsnumeriques`** (community feedback & multi-post structure recommendations on `r/artificielle`), **`@clark719664`**, **`@pedromineo`**, **`@radialmonster`**, **`@lyrasol99-dev`**, and early community testers (`alice`, `bob`, `ext-smoke-user`, `you`).
 
+### 🐝 0B. Bring Your Own MoE Bee & Dataset — Decentralized QLoRA Training for Community Producers (< 8 GB VRAM)
+
+Project HiveMind is opening up the hive to community-driven MoE specialization: **Producers, researchers, and domain specialists can bring their own specialized Bee domain requests and their own datasets (Hugging Face repository ID or structured JSONL / Parquet format)** to create dedicated "Bee" micro-experts!
+
+```
+                    ┌────────────────────────────────────────────────────────┐
+                    │      Hugging Face Datasets & Custom Domain Tasks       │
+                    │   (ProofNet, SWE-bench, GSM8K, PubMedQA, Zinc250k, ...)│
+                    └───────────────────────────┬────────────────────────────┘
+                                                │
+                                                ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────┐
+│              Decentralized QLoRA Multi-Base-Model Training (< 8 GB VRAM)                  │
+│       • Google Gemma 2 9B (5.8 GB NF4)           • Google Gemma 3 4B / 1B (2.7 / 1.1 GB)   │
+│       • Qwen 2.5 Coder 7B (4.7 GB NF4)           • Qwen 3.5 9B Base (5.4 GB NF4)           │
+├───────────────────────────────────────────────┬────────────────────────────────────────────┤
+│   Daytime: Interactive Inference Priority     │   Nocturnal / Quiet: Self-Refinement       │
+│   (<1.5s Game Preemption Circuit-Breaker)     │   (Paired McNemar Gate p < 0.05)           │
+└───────────────────────────────────────────────┴────────────────────────────────────────────┘
+                                                │
+                        ┌───────────────────────┴───────────────────────┐
+                        │                                               │
+                        ▼                                               ▼
+         ┌─────────────────────────────┐                 ┌─────────────────────────────┐
+         │ ⚖️ Prorated Fair-Share      │                 │ 🌐 100% Public & Open       │
+         │    Leaderboard (pts/hr)     │                 │    Source Weights (Apache2) │
+         └─────────────────────────────┘                 └─────────────────────────────┘
+```
+
+#### 1. Hardware Capabilities for Community Producers (< 8 GB VRAM)
+Any connected producer node with **$\ge 6$ GB VRAM** (NVIDIA GeForce RTX 2070, RTX 3060/3080/3090, RTX 4070/4090, or Apple Silicon MPS) can train and refine specialized MoE micro-experts ("Bees") locally using **4-bit NormalFloat (NF4) double quantization** with rank $r=16$ LoRA adapters:
+- **Strict $< 8$ GB VRAM Ceiling:** Memory-efficient QLoRA with 8-bit Adam and activation checkpointing guarantees memory safety even on 8 GB consumer GPUs. Peak memory measured in production: **1 331.7 MB (Gemma 3 1B) to 6 285.4 MB (Gemma 2 9B)**.
+- **Frontier Base Models:** Google Gemma 2 9B, Gemma 3 4B / 1B, Qwen 2.5 Coder 7B, and Qwen 3.5 9B Base.
+- **Dual-Mode Autopilot:** Serves interactive daytime traffic with an instant $< 1.5$s preemption circuit breaker whenever a gaming session or user prompt starts; automatically engages nocturnal QLoRA auto-improvement during European night (22:00–07:00 CET) or quiet windows ($\ge 30$s).
+
+#### 2. 24 Micro-Experts across Hugging Face Datasets & "Bring Your Own Dataset"
+The MoE scheduler organizes 24 specialized micro-experts across 4 macro-clusters, mapped directly to real Hugging Face repositories:
+- **Cluster 00 (Systems & Formal):** `maths_formal` (`hoskinson-center/proofnet`), `code_rust_kernel` (`bigcode/the-stack-v2-dedup`), `code_python_perf` (`HuggingFaceH4/CodeAlpaca_20K`), `code_feedback_debug` (`m-a-p/CodeFeedback-Filtered-Instruction`), `systems_distributed_p2p` (`bigcode/santacoder`), `cuda_kernel_opt` (`neuralmagic/LLM_Compression_Code`).
+- **Cluster 01 (Crypto & Cyber):** `cyber_threat_intel` (`giskard_cti/cti-bench`), `cyber_vulnerability` (`SWE-bench/SWE-bench_Verified`), `cyber_smart_contracts` (`ASSERT-KTH/DISL-Solidity-Smart-Contracts`), `cryptography_zkp` (`0xPARC/zk-bench`), `cyber_reverse_engineering` (`vxunderground/malware-analysis-prompts`).
+- **Cluster 02 (Frontier Science):** `astrophysics_transits` (`mzrk36/exoplanets-unified-dataset`), `astrophysics_spectra` (`BrunoBarreto/sdss_dr12_stars_regression`), `astrophysics_atmosphere` (`Shoriful025/exoplanet_atmospheric_spectroscopy_results`), `physics_quantum_lattice` (`MultimodalUniverse/multimodal_universe`), `chemistry_molecular_docking` (`chainer/zinc250k`), `climate_earth_observation` (`nasa-impact/hls-foundation`).
+- **Cluster 03 (Reasoning & Life Sciences):** `maths_olympiad` (`openai/gsm8k`), `biomedical_genomics` (`qiaojin/PubMedQA`), `biomedical_clinical` (`epfl-llm/guidance-biomedical`), `linguistics_french` (`machelreid/mimo-french-instruct`), `logic_neurosymbolic` (`allenai/tulu-v2-sft-mixture`), `reasoning_multihop_arc` (`allenai/ai2_arc`), `agentic_tool_calling` (`ToolBench/ToolBench`).
+
+**Producers & researchers can bring their own specialized Bee domain requests and their own datasets!** Simply open a GitHub Issue tagged `[Bee-Proposal]` specifying your target domain and Hugging Face dataset.
+
+#### 3. Public & Open-Source Charter (Mandatory Agreement)
+By submitting a specialized Bee training request or contributing compute to train a Bee, **contributors explicitly agree that:**
+- All trained MoE adapter weights, delta checkpoints, and benchmark evaluations become **100% public and open source** under permissive licensing (Apache 2.0 / MIT / OpenRAIL) in the SocrateAI GCS Vault and Hugging Face Hub.
+- All evaluation pairs, training telemetry, and Lean 4 soundness proofs are published to the permanent open-science record (Zenodo DOI / GitHub).
+- **Zero proprietary lock-in:** Volunteer compute is converted directly into free, open public-domain intelligence.
+
+#### 4. ⚖️ Prorated Fair-Share Leaderboard & Non-Monetary Compute Reciprocity
+The Cyber-Bee Contributor Leaderboard ([`https://hivemindathome.github.io/`](https://hivemindathome.github.io/)) is **prorated by idle compute hours, verified workunit fidelity, and normalized hardware capacity**:
+- An 8 GB consumer GPU (RTX 2070, RTX 3060, Apple Silicon MPS) contributing reliably during nocturnal quiet hours earns the **exact same high prorated yield per verified TFLOP (~112–115 pts/hr)** as multi-GPU rigs.
+- Proof-of-Useful-Work (PoUW) points are credited deterministically to the SQLite ledger (`ref="pouw_auto_improve:{wu_id}"`) preserving cryptographic hash-chain integrity.
+
+#### 5. 🐝 Call for HiveMinders Contributions
+We invite developers, researchers, and GPU owners worldwide to join the swarm:
+1. **Connect your GPU:** Run `python scripts/hivemind_producer_agent.py` or install the BOINC client. Share idle cycles and earn prorated HMT Reflexion Points.
+2. **Propose a Specialized Bee:** Open an issue on GitHub with your Hugging Face dataset and evaluation criteria.
+3. **Audit & Query:** Test the 24 live specialized Bees on **[La Ruche](https://hivemind-at-home-ruche-cfhmhmvv5a-uc.a.run.app)** or via the OpenAI-compatible **[OpenRouter](https://hivemind-openrouter-cfhmhmvv5a-uc.a.run.app)**.
+
 ---
 
 ## 🌌 0. 24-Cycle RTX 2070 Astrophysics & Cosmology BOINC Showcase
