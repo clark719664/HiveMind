@@ -380,6 +380,48 @@ def test_wilson_matches_queenbee_if_available():
         assert scoring.wilson_lower(s, n) == pytest.approx(dance.wilson_lower(s, n), abs=1e-6)
 
 
+def _without_tols(**extra):
+    spec = {k: v for k, v in load("harmonic_problem.json")["spec"].items() if k not in ("rtol", "atol")}
+    spec.update(extra)
+    return json.dumps(spec).encode()
+
+
+def cli_like_solve(spec_bytes):
+    """Stand-in for the CLI: applies the CLI defaults, hashes the exact submitted bytes."""
+    spec = json.loads(spec_bytes)
+    spec.setdefault("rtol", 1e-8)
+    spec.setdefault("atol", 1e-10)
+    if isinstance(spec["atol"], list):
+        spec["atol"] = min(spec["atol"])
+    res = s2.rk4_solve(json.dumps(spec).encode())
+    res["input_sha256"] = hashlib.sha256(spec_bytes).hexdigest()
+    return res
+
+
+def test_spec_without_rtol_atol_uses_cli_defaults():
+    # rtol/atol are optional in a spec; the CLI defaults are 1e-8 / 1e-10.
+    sb = _without_tols()
+    seen = []
+
+    def rerun(b):
+        seen.append(json.loads(b))
+        return cli_like_solve(b)
+
+    cert = verify(sb, cli_like_solve(sb), rerun=rerun)
+    assert check(cert, "tightening")["status"] != "fail", cert
+    assert cert["verdict"] == "AUDITED", cert
+    assert seen[0]["rtol"] == pytest.approx(1e-10)
+    assert seen[0]["atol"] == pytest.approx(1e-12)
+
+
+def test_spec_with_only_one_tolerance_given():
+    n = len(load("harmonic_problem.json")["spec"]["y0"])
+    for extra in ({"rtol": 1e-6}, {"atol": [1e-9] * n}, {"atol": 1e-9}):
+        sb = _without_tols(**extra)
+        cert = verify(sb, cli_like_solve(sb), rerun=cli_like_solve)
+        assert check(cert, "tightening")["status"] != "fail", (extra, cert)
+
+
 def test_recruitment_cold_start_and_record():
     rec = scoring.track_record(["VERIFIED"] * 4)
     assert rec["recruitment_weight"] == 0.0 and "cold start" in rec["recruitment_note"]
