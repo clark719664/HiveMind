@@ -179,9 +179,22 @@ QWEN35_SPECIALIZED_BEES: tuple[dict[str, Any], ...] = (
         "domain": "astrophysics_gaia_spectra",
         "hf_dataset": "BrunoBarreto/sdss_dr12_stars_regression",
         "min_tier": "std_8gb",
-        "base_demand_weight": 0.15,
+        "base_demand_weight": 0.11,
         "verification_oracle": "paired_mcnemar_stellar_gate",
         "description": "GAIA DR3 & Hipparcos stellar classification and exoplanet transit discovery.",
+    },
+    {
+        "bee_id": "bee-rusty-sundials",
+        "cluster": "science",
+        "domain": "rusty_sundials_numeric_physics",
+        "hf_dataset": "xaviercallens/rusty-SUNDIALS",
+        "min_tier": "std_8gb",
+        "base_demand_weight": 0.08,
+        "verification_oracle": "rusty_sundials_invariant_conservation_gate",
+        "description": (
+            "BYOB Scientific & Numeric Rescue Bee (CVODE BDF, ARKode ARS(2,2,2) IMEX, Dual-RRK, qf-pgpe IF-RK4) "
+            "for astronomy, fluid mechanics, quantum fluids, and genetics."
+        ),
     },
     {
         "bee_id": "bee-math-olympiad-qwen35",
@@ -189,7 +202,7 @@ QWEN35_SPECIALIZED_BEES: tuple[dict[str, Any], ...] = (
         "domain": "math_reasoning_gsm8k",
         "hf_dataset": "openai/gsm8k",
         "min_tier": "std_8gb",
-        "base_demand_weight": 0.05,
+        "base_demand_weight": 0.03,
         "verification_oracle": "exact_q_numeric_match",
         "description": "Multi-step mathematical reasoning and symbolic proof verification.",
     },
@@ -199,7 +212,7 @@ QWEN35_SPECIALIZED_BEES: tuple[dict[str, Any], ...] = (
         "domain": "biomedical_pubmed",
         "hf_dataset": "qiaojin/PubMedQA",
         "min_tier": "std_8gb",
-        "base_demand_weight": 0.05,
+        "base_demand_weight": 0.03,
         "verification_oracle": "paired_mcnemar_qa_gate",
         "description": "Biomedical literature synthesis and clinical evidence grounding.",
     },
