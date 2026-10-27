@@ -26,7 +26,7 @@ Stdout carries only protocol messages, one JSON-RPC object per line, ASCII. Logs
 
 ## Client configuration
 
-Verify the exact configuration syntax against your client's documentation. The JSON below shows the command and arguments that every stdio MCP client needs.
+Client-specific configuration syntax: verify against your client's documentation. The JSON below shows the command and arguments that every stdio MCP client needs.
 
 Sandboxed (the default):
 

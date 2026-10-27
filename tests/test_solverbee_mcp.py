@@ -387,6 +387,19 @@ def test_verify_result_round_trip_and_tamper(fake_bin: str) -> None:
     assert bad["verdict"] == "FAILED"
 
 
+def test_verify_result_library_reference_reaches_the_verifier(fake_bin: str) -> None:
+    fv = FakeVerifier("pass")
+    s = session(make(fake_bin, verifier=fv))
+    spec = library_spec("linear_2x2")
+    result = s.verdict("solve_ode", {"spec": spec})["result"]
+    calls_before = len(fv.calls)
+    data = s.verdict("verify_result", {"spec": spec, "result": result})
+    assert data["verdict"] == "VERIFIED"
+    assert len(fv.calls) == calls_before + 1
+    assert fv.calls[-1]["problem"] is not None  # the library entry (the reference) was passed to the verifier
+    assert fv.calls[-1]["binary_sha256"] is None  # the result was not produced by this server's binary, so none is claimed
+
+
 def test_verify_result_wrong_hash_is_failed(fake_bin: str) -> None:
     s = session(make(fake_bin))
     result = s.verdict("solve_ode", {"spec": adhoc("rt.2")})["result"]
