@@ -122,6 +122,7 @@ error; leave-one-out means fitting on two points and predicting the third.
 | Granite-1B-a400m | 3,409 | 2,810 | **-17.6 %** | 0.0 % |
 | Qwen3-4B | 4,065 (OOM bound) | 4,095 | +0.7 % | +0.9 % |
 | Phi-4-mini | 4,096 (OOM bound) | 4,508 | +10.1 % | +2.1 % |
+| Granite-1B process peak (nvidia-smi view) | 3,716 | 3,150 (2,843 allocated + 307 allowance; the allowance was derived from this pair) | -15.2 % in-sample | not applicable |
 
 Maximum leave-one-out error **17.6 %**, mean 9.5 %, fitted `act_scale` 0.99. This is inside the 20 % threshold but it is a **fit of one parameter to three points, two of them
 censored**: it says the formula is not absurd, not that it is validated. Specific weaknesses: (i) the one exact point is the MoE and the estimator under-predicts it by
@@ -191,12 +192,12 @@ degrading morning serving latency?
 
 **Metrics.** M1 primary: held-out bits-per-byte gain per training hour, pooled and per domain, against the arm's own untrained base. M2 absolute end bpb (descriptive: a bigger base is better
 before training). M3 tokens/s and bytes/h. M4 VRAM peak (nvidia-smi, 5 s), temperature, power, RSS, disk. M5 interruptions. **M6 time to first token of the coder tier**, through the router path with the
-persistent probe account: 20 requests 90 s apart in the 30 minutes before the block (baseline) and 20 requests over the first 30 minutes after training has stopped and left the GPU; the first
+persistent probe account: 20 requests 90 s apart from 23:00 to 23:30 with the coder warm (baseline, inside the window) and 20 requests over the first 30 minutes after training has stopped and left the GPU; the first
 request after the stop is recorded apart (cold or warm).
 
 **Acceptance rules, fixed now.**
-- R1 validity: at least 2.5 h of training inside 23:00 to 06:30, VRAM within the tier budget, temperature below 83 C, held-out sets unchanged. Otherwise INVALID (one re-run).
-- R2 efficacy: pooled gain per hour at least 1.25 x A0, exact paired p < 0.0167, no domain with negative gain, and the gate's non-regression check returns ACCEPT.
+- R1 validity: at least 2.5 h of training, starting no earlier than 00:00 and ending before 06:30, VRAM within the tier budget, temperature below 83 C, held-out sets unchanged. Otherwise INVALID (one re-run).
+- R2 efficacy: pooled gain per hour at least 1.25 x A0, exact paired p < 0.0167, no domain with negative gain, and the gate's non-regression check against A0's own per-span map returns ACCEPT.
 - R3 serving: warm-series median TTFT at most 1.25 x the pre-block median and at most 1.0 s; no 5xx; the first request after the stop answers within 120 s (a cold reload of 52 to 120 s is expected for N1 arms and is reported, not penalised below 120 s).
 - Verdicts: WIN (R1+R2+R3), NO_GAIN, SERVING_DAMAGE (R3 fails: unusable whatever its loss), DOES_NOT_FIT, INVALID. One seed, so a WIN is labelled indicative.
 
@@ -207,11 +208,12 @@ request after the stop is recorded apart (cold or warm).
 # 0. Owner: pause training so the governor cannot start a task (documented switch, deploy/t4_node/node/README.md)
 touch /mnt/disks/disk-socrateai-local-1/hivemind_telemetry/HOLD
 
-# 1. Before 23:00: baseline TTFT of the coder tier, 20 requests 90 s apart (coder resident), via the router with the probe account
+# 1. 23:00 to 23:30 (inside the window): baseline TTFT of the coder tier, 20 requests 90 s apart (coder resident), via the router with the probe account.
+#    These probe requests are traffic: they reset any quiet clock, which is why training cannot start before 00:00.
 curl -s -N -o /dev/null -w '%{time_starttransfer}\n' -H "Authorization: Bearer $(cat $PROBE_KEY_FILE)" -H 'Content-Type: application/json' \
   -d '{"model":"coder","messages":[{"role":"user","content":"Reply with OK."}],"max_tokens":1,"temperature":0,"stream":true}' "$GATEWAY_URL/v1/chat/completions"
 
-# 2. From 23:00, N1 arms only: show what is resident, then unload the coder (Ollama: keep_alive 0 unloads; the repo's fake mimics it, scripts/e16_fake_ollama.py)
+# 2. At 23:30, N1 arms only: show what is resident, then unload the coder (then 30 minutes with no request of any kind, until 00:00) (Ollama: keep_alive 0 unloads; the repo's fake mimics it, scripts/e16_fake_ollama.py)
 nvidia-smi --query-gpu=memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits
 curl -s localhost:11434/api/ps
 curl -s localhost:11434/api/generate -d '{"model":"qwen2.5-coder:7b-instruct","keep_alive":0}'
@@ -220,9 +222,9 @@ curl -s localhost:11434/api/generate -d '{"model":"qwen2.5-coder:7b-instruct","k
 python3 scripts/t4_model_probe.py Qwen/Qwen3-4B-Instruct-2507 --cap-mib 9650 --micro-batch 1 --seq-len 256
 #    Expectation before the run: the estimator, with its 20 % margin. DOES_NOT_FIT if the probe fails.
 
-# 4. Training block: NOT AVAILABLE. Needs the probe runner listed below.
+# 4. 00:00: training block (3.0 h, ends 03:00): NOT AVAILABLE. Needs the probe runner listed below.
 
-# 5. After the block (stop 06:30 at the latest): confirm the GPU is free, then measure the 20 TTFT requests of step 1 again over 30 minutes
+# 5. After the block (hard stop 06:30; planned end about 03:00 plus evaluation): confirm the GPU is free, then measure the 20 TTFT requests of step 1 again over 30 minutes
 nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader
 # (repeat the curl of step 1, 20 times, 90 s apart; record the first one separately)
 
@@ -253,7 +255,7 @@ applied nowhere.**
 ```diff
 --- a/deploy/t4_node/node/hivemind-t4-governor.service
 +++ b/deploy/t4_node/node/hivemind-t4-governor.service
-@@ ExecStart
+@@ -13 +13,2 @@
 -ExecStart=/usr/bin/python3 /opt/hivemind/t4/scripts/t4_governor.py --idle-start-s 1800 --day-idle-s 7200 --min-free-mib 4300 --night-tz Europe/Paris --night-start-h 22 --night-end-h 7
 +ExecStart=/usr/bin/python3 /opt/hivemind/t4/scripts/t4_governor.py --idle-start-s 1800 --day-idle-s 7200 --min-free-mib 4300 --night-tz Europe/Paris --night-start-h 22 --night-end-h 7 \
 +  --big-window-start 23:00 --big-window-end 06:30 --big-min-free-mib 10000 --big-idle-s 1800
@@ -291,9 +293,8 @@ arm truly needs more than N1, which the table says only OLMoE-1B-7B or a 7B dens
   users touching the GPU during a 23:00 to 06:30 block: roughly 2 per night, with a range from 0 to a few. Small sample: a different week could differ, and one busy night is enough to produce several cold starts.
 - **What a yield costs the trainer.** Not the user: the governor sets BOINC to `never` and ends the task, freeing the GPU in 1,135 ms once measured (n = 1), 0.77 s and 7.1 s in the 5 s experiment (`deploy/t4_node/node/hivemind-t4-governor.service` comment);
   work since the last segment checkpoint (up to about 30 s) is redone.
-- **What a yield costs the user at N1.** The trainer leaves quickly, but if the coder was unloaded to make room, that request meets a **cold 7B reload of 52 to 120 s** (`deploy/t4_bee_expert/start.sh` comment; one 504 measured, issue #193). Since PR #249 an
-  unloaded model answers `model_loading` (503 with `Retry-After`) instead of a bare 504 and starts a one-token warm-up, so the user is told to retry rather than timing out. A request for the bee model is not affected by the coder being unloaded. Which model the roughly 2 night requests ask for is not split in the data: Not tested.
-- **Morning.** 07:00 shows a mean of 9 completions per hour and 08:00 a mean of 24. A block that stops by 06:30 followed by a pre-warm has about 30 minutes of margin before the first user wave; a block that overruns would put the cold reload in front of the first users. This is why M6 measures the first 30 minutes after the stop.
+- **What a yield costs the user at N1.** The trainer leaves quickly, but if the coder was unloaded to make room, that request meets a **cold 7B reload of 52 to 120 s** (`deploy/t4_bee_expert/start.sh` comment; one 504 measured, issue #193). PR #249 is merged, but its own body says it was not deployed and the live node was not touched, so whether the running gateway behaves as follows is **Not tested**. As written in that PR: when every candidate reports the model not loaded and the cold start is at least `cold_start_wait_budget_s` (default 20 s; 60 s is assumed when the producer reports none), the gateway answers `model_loading` (503 with `Retry-After`) with no charge and starts a one-token warm-up; a producer that reports no residency at all is still forwarded to with the existing 120 s upstream timeout, which is exactly the cold-coder case if residency is not reported. The user is then told to retry rather than timing out, if and only if residency reporting is live. A request for the bee model is not affected by the coder being unloaded. Which model the roughly 2 night requests ask for is not split in the data: Not tested.
+- **Morning.** 07:00 shows a mean of 9 completions per hour and 08:00 a mean of 24 (node telemetry aggregate, n = 2 days). A block that stops by 06:30 followed by a pre-warm has about 30 minutes of margin before the first user wave; a block that overruns would put the cold reload in front of the first users. This is why M6 measures the first 30 minutes after the stop.
 - **Day policy is unchanged** (2 h silence), so a daytime user at about 26 completions per hour never sees a trainer.
 
 ---
@@ -304,8 +305,8 @@ arm truly needs more than N1, which the table says only OLMoE-1B-7B or a 7B dens
 |---|---|---|
 | Spot VM preemption | the VM can be reclaimed at any moment; Cloud Scheduler restarts it; a block loses at most the last segment (about 30 s) for Granite (`deploy/t4_node/node/README.md`); a 4B step is slower | segment checkpoints; the probe runner must write its own; Not tested for larger bases |
 | Thermal | the card is shared with serving; alert 83 C, start gate 82 C (`scripts/t4_governor.py`); no sustained-training temperature recorded | stop the block at 83 C; log temperature and power; Not tested |
-| Disk | the data disk held 1.6 GB free in October (`docs/NIGHT_MOE_2_PLAN.md`); it was resized since (about 1.4 TB free at the time of this check, a read-only observation, not a repo figure); a 4B base adds about 8 GB of cache | check free disk before and after each arm (M4) |
-| Host RAM | loading a 4B model reads about 8 GB of 16-bit weights through CPU memory, took 3 to 4 minutes, and a probe next to a package build exhausted memory and stopped both (`docs/T4_NIGHT_MODEL_DECISION.md`) | one probe at a time, never beside a build; about 15 GiB were available at the time of writing |
+| Disk | the data disk held 1.6 GB free in October (`docs/NIGHT_MOE_2_PLAN.md`); the present free space is Not verified; a 4B base adds about 8 GB of 16-bit weights to the cache (`docs/T4_NIGHT_MODEL_DECISION.md`) | check free disk before and after each arm (M4) |
+| Host RAM | loading a 4B model reads about 8 GB of 16-bit weights through CPU memory, took 3 to 4 minutes, and a probe next to a package build exhausted memory and stopped both (`docs/T4_NIGHT_MODEL_DECISION.md`) | one probe at a time, never beside a build; current free host RAM is Not verified |
 | Replay-validation differences between hardware | the BOINC verifier replays segments and rejects a divergence above 1e-4; cross-device replay tolerance (E12) compared one T4 with its host CPU (`docs/benchmarks/T4_10h_campaign_report.md`); other GPUs and any larger base are not covered | any larger base needs its own replay check before it is offered to volunteers; Not tested |
 | Licences | model licences are unknown here (no card in the cache); dataset licences for the six night domains are not recorded in the files read (FineWeb-Edu and Wikipedia "carry their own terms", `docs/BEE_MOE_NUMERIC_SOLVERS_PROPOSAL.md`) | read the cards before any publication of adapters or results |
 | No peer review | the plan, the estimator and the pre-registration were written by one agent session and reviewed by nobody | the owner's review of this PR is the first review |
