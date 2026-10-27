@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Proposal: Bee MoE with numeric solver experts, three waves (docs/BEE_MOE_NUMERIC_SOLVERS_PROPOSAL.md); nothing implemented
+
 - Volunteer preflight (`scripts/hivemind_volunteer_preflight.py`, docs/community/VOLUNTEER_PREFLIGHT.md): stdlib-only check of OS, NVIDIA GPU and VRAM tier, free disk against the ~4.4 GB first download, RAM/CPU, existing BOINC client and battery, with a ready / ready_with_warnings / not_ready verdict (exit 0/1/2) and `--json`. No network connection unless `--project-url` is given (https and public addresses only); no hostname, user name or GPU UUID is output.
 
 - HM-S16-07 (refs #194): account kinds `user` (default), `test` and `probe`, set only with the admin key (`POST /v1/hivemind/register` with `kind`, or `POST /v1/hivemind/admin/test-flag` with `kind`). Test and probe accounts never bid, are priced at the equilibrium computed without them, and their producers are not supply for pricing; `/v1/hivemind/admin/users` and `/v1/hivemind/me` report the kind and count `real`, `test` and `probe` apart. New gateway options `starter_grant_hmt` (default 0 = off), `starter_grants_per_ip_24h` (default 3) and `trusted_proxies` (default empty = `X-Forwarded-For` never trusted): over the per-address cap an account is registered without the starter grant; only a keyed hash of the address is kept, for 24 h. Old databases gain the `kind` column in place. See `docs/HIVEMIND_OPENROUTER.md`.
