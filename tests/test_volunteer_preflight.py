@@ -60,7 +60,7 @@ def test_ready_machine_rtx3060() -> None:
     assert pf.verdict_of(cs) == "ready"
     g = by_id(cs, "gpu")
     assert g.status == "ok"
-    assert g.data["tiers_servable_total"] == ["crowd-v1", "coder-lite", "coder", "coder-plus"]
+    assert g.data["tiers_servable_total"] == ["crowd-v1", "coder-lite", "bee-rusty-sundials", "coder", "coder-plus"]
     assert g.data["tiers_too_big"] == ["moe-general", "moe-coder"]
 
 
