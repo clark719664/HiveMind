@@ -1457,6 +1457,13 @@ def create_router_app(
             "recent_usage": store.recent_usage(account.account_id, 20),
         }
 
+    @app.get("/v1/hivemind/t4/status")
+    def t4_status(request: Request) -> dict[str, Any]:
+        from hivemind.router.t4_visibility import build_t4_visibility_payload
+        models = store.live_models(clock(), PRODUCER_TTL_S)
+        producers = len(store.active_producers("coder", clock(), PRODUCER_TTL_S))
+        return build_t4_visibility_payload(now_utc=clock(), live_models=models, active_producers_count=producers)
+
     @app.post("/v1/hivemind/consumer/max-price")
     def set_max_price(request: Request, payload: MaxPriceRequest) -> dict[str, Any]:
         account = authenticate(request)

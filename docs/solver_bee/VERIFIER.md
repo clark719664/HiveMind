@@ -16,7 +16,7 @@ cert = verify(spec_bytes, result, problem=None, rerun=None, binary_sha256=None)
 | `hashes` | `result.input_sha256` equals sha256 of the exact spec bytes; `result_sha256` is computed over canonical JSON (sorted keys, compact separators, `ensure_ascii=False`) | the result was produced by the pinned binary (that is `binary_sha256`, supplied by the caller and only recorded) |
 | `reference` | with a library entry whose `problem`, `y0`, `t0` equal the spec's: at every reference time that coincides with a `t_out` time, `\|y - y_ref\| <= factor*(rtol*\|y_ref\| + atol)`, factor from `tolerance_policy.max_rel_err_factor` (default 100). `value` is the worst ratio, `bound` is 1.0 | accuracy at times with no reference point; if no reference time coincides the check FAILS (it cannot be done) |
 | `invariants` | each invariant in the library entry drifts at most `tol` (absolute) at every output time. Skipped, with detail "no invariants defined", when there are none | the trajectory between output times conserves anything |
-| `tightening` | the verifier builds the spec with `rtol/100` and `atol/100`, calls `rerun`, validates that result like any other, and requires `\|y_loose - y_tight\| <= 100*(rtol*\|y_tight\| + atol)` using the LOOSE tolerances. Skipped when `rerun` is None | that both runs are right: a solver with a systematic bias that does not depend on the tolerance passes this check |
+| `tightening` | the verifier builds the spec with `rtol/100` and `atol/100` (`rtol` and `atol` are optional in a spec; when absent the verifier uses the CLI defaults 1e-8 and 1e-10, so a spec that omits them is audited like any other), calls `rerun`, validates that result like any other, and requires `\|y_loose - y_tight\| <= 100*(rtol*\|y_tight\| + atol)` using the LOOSE tolerances. Skipped when `rerun` is None | that both runs are right: a solver with a systematic bias that does not depend on the tolerance passes this check |
 
 Why 100: the tight run is about 100x more accurate, so the difference is essentially the loose run's own error. Solvers control local error, not global error, so the allowed band is 100 times the requested tolerance, matching the library's default `max_rel_err_factor`. This is a generous band: S-2 found one injected "loosened tolerance" result (about 29 times the claimed tolerance) that lies inside it. A stricter factor would be a new, separately pre-registered experiment.
 
@@ -40,11 +40,11 @@ Every certificate carries, verbatim: "VERIFIED means the listed checks passed. I
 | kind | fields | quantity compared to `value` |
 |---|---|---|
 | `linear` | `weights` | `w . x` |
-| `quadratic_form` | `matrix` (or `Q`) | `x^T M x` |
-| `energy` | `matrix` (or `Q`) | `0.5 x^T M x` |
-| `lv_first_integral` | `alpha, beta, gamma, delta` (or from `spec.problem.params`); `value` defaults to the value at `y0` | `delta x - gamma ln x + beta y - alpha ln y` for `x' = alpha x - beta x y`, `y' = delta x y - gamma y` |
+| `quadratic_form` | `matrix` (alias `Q`) | `x^T M x` |
+| `energy` | `matrix` (alias `Q`) | `0.5 x^T M x` |
+| `lv_first_integral` | canonical: `params: {alpha, beta, gamma, delta}`; aliases (same four names at the invariant's top level, then `spec.problem.params`); `value` defaults to the value at `y0` | `delta x - gamma ln x + beta y - alpha ln y` for `x' = alpha x - beta x y`, `y' = delta x y - gamma y` |
 
-These field names are the verifier's reading of the contract, which names the kinds but not their fields; reconcile them with the problem library (PR-A) when integrating.
+The canonical layout is the one the problem library (`solvers/problems`) writes: `linear {weights, value, tol}`, `quadratic_form {matrix, value, tol}`, `lv_first_integral {params:{alpha,beta,delta,gamma}, value, tol}`. `tol` is ABSOLUTE for every kind (the check is `|invariant(x(t)) - value| / tol <= 1`). The names `Q` (for `matrix`) and top-level `alpha/beta/gamma/delta` (for `params`) are accepted only as aliases for older callers; when both `params` and a top-level name are present, `params` wins. A malformed or missing field fails the check closed. No tolerance, factor or threshold was changed by this reconciliation.
 
 To add a kind: write `_inv_<kind>(inv, spec, x) -> float` returning the conserved quantity for one state vector `x`, raise `_CheckError` on malformed fields, register it in `_INVARIANT_KINDS`, and add a pass and a fail case to `tests/test_solverbee_verifier.py`.
 

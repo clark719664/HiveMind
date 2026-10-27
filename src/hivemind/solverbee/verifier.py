@@ -182,9 +182,14 @@ def _check_hashes(spec_bytes: bytes, result: dict) -> tuple[dict, str | None]:
     return _chk("hashes", "pass", "input_sha256 equals sha256 of the exact spec bytes"), result_sha
 
 
+# CLI defaults (solvers/hivemind-solver/src/lib.rs): rtol and atol are optional in a spec.
+DEFAULT_RTOL = 1e-8
+DEFAULT_ATOL = 1e-10
+
+
 def _tolerances(spec: dict, n: int) -> tuple[float, list[float]]:
-    rtol = spec["rtol"]
-    atol = spec["atol"]
+    rtol = spec.get("rtol", DEFAULT_RTOL)
+    atol = spec.get("atol", DEFAULT_ATOL)
     if not _finite(rtol) or rtol <= 0:
         raise _CheckError("rtol must be a positive finite number")
     if _is_num(atol):
@@ -283,8 +288,23 @@ def _inv_lv_first_integral(inv, spec, x):
     # x' = alpha x - beta x y ; y' = delta x y - gamma y ; V = delta x - gamma ln x + beta y - alpha ln y
     if len(x) != 2:
         raise _CheckError("lv_first_integral needs 2 species")
-    params = (spec.get("problem") or {}).get("params") or {}
-    p = {k: inv.get(k, params.get(k)) for k in ("alpha", "beta", "gamma", "delta")}
+    # Canonical layout (what solvers/problems writes): inv["params"] = {alpha,beta,gamma,delta}.
+    # Documented aliases, in order: the same four names at the top level of the invariant,
+    # then spec.problem.params.
+    spec_params = (spec.get("problem") or {}).get("params") or {}
+    inv_params = inv.get("params")
+    if inv_params is None:
+        inv_params = {}
+    if not isinstance(inv_params, dict):
+        raise _CheckError(f"invariant {inv.get('name')!r}: params must be an object")
+    p = {}
+    for k in ("alpha", "beta", "gamma", "delta"):
+        if k in inv_params:
+            p[k] = inv_params[k]
+        elif k in inv:
+            p[k] = inv[k]
+        else:
+            p[k] = spec_params.get(k)
     if not all(_finite(v) for v in p.values()):
         raise _CheckError("lv_first_integral needs finite alpha, beta, gamma, delta")
     if x[0] <= 0 or x[1] <= 0:
@@ -337,7 +357,7 @@ def _check_tightening(spec_bytes: bytes, spec: dict, result: dict, rerun) -> dic
     rtol, atols = _tolerances(spec, n)
     tight = dict(spec)
     tight["rtol"] = rtol / 100.0
-    tight["atol"] = [a / 100.0 for a in atols] if isinstance(spec["atol"], list) else spec["atol"] / 100.0
+    tight["atol"] = [a / 100.0 for a in atols] if isinstance(spec.get("atol"), list) else atols[0] / 100.0
     tight_bytes = json.dumps(tight, ensure_ascii=False).encode("utf-8")
     res2 = rerun(tight_bytes)
     if not isinstance(res2, dict):

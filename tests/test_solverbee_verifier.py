@@ -281,6 +281,44 @@ def test_invariant_kinds():
     assert _inv_cert(lv, [[x, y], [x, y * 1.01]])["status"] == "fail"
 
 
+def test_lv_canonical_params_layout_and_aliases():
+    # canonical (library) layout: params object
+    canon = {"name": "v", "kind": "lv_first_integral",
+             "params": {"alpha": 1.0, "beta": 0.5, "gamma": 1.0, "delta": 0.5}, "tol": 1e-9}
+    assert _inv_cert(canon, [[2.0, 2.0], [2.0, 2.0]])["status"] == "pass"
+    assert _inv_cert(canon, [[2.0, 2.0], [2.0, 2.02]])["status"] == "fail"
+    # params take precedence over a conflicting top-level alias
+    both = dict(canon, alpha=99.0)
+    assert _inv_cert(both, [[2.0, 2.0], [2.0, 2.0]])["status"] == "pass"
+    # a malformed params object fails closed
+    with pytest.raises(verifier._CheckError):
+        _inv_cert(dict(canon, params=[1, 2]), [[2.0, 2.0]])
+    # missing parameter fails closed
+    with pytest.raises(verifier._CheckError):
+        _inv_cert(dict(canon, params={"alpha": 1.0}), [[2.0, 2.0]])
+
+
+def test_library_invariant_layouts_are_understood():
+    """Every invariant written by solvers/problems is evaluated (not rejected) at its own y0."""
+    import glob
+    import os
+    root = os.path.join(os.path.dirname(__file__), "..", "solvers", "problems")
+    files = sorted(glob.glob(os.path.join(root, "*.json")))
+    if not files:
+        pytest.skip("problem library not present")
+    n_checked = 0
+    for f in files:
+        with open(f, encoding="utf-8") as fh:
+            prob = json.load(fh)
+        spec = prob["spec"]
+        for inv in prob.get("invariants", []):
+            fn = verifier._INVARIANT_KINDS[inv["kind"]]
+            got = fn(inv, spec, [float(v) for v in spec["y0"]])
+            assert abs(got - inv["value"]) <= inv["tol"], (prob["id"], inv["name"], got)
+            n_checked += 1
+    assert n_checked >= 9
+
+
 def test_lv_nonpositive_population_fails_closed():
     lv = {"name": "v", "kind": "lv_first_integral", "alpha": 1.0, "beta": 0.5, "gamma": 1.0, "delta": 0.5,
           "tol": 1e-9, "value": 0.0}
@@ -340,6 +378,48 @@ def test_wilson_matches_queenbee_if_available():
     dance = pytest.importorskip("hivemind.queenbee.dance")
     for s, n in [(8, 10), (3, 7), (50, 60), (0, 5)]:
         assert scoring.wilson_lower(s, n) == pytest.approx(dance.wilson_lower(s, n), abs=1e-6)
+
+
+def _without_tols(**extra):
+    spec = {k: v for k, v in load("harmonic_problem.json")["spec"].items() if k not in ("rtol", "atol")}
+    spec.update(extra)
+    return json.dumps(spec).encode()
+
+
+def cli_like_solve(spec_bytes):
+    """Stand-in for the CLI: applies the CLI defaults, hashes the exact submitted bytes."""
+    spec = json.loads(spec_bytes)
+    spec.setdefault("rtol", 1e-8)
+    spec.setdefault("atol", 1e-10)
+    if isinstance(spec["atol"], list):
+        spec["atol"] = min(spec["atol"])
+    res = s2.rk4_solve(json.dumps(spec).encode())
+    res["input_sha256"] = hashlib.sha256(spec_bytes).hexdigest()
+    return res
+
+
+def test_spec_without_rtol_atol_uses_cli_defaults():
+    # rtol/atol are optional in a spec; the CLI defaults are 1e-8 / 1e-10.
+    sb = _without_tols()
+    seen = []
+
+    def rerun(b):
+        seen.append(json.loads(b))
+        return cli_like_solve(b)
+
+    cert = verify(sb, cli_like_solve(sb), rerun=rerun)
+    assert check(cert, "tightening")["status"] != "fail", cert
+    assert cert["verdict"] == "AUDITED", cert
+    assert seen[0]["rtol"] == pytest.approx(1e-10)
+    assert seen[0]["atol"] == pytest.approx(1e-12)
+
+
+def test_spec_with_only_one_tolerance_given():
+    n = len(load("harmonic_problem.json")["spec"]["y0"])
+    for extra in ({"rtol": 1e-6}, {"atol": [1e-9] * n}, {"atol": 1e-9}):
+        sb = _without_tols(**extra)
+        cert = verify(sb, cli_like_solve(sb), rerun=cli_like_solve)
+        assert check(cert, "tightening")["status"] != "fail", (extra, cert)
 
 
 def test_recruitment_cold_start_and_record():
