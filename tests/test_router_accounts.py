@@ -436,8 +436,8 @@ def test_user_counts_keep_real_and_test_accounts_apart() -> None:
     everything = store.user_counts(0.0)
     recent = store.user_counts(time.time() + 50.0)
 
-    assert everything == {"real": {"total": 3, "created": 3, "active": 2}, "test": {"total": 1, "created": 1, "active": 1}}
-    assert recent == {"real": {"total": 3, "created": 0, "active": 1}, "test": {"total": 1, "created": 0, "active": 1}}
+    assert everything == {"real": {"total": 3, "created": 3, "active": 2}, "test": {"total": 1, "created": 1, "active": 1}, "probe": {"total": 0, "created": 0, "active": 0}}
+    assert recent == {"real": {"total": 3, "created": 0, "active": 1}, "test": {"total": 1, "created": 0, "active": 1}, "probe": {"total": 0, "created": 0, "active": 0}}
     with pytest.raises(ValueError):
         store.user_counts(float("nan"))
 

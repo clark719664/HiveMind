@@ -456,7 +456,8 @@ class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     handle: str = Field(min_length=1, max_length=128)
     role: Literal["consumer", "producer", "prosumer"]
-    test: bool = False  # test/probe account: needs the admin key, never bids in the market, counted apart from real users
+    test: bool = False  # test account: needs the admin key, never bids in the market, counted apart from real users
+    kind: Literal["user", "test", "probe"] | None = None  # 'test' or 'probe' need the admin key too (HM-S16-07)
 
 
 class GoogleRegisterRequest(BaseModel):
@@ -518,7 +519,8 @@ class AccountFlagRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     account_id: str | None = Field(default=None, max_length=128)
     handle: str | None = Field(default=None, max_length=128)
-    test: bool
+    test: bool | None = None  # older spelling: True = 'test', False = 'user'
+    kind: Literal["user", "test", "probe"] | None = None
 
 
 @dataclass(frozen=True)
@@ -661,6 +663,9 @@ def create_router_app(
     bid_activity_window_s: float = 0.0,
     cold_start_wait_budget_s: float = DEFAULT_COLD_START_WAIT_BUDGET_S,
     warmup_unloaded: bool = True,
+    starter_grant_hmt: float = 0.0,
+    starter_grants_per_ip_24h: int = 3,
+    trusted_proxies: Sequence[str] = (),
 ) -> FastAPI:
     """Build the gateway app. ``resolver`` (host -> IP strings) is injectable for tests of the SSRF guard.
 
@@ -676,6 +681,12 @@ def create_router_app(
     least this many seconds, the request is answered at once with 503 ``model_loading`` and ``Retry-After`` instead of being forwarded to wait
     for a load; shorter cold starts are forwarded. ``warmup_unloaded`` sends one tiny background request to the producer so the model really
     starts loading (without it the model would never load: only requests make Ollama load a model).
+
+    ``starter_grant_hmt`` (HM-S16-07), when above zero, is minted to every NEW real ('user') account at sign-up, at most
+    ``starter_grants_per_ip_24h`` times per client address in a rolling 24 hours; over the cap the account is still created, without the grant.
+    The address is the TCP peer. ``X-Forwarded-For`` is read only when the peer is one of ``trusted_proxies`` (IP addresses or CIDR
+    networks; default empty = the header is never trusted), taking the right-most entry that is not itself a trusted proxy.
+    Only a keyed hash of the address is stored, with a timestamp, for 24 hours.
     """
     client = http_client if http_client is not None else httpx.Client(timeout=PRODUCER_TIMEOUT_S, follow_redirects=False)
     resolve: Resolver = resolver if resolver is not None else _default_resolver
@@ -687,6 +698,9 @@ def create_router_app(
     capacity_clamp = float(max_producer_capacity_1k)
     warm_lock = threading.Lock()
     warm_started: dict[tuple[str, str], float] = {}
+    if starter_grant_hmt < 0.0 or not math.isfinite(starter_grant_hmt) or starter_grants_per_ip_24h < 0:
+        raise ValueError("starter_grant_hmt and starter_grants_per_ip_24h must be finite and not negative")
+    proxy_networks = tuple(ipaddress.ip_network(entry, strict=False) for entry in trusted_proxies)
     app.add_middleware(BodyLimitMiddleware, max_bytes=MAX_BODY_BYTES)
 
     # ------------------------------------------------------------------ errors
@@ -732,7 +746,8 @@ def create_router_app(
         return min(record.capacity_1k, capacity_clamp)
 
     def offers_for(records: Sequence[ProducerRecord]) -> list[ProducerOffer]:
-        return [ProducerOffer(r.account_id, r.cost_per_1k, clamped(r)) for r in records]
+        off_market = store.non_user_account_ids()  # test and probe producers are not supply for pricing (HM-S16-07)
+        return [ProducerOffer(r.account_id, r.cost_per_1k, clamped(r)) for r in records if r.account_id not in off_market]
 
     def bids_for(extra: Account | None) -> list[ConsumerBid]:
         """Bids of funded accounts only, each capped by what its balance can pay for one default-sized request."""
@@ -751,6 +766,36 @@ def create_router_app(
             if len(hops) >= trusted_proxy_hops:
                 return hops[-trusted_proxy_hops]
         return request.client.host if request.client is not None else "unknown"
+
+    def is_trusted_proxy(text: str) -> bool:
+        try:
+            address = ipaddress.ip_address(text)
+        except ValueError:
+            return False
+        return any(address in network for network in proxy_networks)
+
+    def starter_client_ip(request: Request) -> str:
+        """Address the starter-grant cap counts: the TCP peer, or behind a trusted proxy the right-most forwarded entry that is not a proxy."""
+        peer = request.client.host if request.client is not None else "unknown"
+        if not proxy_networks or not is_trusted_proxy(peer):
+            return peer  # a header from anyone else is attacker-controlled: ignored
+        for hop in reversed([h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]):
+            try:
+                ipaddress.ip_address(hop)
+            except ValueError:
+                return peer  # malformed chain: fall back to the proxy itself rather than trust it
+            if not is_trusted_proxy(hop):
+                return hop
+        return peer
+
+    def starter_grant(request: Request, account_id: str) -> dict[str, Any]:
+        """Mint the starter grant to a new real account unless its client address used up the daily cap. Says so, without counts."""
+        if starter_grant_hmt <= 0.0:
+            return {}
+        if store.claim_starter_slot(starter_client_ip(request), clock(), starter_grants_per_ip_24h):
+            store.grant(account_id, starter_grant_hmt, "starter-grant")
+            return {"starter_grant": starter_grant_hmt}
+        return {"starter_grant": 0.0, "starter_grant_note": "No starter grant was added to this account; ask an operator for one."}
 
     def equilibrium(model_id: str, records: Sequence[ProducerRecord], extra: Account | None) -> MarketEquilibrium:
         return clear_market(model_id, bids_for(extra), offers_for(records), fee)
@@ -1200,8 +1245,10 @@ def create_router_app(
         account_id, api_key, created = store.sign_in_with_identity("google", identity.subject, payload.role)
         account = store.get_account(account_id)
         role = account.role if account is not None else payload.role
-        return JSONResponse({"account_id": account_id, "api_key": api_key, "role": role, "created": created},
-                            headers={"Cache-Control": "no-store"})
+        body: dict[str, Any] = {"account_id": account_id, "api_key": api_key, "role": role, "created": created}
+        if created:
+            body.update(starter_grant(request, account_id))
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
     oidc = dict(oidc_verifiers or {})
     for name in oidc:
@@ -1235,26 +1282,34 @@ def create_router_app(
         account_id, api_key, created = store.sign_in_with_identity(provider, identity.subject, payload.role)
         account = store.get_account(account_id)
         role = account.role if account is not None else payload.role
-        return JSONResponse({"account_id": account_id, "api_key": api_key, "role": role, "created": created},
-                            headers={"Cache-Control": "no-store"})
+        body: dict[str, Any] = {"account_id": account_id, "api_key": api_key, "role": role, "created": created}
+        if created:
+            body.update(starter_grant(request, account_id))
+        return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
     @app.post("/v1/hivemind/register")
     def register(request: Request, payload: RegisterRequest) -> dict[str, Any]:
         if not open_registration:
             raise RouterError(403, "Handle registration is closed. Sign in at /signup or see /v1/hivemind/signin/providers.", "permission_error", "registration_closed")
-        if payload.test:
+        kind = payload.kind if payload.kind is not None else ("test" if payload.test else "user")
+        if payload.kind == "user" and payload.test:
+            raise RouterError(400, "'test' and kind='user' contradict each other.", "invalid_request_error", "invalid_request")
+        if kind != "user":
             require_admin(request)  # refused, never silently ignored: a caller that asked for a test account must learn it did not get one
         if not register_limiter.allow(client_key(request), clock()):
             raise RouterError(429, "Too many registrations; try again in a minute.", "rate_limit_error", "rate_limited")
         try:
-            account_id, api_key = store.register(payload.handle, payload.role, is_test=payload.test)
+            account_id, api_key = store.register(payload.handle, payload.role, kind=kind)
         except HandleTaken:
             raise RouterError(409, "That handle is already registered.", "invalid_request_error", "handle_taken") from None
         except (SwarmSecurityViolationError, ReservedHandle):
             raise RouterError(400, "Handle rejected: use 1-64 ASCII letters, digits and . _ @ + - characters, not starting with a sign-in provider prefix such as 'google.'.", "invalid_request_error", "invalid_handle") from None
         reply: dict[str, Any] = {"account_id": account_id, "api_key": api_key, "role": payload.role}
-        if payload.test:
+        if kind != "user":
             reply["test"] = True
+            reply["kind"] = kind
+        else:
+            reply.update(starter_grant(request, account_id))
         return reply
 
     @app.get("/v1/hivemind/me")
@@ -1267,6 +1322,7 @@ def create_router_app(
             "balance": store.balance(account.account_id),
             "max_price_per_1k": account.max_price_per_1k,
             "test": account.is_test,
+            "kind": account.kind,
             "recent_usage": store.recent_usage(account.account_id, 20),
         }
 
@@ -1370,20 +1426,25 @@ def create_router_app(
 
     @app.post("/v1/hivemind/admin/test-flag")
     def admin_test_flag(request: Request, payload: AccountFlagRequest) -> dict[str, Any]:
-        """Mark an existing account as a test/probe account (or restore it to a real one): it stops (or starts) bidding."""
+        """Set an account's kind: 'user' (bids and counts as a real user), 'test' or 'probe' (neither). Admin key only."""
         require_admin(request)
+        if payload.kind is None and payload.test is None:
+            raise RouterError(400, "Give 'kind' ('user', 'test' or 'probe') or 'test' (true/false).", "invalid_request_error", "invalid_request")
+        kind = payload.kind if payload.kind is not None else ("test" if payload.test else "user")
+        if payload.kind is not None and payload.test is not None and (kind != "user") != payload.test:
+            raise RouterError(400, "'test' and 'kind' contradict each other.", "invalid_request_error", "invalid_request")
         target = account_target(payload.account_id, payload.handle)
         try:
-            store.set_test_flag(target, payload.test)
+            store.set_kind(target, kind)
         except UnknownAccount:
             raise RouterError(404, "Unknown account.", "invalid_request_error", "account_not_found") from None
         with market_lock:
-            market_cache.clear()  # the published market was computed with the old bid set
-        return {"account_id": target, "test": payload.test}
+            market_cache.clear()  # the published market was computed with the old bid and supply set
+        return {"account_id": target, "test": kind != "user", "kind": kind}
 
     @app.get("/v1/hivemind/admin/users")
     def admin_users(request: Request, window_s: float = 3600.0) -> dict[str, Any]:
-        """Real and test accounts counted apart: ``total``, ``created`` and ``active`` within the last ``window_s`` seconds."""
+        """Real, test and probe accounts counted apart: ``total``, ``created`` and ``active`` within the last ``window_s`` seconds."""
         require_admin(request)
         if not math.isfinite(window_s) or window_s < 0.0:
             raise RouterError(400, "window_s must be a finite number of seconds, zero or more.", "invalid_request_error", "invalid_request")
