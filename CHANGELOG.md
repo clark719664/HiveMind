@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- docs(boinc): `docs/BOINC_RTX_GPU_INSTALL.md`, an installation and validation guide for volunteers with NVIDIA RTX cards, with an explicit verified / not-tested table (only a Linux Tesla T4 has run), the E12 cross-device replay-tolerance risk, and a checklist for the first RTX volunteer. Docs only; nothing was run.
 - Proposal: Bee MoE with numeric solver experts, three waves (docs/BEE_MOE_NUMERIC_SOLVERS_PROPOSAL.md); nothing implemented
 
 - Optional resident validator (off by default): `src/hivemind/boinc/real_client/resident_validator.py` keeps the validator's base model loaded across results (thread-safe LRU `ModelCache`, UNIX-socket server/client with a length-prefixed JSON protocol, CLI `serve|ping|stats`). `hivemind_validate` forwards to it when `HIVEMIND_RESIDENT_VALIDATOR_SOCKET` (or `--resident`) is set and falls back to the one-shot path with one warning line when it is unreachable. `boinc_server_scripts.validate` now delegates to the shared `run_validation`, which both paths call. Tests in `tests/test_resident_validator.py` (CPU, fake model). Not done: no real model or GPU run, not enabled on the live node, GPU sharing with volunteer tasks unsolved, no measured speed-up. See `docs/BOINC_PRODUCTION_SERVER.md`.
