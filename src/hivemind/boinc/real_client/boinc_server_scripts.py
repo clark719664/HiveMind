@@ -18,6 +18,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any, Callable
 
 from hivemind.boinc.real_client.contributor_policy import BoincHostDirectory, replay_all_for_result
 from hivemind.boinc.real_client.moe_bridge import MoEValidator
@@ -67,7 +68,14 @@ def wait_for_idle(quiet_s: float = 5.0, max_wait_s: float | None = None) -> floa
     return time.time() - t0
 
 
-def validate(args: list[str]) -> int:
+def _log_stderr(line: str) -> None:
+    print(line, file=sys.stderr)
+
+
+def run_validation(args: list[str], mv: Any = None, log: Callable[[str], None] = _log_stderr) -> int:
+    """The validation itself, shared by the one-shot ``hivemind_validate`` and the optional resident validator
+    (``resident_validator.py``): both run exactly this function, so their verdicts cannot differ. ``mv`` is the validator
+    object (default: a fresh ``MoEValidator``; the resident server passes one whose base model comes from a cache)."""
     import torch
 
     meta, paths = _meta(args)
@@ -75,10 +83,11 @@ def validate(args: list[str]) -> int:
     wu = meta.get("wu_id", "")
     spec_path = SPEC_DIR / f"{wu}.json"
     if not wu or not spec_path.is_file() or "/" in wu or ".." in wu:
-        print(f"unknown workunit {wu!r}", file=sys.stderr)
+        log(f"unknown workunit {wu!r}")
         return 2
     spec = json.loads(spec_path.read_text())
-    mv = MoEValidator()
+    if mv is None:
+        mv = MoEValidator()
     host = f"result-{args[-1]}" if args and args[-1].isdigit() else "host"
     if meta.get("app") in TRAIN_APPS and len(paths) >= 2:
         verdict = mv.validate_train(spec, paths[0], paths[1], host, replay_all=replay_all_for_result(args[-1] if args and args[-1].isdigit() else None, _host_directory()))
@@ -86,12 +95,31 @@ def validate(args: list[str]) -> int:
         adapter = torch.load(SPEC_DIR / f"{wu}.adapter.pt", map_location="cpu")["state"]
         verdict = mv.validate_infer(spec, paths[0], adapter, host)
     else:
-        print("unknown app in result", file=sys.stderr)
+        log("unknown app in result")
         return 3
     LEDGER_DIR.mkdir(parents=True, exist_ok=True)
     (LEDGER_DIR / f"verdict_{wu}_{int(time.time())}.json").write_text(json.dumps(verdict.to_dict(), indent=2, sort_keys=True))
-    print(f"{wu}: valid={verdict.valid} {verdict.reason}", file=sys.stderr)
+    log(f"{wu}: valid={verdict.valid} {verdict.reason}")
     return 0 if verdict.valid else 1
+
+
+def validate(args: list[str]) -> int:
+    """Entry point of ``hivemind_validate``. Optional (off by default): with ``--resident[=SOCKET]`` or the environment variable
+    ``HIVEMIND_RESIDENT_VALIDATOR_SOCKET`` set, forward to a resident validator; if it is unreachable, warn once and run the
+    one-shot path below. With neither set the behaviour is exactly the one-shot path."""
+    sock = os.environ.get("HIVEMIND_RESIDENT_VALIDATOR_SOCKET")
+    if args and (args[0] == "--resident" or args[0].startswith("--resident=")):
+        flag, args = args[0], args[1:]
+        sock = flag.partition("=")[2] or sock
+        if not sock:
+            print("hivemind_validate: --resident without a socket (set HIVEMIND_RESIDENT_VALIDATOR_SOCKET); running one-shot", file=sys.stderr)
+    if sock:
+        from hivemind.boinc.real_client.resident_validator import forward_validate
+
+        rc = forward_validate(sock, args)
+        if rc is not None:
+            return rc
+    return run_validation(args)
 
 
 def assimilate(args: list[str]) -> int:

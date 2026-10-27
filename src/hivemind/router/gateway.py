@@ -1167,6 +1167,32 @@ def create_router_app(
 
         return evaluate_international_launch_readiness()
 
+    @app.get("/v1/hivemind/bees/rusty-sundials")
+    def get_rusty_sundials_bee() -> dict[str, Any]:
+        """Public Bring-Your-Own-Bee (BYOB) descriptor for Xavier's flagship scientific bee (hivemind/bee-rusty-sundials)."""
+        from hivemind.swarm.rusty_sundials_scientific_bee import rusty_sundials_bee_descriptor
+
+        return rusty_sundials_bee_descriptor()
+
+    @app.post("/v1/hivemind/bees/rusty-sundials/rescue")
+    async def rescue_rusty_sundials_calculation(request: Request) -> dict[str, Any]:
+        """Deterministic numeric calculation rescue & physical/mathematical structural analysis across astronomy, fluid mechanics, quantum fluids & genetics."""
+        from hivemind.swarm.rusty_sundials_scientific_bee import rescue_numeric_calculation
+
+        raw = await request.body()
+        try:
+            body = json.loads(raw) if raw else {}
+        except (ValueError, RecursionError):
+            raise RouterError(400, "invalid request: body must be a JSON object", "invalid_request_error", "invalid_request") from None
+        if not isinstance(body, dict):
+            raise RouterError(400, "invalid request: body must be a JSON object", "invalid_request_error", "invalid_request")
+        prompt = str(body.get("prompt", "Rescue numerical PDE/ODE calculation"))[:2048]
+        domain = str(body["domain"])[:64] if body.get("domain") else None
+        steps = max(4, min(int(body.get("steps", 64)), 256))
+        dt = max(1e-5, min(float(body.get("dt", 0.01)), 0.1))
+        result = await run_in_threadpool(rescue_numeric_calculation, prompt, domain, steps, dt)
+        return result.to_dict()
+
     @app.get("/v1/hivemind/partner-models")
     def partner_models() -> dict[str, Any]:
         """Pre-wired federated partner models (e.g. CrowdGPT Vxtzq/Crowd-v1) ready for producer & Playground routing."""
