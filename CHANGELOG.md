@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- HM-S16-06 (refs #193): producers may report model residency in heartbeats (`loaded`, `vram_mib`, `cold_start_s` per model, `gpu_vram_mib` per card; the producer agent probes the local Ollama `/api/ps`, `--no-residency` disables). The router prefers loaded models (unknown after loaded, known-not-loaded last), answers 503 `model_loading` with `Retry-After` instead of forwarding to a model that must cold-load longer than `cold_start_wait_budget_s` (default 20 s) with no charge, reports upstream timeouts as `model_loading` or 504 `upstream_timeout` instead of an opaque error, and scales declared capacity down when the loaded models exceed the card. Old producers are unaffected. See `docs/HIVEMIND_OPENROUTER.md`.
+
 ## Zenodo deposit of manuscript v3.8.0 — 2026-10-25
 
 - Published as 10.5281/zenodo.23649757 (new version of 10.5281/zenodo.23607597, concept DOI 10.5281/zenodo.23597697; 99 files; checksums verified against the local tree and, for the eight carried-over E12 replay tensors, against the v3.7.1 receipt). Not peer reviewed; the record bundles the E10b-E16 preregistrations, amendments, raw data and reports, the GWAYA-Lite live check and the T4 campaign report.

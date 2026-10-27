@@ -220,6 +220,27 @@ card otherwise empty):
 
   Add `--allow-model gpt-oss:20b` to the producer shield. `catalog.py` now lists 15 GB as the minimum for this tier.
 
+## Model residency: loaded models, `model_loading` and `Retry-After`
+
+A GPU holds only some models at once (a Tesla T4 with `OLLAMA_MAX_LOADED_MODELS=1` serves one), and a cold load can take minutes. Producers can therefore tell the gateway what is resident, and the gateway routes accordingly (HM-S16-06). All fields are optional.
+
+Heartbeat fields:
+
+- per model entry: `loaded` (bool), `vram_mib` (int, MiB the model occupies; 0 to 1,048,576), `cold_start_s` (float, your estimate of the seconds to load it; clamped to 0..600);
+- top level: `gpu_vram_mib` (int, the card's memory).
+
+`scripts/hivemind_producer_agent.py` fills them by asking your local Ollama which models are resident (read-only `GET /api/ps` on `--local-endpoint`, default `http://127.0.0.1:11434`, 2 s timeout; if it fails the heartbeat simply carries nothing). The card size comes from `--gpu-vram-mib` or `nvidia-smi`; `--cold-start-s` sets your load-time estimate (default 60). Pass `--no-residency` to turn all of this off.
+
+Routing:
+
+- Among the live producers of a model, the router tries the ones that report it loaded first, then producers that report nothing ("unknown"), then producers that report it not loaded. Within each group the usual capacity-weighted rotation applies.
+- If every candidate reports the model **not** loaded and the shortest `cold_start_s` is at least `cold_start_wait_budget_s` (gateway setting, default 20 s; 60 s is assumed when no estimate is given), the gateway does not forward and wait for a timeout. It answers at once with HTTP 503, `error.code = "model_loading"`, a message with the expected cold start, and `Retry-After: <seconds, rounded up>`. No escrow is taken and nothing is charged. It also sends one tiny background request (`max_tokens=1`, at most once per 30 s per server and model) so the model really starts loading; disable with `warmup_unloaded=False`. A shorter cold start is forwarded normally.
+- An upstream timeout is never an opaque error. If the model was not known to be loaded, the answer is the same 503 `model_loading`; if it was reported loaded, it is HTTP 504 with `error.code = "upstream_timeout"`. In both cases the request is not charged.
+- Declared capacity must fit the card: if `gpu_vram_mib` and the `vram_mib` of the models marked loaded are given and they add up to more than the card, the models that do not fit (in listed order) are treated as not loaded and the endpoint's declared capacity is scaled by the share that fits. The reason is returned in the heartbeat response (`residency.capacity_note`) and stored with the endpoint for the monitor. All numbers are self-declared and clamped; the existing operator capacity clamp still applies.
+- `GET /v1/models` adds an aggregate `"loaded": true|false` to a model only when some live producer reports residency for it; no producer identity is exposed.
+
+Backward compatibility: a producer that sends none of these fields behaves exactly as before (rank "unknown", never deferred); a heartbeat without them clears an earlier report. Databases gain a nullable `residency_json` column in place.
+
 ## Python and game developers
 
 The getting-started kit for people who write Python and small games, including GPU sharing, model tiers and editor setup, is
