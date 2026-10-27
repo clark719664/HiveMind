@@ -131,6 +131,11 @@ def test_catalog_and_gateway_endpoints_for_rusty_sundials_bee(tmp_path: Path) ->
         "quantum_fluid",
         "genetics",
     }
+    plan = info_json["season20_solver_bee_and_agent_plan"]
+    assert plan["season"] == "HM-S20-SOLVER"
+    assert len(plan["waves"]["wave_1_solver_bee_v0"]) == 9
+    assert "rtx_2070_local_8gb" in plan["owner_agent_fleet"]
+    assert "gcp_tesla_t4_16gb_fleet" in plan["owner_agent_fleet"]
 
     resp_rescue = client.post(
         "/v1/hivemind/bees/rusty-sundials/rescue",
