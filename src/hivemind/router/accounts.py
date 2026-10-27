@@ -27,7 +27,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from hivemind.security.hivemind_firewall import normalise_identity
 
@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS producer_endpoints(
     last_heartbeat_utc REAL NOT NULL,
     execution_class TEXT NOT NULL,
     endpoint_token TEXT,
+    residency_json TEXT,
     PRIMARY KEY(account_id, endpoint_url)
 );
 CREATE TABLE IF NOT EXISTS usage(
@@ -181,6 +182,10 @@ class ProducerRecord:
     # When an account advertises several live endpoints for a model, the record is the ACCOUNT's offer (capacity summed, cost the capacity-weighted mean,
     # the market sees one producer) and ``endpoints`` holds one single-endpoint record per server for dispatch. Empty for a one-endpoint account.
     endpoints: tuple[ProducerRecord, ...] = field(default=(), compare=False)
+    # Optional residency report of THIS endpoint (HM-S16-06): ``{"gpu_vram_mib": int | None, "capacity_note": str | None,
+    # "models": {public_id: {"loaded": bool | None, "vram_mib": int | None, "cold_start_s": float | None}}}``. ``None`` = the producer
+    # reports nothing (old agent); such a producer is "unknown", never penalised. Always ``None`` on an account-level aggregate record.
+    residency: Mapping[str, Any] | None = field(default=None, compare=False)
 
     def __repr__(self) -> str:
         return (f"ProducerRecord(account_id={self.account_id!r}, endpoint_url={self.endpoint_url!r}, models={self.models!r}, "
@@ -190,12 +195,40 @@ class ProducerRecord:
         """The servers to try for this account: itself when it has one, otherwise one record per endpoint."""
         return self.endpoints or (self,)
 
+    def _residency_entry(self, model_id: str) -> Mapping[str, Any] | None:
+        models = self.residency.get("models") if self.residency else None
+        entry = models.get(model_id) if isinstance(models, Mapping) else None
+        return entry if isinstance(entry, Mapping) else None
+
+    def model_state(self, model_id: str) -> bool | None:
+        """``True`` = reported loaded, ``False`` = reported not loaded, ``None`` = the producer does not say."""
+        entry = self._residency_entry(model_id)
+        loaded = entry.get("loaded") if entry else None
+        return loaded if isinstance(loaded, bool) else None
+
+    def cold_start_s(self, model_id: str) -> float | None:
+        """The producer's own estimate of the seconds needed to load ``model_id`` (``None`` when not reported)."""
+        entry = self._residency_entry(model_id)
+        value = entry.get("cold_start_s") if entry else None
+        return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
     def local_name(self, model_id: str) -> str | None:
         """Return the producer's local name for ``model_id`` or ``None`` if it does not serve it."""
         for public, local in self.models:
             if public == model_id:
                 return local
         return None
+
+
+def _load_residency(raw: object) -> dict[str, Any] | None:
+    """Decode a stored residency report; anything malformed counts as "not reported"."""
+    if raw is None:
+        return None
+    try:
+        value = json.loads(str(raw))
+    except ValueError:
+        return None
+    return value if isinstance(value, dict) else None
 
 
 @dataclass(frozen=True)
@@ -251,6 +284,10 @@ class RouterStore:
             columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(producers)")}
             if "endpoint_token" not in columns:
                 self._conn.execute("ALTER TABLE producers ADD COLUMN endpoint_token TEXT")
+            # Databases created before model residency reporting (HM-S16-06) gain the nullable column in place.
+            endpoint_columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(producer_endpoints)")}
+            if "residency_json" not in endpoint_columns:
+                self._conn.execute("ALTER TABLE producer_endpoints ADD COLUMN residency_json TEXT")
             # Databases created before the test/probe flag existed gain it in place; every existing account stays a real one.
             account_columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(accounts)")}
             if "is_test" not in account_columns:
@@ -680,6 +717,7 @@ class RouterStore:
         execution_class: str = "unknown",
         now_utc: float | None = None,
         endpoint_token: str | None = None,
+        residency: Mapping[str, Any] | None = None,
     ) -> int:
         """Insert or refresh ONE endpoint of a producer account; doubles as the heartbeat. Returns how many endpoints the account now advertises.
 
@@ -689,6 +727,8 @@ class RouterStore:
 
         ``endpoint_token`` is the bearer secret the gateway presents to the producer's own server so that only the
         gateway can use it; a heartbeat without one clears any earlier token.
+
+        ``residency`` is the validated, clamped residency report (see ``ProducerRecord.residency``); a heartbeat without one clears the earlier report.
         """
         cost = _finite(cost_per_1k, "cost_per_1k")
         capacity = _finite(capacity_1k, "capacity_1k")
@@ -709,11 +749,12 @@ class RouterStore:
                 raise TooManyEndpoints(f"an account may advertise at most {MAX_ENDPOINTS_PER_ACCOUNT} endpoints")
             conn.execute(
                 "INSERT INTO producer_endpoints(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
-                "execution_class, endpoint_token) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(account_id, endpoint_url) DO UPDATE SET "
+                "execution_class, endpoint_token, residency_json) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(account_id, endpoint_url) DO UPDATE SET "
                 "models_json=excluded.models_json, cost_per_1k=excluded.cost_per_1k, "
                 "capacity_1k=excluded.capacity_1k, last_heartbeat_utc=excluded.last_heartbeat_utc, "
-                "execution_class=excluded.execution_class, endpoint_token=excluded.endpoint_token",
-                (account_id, url, json.dumps(pairs, sort_keys=True), cost, capacity, stamp, execution_class, endpoint_token),
+                "execution_class=excluded.execution_class, endpoint_token=excluded.endpoint_token, residency_json=excluded.residency_json",
+                (account_id, url, json.dumps(pairs, sort_keys=True), cost, capacity, stamp, execution_class, endpoint_token,
+                 None if residency is None else json.dumps(residency, sort_keys=True)),
             )
             return len(known | {url})
 
@@ -742,6 +783,7 @@ class RouterStore:
                     last_heartbeat_utc=float(row["last_heartbeat_utc"]),
                     execution_class=str(row["execution_class"]),
                     endpoint_token=None if row["endpoint_token"] is None else str(row["endpoint_token"]),
+                    residency=_load_residency(row["residency_json"]),
                 )
             )
         out: list[ProducerRecord] = []
@@ -767,6 +809,23 @@ class RouterStore:
                     endpoints=tuple(servers),
                 )
             )
+        return out
+
+    def residency_summary(self, now_utc: float, ttl_s: float = 120) -> dict[str, bool]:
+        """Per live model that at least one live endpoint reports residency for: whether any endpoint has it loaded. No producer identities."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT residency_json FROM producer_endpoints WHERE last_heartbeat_utc >= ? AND residency_json IS NOT NULL", (now_utc - ttl_s,)
+            ).fetchall()
+        out: dict[str, bool] = {}
+        for row in rows:
+            residency = _load_residency(row["residency_json"])
+            models = residency.get("models") if residency else None
+            if not isinstance(models, Mapping):
+                continue
+            for model_id, entry in models.items():
+                if isinstance(entry, Mapping) and isinstance(entry.get("loaded"), bool):
+                    out[str(model_id)] = out.get(str(model_id), False) or bool(entry["loaded"])
         return out
 
     def live_models(self, now_utc: float, ttl_s: float = 120) -> list[str]:

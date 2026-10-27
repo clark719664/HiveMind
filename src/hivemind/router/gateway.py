@@ -39,7 +39,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from hivemind.router.accounts import (
@@ -76,6 +76,11 @@ MODEL_PREFIX = "hivemind/"
 AUTO_MODEL = "auto"
 PRODUCER_TTL_S = 120.0
 PRODUCER_TIMEOUT_S = 120.0
+DEFAULT_COLD_START_WAIT_BUDGET_S = 20.0  # forward to a known-unloaded model only when it is expected to load within this
+DEFAULT_COLD_START_S = 60.0  # assumed load time of a model reported not loaded without a cold_start_s estimate
+MAX_COLD_START_S = 600.0
+MAX_GPU_VRAM_MIB = 1_048_576  # 1 TiB: anything above is a typo or a lie
+WARMUP_MIN_INTERVAL_S = 30.0
 DEFAULT_MAX_TOKENS = 1024
 REGISTER_LIMIT = 10
 REGISTER_WINDOW_S = 60.0
@@ -97,16 +102,30 @@ Resolver = Callable[[str], Sequence[str]]
 class RouterError(Exception):
     """An error rendered in the OpenAI error shape ``{"error": {"message", "type", "code"}}``."""
 
-    def __init__(self, status: int, message: str, error_type: str, code: str) -> None:
+    def __init__(self, status: int, message: str, error_type: str, code: str, headers: Mapping[str, str] | None = None) -> None:
         super().__init__(message)
+        self.headers = dict(headers) if headers else None
         self.status = status
         self.message = message
         self.error_type = error_type
         self.code = code
 
 
-def _error_response(status: int, message: str, error_type: str, code: str) -> JSONResponse:
-    return JSONResponse(status_code=status, content={"error": {"message": message, "type": error_type, "code": code}})
+def _error_response(status: int, message: str, error_type: str, code: str, headers: Mapping[str, str] | None = None) -> JSONResponse:
+    return JSONResponse(status_code=status, content={"error": {"message": message, "type": error_type, "code": code}}, headers=dict(headers) if headers else None)
+
+
+def model_loading_error(model_id: str, cold_start_s: float) -> RouterError:
+    """HTTP 503 ``model_loading`` with ``Retry-After``: the model is not resident and the expected load time is stated."""
+    wait = max(1, math.ceil(cold_start_s))
+    return RouterError(
+        503,
+        f"The model '{model_id}' is not loaded on any producer right now; it is being loaded, expected cold start about {wait} s. "
+        f"Retry in {wait} s. You were not charged.",
+        "service_unavailable",
+        "model_loading",
+        {"Retry-After": str(wait)},
+    )
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -454,6 +473,10 @@ class ModelEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(min_length=1, max_length=128)
     local_name: str = Field(min_length=1, max_length=256)
+    # Optional residency report (HM-S16-06). Absent = "unknown": the producer is neither preferred nor penalised.
+    loaded: StrictBool | None = None
+    vram_mib: int | None = Field(default=None, ge=0, le=MAX_GPU_VRAM_MIB)
+    cold_start_s: float | None = Field(default=None, ge=0.0, allow_inf_nan=False)  # clamped to MAX_COLD_START_S by the gateway
 
 
 class HeartbeatRequest(BaseModel):
@@ -462,6 +485,7 @@ class HeartbeatRequest(BaseModel):
     models: list[ModelEntry] = Field(min_length=1, max_length=64)
     cost_per_1k: float = Field(ge=0.0, le=MAX_PRICE_CEILING, allow_inf_nan=False)
     capacity_1k: float = Field(ge=0.0, le=1e12, allow_inf_nan=False)
+    gpu_vram_mib: int | None = Field(default=None, ge=0, le=MAX_GPU_VRAM_MIB)  # optional card size, used to check the loaded set fits
     execution_class: str = Field(default="unknown", max_length=64)
     # Secret the gateway presents to the producer's own server (``Authorization: Bearer``) so that only the gateway can
     # use it. Optional for compatibility; without it the producer's endpoint is open to anyone who learns its URL.
@@ -494,6 +518,70 @@ class _Plan:
     candidates: tuple[ProducerRecord, ...]
     prompt_bytes: int
     max_tokens: int
+
+
+def residency_report(
+    entries: Sequence[tuple[str, ModelEntry]], gpu_vram_mib: int | None, capacity_1k: float
+) -> tuple[dict[str, Any] | None, float]:
+    """Turn the self-declared residency fields of a heartbeat into the stored report and the effective capacity.
+
+    Returns ``(None, capacity_1k)`` when the producer reports nothing (old agents: behaviour unchanged). Numbers are clamped, never trusted:
+    when ``gpu_vram_mib`` and the ``vram_mib`` of the models marked loaded are given and those models together exceed the card, the loaded
+    models are kept in the order listed while they fit and the rest are demoted to "not loaded"; the endpoint's declared capacity is scaled by
+    the share of loaded models that fit, and the reason is recorded in ``capacity_note`` for the monitor.
+    """
+    models: dict[str, dict[str, Any]] = {}
+    for public, entry in entries:
+        if entry.loaded is None and entry.vram_mib is None and entry.cold_start_s is None:
+            continue
+        models[public] = {
+            "loaded": entry.loaded,
+            "vram_mib": entry.vram_mib,
+            "cold_start_s": None if entry.cold_start_s is None else min(entry.cold_start_s, MAX_COLD_START_S),
+        }
+    if not models and gpu_vram_mib is None:
+        return None, capacity_1k
+    note: str | None = None
+    effective = capacity_1k
+    loaded_ids = [m for m, v in models.items() if v["loaded"] is True]
+    if gpu_vram_mib is not None and loaded_ids:
+        used = 0
+        kept = 0
+        dropped: list[str] = []
+        for model_id in loaded_ids:
+            need = models[model_id]["vram_mib"]
+            if need is None:  # no size declared: cannot be checked against the card, so it is taken at face value
+                kept += 1
+                continue
+            if used + need <= gpu_vram_mib:
+                used += need
+                kept += 1
+            else:
+                dropped.append(model_id)
+                models[model_id]["loaded"] = False
+        if dropped:
+            effective = capacity_1k * kept / len(loaded_ids)
+            note = (
+                f"declared loaded models exceed the {gpu_vram_mib} MiB card; treated as not loaded: {', '.join(dropped)}; "
+                f"capacity scaled {capacity_1k:g} -> {effective:g}"
+            )[:512]
+    return {"gpu_vram_mib": gpu_vram_mib, "capacity_note": note, "models": models}, effective
+
+
+def _residency_rank(record: ProducerRecord, model_id: str) -> int:
+    """0 = reported loaded, 1 = unknown (no report; keeps old producers where they were), 2 = reported not loaded."""
+    state = record.model_state(model_id)
+    return 0 if state is True else (2 if state is False else 1)
+
+
+def _holds_loaded_model(record: ProducerRecord) -> bool:
+    models = record.residency.get("models") if record.residency else None
+    return isinstance(models, Mapping) and any(isinstance(v, Mapping) and v.get("loaded") is True for v in models.values())
+
+
+def _cold_start_of(record: ProducerRecord, model_id: str) -> float:
+    estimate = record.cold_start_s(model_id)
+    return DEFAULT_COLD_START_S if estimate is None else min(estimate, MAX_COLD_START_S)
 
 
 def _public_model(model_id: str) -> str:
@@ -577,6 +665,8 @@ def create_router_app(
     oidc_verifiers: Mapping[str, OidcIdTokenVerifier] | None = None,
     open_registration: bool = True,
     bid_activity_window_s: float = 0.0,
+    cold_start_wait_budget_s: float = DEFAULT_COLD_START_WAIT_BUDGET_S,
+    warmup_unloaded: bool = True,
 ) -> FastAPI:
     """Build the gateway app. ``resolver`` (host -> IP strings) is injectable for tests of the SSRF guard.
 
@@ -587,6 +677,11 @@ def create_router_app(
     ``google_client_id`` turns on "Sign in with Google" registration (``/signup`` and ``/v1/hivemind/register/google``);
     without it both are disabled. ``google_verifier`` lets tests inject keys. ``open_registration=False`` closes the
     handle-only ``/v1/hivemind/register`` so that Google sign-in is the only way in.
+
+    ``cold_start_wait_budget_s`` (HM-S16-06): when every producer of a model reports it NOT loaded and the shortest expected cold start is at
+    least this many seconds, the request is answered at once with 503 ``model_loading`` and ``Retry-After`` instead of being forwarded to wait
+    for a load; shorter cold starts are forwarded. ``warmup_unloaded`` sends one tiny background request to the producer so the model really
+    starts loading (without it the model would never load: only requests make Ollama load a model).
     """
     client = http_client if http_client is not None else httpx.Client(timeout=PRODUCER_TIMEOUT_S, follow_redirects=False)
     resolve: Resolver = resolver if resolver is not None else _default_resolver
@@ -596,12 +691,14 @@ def create_router_app(
     market_cache: dict[tuple[str, int], dict[str, Any]] = {}
     market_lock = threading.Lock()
     capacity_clamp = float(max_producer_capacity_1k)
+    warm_lock = threading.Lock()
+    warm_started: dict[tuple[str, str], float] = {}
     app.add_middleware(BodyLimitMiddleware, max_bytes=MAX_BODY_BYTES)
 
     # ------------------------------------------------------------------ errors
     @app.exception_handler(RouterError)
     def _router_error(_: Request, exc: RouterError) -> JSONResponse:
-        return _error_response(exc.status, exc.message, exc.error_type, exc.code)
+        return _error_response(exc.status, exc.message, exc.error_type, exc.code, exc.headers)
 
     @app.exception_handler(RequestValidationError)
     def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -683,6 +780,36 @@ def create_router_app(
             raise RouterError(404, f"The model '{requested}' is not served by any live producer.", "invalid_request_error", "model_not_found")
         return name, records
 
+    def kick_warmup(model_id: str, servers: Sequence[ProducerRecord]) -> None:
+        """Ask the quickest-to-load producer to start loading ``model_id`` in the background (one tiny request, rate-limited per server and model)."""
+        # never evict: warm only a server that reports no model loaded at all (Ollama with MAX_LOADED_MODELS=1 would unload the resident one)
+        idle = [s for s in servers if not _holds_loaded_model(s)]
+        if not idle:
+            return
+        target = min(idle, key=lambda s: _cold_start_of(s, model_id))
+        key = (target.endpoint_url, model_id)
+        now = clock()
+        with warm_lock:
+            if now - warm_started.get(key, -math.inf) < WARMUP_MIN_INTERVAL_S:
+                return
+            warm_started[key] = now
+            if len(warm_started) > 1024:
+                for stale in [k for k, t in warm_started.items() if now - t > WARMUP_MIN_INTERVAL_S]:
+                    del warm_started[stale]
+        probe = {"model": model_id, "messages": [{"role": "user", "content": "ping"}]}
+        plan = _Plan("warmup", model_id, 0.0, "warmup", (), 0, 1)
+
+        def run() -> None:
+            request = producer_request(target, plan, probe, stream=False)
+            if request is None:
+                return
+            try:
+                client.send(request, stream=False).close()
+            except httpx.HTTPError:
+                LOGGER.info("warm-up of %s on producer %s did not complete", model_id, target.account_id)
+
+        threading.Thread(target=run, name="hivemind-warmup", daemon=True).start()
+
     def plan_request(account: Account, body: Mapping[str, Any]) -> _Plan:
         requested = body.get("model")
         messages = body.get("messages")
@@ -717,6 +844,15 @@ def create_router_app(
             )
         if eq.mechanism == MECHANISM_NO_TRADE or not eq.active_producers:
             raise RouterError(503, f"No producer is willing to serve '{requested}' at the current price.", "service_unavailable", "no_capacity")
+        by_id = {r.account_id: r for r in records}
+        # residency gate (HM-S16-06): every candidate server reports the model NOT loaded and loading takes too long to wait for: say so now, no hold taken
+        servers_all = [s for a in eq.active_producers if a in by_id for s in by_id[a].per_endpoint()]
+        if servers_all and all(s.model_state(model_id) is False for s in servers_all):
+            cold = min(_cold_start_of(s, model_id) for s in servers_all)
+            if cold >= cold_start_wait_budget_s:
+                if warmup_unloaded:
+                    kick_warmup(model_id, servers_all)
+                raise model_loading_error(model_id, cold)
         request_id = "req-" + uuid.uuid4().hex
         try:
             store.hold(request_id, account.account_id, reserve, now_utc=clock())
@@ -729,7 +865,6 @@ def create_router_app(
             ) from None
         except TooManyHolds:
             raise RouterError(429, "Too many requests in flight for this account.", "rate_limit_error", "too_many_inflight") from None
-        by_id = {r.account_id: r for r in records}
         weights = {a: clamped(by_id[a]) for a in eq.active_producers if a in by_id}
         order = rotation.order(model_id, weights)
         candidates: list[ProducerRecord] = []
@@ -741,6 +876,7 @@ def create_router_app(
                 candidates.extend(by_url[u] for u in rotation.order(f"{model_id}|{a}", shares))
             else:
                 candidates.append(servers[0])
+        candidates.sort(key=lambda r: _residency_rank(r, model_id))  # stable: loaded, then unknown, then known-not-loaded; rotation order kept within a rank
         return _Plan(
             request_id=request_id,
             model_id=model_id,
@@ -798,7 +934,16 @@ def create_router_app(
             "completion_tokens": completion,
         }
 
+    def upstream_exhausted(plan: _Plan, timed_out: ProducerRecord | None) -> RouterError:
+        """The explicit error once every candidate failed; a timeout is never opaque: ``model_loading`` only when the producer reported the model not loaded, else an explicit 504."""
+        if timed_out is not None:
+            if timed_out.model_state(plan.model_id) is False:
+                return model_loading_error(plan.model_id, _cold_start_of(timed_out, plan.model_id))
+            return RouterError(504, "The producer did not answer in time; you were not charged.", "api_error", "upstream_timeout")
+        return RouterError(502, "Every producer for this model failed; you were not charged.", "api_error", "upstream_failure")
+
     def chat_blocking(plan: _Plan, account: Account, body: Mapping[str, Any]) -> JSONResponse:
+        timed_out: ProducerRecord | None = None
         for record in plan.candidates:
             request = producer_request(record, plan, body, stream=False)
             if request is None:
@@ -812,8 +957,10 @@ def create_router_app(
                         payload = json.loads(raw)
                 finally:
                     upstream.close()
-            except (httpx.HTTPError, ValueError, UpstreamLimitError):
+            except (httpx.HTTPError, ValueError, UpstreamLimitError) as exc:
                 payload = None
+                if isinstance(exc, httpx.TimeoutException) and timed_out is None:
+                    timed_out = record
             if not isinstance(payload, dict) or not has_completion_choice(payload):
                 LOGGER.warning("producer %s failed request %s", record.account_id, plan.request_id)
                 continue
@@ -833,16 +980,19 @@ def create_router_app(
             }
             payload["hivemind"] = {k: info[k] for k in ("price_per_1k", "charged_hmt", "producer_id", "mechanism", "request_id")}
             return JSONResponse(payload)
-        raise RouterError(502, "Every producer for this model failed; you were not charged.", "api_error", "upstream_failure")
+        raise upstream_exhausted(plan, timed_out)
 
     def chat_streaming(plan: _Plan, account: Account, body: Mapping[str, Any]) -> StreamingResponse:
+        timed_out: ProducerRecord | None = None
         for record in plan.candidates:
             request = producer_request(record, plan, body, stream=True)
             if request is None:
                 continue
             try:
                 upstream = client.send(request, stream=True)
-            except httpx.HTTPError:
+            except httpx.HTTPError as exc:
+                if isinstance(exc, httpx.TimeoutException) and timed_out is None:
+                    timed_out = record
                 LOGGER.warning("producer %s failed request %s", record.account_id, plan.request_id)
                 continue
             if upstream.status_code != 200:
@@ -850,7 +1000,7 @@ def create_router_app(
                 LOGGER.warning("producer %s answered %s for %s", record.account_id, upstream.status_code, plan.request_id)
                 continue
             return StreamingResponse(_stream_body(plan, account, record.account_id, upstream), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})
-        raise RouterError(502, "Every producer for this model failed; you were not charged.", "api_error", "upstream_failure")
+        raise upstream_exhausted(plan, timed_out)
 
     def _stream_body(plan: _Plan, account: Account, producer_id: str, upstream: httpx.Response) -> Iterator[bytes]:
         public = _public_model(plan.model_id)
@@ -994,7 +1144,14 @@ def create_router_app(
     def list_models() -> dict[str, Any]:
         created = int(clock())
         ids = [_public_model(AUTO_MODEL), *(_public_model(m) for m in store.live_models(clock(), PRODUCER_TTL_S))]
-        return {"object": "list", "data": [{"id": i, "object": "model", "created": created, "owned_by": "hivemind"} for i in ids]}
+        loaded = store.residency_summary(clock(), PRODUCER_TTL_S)
+        data: list[dict[str, Any]] = []
+        for i in ids:
+            item: dict[str, Any] = {"id": i, "object": "model", "created": created, "owned_by": "hivemind"}
+            if _strip_prefix(i) in loaded:  # only where some live producer reports residency; aggregate only, no producer identity
+                item["loaded"] = loaded[_strip_prefix(i)]
+            data.append(item)
+        return {"object": "list", "data": data}
 
     def handle_chat(account: Account, raw: bytes) -> JSONResponse | StreamingResponse:
         try:
@@ -1139,14 +1296,18 @@ def create_router_app(
             if not _MODEL_ID_RE.match(public) or public == AUTO_MODEL:
                 raise RouterError(400, f"Invalid model id: {entry.id!r}", "invalid_request_error", "invalid_model_id")
             models.append({"id": public, "local_name": entry.local_name})
+        residency, capacity = residency_report([(m["id"], e) for m, e in zip(models, payload.models, strict=True)], payload.gpu_vram_mib, payload.capacity_1k)
         try:
             endpoints = store.upsert_producer(
-                account.account_id, payload.endpoint_url, models, payload.cost_per_1k, payload.capacity_1k, payload.execution_class,
-                now_utc=clock(), endpoint_token=payload.endpoint_token,
+                account.account_id, payload.endpoint_url, models, payload.cost_per_1k, capacity, payload.execution_class,
+                now_utc=clock(), endpoint_token=payload.endpoint_token, residency=residency,
             )
         except TooManyEndpoints as exc:
             raise RouterError(400, str(exc), "invalid_request_error", "too_many_endpoints") from None
-        return {"account_id": account.account_id, "status": "live", "models": [m["id"] for m in models], "ttl_s": PRODUCER_TTL_S, "endpoints": endpoints}
+        ack: dict[str, Any] = {"account_id": account.account_id, "status": "live", "models": [m["id"] for m in models], "ttl_s": PRODUCER_TTL_S, "endpoints": endpoints}
+        if residency is not None:
+            ack["residency"] = {"loaded": sorted(m for m, v in residency["models"].items() if v["loaded"] is True), "effective_capacity_1k": capacity, "capacity_note": residency["capacity_note"]}
+        return ack
 
     @app.get("/v1/hivemind/market")
     def market(request: Request, model: str = AUTO_MODEL) -> dict[str, Any]:

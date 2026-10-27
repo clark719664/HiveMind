@@ -46,6 +46,9 @@ ENDPOINT_TOKEN_ENV: str = "HIVEMIND_ENDPOINT_TOKEN"
 DEFAULT_EXECUTION_CLASS: str = "gpu"
 DEFAULT_INTERVAL_S: float = 60.0
 HTTP_TIMEOUT_S: float = 30.0
+DEFAULT_LOCAL_ENDPOINT: str = "http://127.0.0.1:11434"  # the local Ollama; read-only residency probe only
+RESIDENCY_TIMEOUT_S: float = 2.0
+DEFAULT_COLD_START_S: float = 60.0
 
 Runner = Callable[..., "subprocess.CompletedProcess[str]"]
 
@@ -58,6 +61,55 @@ def parse_model_spec(raw: str) -> dict[str, str]:
     if not separator or not model_id or not local_name:
         raise argparse.ArgumentTypeError(f"--model expects id=local_name, got {raw!r}")
     return {"id": model_id, "local_name": local_name}
+
+
+def probe_residency(
+    local_endpoint: str, *, transport: httpx.BaseTransport | None = None, timeout_s: float = RESIDENCY_TIMEOUT_S
+) -> dict[str, int] | None:
+    """Which models the LOCAL Ollama holds in memory right now: ``{name: vram_mib}`` from ``GET /api/ps``, or ``None``.
+
+    Read-only and best effort: any failure (server down, timeout, odd JSON) returns ``None`` so that the heartbeat simply reports nothing.
+    """
+    try:
+        with httpx.Client(timeout=timeout_s, transport=transport, follow_redirects=False) as client:
+            response = client.get(local_endpoint.rstrip("/") + "/api/ps")
+            response.raise_for_status()
+            listed = response.json().get("models")
+    except (httpx.HTTPError, ValueError, AttributeError):
+        return None
+    if not isinstance(listed, list):
+        return None
+    resident: dict[str, int] = {}
+    for item in listed:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name") or item.get("model")
+        size = item.get("size_vram")
+        if not isinstance(name, str) or not name:
+            continue
+        mib = int(size) // (1024 * 1024) if isinstance(size, (int, float)) and not isinstance(size, bool) and size >= 0 else 0
+        resident[name] = mib
+    return resident
+
+
+def apply_residency(
+    payload: dict[str, Any], resident: dict[str, int] | None, *, cold_start_s: float, gpu_vram_mib: int | None
+) -> dict[str, Any]:
+    """Add the optional residency fields to ``payload`` (in place and returned). ``resident=None`` (probe failed) adds nothing per model."""
+    if gpu_vram_mib is not None and gpu_vram_mib > 0:
+        payload["gpu_vram_mib"] = int(gpu_vram_mib)
+    if resident is None:
+        return payload
+    for entry in payload["models"]:
+        local = entry["local_name"]
+        hit = local if local in resident else (f"{local}:latest" if f"{local}:latest" in resident else None)
+        if hit is not None:
+            entry["loaded"] = True
+            entry["vram_mib"] = resident[hit]
+        else:
+            entry["loaded"] = False
+            entry["cold_start_s"] = cold_start_s
+    return payload
 
 
 def build_heartbeat_payload(
@@ -174,6 +226,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--suggest", action="store_true", help="Print the best tier for --vram-gb / --detect-vram and exit (no key needed)")
     parser.add_argument("--vram-gb", type=float, help="Your GPU memory in GB (for --suggest)")
     parser.add_argument("--detect-vram", action="store_true", help="Read GPU memory from nvidia-smi (for --suggest)")
+    parser.add_argument("--no-residency", action="store_true", help="Do not ask the local model server which models are loaded; heartbeats then carry no residency data")
+    parser.add_argument("--local-endpoint", default=DEFAULT_LOCAL_ENDPOINT, help=f"Local Ollama base URL for the read-only GET /api/ps residency probe (default {DEFAULT_LOCAL_ENDPOINT})")
+    parser.add_argument("--cold-start-s", type=float, default=DEFAULT_COLD_START_S, help=f"Your estimate of the seconds needed to load a model that is not resident (default {DEFAULT_COLD_START_S:g}, max 600)")
+    parser.add_argument("--gpu-vram-mib", type=int, help="Card memory in MiB to report with residency (default: read from nvidia-smi when possible)")
     parser.add_argument("--skip-preflight", action="store_true", help="Do not check that your endpoint lists the model before the first heartbeat")
     return parser
 
@@ -203,7 +259,11 @@ def _suggest(client: httpx.Client, args: argparse.Namespace, parser: argparse.Ar
 
 
 def main(
-    argv: Sequence[str] | None = None, *, transport: httpx.BaseTransport | None = None, runner: Runner = subprocess.run
+    argv: Sequence[str] | None = None,
+    *,
+    transport: httpx.BaseTransport | None = None,
+    runner: Runner = subprocess.run,
+    residency_transport: httpx.BaseTransport | None = None,
 ) -> int:
     """Run the producer agent. Returns a process exit code."""
     parser = build_parser()
@@ -259,11 +319,27 @@ def main(
                       "or pass --local-name / --model with the name your server uses.", file=sys.stderr)
                 return 1
 
-        payload = build_heartbeat_payload(
-            endpoint=args.endpoint, models=models, cost_per_1k=cost, capacity_1k=capacity,
-            execution_class=args.execution_class, endpoint_token=token,
-        )
+        if not 0 <= args.cold_start_s <= 600:
+            parser.error("--cold-start-s must be between 0 and 600")
+        gpu_mib: int | None = None
+        if not args.no_residency:
+            gpu_mib = args.gpu_vram_mib
+            if gpu_mib is None:
+                detected = detect_vram_gb(runner)
+                gpu_mib = int(detected * 1024) if detected is not None else None
+
+        def make_payload() -> dict[str, Any]:
+            built = build_heartbeat_payload(
+                endpoint=args.endpoint, models=models, cost_per_1k=cost, capacity_1k=capacity,
+                execution_class=args.execution_class, endpoint_token=token,
+            )
+            if args.no_residency:
+                return built
+            resident = probe_residency(args.local_endpoint, transport=residency_transport)
+            return apply_residency(built, resident, cold_start_s=args.cold_start_s, gpu_vram_mib=gpu_mib)
+
         if args.once:
+            payload = make_payload()
             try:
                 body = send_heartbeat(client, args.gateway, api_key, payload)
             except (httpx.HTTPError, ValueError) as exc:
@@ -275,7 +351,7 @@ def main(
         try:
             while True:
                 try:
-                    body = send_heartbeat(client, args.gateway, api_key, payload)
+                    body = send_heartbeat(client, args.gateway, api_key, make_payload())
                     print(f"heartbeat ok: {json.dumps(body, sort_keys=True)}", flush=True)
                 except (httpx.HTTPError, ValueError) as exc:
                     print(f"heartbeat failed, retrying: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
