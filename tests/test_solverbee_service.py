@@ -52,7 +52,10 @@ class Srv:
         h = dict(headers or {})
         if data is not None:
             h.setdefault("Content-Type", "application/json")
-        c.request(method, path, body=data, headers=h)
+        try:
+            c.request(method, path, body=data, headers=h)
+        except BrokenPipeError:
+            pass
         r = c.getresponse()
         txt = r.read()
         c.close()
