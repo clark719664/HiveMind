@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 import stat
+import threading
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -242,7 +243,12 @@ def test_malformed_control_is_ignored_and_logged_once(monkeypatch: pytest.Monkey
     seen: list[dict[str, Any]] = []
     calls = {"n": 0}
 
-    def fake_sleep(_: float) -> None:
+    real_sleep = agent.time.sleep
+
+    def fake_sleep(sec: float) -> None:
+        if threading.current_thread() is not threading.main_thread():
+            real_sleep(sec)
+            return
         calls["n"] += 1
         if calls["n"] >= 2:
             raise KeyboardInterrupt
