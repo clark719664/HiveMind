@@ -241,6 +241,26 @@ Routing:
 
 Backward compatibility: a producer that sends none of these fields behaves exactly as before (rank "unknown", never deferred); a heartbeat without them clears an earlier report. Databases gain a nullable `residency_json` column in place.
 
+## Remote control: pause, resume and VRAM cap
+
+A producer can stop taking requests, or cap the video memory it offers, without logging in to its machine.
+
+```bash
+# pause (your own producer key)
+curl -s $GATEWAY/v1/hivemind/producer/control -H "Authorization: Bearer $HIVEMIND_API_KEY" -H 'Content-Type: application/json' -d '{"paused": true}'
+# resume and cap the loaded models at 8000 MiB
+curl -s $GATEWAY/v1/hivemind/producer/control -H "Authorization: Bearer $HIVEMIND_API_KEY" -H 'Content-Type: application/json' -d '{"paused": false, "vram_cap_mib": 8000}'
+# clear everything: {"paused": false}   (each call replaces the whole state; vram_cap_mib omitted or null = no cap)
+```
+
+- **Who may set it.** The producer's own API key (a producer can pause itself) or the operator's admin key (`X-Admin-Key`, naming `account_id` or `handle`). No key is 401, a wrong admin key or another account's name is 403, a consumer account is 403. A producer without a key cannot be paused by strangers. `GET /v1/hivemind/producer/control` reads your own state.
+- **Values.** `paused` must be a JSON boolean; `vram_cap_mib` an integer from 1 to 1,048,576 or null. Anything else (negative, zero, NaN, floats, strings, extra fields such as commands or paths) is 400.
+- **Gateway, immediately.** From the moment of the call a paused producer is never selected and is not counted as supply (routing, `GET /v1/models`, the market), whatever its agent does. A cap below the sum of the `vram_mib` of its loaded models (from model residency, above) keeps the loaded models in the order listed while they fit, treats the rest as not loaded and scales the capacity by the share kept, with the same `capacity_note` style as the card check.
+- **Agent and shield, within one heartbeat interval.** Once a state exists, every heartbeat ack carries `control` (`paused`, `vram_cap_mib`, `version`, `updated_at`, `acknowledged`). The agent then sends zero capacity and `"paused": true`, leaves out models whose `vram_mib` would not fit the cap and reports `vram_cap_mib` back; when the state is cleared it resumes on the next heartbeat. With `--control-state-file PATH` it writes the state to an owner-only (0600) file; start the shield with the same `--control-state-file` and it answers chat requests with 503 `producer_paused` (OpenAI-style error) while paused. `GET /v1/models` keeps working. A missing or unreadable file means not paused. If the agent stops while paused, the file stays paused until the agent runs again.
+- **What it cannot do.** It carries only a boolean and a number. No command, file path, model name, price or process control is accepted, the agent ignores every other field, and a malformed `control` object is ignored with one log line. The cap cannot unload a model from Ollama; it stops the producer advertising capacity it was told not to use.
+
+Backward compatibility: with no state set the ack, the heartbeat and the shield behave exactly as before.
+
 ## Python and game developers
 
 The getting-started kit for people who write Python and small games, including GPU sharing, model tiers and editor setup, is
