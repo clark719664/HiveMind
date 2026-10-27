@@ -1,6 +1,6 @@
 # Bee MoE with numeric solver experts: a three-wave proposal
 
-Status: **proposal for the owner's decision**, 2026-10-28. Nothing in this document is built. Effort figures are estimates, not measurements. Every capability is labelled *verified here*, *planned*, or *owner decision*. IDs such as `W1-1` are proposal-local; roadmap rows are added only after the owner picks a season number.
+Status: **proposal for the owner's decision**, 2026-10-27. Nothing in this document is built. Effort figures are estimates, not measurements. Every capability is labelled *verified here*, *planned*, or *owner decision*. IDs such as `W1-1` are proposal-local; roadmap rows are added only after the owner picks a season number.
 
 ## 1. The idea in one paragraph
 
