@@ -18,11 +18,22 @@ import sys
 import time
 from pathlib import Path
 
+from hivemind.boinc.real_client.contributor_policy import BoincHostDirectory, replay_all_for_result
 from hivemind.boinc.real_client.moe_bridge import MoEValidator
 from hivemind.boinc.real_client.moe_profiles import TRAIN_APPS, profile_for_app
 
 SPEC_DIR = Path(os.environ.get("HIVEMIND_SPEC_DIR", "hivemind_specs"))
 LEDGER_DIR = Path(os.environ.get("HIVEMIND_LEDGER_DIR", "hivemind_ledger"))
+
+
+def _host_directory() -> BoincHostDirectory | None:
+    """Result -> account lookup through the project database, when the validator shim says where the project is (community mode only)."""
+    base, src = os.environ.get("HIVEMIND_STACK_BASE"), os.environ.get("HIVEMIND_BOINC_SRC")
+    if not base or not src:
+        return None
+    from hivemind.boinc.real_client.server_stack import Stack
+
+    return BoincHostDirectory(Stack(Path(base), Path(src), sys.executable, Path(__file__).resolve().parents[3]).sql)
 
 
 def _meta(files: list[str]) -> tuple[dict, list[Path]]:
@@ -69,7 +80,7 @@ def validate(args: list[str]) -> int:
     mv = MoEValidator()
     host = f"result-{args[-1]}" if args and args[-1].isdigit() else "host"
     if meta.get("app") in TRAIN_APPS and len(paths) >= 2:
-        verdict = mv.validate_train(spec, paths[0], paths[1], host)
+        verdict = mv.validate_train(spec, paths[0], paths[1], host, replay_all=replay_all_for_result(args[-1] if args and args[-1].isdigit() else None, _host_directory()))
     elif meta.get("app") == "hivemind_moe_infer":
         adapter = torch.load(SPEC_DIR / f"{wu}.adapter.pt", map_location="cpu")["state"]
         verdict = mv.validate_infer(spec, paths[0], adapter, host)

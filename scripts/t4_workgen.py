@@ -21,6 +21,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from datetime import datetime, timezone  # noqa: E402
+
+from hivemind.boinc.real_client.contributor_policy import in_european_night  # noqa: E402
 from hivemind.boinc.real_client.moe_profiles import PROFILES, STANDARD, flops_estimate  # noqa: E402
 from hivemind.boinc.real_client.moe_work import DOMAIN_ORDER, build_train_spec  # noqa: E402
 from hivemind.boinc.real_client.server_stack import Stack  # noqa: E402
@@ -34,6 +37,10 @@ def pending(st: Stack, app: str = TRAIN_APP, prefix: str = "hmq_") -> int:
     q = (f"use {st.dbname}; select count(*) from result r join app a on a.id=r.appid where a.name='{app}' and r.name regexp '^{prefix}' "
          "and (r.server_state in (2,4) or (r.server_state=5 and r.validate_state=0 and r.outcome=1));")
     return int(st.sql(q).strip().splitlines()[-1])
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def prune(ledger: Path, keep: int = 20, prefix: str = "hmq_") -> None:
@@ -51,6 +58,7 @@ def main() -> int:
     ap.add_argument("--inner-steps", type=int, default=80, help="a round is ~3-4 min on the shared T4; rounds are only run when the node is idle")
     ap.add_argument("--segment-steps", type=int, default=10)
     ap.add_argument("--profile", choices=sorted(PROFILES), default=STANDARD, help="standard: any GPU >= 3.5 GB; big: its own app, plan class and adapter chain for GPUs >= 10 GB")
+    ap.add_argument("--night-only", action="store_true", help="create work only 22:00-07:00 Europe/Paris (community work: offered when end-user load is lowest)")
     ap.add_argument("--once", action="store_true")
     a = ap.parse_args()
     prof = PROFILES[a.profile]
@@ -63,7 +71,9 @@ def main() -> int:
     chain_template = st.ensure_chain_template(prof["app"])
     while True:
         try:
-            if pending(st, prof["app"], prof["prefix"]) == 0:
+            if a.night_only and not in_european_night(_now()):
+                pass  # outside the window: create nothing, results already out keep validating
+            elif pending(st, prof["app"], prof["prefix"]) == 0:
                 rnd = (json.loads(state_f.read_text())["round"] if state_f.exists() else 0) + 1
                 head = json.loads((ledger / f"{stem}.json").read_text()) if (ledger / f"{stem}.json").exists() else None
                 name = f"{prof['prefix']}{rnd:05d}"

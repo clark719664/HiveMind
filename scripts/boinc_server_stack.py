@@ -39,6 +39,7 @@ def shim(stack: Stack, cmd: str, venv_python: str) -> str:
         "#!/bin/bash\nunset LD_LIBRARY_PATH\n"
         f"export PYTHONPATH={ROOT / 'src'}\nexport HF_HUB_OFFLINE=1\n"
         f"export HIVEMIND_SPEC_DIR={stack.root}/hivemind_specs\nexport HIVEMIND_LEDGER_DIR={stack.root}/hivemind_ledger\n"
+        f"export HIVEMIND_STACK_BASE={stack.base}\nexport HIVEMIND_BOINC_SRC={stack.src}\n"  # lets the validator look a result up in the project DB (community mode)
         f"exec {venv_python} -W ignore -m hivemind.boinc.real_client.boinc_server_scripts {cmd} \"$@\"\n"
     )
 

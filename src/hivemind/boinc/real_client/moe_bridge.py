@@ -50,7 +50,7 @@ class MoEValidator:
             self._init_state = extract_lora_state_dict(self._model)
             self._model_key = key
 
-    def validate_train(self, spec: dict[str, Any], meta_path: Path, states_path: Path, host: str) -> Verdict:
+    def validate_train(self, spec: dict[str, Any], meta_path: Path, states_path: Path, host: str, replay_all: bool = False) -> Verdict:
         import torch
 
         from hivemind.boinc.real_client.moe_app import state_sha
@@ -77,20 +77,26 @@ class MoEValidator:
             expected_start = spec.get("start_adapter_sha256") or state_sha(self._init_state)
             if expected_start != meta["state_sha256"][0]:
                 return _reject(wu, host, "chain does not start at the expected adapter (previous validated adapter or deterministic init)")
-            k = self._rng.randrange(k_total)
+            # one random segment normally; every segment for a result that has not earned that trust (new outside contributor)
+            ks = list(range(k_total)) if replay_all else [self._rng.randrange(k_total)]
             tokens = torch.tensor(spec["train_tokens"], dtype=torch.long)
             seg = int(spec["segment_steps"])
-            expect = replay_inner_segment(
-                self._model, states[k], tokens, k * seg, (k + 1) * seg, lr=float(spec["lr"]),
-                weight_decay=float(spec["weight_decay"]), rng_seed=int(spec["rng_seed"]), micro_batch_size=int(spec["micro_batch"]),
-            )
-        diff = max(float((expect[n].float() - states[k + 1][n].float()).abs().max()) for n in expect)
-        detail = {"replayed_segment": k, "of_segments": k_total, "max_abs_divergence": diff, "tolerance_eps": EPS,
-                  "overhead_pct": round(100.0 / k_total, 1), "eval_loss_before": meta.get("eval_loss_before"), "eval_loss_after": meta.get("eval_loss_after")}
+            diffs: dict[int, float] = {}
+            for k in ks:
+                expect = replay_inner_segment(
+                    self._model, states[k], tokens, k * seg, (k + 1) * seg, lr=float(spec["lr"]),
+                    weight_decay=float(spec["weight_decay"]), rng_seed=int(spec["rng_seed"]), micro_batch_size=int(spec["micro_batch"]),
+                )
+                diffs[k] = max(float((expect[n].float() - states[k + 1][n].float()).abs().max()) for n in expect)
+        diff = max(diffs.values())
+        k = next((s for s, d in diffs.items() if not d <= EPS), ks[0])  # the first failing segment, else the (only) replayed one
+        detail = {"replayed_segment": k, "replayed_segments": len(ks), "full_replay": replay_all, "of_segments": k_total, "max_abs_divergence": diff,
+                  "tolerance_eps": EPS, "overhead_pct": round(100.0 * len(ks) / k_total, 1),
+                  "eval_loss_before": meta.get("eval_loss_before"), "eval_loss_after": meta.get("eval_loss_after")}
         if not diff <= EPS:
             return _reject(wu, host, f"REJECTED segment {k}: divergence {diff:.3e} exceeds eps={EPS:.0e}", detail)
         claim = CreditClaim(host, wu, float(meta["flops_claimed"]), max(float(meta["wall_seconds"]), 1e-6), T4_PEAK_GFLOPS, True, True)
-        return Verdict(wu, host, True, f"verified segment {k}/{k_total}: max_diff={diff:.2e}", diff == 0.0, None, verified_credit(claim).to_dict(), detail)
+        return Verdict(wu, host, True, (f"verified all {k_total} segments" if replay_all else f"verified segment {k}/{k_total}") + f": max_diff={diff:.2e}", diff == 0.0, None, verified_credit(claim).to_dict(), detail)
 
     def validate_infer(self, spec: dict[str, Any], meta_path: Path, adapter: dict[str, Any], host: str) -> Verdict:
         from hivemind.boinc.real_client.moe_app import infer
