@@ -946,6 +946,51 @@ class BeeRetentionStore:
         return manifest
 
 
+def solver_bee_waves_and_agent_fleet_plan() -> dict[str, Any]:
+    """Return the Season 20 (`HM-S20-SOLVER`) 3-Wave Solver Bee roadmap & Owner RTX 2070 / GCP T4 agent fleet plan."""
+    return {
+        "season": "HM-S20-SOLVER",
+        "proposal_doc": "docs/BEE_MOE_NUMERIC_SOLVERS_PROPOSAL.md",
+        "handoff_doc": "docs/CLAUDE_CODE_HANDOFF_S20_SOLVER_BEE_AND_AGENTS.md",
+        "waves": {
+            "wave_1_solver_bee_v0": [
+                {"id": "HM-S20-W1-1", "issue": 261, "title": "hivemind-solver: pinned Rust CLI around rusty-SUNDIALS (JSON in, certificate out)"},
+                {"id": "HM-S20-W1-2", "issue": 262, "title": "Problem library with independent references and invariants (12 IVPs + 4-domain pack)"},
+                {"id": "HM-S20-W1-3", "issue": 263, "title": "Independent stdlib verifier (VERIFIED / AUDITED / FAILED / UNVERIFIED)"},
+                {"id": "HM-S20-W1-4", "issue": 264, "title": "E15 sandbox extension for compiled solver binary under resource limits"},
+                {"id": "HM-S20-W1-5", "issue": 265, "title": "solver_bee loopback service (/v1/chat/completions behind producer shield)"},
+                {"id": "HM-S20-W1-6", "issue": 266, "title": "Pre-registered S-1: same-host bitwise & cross-CPU reproducibility (RTX 2070 vs GCP T4)"},
+                {"id": "HM-S20-W1-7", "issue": 267, "title": "Pre-registered S-2: 5-class fault injection against the numeric verifier"},
+                {"id": "HM-S20-W1-8", "issue": 268, "title": "Bee scoring for solver bees (Wilson lower bound & bee_energy.py)"},
+                {"id": "HM-S20-W1-9", "issue": 269, "title": "Newcomer quickstart + Stretch W1b NL-to-JSON-Spec coder translator"},
+            ],
+            "wave_2_boinc_and_surrogates": [
+                {"id": "HM-S20-W2-1", "issue": 270, "title": "BOINC CPU sweep app, solver validator branch & Solver-Taught Neural Surrogate Expert"},
+            ],
+            "wave_3_pdes_and_formal": [
+                {"id": "HM-S20-W2-2", "issue": 271, "title": "Router CPU/hybrid solver tier, AMCP solver mesh, method-of-lines PDEs & Lean 4 soundness"},
+            ],
+        },
+        "owner_agent_fleet": {
+            "issue": 272,
+            "rtx_2070_local_8gb": {
+                "hardware_tier": "std_8gb",
+                "vram_cap_mib": 6656,
+                "live_models": ["hivemind/coder", "hivemind/bee-rusty-sundials"],
+                "cpu_worker": "hivemind-solver (1 vCPU inside E15 sandbox) + S-1(b) consumer CPU anchor",
+                "training_schedule": "Daytime micro-idle (>=30s, <1.0s preemption) + Nocturnal QLoRA (22:00-07:00 CET) + BeeRetentionStore",
+            },
+            "gcp_tesla_t4_16gb_fleet": {
+                "hardware_tier": "xl_16gb_plus",
+                "vram_cap_mib": 15360,
+                "live_models": ["hivemind/bee-rusty-sundials", "hivemind/bee-stars", "hivemind/coder", "hivemind/coder-plus"],
+                "boinc_validator": "resident_validator.py (PR #256) via UNIX socket",
+                "teacher_distillation": "Rank-32 teacher LoRA trained on verified solver trajectories -> SVD Rank-16 student graft for RTX 2070",
+            },
+        },
+    }
+
+
 def rusty_sundials_bee_descriptor() -> dict[str, Any]:
     """Public descriptor served by `GET /v1/hivemind/bees/rusty-sundials`."""
     return {
@@ -963,6 +1008,7 @@ def rusty_sundials_bee_descriptor() -> dict[str, Any]:
         "supported_domains": ["astronomy", "fluid_mechanics", "quantum_fluid", "genetics"],
         "linked_repositories": LINKED_REPOSITORIES,
         "rescue_endpoint": "/v1/hivemind/bees/rusty-sundials/rescue",
+        "season20_solver_bee_and_agent_plan": solver_bee_waves_and_agent_fleet_plan(),
         "byob_producer_commands": {
             "build_and_verify_dataset": "uv run python scripts/train_and_serve_rusty_sundials_bee.py --build-dataset --verify-rescue",
             "retain_local_checkpoint": "uv run python scripts/train_and_serve_rusty_sundials_bee.py --retain-checkpoint --node-id my-gpu-node",

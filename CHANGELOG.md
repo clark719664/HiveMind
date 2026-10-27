@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Proposal: Bee MoE with numeric solver experts, three waves (docs/BEE_MOE_NUMERIC_SOLVERS_PROPOSAL.md); nothing implemented
+
 - Optional resident validator (off by default): `src/hivemind/boinc/real_client/resident_validator.py` keeps the validator's base model loaded across results (thread-safe LRU `ModelCache`, UNIX-socket server/client with a length-prefixed JSON protocol, CLI `serve|ping|stats`). `hivemind_validate` forwards to it when `HIVEMIND_RESIDENT_VALIDATOR_SOCKET` (or `--resident`) is set and falls back to the one-shot path with one warning line when it is unreachable. `boinc_server_scripts.validate` now delegates to the shared `run_validation`, which both paths call. Tests in `tests/test_resident_validator.py` (CPU, fake model). Not done: no real model or GPU run, not enabled on the live node, GPU sharing with volunteer tasks unsolved, no measured speed-up. See `docs/BOINC_PRODUCTION_SERVER.md`.
 - Volunteer preflight (`scripts/hivemind_volunteer_preflight.py`, docs/community/VOLUNTEER_PREFLIGHT.md): stdlib-only check of OS, NVIDIA GPU and VRAM tier, free disk against the ~4.4 GB first download, RAM/CPU, existing BOINC client and battery, with a ready / ready_with_warnings / not_ready verdict (exit 0/1/2) and `--json`. No network connection unless `--project-url` is given (https and public addresses only); no hostname, user name or GPU UUID is output.
 
