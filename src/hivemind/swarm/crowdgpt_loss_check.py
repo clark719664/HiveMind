@@ -192,7 +192,7 @@ def window_losses(model: nn.Module, tokens: np.ndarray, starts: Sequence[int], w
     arr = np.asarray(tokens)
     if vocab is not None and len(arr) and int(arr.max()) >= vocab:
         raise ValueError("held-out tokens contain ids outside the vocabulary")
-    model = model.to(device=device, dtype=dtype).eval()
+    model = model.to(device=device, dtype=dtype).train(False)  # inference mode for dropout/norm layers (same as Module.eval)
     out: list[float] = []
     with torch.inference_mode():
         for i in range(0, len(starts), batch):
