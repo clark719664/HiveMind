@@ -419,6 +419,8 @@ const PROMPTS = {
   python: "Write a high-performance Python decorator with LRU caching, thread safety, and execution duration metrics in microseconds.",
   pytorch: "Write a PyTorch autograd Function that computes the exact Voronoi cell projections on a Conway-Sloane A2 hexagonal lattice.",
   astro: "Simulate transit timing variations (TTV) of an exoplanetary system under 3-body gravitational resonance.",
+  sundials: "Rescue a stiff Navier-Stokes / Gross-Pitaevskii ODE-PDE system in Rust using Rusty-SUNDIALS CVODE BDF with adaptive step control.",
+  francais: "Bonjour ! Explique comment fonctionne La Ruche HiveMind@home pour partager son GPU citoyen et utiliser l'API dans VS Code.",
   reciprocity: "Explain how HiveMind's non-monetary compute reciprocity model works for gamers and AI developers.",
   crowdgpt: "Explain how a 1B generalist dense trunk (CrowdGPT Vxtzq/Crowd-v1 trained on 7B FineWeb tokens) and 18 MB domain QLoRA adapters can share a Hub-and-Spoke DiLoCo + Multi-Krum volunteer GPU swarm."
 };
@@ -472,6 +474,7 @@ async function sendChat() {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + apiKey,
+        'X-Title': 'HiveMind-Playground',
       },
       body: JSON.stringify({
         model: model,
@@ -793,8 +796,10 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
 
         <label for="modelSelect">Capability Tier (Model)</label>
         <select id="modelSelect">
-          <option value="hivemind/auto">hivemind/auto (Smart Market Liquidity Routing)</option>
+          <option value="hivemind/auto">hivemind/auto (Smart Intent &amp; Market Liquidity Routing)</option>
           <option value="hivemind/coder">hivemind/coder (7B &bull; Everyday Python &amp; Game Code)</option>
+          <option value="hivemind/bee-rusty-sundials">hivemind/bee-rusty-sundials (7B &bull; Rusty-SUNDIALS Numeric ODE/PDE Rescue)</option>
+          <option value="hivemind/bee-stars">hivemind/bee-stars (4B &bull; Astrophysics &amp; Symplectic N-Body)</option>
           <option value="hivemind/crowd-v1">hivemind/crowd-v1 (1B &bull; CrowdGPT Vxtzq/Crowd-v1 Generalist Trunk &bull; Pre-Wired Partner)</option>
           <option value="hivemind/coder-lite">hivemind/coder-lite (3B &bull; Ultra-Fast Edits)</option>
           <option value="hivemind/coder-plus">hivemind/coder-plus (14B &bull; Multi-File &amp; Tests)</option>
@@ -805,8 +810,10 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
         <label>Quick Prompt Presets</label>
         <div class="pill-row">
           <button type="button" class="pill prompt-pill" data-prompt="python">Python LRU Decorator</button>
-          <button type="button" class="pill prompt-pill" data-prompt="pytorch">PyTorch A2 Lattice</button>
+          <button type="button" class="pill prompt-pill" data-prompt="sundials">Rusty-SUNDIALS ODE</button>
           <button type="button" class="pill prompt-pill" data-prompt="astro">Exoplanet Resonance</button>
+          <button type="button" class="pill prompt-pill" data-prompt="francais">Citoyen IA (FR)</button>
+          <button type="button" class="pill prompt-pill" data-prompt="pytorch">PyTorch A2 Lattice</button>
           <button type="button" class="pill prompt-pill" data-prompt="reciprocity">Reciprocity Charter</button>
         </div>
 

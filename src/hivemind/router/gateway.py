@@ -60,6 +60,7 @@ from hivemind.router.google_auth import GoogleAuthError, GoogleIdTokenVerifier
 from hivemind.router.oidc_auth import OidcAuthError, OidcIdTokenVerifier
 from hivemind.router.portal_page import portal_content_security_policy, render_portal_page
 from hivemind.router.signup_page import content_security_policy, render_signup_page
+from hivemind.router.usage_capture import classify_prompt_intent_and_language, detect_client_sdk
 from hivemind.router.market import (
     MECHANISM_NO_TRADE,
     ConsumerBid,
@@ -523,6 +524,13 @@ class AccountFlagRequest(BaseModel):
     kind: Literal["user", "test", "probe"] | None = None
 
 
+class FeedbackRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_id: str = Field(min_length=4, max_length=128)
+    rating: Literal[-1, 1]
+    comment: str = Field(default="", max_length=256)
+
+
 @dataclass(frozen=True)
 class _Plan:
     """Everything the router decided about one chat request before contacting a producer."""
@@ -534,6 +542,14 @@ class _Plan:
     candidates: tuple[ProducerRecord, ...]
     prompt_bytes: int
     max_tokens: int
+    requested_model: str = ""
+    routing_mode: str = "explicit"
+    task_domain: str = "general_chat"
+    language: str = "en"
+    client_sdk: str = "custom_api"
+    app_title: str = "custom_api"
+    is_stream: bool = False
+    started_monotonic: float = 0.0
 
 
 def residency_report(
@@ -800,12 +816,22 @@ def create_router_app(
     def equilibrium(model_id: str, records: Sequence[ProducerRecord], extra: Account | None) -> MarketEquilibrium:
         return clear_market(model_id, bids_for(extra), offers_for(records), fee)
 
-    def resolve_model(requested: str) -> tuple[str, list[ProducerRecord]]:
+    def resolve_model(
+        requested: str,
+        *,
+        preferred_tier: str | None = None,
+    ) -> tuple[str, list[ProducerRecord], str]:
         now = clock()
         name = _strip_prefix(requested.strip())
+        routing_mode = "explicit"
         if name == AUTO_MODEL:
+            live_candidates = store.live_models(now, PRODUCER_TTL_S)
+            if preferred_tier and preferred_tier in live_candidates:
+                preferred_live = store.active_producers(preferred_tier, now, PRODUCER_TTL_S)
+                if preferred_live:
+                    return preferred_tier, preferred_live, "auto_intent"
             best: tuple[tuple[int, float], str] | None = None
-            for candidate in store.live_models(now, PRODUCER_TTL_S):
+            for candidate in live_candidates:
                 live = store.active_producers(candidate, now, PRODUCER_TTL_S)
                 # distinct live producers first: a single producer cannot steer 'auto' by declaring huge capacity
                 supply = (len({r.account_id for r in live}), sum(clamped(r) for r in live))
@@ -814,10 +840,11 @@ def create_router_app(
             if best is None:
                 raise RouterError(503, "No HiveMind producer is currently live.", "service_unavailable", "no_live_producers")
             name = best[1]
+            routing_mode = "auto_supply"
         records = store.active_producers(name, now, PRODUCER_TTL_S)
         if not records:
             raise RouterError(404, f"The model '{requested}' is not served by any live producer.", "invalid_request_error", "model_not_found")
-        return name, records
+        return name, records, routing_mode
 
     def kick_warmup(model_id: str, servers: Sequence[ProducerRecord]) -> None:
         """Ask the quickest-to-load producer to start loading ``model_id`` in the background (one tiny request, rate-limited per server and model)."""
@@ -849,7 +876,11 @@ def create_router_app(
 
         threading.Thread(target=run, name="hivemind-warmup", daemon=True).start()
 
-    def plan_request(account: Account, body: Mapping[str, Any]) -> _Plan:
+    def plan_request(
+        account: Account,
+        body: Mapping[str, Any],
+        headers: Mapping[str, str] | None = None,
+    ) -> _Plan:
         requested = body.get("model")
         messages = body.get("messages")
         if not isinstance(requested, str) or not requested.strip():
@@ -857,7 +888,9 @@ def create_router_app(
         if not isinstance(messages, list) or not messages or not all(isinstance(m, dict) for m in messages):
             raise RouterError(400, "'messages' must be a non-empty list of message objects.", "invalid_request_error", "invalid_request")
         max_tokens = request_token_limit(body)
-        model_id, records = resolve_model(requested)
+        intent = classify_prompt_intent_and_language(messages)
+        attribution = detect_client_sdk(headers or {})
+        model_id, records, routing_mode = resolve_model(requested, preferred_tier=intent.preferred_tier)
         if store.balance(account.account_id) <= 0.0:
             raise RouterError(402, "Balance is empty; ask an admin for a grant or earn HMT as a producer.", "insufficient_quota", "insufficient_balance")
         eq = equilibrium(model_id, records, account)
@@ -924,6 +957,14 @@ def create_router_app(
             candidates=tuple(candidates),
             prompt_bytes=prompt_bytes,
             max_tokens=max_tokens,
+            requested_model=requested.strip(),
+            routing_mode=routing_mode,
+            task_domain=intent.task_domain,
+            language=intent.language,
+            client_sdk=attribution.client_sdk,
+            app_title=attribution.app_title,
+            is_stream=bool(body.get("stream") is True),
+            started_monotonic=time.monotonic(),
         )
 
     def producer_request(record: ProducerRecord, plan: _Plan, body: Mapping[str, Any], *, stream: bool) -> httpx.Request | None:
@@ -962,6 +1003,26 @@ def create_router_app(
         billed = receipt.billed_tokens
         prompt = min(prompt, billed)
         completion = billed - prompt
+        latency_ms = max(0.0, (time.monotonic() - plan.started_monotonic) * 1000.0) if plan.started_monotonic > 0.0 else 0.0
+        store.record_usage_telemetry(
+            request_id=plan.request_id,
+            consumer_id=account.account_id,
+            producer_id=producer_id,
+            requested_model=plan.requested_model or plan.model_id,
+            routed_model=plan.model_id,
+            routing_mode=plan.routing_mode,
+            task_domain=plan.task_domain,
+            language=plan.language,
+            client_sdk=plan.client_sdk,
+            app_title=plan.app_title,
+            is_stream=plan.is_stream,
+            latency_ms=latency_ms,
+            prompt_tokens=prompt,
+            completion_tokens=completion,
+            billed_tokens=billed,
+            charged_hmt=receipt.charge,
+            now_utc=clock(),
+        )
         return {
             "price_per_1k": plan.price_per_1k,
             "charged_hmt": receipt.charge,
@@ -971,6 +1032,8 @@ def create_router_app(
             "billed_tokens": billed,
             "prompt_tokens": prompt,
             "completion_tokens": completion,
+            "task_domain": plan.task_domain,
+            "routing_mode": plan.routing_mode,
         }
 
     def upstream_exhausted(plan: _Plan, timed_out: ProducerRecord | None) -> RouterError:
@@ -1218,14 +1281,18 @@ def create_router_app(
             data.append(item)
         return {"object": "list", "data": data}
 
-    def handle_chat(account: Account, raw: bytes) -> JSONResponse | StreamingResponse:
+    def handle_chat(
+        account: Account,
+        raw: bytes,
+        headers: Mapping[str, str] | None = None,
+    ) -> JSONResponse | StreamingResponse:
         try:
             body = json.loads(raw)
         except (ValueError, RecursionError):
             raise RouterError(400, "invalid request: body must be a JSON object", "invalid_request_error", "invalid_request") from None
         if not isinstance(body, dict):
             raise RouterError(400, "invalid request: body must be a JSON object", "invalid_request_error", "invalid_request")
-        plan = plan_request(account, body)  # takes the escrow hold
+        plan = plan_request(account, body, headers=headers)  # takes the escrow hold
         if body.get("stream") is True:
             try:
                 return chat_streaming(plan, account, body)
@@ -1242,7 +1309,7 @@ def create_router_app(
         # authenticate first, then read the body (already bounded by BodyLimitMiddleware): anonymous callers cost nothing
         account = await run_in_threadpool(authenticate, request)
         raw = await request.body()
-        return await run_in_threadpool(handle_chat, account, raw)
+        return await run_in_threadpool(handle_chat, account, raw, request.headers)
 
     google = google_verifier or (GoogleIdTokenVerifier(google_client_id, clock=clock) if google_client_id else None)
 
@@ -1417,7 +1484,7 @@ def create_router_app(
     @app.get("/v1/hivemind/market")
     def market(request: Request, model: str = AUTO_MODEL) -> dict[str, Any]:
         authenticate(request)
-        name, records = resolve_model(model)
+        name, records, _ = resolve_model(model)
         epoch = int(clock() // MARKET_CACHE_EPOCH_S)
         key = (name, epoch)
         with market_lock:
@@ -1439,6 +1506,29 @@ def create_router_app(
                     del market_cache[stale]
                 market_cache[key] = cached
         return cached
+
+    @app.get("/v1/hivemind/usage-capture")
+    def usage_capture(window_s: float = 86_400.0) -> dict[str, Any]:
+        """Public anonymized usage & adoption telemetry (domains, French vs English share, client SDKs, latency, MoE weights)."""
+        if not math.isfinite(window_s) or window_s < 0.0:
+            raise RouterError(400, "window_s must be a finite number of seconds, zero or more.", "invalid_request_error", "invalid_request")
+        return store.usage_capture_summary(now_utc=clock(), window_s=min(window_s, 30 * 86_400.0))
+
+    @app.post("/v1/hivemind/feedback")
+    def submit_feedback(request: Request, payload: FeedbackRequest) -> dict[str, Any]:
+        """Authenticated thumbs-up (+1) or thumbs-down (-1) feedback on a settled completion for nocturnal QLoRA/DPO."""
+        account = authenticate(request)
+        try:
+            saved = store.record_usage_feedback(
+                payload.request_id,
+                account.account_id,
+                payload.rating,
+                payload.comment,
+                now_utc=clock(),
+            )
+        except KeyError:
+            raise RouterError(404, "Unknown request_id for this account.", "invalid_request_error", "request_not_found") from None
+        return {"object": "hivemind.feedback", **saved}
 
     @app.post("/v1/hivemind/admin/grant")
     def admin_grant(request: Request, payload: GrantRequest) -> dict[str, Any]:

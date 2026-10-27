@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- HM-S19-USAGE: privacy-preserving usage capture (`src/hivemind/router/usage_capture.py`, `usage_telemetry` and `usage_feedback` tables in `RouterStore`), smart intent routing on `hivemind/auto` (`bee-rusty-sundials` for stiff ODE/PDE/SUNDIALS, `bee-stars` for astrophysics, `coder` for coding when live, falling back to largest supply), client SDK/IDE detection (`X-Title`, `HTTP-Referer`, `User-Agent`), public aggregate `GET /v1/hivemind/usage-capture` (domain share, `fr` vs `en` language share, IDE breakdown, latency `p50`/`p95`, nocturnal MoE workunit weights), authenticated `POST /v1/hivemind/feedback` (`+1`/`-1`), and 1-click Rusty-SUNDIALS + French presets in `/playground`. Covered by `tests/test_usage_capture.py`.
 - docs(boinc): `docs/BOINC_RTX_GPU_INSTALL.md`, an installation and validation guide for volunteers with NVIDIA RTX cards, with an explicit verified / not-tested table (only a Linux Tesla T4 has run), the E12 cross-device replay-tolerance risk, and a checklist for the first RTX volunteer. Docs only; nothing was run.
 - Proposal: Bee MoE with numeric solver experts, three waves (docs/BEE_MOE_NUMERIC_SOLVERS_PROPOSAL.md); nothing implemented
 
