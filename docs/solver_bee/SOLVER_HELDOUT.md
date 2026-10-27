@@ -1,6 +1,6 @@
 # Solver Bee: held-out problem set and first run (stage 2, P3)
 
-Directory `solvers/problems/heldout/`: 16 problems, schema `hivemind-solver-problem/1`, tolerance policy `max_rel_err_factor = 100` (unchanged from the library). The set was written and committed with its sha256 manifest `FROZEN.json` in commit `6da1869` ("freeze held-out set (before any solver run)") **before the solver was ever run on it**; the numbers below come from the first and only run. Nothing in the frozen files, the references or the policy was edited afterwards (`tests/test_solver_problems.py` fails if a frozen file changes, goes missing or an unlisted file appears).
+Directory `solvers/problems/heldout/`: 16 problems, schema `hivemind-solver-problem/1`, tolerance policy `max_rel_err_factor = 100` (unchanged from the library). The set was written and committed with its sha256 manifest `FROZEN.json` in commit `6da1869` ("freeze held-out set (before any solver run)") **before the solver was ever run on it**; the numbers below come from the first recorded run (`solvers/results/heldout_run_1.json`). The git history shows the freeze commit preceding the results commit, but it cannot prove that no run happened before the freeze: the ordering is a statement of process, not a cryptographic proof. Nothing in the frozen files, the references or the policy was edited afterwards (`tests/test_solver_problems.py` fails if a frozen file changes, goes missing or an unlisted file appears).
 
 ## What is in the set
 
