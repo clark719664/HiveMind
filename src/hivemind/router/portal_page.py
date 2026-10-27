@@ -707,6 +707,46 @@ $('copySnippetBtn').addEventListener('click', async () => {
     $('copySnippetBtn').textContent = "Select & copy manually";
   }
 });
+
+if ($('campaignPollBtn')) {
+  $('campaignPollBtn').addEventListener('click', async () => {
+    const apiKey = $('apiKey').value.trim();
+    if (!apiKey) {
+      $('campaignPollStatus').textContent = "Enter your hm-... API key in the Playground first.";
+      return;
+    }
+    const subjectId = $('campaignSubjectSelect').value;
+    const kind = $('campaignRoleSelect').value;
+    const vram = parseFloat($('campaignVramInput').value) || 0.0;
+    $('campaignPollStatus').textContent = "Registering on AMCP/Kafka...";
+    try {
+      const res = await fetch('/v1/hivemind/campaigns/poll', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey,
+        },
+        body: JSON.stringify({
+          subject_id: subjectId,
+          participant_kind: kind,
+          pledged_vram_gb: vram,
+          availability_slot: 'eu_evening_cet',
+        }),
+      });
+      if (!res.ok) {
+        $('campaignPollStatus').textContent = "Registration failed (check API key).";
+        return;
+      }
+      const data = await res.json();
+      $('campaignPollStatus').textContent =
+        "Registered! Leading: " + data.poll_summary.leading_subject_id +
+        " (" + data.poll_summary.total_registrations + " votes, " +
+        data.poll_summary.total_pledged_vram_gb + " GB VRAM pledged)";
+    } catch (e) {
+      $('campaignPollStatus').textContent = "Network error.";
+    }
+  });
+}
 """
 
 
@@ -755,6 +795,7 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
       </div>
       <nav>
         <a href="#playground" class="nav-link active">Playground</a>
+        <a href="#campaigns" class="nav-link">Joint Campaigns</a>
         <a href="#night-telemetry" class="nav-link">Night Progress</a>
         <a href="#tiers" class="nav-link">Model Tiers</a>
         <a href="#integrations" class="nav-link">Editor Config</a>
@@ -858,6 +899,49 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
         </div>
       </section>
     </div>
+
+    <!-- Joint Subject-by-Subject Improvement Campaigns, Community Poll & AMCP/Kafka Bus -->
+    <section id="campaigns" class="card" style="margin-bottom:3rem;border-color:rgba(0,238,252,0.35);">
+      <div class="card-header">
+        <div class="card-title" style="color:var(--cyan);">&#x1F4C5; Joint Subject-by-Subject Improvement Campaigns, Poll &amp; AMCP/Kafka Bus</div>
+        <a href="/v1/hivemind/campaigns/calendar.ics" class="btn btn-outline" style="padding:0.3rem 0.75rem;font-size:0.75rem;">&#x1F4C6; Download Joint Calendar (.ics)</a>
+      </div>
+      <p style="color:var(--text-dim);font-size:0.88rem;margin-bottom:1rem;line-height:1.5;">
+        Humans, GPU Producers, AI Agents, and Specialized Bees unite on <strong>one flagship scientific or coding subject per sprint</strong>.
+        Vote in the community poll below to steer nocturnal BOINC/QLoRA workunit weights and coordinate over our
+        <strong>AMCP v1.5 + CloudEvents / Kafka Event Bus</strong> (<code>hivemind.amcp.campaigns.v1</code>, <code>hivemind.amcp.human_agent.v1</code>, <code>hivemind.amcp.bee_coord.v1</code>, <code>hivemind.amcp.bee_trading.v1</code>).
+      </p>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:1rem;">
+        <div style="flex:2;min-width:220px;">
+          <label for="campaignSubjectSelect">Vote / Register for Subject Sprint</label>
+          <select id="campaignSubjectSelect" style="margin-bottom:0;">
+            <option value="SUBJ-01-PYTHON-RUST-CODER">Subject 1 (Oct 28–30): Python &amp; Rust Systems Coding (hivemind/coder)</option>
+            <option value="SUBJ-02-RUSTY-SUNDIALS-FLUID-ODE">Subject 2 (Oct 31–Nov 2): Stiff ODE/PDE &amp; Navier-Stokes Fluid Rescue (bee-rusty-sundials)</option>
+            <option value="SUBJ-03-ASTRO-SYMPLECTIC-STARS">Subject 3 (Nov 3–5): Exoplanet TTV &amp; Symplectic Astrophysics (bee-stars)</option>
+            <option value="SUBJ-04-QUANTUM-BEC-GROSS-PITAEVSKII">Subject 4 (Nov 6–8): Quantum Fluids &amp; Gross-Pitaevskii Solitons (bee-rusty-sundials)</option>
+            <option value="SUBJ-05-GENETICS-WRIGHT-FISHER">Subject 5 (Nov 9–11): Population Genetics &amp; Fisher-KPP Waves (bee-rusty-sundials)</option>
+            <option value="SUBJ-06-LEAN4-FORMAL-PROOFS">Subject 6 (Nov 12–15): Formal Lean 4 Proofs &amp; Invariants (moe-coder)</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:160px;">
+          <label for="campaignRoleSelect">Participant Role</label>
+          <select id="campaignRoleSelect" style="margin-bottom:0;">
+            <option value="human_researcher">Human Researcher / Dev</option>
+            <option value="gpu_producer">GPU Producer / Miner</option>
+            <option value="ai_agent">Autonomous AI Agent</option>
+            <option value="bee_specialist">Specialist Bee</option>
+          </select>
+        </div>
+        <div style="width:130px;">
+          <label for="campaignVramInput">Pledged VRAM (GB)</label>
+          <input id="campaignVramInput" type="text" value="8" style="margin-bottom:0;" />
+        </div>
+        <button id="campaignPollBtn" type="button" class="btn btn-primary">&#x1F5F3;&#xFE0F; Register &amp; Vote</button>
+      </div>
+      <div id="campaignPollStatus" style="font-size:0.78rem;font-family:var(--font-mono);color:var(--amber);">
+        API Endpoints: <code>GET /v1/hivemind/campaigns</code> &bull; <code>POST /v1/hivemind/campaigns/poll</code> &bull; <code>POST /v1/hivemind/bees/coordinate</code> &bull; <code>POST /v1/hivemind/bees/trade</code>
+      </div>
+    </section>
 
     <!-- Real-Life Night Progress & BOINC QLoRA Telemetry (25-26 Oct 2026) -->
     <section id="night-telemetry" class="card" style="margin-bottom:3rem;border-color:rgba(52,211,153,0.35);">

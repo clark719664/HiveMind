@@ -151,6 +151,40 @@ CREATE TABLE IF NOT EXISTS usage_feedback(
     comment TEXT NOT NULL DEFAULT '',
     utc REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS campaign_poll_votes(
+    account_id TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    participant_handle TEXT NOT NULL,
+    participant_kind TEXT NOT NULL,
+    pledged_vram_gb REAL NOT NULL DEFAULT 0.0,
+    availability_slot TEXT NOT NULL DEFAULT 'eu_evening_cet',
+    comment TEXT NOT NULL DEFAULT '',
+    utc REAL NOT NULL,
+    PRIMARY KEY(account_id, subject_id)
+);
+CREATE TABLE IF NOT EXISTS amcp_kafka_events(
+    event_id TEXT PRIMARY KEY,
+    topic TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    sender_kind TEXT NOT NULL,
+    recipient_id TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    correlation_id TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    utc REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS amcp_kafka_events_topic_utc ON amcp_kafka_events(topic, utc);
+CREATE TABLE IF NOT EXISTS bee_trade_orders(
+    order_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    bee_id TEXT NOT NULL,
+    side TEXT NOT NULL CHECK (side IN ('OFFER', 'BID')),
+    subject_id TEXT NOT NULL,
+    capacity_1k REAL NOT NULL,
+    price_per_1k REAL NOT NULL,
+    utc REAL NOT NULL
+);
 """
 
 
@@ -1216,4 +1250,158 @@ class RouterStore:
             },
             "nocturnal_moe_workunit_weights": compute_nocturnal_moe_workunit_weights(domain_tokens),
         }
+
+    # ------------------------------------------------------------------ joint campaigns, poll & AMCP/Kafka bus (HM-S19-CAMPAIGNS)
+    def record_campaign_poll_vote(
+        self,
+        *,
+        account_id: str,
+        participant_handle: str,
+        participant_kind: str,
+        subject_id: str,
+        pledged_vram_gb: float = 0.0,
+        availability_slot: str = "eu_evening_cet",
+        comment: str = "",
+        now_utc: float | None = None,
+    ) -> dict[str, Any]:
+        """Insert or update a participant's interest & VRAM pledge for one Subject Campaign."""
+        stamp = time.time() if now_utc is None else float(now_utc)
+        vram = max(0.0, min(float(pledged_vram_gb), 1024.0)) if math.isfinite(pledged_vram_gb) else 0.0
+        clean_comment = str(comment).strip()[:256]
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO campaign_poll_votes(account_id, subject_id, participant_handle, participant_kind, "
+                "pledged_vram_gb, availability_slot, comment, utc) VALUES (?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(account_id, subject_id) DO UPDATE SET "
+                "participant_kind=excluded.participant_kind, pledged_vram_gb=excluded.pledged_vram_gb, "
+                "availability_slot=excluded.availability_slot, comment=excluded.comment, utc=excluded.utc",
+                (
+                    str(account_id),
+                    str(subject_id)[:64],
+                    str(participant_handle)[:64],
+                    str(participant_kind)[:32],
+                    vram,
+                    str(availability_slot)[:32],
+                    clean_comment,
+                    stamp,
+                ),
+            )
+        return {
+            "account_id": account_id,
+            "subject_id": subject_id,
+            "participant_handle": participant_handle,
+            "participant_kind": participant_kind,
+            "pledged_vram_gb": vram,
+            "availability_slot": availability_slot,
+            "comment": clean_comment,
+            "utc": stamp,
+        }
+
+    def list_campaign_poll_votes(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM campaign_poll_votes ORDER BY utc DESC").fetchall()
+        return [{k: row[k] for k in row.keys()} for row in rows]
+
+    def record_amcp_kafka_event(
+        self,
+        *,
+        event_id: str,
+        topic: str,
+        event_type: str,
+        sender_id: str,
+        sender_kind: str,
+        recipient_id: str,
+        subject_id: str,
+        correlation_id: str,
+        payload: Mapping[str, Any],
+        now_utc: float | None = None,
+    ) -> None:
+        stamp = time.time() if now_utc is None else float(now_utc)
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO amcp_kafka_events(event_id, topic, event_type, sender_id, sender_kind, "
+                "recipient_id, subject_id, correlation_id, payload_json, utc) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (
+                    str(event_id)[:64],
+                    str(topic)[:64],
+                    str(event_type)[:64],
+                    str(sender_id)[:64],
+                    str(sender_kind)[:32],
+                    str(recipient_id)[:64],
+                    str(subject_id)[:64],
+                    str(correlation_id)[:64],
+                    json.dumps(dict(payload), sort_keys=True)[:4096],
+                    stamp,
+                ),
+            )
+
+    def list_amcp_kafka_events(self, topic: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        lim = max(1, min(int(limit), 200))
+        with self._lock:
+            if topic:
+                rows = self._conn.execute(
+                    "SELECT * FROM amcp_kafka_events WHERE topic=? ORDER BY utc DESC LIMIT ?",
+                    (str(topic), lim),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT * FROM amcp_kafka_events ORDER BY utc DESC LIMIT ?",
+                    (lim,),
+                ).fetchall()
+        out: list[dict[str, Any]] = []
+        for r in rows:
+            item = {k: r[k] for k in r.keys() if k != "payload_json"}
+            try:
+                item["payload"] = json.loads(str(r["payload_json"]))
+            except ValueError:
+                item["payload"] = {}
+            out.append(item)
+        return out
+
+    def record_bee_trade_order(
+        self,
+        *,
+        order_id: str,
+        account_id: str,
+        bee_id: str,
+        side: str,
+        subject_id: str,
+        capacity_1k: float,
+        price_per_1k: float,
+        now_utc: float | None = None,
+    ) -> dict[str, Any]:
+        stamp = time.time() if now_utc is None else float(now_utc)
+        side_up = str(side).upper()
+        if side_up not in ("OFFER", "BID"):
+            raise ValueError("side must be OFFER or BID")
+        cap = _finite(capacity_1k, "capacity_1k")
+        price = _finite(price_per_1k, "price_per_1k")
+        if cap <= 0.0 or price <= 0.0:
+            raise ValueError("capacity_1k and price_per_1k must be positive")
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO bee_trade_orders(order_id, account_id, bee_id, side, subject_id, "
+                "capacity_1k, price_per_1k, utc) VALUES (?,?,?,?,?,?,?,?)",
+                (str(order_id)[:64], str(account_id), str(bee_id)[:64], side_up, str(subject_id)[:64], cap, price, stamp),
+            )
+        return {
+            "order_id": order_id,
+            "account_id": account_id,
+            "bee_id": bee_id,
+            "side": side_up,
+            "subject_id": subject_id,
+            "capacity_1k": cap,
+            "price_per_1k": price,
+            "utc": stamp,
+        }
+
+    def list_bee_trade_orders(self, window_s: float = 86_400.0, now_utc: float | None = None) -> list[dict[str, Any]]:
+        now = time.time() if now_utc is None else float(now_utc)
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM bee_trade_orders WHERE utc >= ? ORDER BY utc ASC",
+                (now - max(0.0, float(window_s)),),
+            ).fetchall()
+        return [{k: row[k] for k in row.keys()} for row in rows]
+
 
