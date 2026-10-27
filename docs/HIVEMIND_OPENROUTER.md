@@ -241,6 +241,29 @@ Routing:
 
 Backward compatibility: a producer that sends none of these fields behaves exactly as before (rank "unknown", never deferred); a heartbeat without them clears an earlier report. Databases gain a nullable `residency_json` column in place.
 
+## Account kinds and the per-address starter-grant cap (HM-S16-07)
+
+Every account has a `kind`: `user` (the default, a real person or agent), `test` or `probe`. Scripted accounts that raised their max price used to
+price new users out and inflate the user counts; the kind keeps them out of both.
+
+- **Who can set it.** Only the admin key (`X-Admin-Key`). `POST /v1/hivemind/register` with `kind` (or the older `test: true`) and
+  `POST /v1/hivemind/admin/test-flag` with `{"account_id" | "handle", "kind": "user" | "test" | "probe"}` both answer 403 without it, so a user cannot hide
+  from the metrics or mark itself `probe`. `GET /v1/hivemind/me` shows the account's own kind.
+- **Market.** Bids of `test` and `probe` accounts are excluded from the equilibrium: they do not move the posted price or the number of active bidders
+  (`num_consumers`). Their requests are still served, at the price computed without them, through the same escrow and settlement path. Producers of
+  these kinds are not counted as supply for pricing either, so they are not offered traffic; there is no operator-side way to route to them.
+- **Metrics.** `GET /v1/hivemind/admin/users` reports `real`, `test` and `probe` as separate objects (`total`, `created`, `active`); the monitor
+  (`scripts/live_user_monitor.py`) passes the report through. The numbers for `real` are those of `kind = user` only.
+- **Starter grant cap.** `create_router_app(starter_grant_hmt=...)` mints a starter grant to each new real account (handle registration and every
+  sign-in that creates an account); the default 0 keeps the previous behaviour (no automatic grant). At most `starter_grants_per_ip_24h` (default 3)
+  grants go to one client address in a rolling 24 hours. Over the cap the account is still created, without the grant, and the response says so
+  (`starter_grant: 0`, `starter_grant_note`) without revealing any count. Accounts created by an admin as `test` or `probe` get no grant and use no slot.
+- **Which address.** The TCP peer. `X-Forwarded-For` is used only when the peer is one of `trusted_proxies` (addresses or CIDR networks; default empty =
+  never), and then the right-most entry that is not a trusted proxy, which a client cannot forge by prepending entries.
+- **Privacy.** The address is never logged or stored in clear: the database keeps an HMAC of it (keyed with the router secret) and a timestamp, and rows
+  older than 24 hours are deleted on the next claim. Behind several clients sharing one address (a campus, a mobile carrier) later sign-ups get no
+  grant until the window passes; an admin can grant by hand.
+
 ## Python and game developers
 
 The getting-started kit for people who write Python and small games, including GPU sharing, model tiers and editor setup, is

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- HM-S16-07 (refs #194): account kinds `user` (default), `test` and `probe`, set only with the admin key (`POST /v1/hivemind/register` with `kind`, or `POST /v1/hivemind/admin/test-flag` with `kind`). Test and probe accounts never bid, are priced at the equilibrium computed without them, and their producers are not supply for pricing; `/v1/hivemind/admin/users` and `/v1/hivemind/me` report the kind and count `real`, `test` and `probe` apart. New gateway options `starter_grant_hmt` (default 0 = off), `starter_grants_per_ip_24h` (default 3) and `trusted_proxies` (default empty = `X-Forwarded-For` never trusted): over the per-address cap an account is registered without the starter grant; only a keyed hash of the address is kept, for 24 h. Old databases gain the `kind` column in place. See `docs/HIVEMIND_OPENROUTER.md`.
+
 - HM-S16-06 (refs #193): producers may report model residency in heartbeats (`loaded`, `vram_mib`, `cold_start_s` per model, `gpu_vram_mib` per card; the producer agent probes the local Ollama `/api/ps`, `--no-residency` disables). The router prefers loaded models (unknown after loaded, known-not-loaded last), answers 503 `model_loading` with `Retry-After` instead of forwarding to a model that must cold-load longer than `cold_start_wait_budget_s` (default 20 s) with no charge, reports upstream timeouts as `model_loading` or 504 `upstream_timeout` instead of an opaque error, and scales declared capacity down when the loaded models exceed the card. Old producers are unaffected. See `docs/HIVEMIND_OPENROUTER.md`.
 
 ## Zenodo deposit of manuscript v3.8.0 — 2026-10-25

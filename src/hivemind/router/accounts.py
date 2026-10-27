@@ -55,8 +55,14 @@ CREATE TABLE IF NOT EXISTS accounts(
     key_hash TEXT NOT NULL UNIQUE,
     created_utc REAL NOT NULL,
     max_price_per_1k REAL NOT NULL,
-    is_test INTEGER NOT NULL DEFAULT 0
+    is_test INTEGER NOT NULL DEFAULT 0,
+    kind TEXT NOT NULL DEFAULT 'user'
 );
+CREATE TABLE IF NOT EXISTS starter_grant_ips(
+    ip_hash TEXT NOT NULL,
+    utc REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS starter_grant_ips_hash ON starter_grant_ips(ip_hash, utc);
 CREATE TABLE IF NOT EXISTS ledger(
     seq INTEGER PRIMARY KEY,
     account_id TEXT NOT NULL,
@@ -113,6 +119,11 @@ CREATE INDEX IF NOT EXISTS holds_account ON holds(account_id, state);
 """
 
 
+KIND_USER = "user"
+ACCOUNT_KINDS = (KIND_USER, "test", "probe")
+STARTER_WINDOW_S = 86_400.0
+
+
 class InsufficientBalance(Exception):
     """Raised by :meth:`RouterStore.settle` when the consumer cannot cover the charge (nothing is written)."""
 
@@ -166,7 +177,12 @@ class Account:
     role: str
     created_utc: float
     max_price_per_1k: float
-    is_test: bool = False
+    kind: str = "user"
+
+    @property
+    def is_test(self) -> bool:
+        """True for every account kind that is not a real user ('test' or 'probe')."""
+        return self.kind != KIND_USER
 
 
 @dataclass(frozen=True)
@@ -254,6 +270,12 @@ def _entry_hash(prev_hash: str, canonical: str) -> str:
     return hashlib.sha256(f"{prev_hash}|{canonical}".encode()).hexdigest()
 
 
+def _check_kind(kind: str) -> str:
+    if kind not in ACCOUNT_KINDS:
+        raise ValueError(f"kind must be one of {ACCOUNT_KINDS}")
+    return kind
+
+
 def _finite(value: float, name: str) -> float:
     number = float(value)
     if not math.isfinite(number):
@@ -292,6 +314,10 @@ class RouterStore:
             account_columns = {str(row["name"]) for row in self._conn.execute("PRAGMA table_info(accounts)")}
             if "is_test" not in account_columns:
                 self._conn.execute("ALTER TABLE accounts ADD COLUMN is_test INTEGER NOT NULL DEFAULT 0")
+            # Databases created before account kinds (HM-S16-07) gain the column in place: flagged accounts become 'test', all others 'user'.
+            if "kind" not in account_columns:
+                self._conn.execute("ALTER TABLE accounts ADD COLUMN kind TEXT NOT NULL DEFAULT 'user'")
+                self._conn.execute("UPDATE accounts SET kind='test' WHERE is_test=1")
             # One account may advertise several endpoints (several GPUs / servers): rows of the old one-per-account table move across once.
             self._conn.execute(
                 "INSERT OR IGNORE INTO producer_endpoints(account_id, endpoint_url, models_json, cost_per_1k, capacity_1k, last_heartbeat_utc, "
@@ -351,7 +377,7 @@ class RouterStore:
             role=str(row["role"]),
             created_utc=float(row["created_utc"]),
             max_price_per_1k=float(row["max_price_per_1k"]),
-            is_test=bool(row["is_test"]),
+            kind=str(row["kind"]),
         )
 
     # ------------------------------------------------------------------ accounts
@@ -359,18 +385,20 @@ class RouterStore:
         """Deterministic account id for a handle (after identity normalisation)."""
         return self._hmac_hex(normalise_identity(handle))[:32]
 
-    def register(self, handle: str, role: str, *, is_test: bool = False) -> tuple[str, str]:
+    def register(self, handle: str, role: str, *, is_test: bool = False, kind: str | None = None) -> tuple[str, str]:
         """Create an account; returns ``(account_id, api_key)``. The key is shown once and never stored.
 
-        ``is_test`` marks a test or probe account: it never bids in the market and is counted apart from real users.
-        The store does not authorise that choice; the gateway lets only an admin key ask for it.
+        ``kind`` ('user' by default, 'test' or 'probe') keeps an account off the market and out of the user counts;
+        ``is_test=True`` is the older spelling of ``kind='test'``. The store does not authorise that choice; the gateway
+        lets only an admin key ask for it.
         """
+        kind = _check_kind(kind if kind is not None else ("test" if is_test else KIND_USER))
         if role not in ROLES:
             raise ValueError(f"role must be one of {ROLES}")
         normalised = normalise_identity(handle)
         if normalised.startswith(tuple(f"{provider}." for provider in sorted(self._identity_providers))):
             raise ReservedHandle(f"handle prefix is reserved: {normalised}")
-        return self._create_account(normalised, role, is_test)
+        return self._create_account(normalised, role, kind)
 
     def allow_identity_provider(self, name: str) -> None:
         """Enable sign-in through another OpenID Connect provider and reserve its handle prefix (``<name>.``) at once.
@@ -413,7 +441,7 @@ class RouterStore:
             )
         return account_id, new_key, True
 
-    def _create_account(self, normalised: str, role: str, is_test: bool = False) -> tuple[str, str]:
+    def _create_account(self, normalised: str, role: str, kind: str = KIND_USER) -> tuple[str, str]:
         account_id = self._hmac_hex(normalised)[:32]
         api_key = "hm-" + secrets.token_urlsafe(32)
         with self._tx() as conn:
@@ -423,8 +451,8 @@ class RouterStore:
             if exists is not None:
                 raise HandleTaken(f"handle already registered: {normalised}")
             conn.execute(
-                "INSERT INTO accounts(account_id, handle, role, key_hash, created_utc, max_price_per_1k, is_test) VALUES (?,?,?,?,?,?,?)",
-                (account_id, normalised, role, self._hmac_hex(api_key), time.time(), DEFAULT_MAX_PRICE_PER_1K, int(is_test)),
+                "INSERT INTO accounts(account_id, handle, role, key_hash, created_utc, max_price_per_1k, is_test, kind) VALUES (?,?,?,?,?,?,?,?)",
+                (account_id, normalised, role, self._hmac_hex(api_key), time.time(), DEFAULT_MAX_PRICE_PER_1K, int(kind != KIND_USER), kind),
             )
         return account_id, api_key
 
@@ -449,7 +477,7 @@ class RouterStore:
         with self._lock:
             rows = self._conn.execute(
                 "SELECT account_id, max_price_per_1k FROM accounts WHERE role != 'producer' AND account_id NOT LIKE 'sys:%' "
-                "AND is_test = 0 ORDER BY account_id"
+                "AND kind = 'user' ORDER BY account_id"
             ).fetchall()
         return {str(r["account_id"]): float(r["max_price_per_1k"]) for r in rows}
 
@@ -461,7 +489,7 @@ class RouterStore:
         With ``active_since`` set, only accounts with a usage row or a hold at or after that time bid: every sign-up
         is funded by the starter grant, so without it idle accounts that once raised their max price keep the
         clearing price above a new account's default max price and its first request is refused.
-        Test and probe accounts (see :meth:`set_test_flag`) never bid, whatever their balance, price or activity.
+        Test and probe accounts (see :meth:`set_kind`) never bid, whatever their balance, price or activity.
         """
         tokens = max(1, int(expected_tokens))
         with self._lock:
@@ -475,7 +503,7 @@ class RouterStore:
             rows = self._conn.execute(
                 "SELECT a.account_id AS account_id, a.max_price_per_1k AS price, COALESCE(SUM(l.delta), 0.0) AS bal "
                 "FROM accounts a LEFT JOIN ledger l ON l.account_id = a.account_id "
-                "WHERE a.role != 'producer' AND a.account_id NOT LIKE 'sys:%' AND a.is_test = 0 "
+                "WHERE a.role != 'producer' AND a.account_id NOT LIKE 'sys:%' AND a.kind = 'user' "
                 "GROUP BY a.account_id ORDER BY a.account_id"
             ).fetchall()
         bids: dict[str, float] = {}
@@ -494,31 +522,61 @@ class RouterStore:
             if cur.rowcount != 1:
                 raise UnknownAccount(account_id)
 
-    def set_test_flag(self, account_id: str, is_test: bool) -> None:
-        """Mark (or unmark) an account as a test/probe account. Raises :class:`UnknownAccount` for an unknown id."""
+    def set_kind(self, account_id: str, kind: str) -> None:
+        """Set an account's kind ('user', 'test' or 'probe'). Raises :class:`UnknownAccount` for an unknown or system id."""
+        kind = _check_kind(kind)
         with self._tx() as conn:
-            cur = conn.execute("UPDATE accounts SET is_test=? WHERE account_id=? AND account_id NOT LIKE 'sys:%'", (int(is_test), account_id))
+            cur = conn.execute(
+                "UPDATE accounts SET kind=?, is_test=? WHERE account_id=? AND account_id NOT LIKE 'sys:%'",
+                (kind, int(kind != KIND_USER), account_id),
+            )
             if cur.rowcount != 1:
                 raise UnknownAccount(account_id)
 
+    def set_test_flag(self, account_id: str, is_test: bool) -> None:
+        """Mark (or unmark) an account as a test account; the older boolean spelling of :meth:`set_kind`."""
+        self.set_kind(account_id, "test" if is_test else KIND_USER)
+
+    def non_user_account_ids(self) -> frozenset[str]:
+        """Ids of every test or probe account: their bids and their supply stay out of pricing."""
+        with self._lock:
+            rows = self._conn.execute("SELECT account_id FROM accounts WHERE kind != 'user'").fetchall()
+        return frozenset(str(r[0]) for r in rows)
+
     def user_counts(self, since: float) -> dict[str, dict[str, int]]:
-        """Real and test accounts counted apart: ``total``, ``created`` and ``active`` (a usage row or a hold) at or after ``since``.
+        """Real users, test accounts and probe accounts counted apart: ``total``, ``created`` and ``active`` (a usage row or a hold) at or after ``since``.
 
         System accounts are not users and are never counted.
         """
         cutoff = _finite(since, "since")
-        counts = {"real": {"total": 0, "created": 0, "active": 0}, "test": {"total": 0, "created": 0, "active": 0}}
+        counts = {name: {"total": 0, "created": 0, "active": 0} for name in ("real", "test", "probe")}
         with self._lock:
             active = {str(r[0]) for r in self._conn.execute(
                 "SELECT consumer_id FROM usage WHERE utc >= ? UNION SELECT account_id FROM holds WHERE utc >= ?", (cutoff, cutoff),
             ).fetchall()}
-            rows = self._conn.execute("SELECT account_id, is_test, created_utc FROM accounts WHERE account_id NOT LIKE 'sys:%'").fetchall()
+            rows = self._conn.execute("SELECT account_id, kind, created_utc FROM accounts WHERE account_id NOT LIKE 'sys:%'").fetchall()
         for row in rows:
-            bucket = counts["test" if row["is_test"] else "real"]
+            bucket = counts["real" if row["kind"] == KIND_USER else str(row["kind"])]
             bucket["total"] += 1
             bucket["created"] += float(row["created_utc"]) >= cutoff
             bucket["active"] += str(row["account_id"]) in active
         return counts
+
+    def claim_starter_slot(self, client_ip: str, now_utc: float, cap: int, window_s: float = STARTER_WINDOW_S) -> bool:
+        """Reserve one starter grant for ``client_ip`` unless ``cap`` were already given to it in the last ``window_s``.
+
+        Only a salted keyed hash of the address is stored (HMAC with the store secret), next to a timestamp; entries older
+        than the window are deleted on every call. The raw address is never written or logged.
+        """
+        now = _finite(now_utc, "now_utc")
+        digest = self._hmac_hex("starter-ip:" + client_ip)
+        with self._tx() as conn:
+            conn.execute("DELETE FROM starter_grant_ips WHERE utc <= ?", (now - window_s,))
+            used = int(conn.execute("SELECT COUNT(*) FROM starter_grant_ips WHERE ip_hash=?", (digest,)).fetchone()[0])
+            if used >= cap:
+                return False
+            conn.execute("INSERT INTO starter_grant_ips(ip_hash, utc) VALUES (?,?)", (digest, now))
+        return True
 
     # ------------------------------------------------------------------ ledger
     def balance(self, account_id: str) -> float:

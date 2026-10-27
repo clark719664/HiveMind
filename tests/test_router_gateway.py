@@ -1364,7 +1364,7 @@ def test_the_test_flag_endpoint_flags_and_unflags_an_existing_account(world: Wor
     flagged = world.app_client.post(url, headers=ADMIN_HEADERS, json={"handle": handle, "test": True})
 
     assert denied.status_code == 403
-    assert flagged.status_code == 200 and flagged.json() == {"account_id": whale_id, "test": True}
+    assert flagged.status_code == 200 and flagged.json() == {"account_id": whale_id, "test": True, "kind": "test"}
     assert set(world.store.funded_consumer_bids(DEFAULT_MAX_TOKENS)) == {real_id}
     assert world.app_client.get(market, headers=_auth(real_key)).json()["equilibrium"]["num_consumers"] == 1  # cached market was dropped
 
