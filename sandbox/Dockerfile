@@ -1,6 +1,6 @@
 FROM python:3.11-slim-bookworm@sha256:f06d01d4ba3f8ad5af45a3ec87df19c1d317d8e8961edc0fabda61811af6f7cf
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl zstd xz-utils git libgomp1 libstdc++6 gcc libc6-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl zstd xz-utils git procps libgomp1 libstdc++6 gcc libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN curl --fail --location --proto '=https' --tlsv1.2 \
       https://github.com/leanprover/lean4/releases/download/v4.33.0-rc2/lean-4.33.0-rc2-linux.tar.zst -o /tmp/lean.tar.zst \
