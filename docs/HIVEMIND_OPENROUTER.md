@@ -293,6 +293,12 @@ in [`HIVEMIND_PYTHON_GAME_DEVS.md`](HIVEMIND_PYTHON_GAME_DEVS.md). The helper sc
 tiers is served at `GET /v1/hivemind/catalog`. A producer may send an `endpoint_token` with its heartbeat; the gateway then
 presents it as `Authorization: Bearer` to the producer's endpoint.
 
+Every tier carries an `execution` field. The GPU tiers (`"gpu"`) are the ones `recommend_tier` sizes to a card. The one CPU
+tier (`"cpu"`), `hivemind/solver`, is the Solver Bee (Season 20, issue #271): a certified ODE solver served by
+`scripts/solver_bee.py serve`, listed with `min_vram_gb` 0 and never recommended for a card. It is free during the pilot
+(`suggested_cost_per_1k` 0; the payload lists it under `free_during_pilot`), by owner decision in #273; pricing it in
+micro-HMT once verified is a later owner decision.
+
 ## Sign in with Google (easy registration)
 
 `GET /signup` is a one-page Google sign-in; `POST /v1/hivemind/register/google` takes the Google ID token and returns an

@@ -230,6 +230,9 @@ CATALOG: dict[str, object] = {"tiers": [
     {"tier_id": "coder-lite", "ollama_tag": "qwen2.5-coder:3b", "min_vram_gb": 4.0, "suggested_cost_per_1k": 0.2, "suggested_capacity_1k": 40.0},
     {"tier_id": "coder", "ollama_tag": "qwen2.5-coder:7b", "min_vram_gb": 6.0, "suggested_cost_per_1k": 0.4, "suggested_capacity_1k": 60.0},
     {"tier_id": "coder-plus", "ollama_tag": "qwen2.5-coder:14b", "min_vram_gb": 12.0, "suggested_cost_per_1k": 0.7, "suggested_capacity_1k": 80.0},
+    # Season 20 (#271): a CPU tier sits at 0 GB; it is opted into with --preset and must never be "the biggest tier that fits".
+    {"tier_id": "solver", "ollama_tag": "scripts/solver_bee.py serve", "min_vram_gb": 0.0, "suggested_cost_per_1k": 0.0, "suggested_capacity_1k": 100.0,
+     "execution": "cpu"},
 ]}
 
 
@@ -256,7 +259,11 @@ def test_suggest_recommends_the_biggest_tier_that_fits_and_needs_no_key(
     assert out["recommended"]["tier_id"] == "coder-plus" and out["fits"] == ["coder-lite", "coder", "coder-plus"]
     assert "ollama pull qwen2.5-coder:14b" in out["next"]
     assert agent.main(["--gateway", GATEWAY, "--suggest", "--vram-gb", "2"], transport=_router([], [])) == 0
-    assert json.loads(capsys.readouterr().out)["recommended"] is None
+    small = json.loads(capsys.readouterr().out)
+    assert small["recommended"] is None and small["fits"] == []  # the 0 GB CPU solver tier is not a GPU recommendation
+    solver_only = [{"tier_id": "solver", "min_vram_gb": 0.0, "execution": "cpu"}]
+    assert agent.recommend(solver_only, 0.0) is None and agent.fitting_tiers(solver_only, 80.0) == []
+    assert agent.recommend([{"tier_id": "old", "min_vram_gb": 4.0}], 4.0) == {"tier_id": "old", "min_vram_gb": 4.0}  # pre-#271 catalog
 
 
 def test_detect_vram_reads_the_largest_card_and_survives_a_missing_driver() -> None:

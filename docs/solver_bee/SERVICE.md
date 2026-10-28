@@ -50,4 +50,6 @@ If the spec id matches a `--problems` entry, the verifier receives that entry as
 
 ## Later: the OpenRouter producer shield
 
-Not implemented here. The intended plug-in point is the producer shield treating this service as one more local OpenAI-compatible upstream bound to loopback: the shield forwards a chat request, keeps the `solver_bee` object and the certificate block with the answer, and never upgrades a verdict. Wiring, pricing and routing are separate owner decisions.
+Not implemented here. The intended plug-in point is the producer shield treating this service as one more local OpenAI-compatible upstream bound to loopback: the shield forwards a chat request, keeps the `solver_bee` object and the certificate block with the answer, and never upgrades a verdict. Wiring and routing are separate owner decisions.
+
+The catalog side exists (Wave 2, #271): `hivemind/solver` is a CPU tier in `src/hivemind/router/catalog.py` (`"execution": "cpu"`, `min_vram_gb` 0), never recommended for a card, and free during the pilot (`suggested_cost_per_1k` 0) by owner decision in #273. A producer advertises it with `--preset solver`; the gateway accepts `cost_per_1k: 0` and `execution_class: "cpu"` in the heartbeat. Pricing in micro-HMT once verified is deferred to the owner.

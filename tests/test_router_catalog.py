@@ -16,6 +16,8 @@ from hivemind.router.catalog import (
     TIERS,
     ModelTier,
     catalog_payload,
+    cpu_tiers,
+    gpu_tiers,
     normalize_model_alias,
     recommend_tier,
     tier_by_id,
@@ -41,7 +43,7 @@ def test_moe_tiers_exist_and_declare_their_active_parameters() -> None:
 
 @pytest.mark.parametrize(
     ("vram", "expected"),
-    [(3.9, None), (4.0, "coder-lite"), (6.0, "coder"), (8.0, "coder"), (12.0, "coder-plus"), (14.9, "coder-plus"), (15.0, "moe-general"), (15.36, "moe-general"), (16.0, "moe-general"), (24.0, "moe-coder"), (80.0, "moe-coder")],
+    [(0.0, None), (3.9, None), (4.0, "coder-lite"), (6.0, "coder"), (8.0, "coder"), (12.0, "coder-plus"), (14.9, "coder-plus"), (15.0, "moe-general"), (15.36, "moe-general"), (16.0, "moe-general"), (24.0, "moe-coder"), (80.0, "moe-coder")],
 )
 def test_recommend_tier_picks_the_biggest_tier_that_fits(vram: float, expected: str | None) -> None:
     tier = recommend_tier(vram)
@@ -68,6 +70,78 @@ def test_invalid_memory_and_invalid_tiers_are_rejected() -> None:
         ModelTier("moe-without-active", "x", "t", 1.0, 1.0, True, None, 0.1, 1.0, "x")
     with pytest.raises(ValueError):
         ModelTier("dense-with-active", "x", "t", 1.0, 1.0, False, 3.0, 0.1, 1.0, "x")
+
+
+def test_cpu_solver_tier_is_in_the_catalog_free_and_never_recommended_for_a_card() -> None:
+    """Season 20 (#271): the Solver Bee is a CPU tier beside the GPU tiers (owner decision in #273), free during the pilot."""
+    payload = json.loads(json.dumps(catalog_payload()))
+    solver = next(t for t in payload["tiers"] if t["tier_id"] == "solver")
+    assert solver["public_id"] == "hivemind/solver" and solver["execution"] == "cpu"
+    assert solver["suggested_cost_per_1k"] == 0.0 and solver["min_vram_gb"] == 0.0 and solver["weights_gb"] == 0.0
+    assert solver["moe"] is False and "ode-spec" in solver["good_for"]
+    assert payload["free_during_pilot"] == ["hivemind/solver"] and "free during the pilot" in payload["note"]
+    assert "no cash value" in payload["note"]  # the HMT disclaimer stays
+    assert all(t["execution"] == "gpu" for t in payload["tiers"] if t["tier_id"] != "solver")
+
+    assert [tier.tier_id for tier in cpu_tiers()] == ["solver"]
+    assert set(gpu_tiers()) | set(cpu_tiers()) == set(TIERS) and not set(gpu_tiers()) & set(cpu_tiers())
+    assert tier_by_id("hivemind/solver") is tier_by_id("solver") and tier_by_id("solver") in cpu_tiers()
+    # A CPU tier is not "the biggest tier your card can hold": no card size recommends it, not even a GPU-less machine.
+    assert tiers_for_vram(0.0) == ()
+    for vram in (0.0, 3.9, 4.0, 6.0, 15.0, 24.0, 80.0, 1000.0):
+        assert all(tier.execution == "gpu" for tier in tiers_for_vram(vram))
+        recommended = recommend_tier(vram)
+        assert recommended is None or recommended.execution == "gpu"
+
+
+def test_cpu_tier_sizes_may_be_zero_but_gpu_sizes_may_not_and_a_cpu_price_is_allowed() -> None:
+    with pytest.raises(ValueError, match="positive for a GPU tier"):
+        ModelTier("gpu-zero-vram", "x", "t", 1.0, 0.0, False, None, 0.1, 1.0, "x")  # default execution is "gpu"
+    with pytest.raises(ValueError, match="positive for a GPU tier"):
+        ModelTier("gpu-zero-weights", "x", "t", 0.0, 4.0, False, None, 0.1, 1.0, "x", execution="gpu")
+    with pytest.raises(ValueError, match="non-negative"):
+        ModelTier("cpu-negative", "x", "t", -1.0, 0.0, False, None, 0.0, 1.0, "x", execution="cpu")
+    with pytest.raises(ValueError, match="execution must be one of"):
+        ModelTier("tpu", "x", "t", 1.0, 1.0, False, None, 0.1, 1.0, "x", execution="tpu")
+
+    free = ModelTier("cpu-free", "x", "cmd", 0.0, 0.0, False, None, 0.0, 10.0, "x", execution="cpu")
+    assert free.to_dict()["execution"] == "cpu" and free.to_dict()["suggested_cost_per_1k"] == 0.0
+    # Free during the pilot is a policy choice, not a constraint: a priced CPU tier is a valid catalog entry.
+    priced = ModelTier("cpu-priced", "x", "cmd", 0.0, 0.0, False, None, 0.05, 10.0, "x", execution="cpu")
+    assert priced.suggested_cost_per_1k == 0.05 and priced.execution == "cpu"
+    # The existing positional constructors keep working: execution defaults to "gpu".
+    assert ModelTier("legacy", "x", "t", 1.0, 1.0, False, None, 0.1, 1.0, "x").execution == "gpu"
+
+
+def test_a_producer_can_serve_the_cpu_solver_tier_and_a_consumer_can_ask_for_it(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    store = RouterStore(tmp_path / "router.db", b"k" * 32)
+    app = create_router_app(store, allow_private_producers=True)
+    client = TestClient(app)
+
+    assert "hivemind/solver" not in [m["id"] for m in client.get("/v1/models").json()["data"]]
+    _, producer_key = store.register("solver-bee-node", "producer")
+    beat = client.post(
+        "/v1/hivemind/producer/heartbeat",
+        headers={"Authorization": f"Bearer {producer_key}"},
+        json={
+            "endpoint_url": "https://solver.example.net",
+            "models": [{"id": "hivemind/solver", "local_name": "solver-bee"}],
+            "cost_per_1k": 0.0,  # free during the pilot
+            "capacity_1k": 100.0,
+            "execution_class": "cpu",
+        },
+    )
+    assert beat.status_code == 200, beat.text
+    assert beat.json()["models"] == ["solver"] and beat.json()["status"] == "live"
+
+    assert "hivemind/solver" in [m["id"] for m in client.get("/v1/models").json()["data"]]
+    _, consumer_key = store.register("ode-user", "consumer")
+    for alias in ("hivemind/solver", "solver"):
+        market = client.get("/v1/hivemind/market", params={"model": alias}, headers={"Authorization": f"Bearer {consumer_key}"})
+        assert market.status_code == 200, market.text
+        assert market.json()["model"] == "hivemind/solver"
 
 
 def test_lookup_accepts_bare_and_public_ids_and_payload_is_json() -> None:

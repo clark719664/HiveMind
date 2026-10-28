@@ -1240,6 +1240,38 @@ def test_catalog_is_public_and_lists_the_moe_tiers(world: World) -> None:
     tiers = {t["tier_id"]: t for t in response.json()["tiers"]}
     assert tiers["moe-coder"]["moe"] is True and tiers["coder"]["moe"] is False
     assert tiers["coder-lite"]["min_vram_gb"] < tiers["moe-coder"]["min_vram_gb"]
+    assert tiers["solver"]["execution"] == "cpu" and tiers["coder"]["execution"] == "gpu"
+
+
+def test_free_cpu_solver_tier_routes_a_chat_and_charges_nothing(world: World) -> None:
+    """Season 20 (#271): a CPU producer serving ``hivemind/solver`` at the pilot price of 0 is routable and settles for 0 HMT."""
+    consumer_id, key = world.consumer(10.0)
+    account_id, producer_key = world.register("producer")
+    fake = FakeProducer(answer="```json\n{}\n```\n```hivemind-cert\n{}\n```")
+    world.producers["solver.test"] = fake
+    beat = world.app_client.post(
+        "/v1/hivemind/producer/heartbeat",
+        headers={"Authorization": f"Bearer {producer_key}"},
+        json={
+            "endpoint_url": "https://solver.test",
+            "models": [{"id": "hivemind/solver", "local_name": "solver-bee"}],
+            "cost_per_1k": 0.0,
+            "capacity_1k": 100.0,
+            "execution_class": "cpu",
+        },
+    )
+    assert beat.status_code == 200, beat.text
+
+    response = world.chat(key, model="hivemind/solver")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["model"] == "hivemind/solver" and body["hivemind"]["producer_id"] == account_id
+    assert body["choices"][0]["message"]["content"] == fake.answer
+    assert body["hivemind"]["charged_hmt"] == 0.0
+    assert world.store.balance(consumer_id) == pytest.approx(10.0) and world.store.balance(account_id) == pytest.approx(0.0)
+    assert json.loads(fake.calls[0].content)["model"] == "solver-bee"
+    assert world.store.total_balances() == pytest.approx(world.store.total_minted(), abs=1e-9)
 
 
 def _beat_with_token(world: World, key: str, host: str, token: str | None) -> httpx.Response:

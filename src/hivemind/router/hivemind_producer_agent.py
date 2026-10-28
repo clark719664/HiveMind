@@ -123,9 +123,19 @@ def fetch_remote_config(client: httpx.Client, gateway: str, api_key: str) -> dic
     return dict(rc)
 
 
+def _is_gpu_tier(tier: dict[str, Any]) -> bool:
+    """CPU tiers (the Solver Bee) are opted into with --preset, never sized to a card; a catalog without the field is all GPU."""
+    return str(tier.get("execution", "gpu")) == "gpu"
+
+
+def fitting_tiers(tiers: Sequence[dict[str, Any]], vram_gb: float) -> list[dict[str, Any]]:
+    """The GPU tiers whose recommended minimum memory fits ``vram_gb``, in catalog order."""
+    return [tier for tier in tiers if _is_gpu_tier(tier) and float(tier["min_vram_gb"]) <= vram_gb]
+
+
 def recommend(tiers: Sequence[dict[str, Any]], vram_gb: float) -> dict[str, Any] | None:
-    """The biggest tier whose recommended minimum memory fits ``vram_gb``, or ``None``."""
-    fitting = [tier for tier in tiers if float(tier["min_vram_gb"]) <= vram_gb]
+    """The biggest GPU tier whose recommended minimum memory fits ``vram_gb``, or ``None``."""
+    fitting = fitting_tiers(tiers, vram_gb)
     return max(fitting, key=lambda tier: float(tier["min_vram_gb"])) if fitting else None
 
 
@@ -209,7 +219,7 @@ def _suggest(client: httpx.Client, args: argparse.Namespace, parser: argparse.Ar
         return 1
     best = recommend(tiers, vram)
     result: dict[str, Any] = {"vram_gb": round(vram, 2), "recommended": best,
-                              "fits": [tier["tier_id"] for tier in tiers if float(tier["min_vram_gb"]) <= vram]}
+                              "fits": [tier["tier_id"] for tier in fitting_tiers(tiers, vram)]}
     if best is None:
         result["advice"] = "No tier fits this card; you can still use HiveMind as a consumer."
     else:

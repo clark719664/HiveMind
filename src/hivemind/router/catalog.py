@@ -9,6 +9,12 @@ calls the model (``local_name``), so the tags below are recommendations, not req
 The sizes are the download sizes listed in the Ollama library (weights only, 4-bit quantisation for the dense models);
 the VRAM figures add room for the context cache and are deliberately conservative guidance, not measurements. The gateway
 does not yet verify that a producer really serves the model behind a tier id (``HM-S13-05``), so a tier id is a claim.
+
+CPU tiers (``execution == "cpu"``) are the exception to "the biggest tier your card can hold": they need no GPU, so they take
+no part in ``tiers_for_vram`` / ``recommend_tier`` and are listed separately by ``cpu_tiers``. The first one is the Solver Bee
+(Season 20, issue #271): a certified ODE solver that answers with a result and a verification certificate rather than a
+language model. Owner decision (#273, 2026-10-27): a CPU tier is allowed in the catalog beside the GPU tiers, and the
+solver is free during the pilot; pricing it in micro-HMT once verified is a later owner decision.
 """
 
 from __future__ import annotations
@@ -19,6 +25,8 @@ from typing import Any
 # Same shape the gateway accepts for a model id; kept here so a catalog entry can never be unroutable.
 _ID_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789-_.")
 
+EXECUTIONS = ("gpu", "cpu")
+
 
 @dataclass(frozen=True)
 class ModelTier:
@@ -26,20 +34,26 @@ class ModelTier:
 
     tier_id: str  # advertised as ``hivemind/<tier_id>``
     title: str
-    ollama_tag: str  # recommended local tag (verify with ``ollama pull``; the library may rename tags)
-    weights_gb: float  # download size of that tag
-    min_vram_gb: float  # smallest card we recommend for it, including context cache
+    ollama_tag: str  # recommended local tag (verify with ``ollama pull``; the library may rename tags); for a CPU tier, the launch command
+    weights_gb: float  # download size of that tag (0 for a CPU tier that ships no model weights)
+    min_vram_gb: float  # smallest card we recommend for it, including context cache (0 for a CPU tier)
     moe: bool
     active_params_b: float | None  # parameters active per token for MoE models, else None
     suggested_cost_per_1k: float  # HMT per 1,000 tokens a producer might ask; HMT have no cash value
     suggested_capacity_1k: float  # 1,000-token units per epoch to advertise
     good_for: str
+    execution: str = "gpu"  # "gpu": served from a card and sized by recommend_tier; "cpu": no card needed, never recommended for one
 
     def __post_init__(self) -> None:
         if not self.tier_id or set(self.tier_id) - _ID_CHARS:
             raise ValueError(f"tier_id {self.tier_id!r} must be lowercase letters, digits, '-', '_' or '.'")
-        if self.min_vram_gb <= 0 or self.weights_gb <= 0:
-            raise ValueError("sizes must be positive")
+        if self.execution not in EXECUTIONS:
+            raise ValueError(f"execution must be one of {EXECUTIONS}")
+        if self.execution == "cpu":
+            if self.min_vram_gb < 0 or self.weights_gb < 0:
+                raise ValueError("sizes must be non-negative")
+        elif self.min_vram_gb <= 0 or self.weights_gb <= 0:
+            raise ValueError("sizes must be positive for a GPU tier")
         if self.moe != (self.active_params_b is not None):
             raise ValueError("active_params_b must be set exactly for MoE tiers")
         if self.suggested_cost_per_1k < 0 or self.suggested_capacity_1k <= 0:
@@ -55,8 +69,16 @@ class ModelTier:
         return out
 
 
-# Ordered by min_vram_gb ascending; ``recommend_tier`` relies on that order (checked by __post_init__ of the tuple below).
+# Ordered by min_vram_gb ascending; ``recommend_tier`` relies on that order (checked by _validate_catalog below). CPU tiers sort
+# first at 0 GB; ``tiers_for_vram`` skips them, so they never displace a GPU recommendation.
 TIERS: tuple[ModelTier, ...] = (
+    # Solver Bee (Season 20, #271): the pinned ``hivemind-solver`` Rust binary behind ``scripts/solver_bee.py serve``, an OpenAI-compatible
+    # loopback service (docs/solver_bee/SERVICE.md). No model weights, no GPU. Free during the pilot by owner decision (#273).
+    ModelTier("solver", "Solver Bee: certified ODE solver (CPU)", "scripts/solver_bee.py serve --binary hivemind-solver", 0.0, 0.0, False, None,
+              0.0, 100.0,
+              "ODE initial-value problems sent as one fenced ode-spec block (hivemind-solver-spec/1); the answer carries the result and a"
+              " hivemind-cert verification certificate with a VERIFIED, AUDITED, FAILED or UNVERIFIED verdict; usage is counted in bytes",
+              execution="cpu"),
     ModelTier("crowd-v1", "CrowdGPT Crowd-v1 (1B Generalist Trunk)", "hf.co/Vxtzq/Crowd-v1", 1.1, 4.0, False, None, 0.15, 50.0,
               "1B citizen generalist trunk trained on 7B FineWeb tokens (CrowdGPT x La Ruche joint federation)"),
     ModelTier("coder-lite", "Coder Lite (3B)", "qwen2.5-coder:3b", 1.9, 4.0, False, None, 0.2, 40.0,
@@ -164,15 +186,25 @@ def tier_by_id(tier_id: str) -> ModelTier | None:
     return next((tier for tier in TIERS if tier.tier_id == bare), None)
 
 
+def gpu_tiers() -> tuple[ModelTier, ...]:
+    """The tiers served from a graphics card, smallest first; the only ones ``recommend_tier`` considers."""
+    return tuple(tier for tier in TIERS if tier.execution == "gpu")
+
+
+def cpu_tiers() -> tuple[ModelTier, ...]:
+    """The tiers that need no GPU (today the Solver Bee); a producer opts into one, no card size recommends it."""
+    return tuple(tier for tier in TIERS if tier.execution == "cpu")
+
+
 def tiers_for_vram(vram_gb: float) -> tuple[ModelTier, ...]:
-    """Every tier a card with ``vram_gb`` of memory can hold, smallest first."""
+    """Every GPU tier a card with ``vram_gb`` of memory can hold, smallest first. A card never "holds" a CPU tier."""
     if vram_gb != vram_gb or vram_gb < 0:  # NaN or negative
         raise ValueError("vram_gb must be a non-negative number")
-    return tuple(tier for tier in TIERS if tier.min_vram_gb <= vram_gb)
+    return tuple(tier for tier in gpu_tiers() if tier.min_vram_gb <= vram_gb)
 
 
 def recommend_tier(vram_gb: float) -> ModelTier | None:
-    """The biggest tier a card with ``vram_gb`` can hold, or ``None`` when even the smallest does not fit."""
+    """The biggest GPU tier a card with ``vram_gb`` can hold, or ``None`` when even the smallest does not fit."""
     fitting = tiers_for_vram(vram_gb)
     return fitting[-1] if fitting else None
 
@@ -181,7 +213,9 @@ def catalog_payload() -> dict[str, Any]:
     """The public JSON the gateway serves at ``/v1/hivemind/catalog``."""
     return {
         "object": "hivemind.catalog",
-        "note": "Tags are recommendations; verify them with your server. HMT are points with no cash value.",
+        "note": "Tags are recommendations; verify them with your server. HMT are points with no cash value."
+        " CPU tiers (execution == 'cpu') need no GPU and are never recommended for a card; hivemind/solver is free during the pilot.",
+        "free_during_pilot": [tier.public_id for tier in TIERS if tier.suggested_cost_per_1k == 0.0],
         "season": "HM-S19-Q35",
         "swarm_plan_endpoint": "/v1/hivemind/swarm-plan",
         "tiers": [tier.to_dict() for tier in TIERS],
@@ -196,6 +230,8 @@ def _validate_catalog(tiers: tuple[ModelTier, ...]) -> None:
     vram = [tier.min_vram_gb for tier in tiers]
     if vram != sorted(vram):
         raise ValueError("TIERS must be ordered by min_vram_gb")
+    if not any(tier.execution == "gpu" for tier in tiers):
+        raise ValueError("TIERS must keep at least one GPU tier for recommend_tier")
 
 
 _validate_catalog(TIERS)

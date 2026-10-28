@@ -62,7 +62,11 @@ the same tier competes in the same market, which keeps prices fair and supply de
 | `hivemind/coder-plus` | 12 GB | bigger refactors, multi-file reasoning, tests | no |
 | `hivemind/moe-general` | 16 GB | reasoning-heavy questions and design (gpt-oss 20B, about 3.6B active parameters) | yes |
 | `hivemind/moe-coder` | 24 GB | the strongest coding tier: agentic multi-file edits, long context (Qwen3-Coder 30B, about 3.3B active) | yes |
+| `hivemind/solver` | CPU, no GPU | not a language model: a certified ODE solver. Send one fenced `ode-spec` block and get the result plus a `hivemind-cert` certificate (see `docs/solver_bee/SERVICE.md`). Free during the Season 20 pilot. | no |
 | `hivemind/auto` | n/a | whichever live model has the most producers | n/a |
+
+The `solver` tier is the catalog's first CPU tier (`"execution": "cpu"` in `GET /v1/hivemind/catalog`). The producer agent's
+`--suggest` never recommends it for a card; a producer that runs the Solver Bee service opts into it with `--preset solver`.
 
 A mixture-of-experts (MoE) model has many specialist sub-networks but uses only a few per token, so it answers like a
 big model while computing like a small one. The catch is memory: all the experts must fit, which is why the MoE tiers

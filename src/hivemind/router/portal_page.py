@@ -754,12 +754,16 @@ def render_portal_page(client_id: str | None, nonce: str) -> str:
     """Render the full OpenRouter Portal and Playground HTML page."""
     tier_cards = []
     for tier in TIERS:
+        cpu = tier.execution == "cpu"
+        badge = "🧮 CPU SOLVER" if cpu else "⚡ MIXTURE-OF-EXPERTS" if tier.moe else "⚡ DENSE"
+        memory = "No GPU needed" if cpu else f"Min VRAM: {tier.min_vram_gb:.1f} GB"
+        price = "free during the pilot" if tier.suggested_cost_per_1k == 0.0 else f"{tier.suggested_cost_per_1k:.1f} HMT/1k"
         tier_cards.append(f"""
         <div class="tier-card">
           <div>
-            <div class="tier-badge">{"⚡ MIXTURE-OF-EXPERTS" if tier.moe else "⚡ DENSE"}</div>
+            <div class="tier-badge">{badge}</div>
             <div class="tier-name">{tier.title}</div>
-            <div class="tier-vram">Min VRAM: {tier.min_vram_gb:.1f} GB &bull; {tier.suggested_cost_per_1k:.1f} HMT/1k</div>
+            <div class="tier-vram">{memory} &bull; {price}</div>
             <div class="tier-desc">{tier.good_for}</div>
           </div>
           <div>
