@@ -49,7 +49,8 @@ BUSY_FRACTION = 0.5  # HEURISTIC: more than half of the VRAM already used by som
 MIN_RAM_GB, MIN_CPUS = 8.0, 4  # HEURISTIC
 NIGHT = ("Europe/Paris", 22, 7)
 MIB_TO_MB = 1.048576
-# (tier_id, min_vram_gb) in the order of src/hivemind/router/catalog.py TIERS
+# (tier_id, min_vram_gb) in the order of src/hivemind/router/catalog.py TIERS, GPU tiers only: a CPU tier such as the
+# Solver Bee (#271) is never sized to a card, so it is left out of the volunteer's "fits / does not fit" split.
 TIERS: tuple[tuple[str, float], ...] = (
     ("crowd-v1", 4.0), ("coder-lite", 4.0), ("bee-rusty-sundials", 6.0), ("coder", 6.0), ("coder-plus", 12.0), ("moe-general", 15.0), ("moe-coder", 24.0),
 )

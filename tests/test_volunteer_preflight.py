@@ -247,8 +247,10 @@ def test_no_gpu_uuid_requested() -> None:
 # --- facts kept in sync with the repo ---------------------------------------------------------------------------------------------------------
 def test_tiers_match_catalog() -> None:
     sys.path.insert(0, str(ROOT / "src"))
-    from hivemind.router.catalog import TIERS
-    assert pf.TIERS == tuple((t.tier_id, t.min_vram_gb) for t in TIERS)
+    from hivemind.router.catalog import cpu_tiers, gpu_tiers
+    # The preflight sizes a volunteer's card, so it mirrors the GPU tiers only; CPU tiers (#271) never "fit" a card.
+    assert pf.TIERS == tuple((t.tier_id, t.min_vram_gb) for t in gpu_tiers())
+    assert not {t.tier_id for t in cpu_tiers()} & {tier_id for tier_id, _ in pf.TIERS}
 
 
 def test_ssrf_guard_matches_gateway() -> None:
